@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.11600v1/fig-001.webp",
+      "caption": "Fig. 2: Ablation performance in Ant-v5 and Hopper-v5",
+      "page": 11,
+      "index": 1,
+      "width": 516,
+      "height": 663
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11600v1/fig-002.webp",
+      "caption": "TABLE VIII: Detailed hyperparameters",
+      "page": 15,
+      "index": 2,
+      "width": 524,
+      "height": 631
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11600v1/fig-003.webp",
+      "caption": "TABLE II: Comprehensive Performance Comparison across Standard Environments",
+      "page": 10,
+      "index": 3,
+      "width": 760,
+      "height": 908
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11600v1/fig-004.webp",
+      "caption": "Fig. 8: Sideslip angle and yaw rate variation with position for each controller",
+      "page": 14,
+      "index": 4,
+      "width": 516,
+      "height": 500
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11600v1/fig-005.webp",
+      "caption": "TABLE I: Characteristic Comparison of Different Physics-Guided Methods",
+      "page": 3,
+      "index": 5,
+      "width": 814,
+      "height": 198
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11600v1/fig-006.webp",
+      "caption": "Fig. 6: Training performance comparison",
+      "page": 13,
+      "index": 6,
+      "width": 516,
+      "height": 302
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11600v1/fig-007.webp",
+      "caption": "TABLE V: Vehicle Body Parameter Settings",
+      "page": 12,
+      "index": 7,
+      "width": 512,
+      "height": 452
+    }
+  ]
+}

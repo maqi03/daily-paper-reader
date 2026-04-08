@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-001.webp",
+      "caption": "Figure 12. Training on noisy data results in shorter responses, indicating that noise induces weaker reasoning.",
+      "page": 11,
+      "index": 1,
+      "width": 1002,
+      "height": 210
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-002.webp",
+      "caption": "Figure 11. Training on noisy data results in increasing performance degradation (by up to 11.4%) as the noise proportion increases.",
+      "page": 11,
+      "index": 2,
+      "width": 995,
+      "height": 219
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-003.webp",
+      "caption": "Figure 10. Noise leads to lower pass@k than the base model when k > 1, showing that noise does not improve capability boundary.",
+      "page": 11,
+      "index": 3,
+      "width": 995,
+      "height": 213
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-004.webp",
+      "caption": "Figure 16. After three epochs (600 steps), no model shows improvements of average pass@1 of all benchmarks in the subsequent 50 steps.",
+      "page": 15,
+      "index": 4,
+      "width": 1002,
+      "height": 182
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-005.webp",
+      "caption": "Figure 15. Training on noisy data with improved algorithms still results in shorter responses.",
+      "page": 13,
+      "index": 5,
+      "width": 1000,
+      "height": 283
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-006.webp",
+      "caption": "Figure 14. None of the evaluated algorithmic improvements achieve higher pass@k score than GRPO under 50% noise.",
+      "page": 13,
+      "index": 6,
+      "width": 995,
+      "height": 216
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-007.webp",
+      "caption": "Figure 9. Real-world noise significantly degrades RLVR performance, while algorithmic intervention fails to recover it. Models trained on the original, noisy BIRD dataset (BIRD-Original-600) via GRPO suffers a 5.7–12.1% accuracy drop compared to BIRDCorrected-600. The PGFC algorithm, specifically designed to handle noisy data, fails to consistently improve over GRPO and remains 5.1–16.3% behind the clean data baseline.",
+      "page": 8,
+      "index": 7,
+      "width": 462,
+      "height": 304
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-008.webp",
+      "caption": "Figure 2. Data re-verification pipeline for synthesizing truly noisy dataset. As shown in the two examples, we identify the issues of insufficient ground-truth annotations and inadequate equivalence checking, leading to correct annotations in the prior noisy dataset. We address them via a rigorous pipeline combining LLM annotation and human verification.",
+      "page": 4,
+      "index": 8,
+      "width": 1013,
+      "height": 267
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-009.webp",
+      "caption": "Figure 13. Existing algorithm improvements fail to mitigate the impact of noisy data. Under 50% noise, none of the improved algorithm achieved > 2% accuracy improvement on all benchmarks simultaneously compared to GRPO with 50% noise, while all algorithms underperform the vanilla GRPO with clean data by 3.1-7.3%",
+      "page": 12,
+      "index": 9,
+      "width": 1001,
+      "height": 967
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-010.webp",
+      "caption": "Figure 3. Both incorrect and random annotations significantly decrease the performance of RLVR: RLVR with incorrect annotations achieves comparable or lower accuracy (by 1.2–5.6%) than RLVR with format rewards, and lower accuracy (by 8.5–10.0%) than RLVR with clean data; RLVR with random annotations achieves significantly lower accuracy (by 6.7–27.8%) than the base model.",
+      "page": 5,
+      "index": 10,
+      "width": 1000,
+      "height": 374
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16140v1/fig-011.webp",
+      "caption": "Figure 17. Starting the tenth epoch, no model shows improvements in terms of reward.",
+      "page": 16,
+      "index": 11,
+      "width": 1000,
+      "height": 1229
+    }
+  ]
+}

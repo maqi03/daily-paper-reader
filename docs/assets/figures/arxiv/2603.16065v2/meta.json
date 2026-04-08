@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.16065v2/fig-001.webp",
+      "caption": "Fig. 2: Cumulative accuracy at varying tolerance thresholds (±∆). Our LRM consistently outperforms the baseline across all thresholds, with the most significant gains achieved in the high-precision regime ±0.2.",
+      "page": 6,
+      "index": 1,
+      "width": 512,
+      "height": 383
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16065v2/fig-002.webp",
+      "caption": "Fig. 1: The overview of our method. Our framework leverages specialized Large Reward Model (LRM) generation to facilitate online policy refinement for high-precision robotic control. Initially, diverse video trajectories from real-robot corpora, human-object interactions, and simulated benchmarks are processed to fine-tune a Qwen3-VL-8B-Instruct backbone via LoRA. This specialization yields three independent reward modalities: the Temporal Contrastive Reward (rcont) for relative ranking, the Absolute Progress Reward (rprog) for continuous estimation, and the Task Completion Reward (rcomp) for terminal state anchoring. During active interaction, the specialized LRM maps visual observations It and task descriptions d into a dense reward stream, which the policy πϕ utilizes to autonomously refine its control behaviors for high-precision manipulation.",
+      "page": 2,
+      "index": 2,
+      "width": 1054,
+      "height": 710
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16065v2/fig-003.webp",
+      "caption": "Fig. 4: Robot setup for the pick and place task.",
+      "page": 7,
+      "index": 3,
+      "width": 514,
+      "height": 352
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16065v2/fig-004.webp",
+      "caption": "Fig. 3: Comparison of real-world robot rollouts between the SFT baseline and RL finetuning with LRM. The SFT baseline fails to complete the task, mistakenly placing the toy giraffe beside the target bowl. In contrast, RL finetuning with LRM successfully places the giraffe inside the bowl, demonstrating the effectiveness of LRM-driven policy improvement.",
+      "page": 7,
+      "index": 4,
+      "width": 1054,
+      "height": 350
+    }
+  ]
+}

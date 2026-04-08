@@ -1,0 +1,206 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-001.webp",
+      "caption": "Figure 6: Qualitative examples of ROVA-trained Qwen2.5-VL-7B performing obstacle avoidance and target identification under night-time low-light conditions. See more examples in Figs. 20 to 23.",
+      "page": 11,
+      "index": 1,
+      "width": 826,
+      "height": 528
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-002.webp",
+      "caption": "Figure 12: Performance of ROVA vs. baseline on Qwen2.5-VL-7B across varying frame counts (F = Number of Frames). ROVA outperforms the baseline at every frame count.",
+      "page": 25,
+      "index": 2,
+      "width": 735,
+      "height": 311
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-003.webp",
+      "caption": "Figure 15: Per-task accuracy comparison of Embodied-R-7B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA.",
+      "page": 26,
+      "index": 3,
+      "width": 647,
+      "height": 269
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-004.webp",
+      "caption": "Figure 14: Per-task accuracy comparison of QwenVL-2.5-7B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA.",
+      "page": 26,
+      "index": 4,
+      "width": 694,
+      "height": 327
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-005.webp",
+      "caption": "Figure 16: Per-task accuracy comparison of InternVL2.5-8B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA.",
+      "page": 26,
+      "index": 5,
+      "width": 647,
+      "height": 269
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-006.webp",
+      "caption": "Figure 8: Answer consistency evaluation prompt for binary answer matching.",
+      "page": 21,
+      "index": 6,
+      "width": 829,
+      "height": 657
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-007.webp",
+      "caption": "Figure 22: Qualitative examples of ROVA-trained Qwen3-VL-13B performing landmark matching and wind-aware path planning under sandstorm conditions.",
+      "page": 30,
+      "index": 7,
+      "width": 829,
+      "height": 479
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-008.webp",
+      "caption": "Figure 23: Qualitative examples of ROVA-trained Embodied-R (Qwen2.5-VL-7B as Vision Language Models) performing glare region identification and glare-aware approach planning under strong sun glare conditions.",
+      "page": 30,
+      "index": 8,
+      "width": 829,
+      "height": 477
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-009.webp",
+      "caption": "Figure 1: Failure cases of Qwen2.5-VL under two representative perturbations: (a) occlusion (left) and (b) adverse weather (right). The model incorrectly predicts Turn Left” under occlusion and Turn Right” under fog, despite the ground-truth being “Go Ahead” in both cases, demonstrating how realistic perturbations mislead reasoning and motivating the need for robustness-aware training.",
+      "page": 2,
+      "index": 9,
+      "width": 806,
+      "height": 339
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-010.webp",
+      "caption": "Figure 3: Overview of the perturbation types in PVRBench.",
+      "page": 7,
+      "index": 10,
+      "width": 360,
+      "height": 338
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-011.webp",
+      "caption": "Figure 20: Qualitative examples of ROVA-trained Qwen2.5-VL-7B performing depth estimation and path continuity reasoning under dense fog conditions.",
+      "page": 29,
+      "index": 11,
+      "width": 829,
+      "height": 479
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-012.webp",
+      "caption": "Figure 21: Qualitative examples of ROVA-trained InternVL2.5-8B performing structure recognition and visibility-aware altitude control under heavy snowstorm conditions.",
+      "page": 29,
+      "index": 12,
+      "width": 829,
+      "height": 477
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-013.webp",
+      "caption": "Figure 9: Reasoning consistency evaluation prompt with three-tier scoring.",
+      "page": 22,
+      "index": 13,
+      "width": 829,
+      "height": 788
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-014.webp",
+      "caption": "Table 1: Comparison of PVRBench with existing video understanding benchmarks. #Types counts perturbation subtypes. #Cat. counts scene or class categories. Synthetic, Spatial, and Temporal indicate artificially generated, spatially grounded, and temporally consistent perturbations, respectively. PVRBench covers 27 tasks covering indoor, outdoor, and embodied AI scenarios. ‡: An image-level benchmark for reference.",
+      "page": 3,
+      "index": 14,
+      "width": 823,
+      "height": 256
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-015.webp",
+      "caption": "Table 14: Component-wise wall-clock timing breakdown per training step for ROVA on 4× A100 GPUs (N = 4 per GPU, Gtotal = 12).",
+      "page": 33,
+      "index": 15,
+      "width": 577,
+      "height": 224
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-016.webp",
+      "caption": "Figure 10: LLM judge prompt for binary answerability assessment under perturbation. The confidence score controls the sample discard rate via threshold τ .",
+      "page": 23,
+      "index": 16,
+      "width": 829,
+      "height": 517
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-017.webp",
+      "caption": "Table 2: Evaluation on PVRBench. We report accuracy under four visual perturbations (Lighting, Occlusion, camera Shake, Weather) on the left, and reasoning quality metrics on the right, including Fragility, Consistency, Belief, Recovery, and Attention (0 - 5 scale; Higher is better, except for Fra (↓)). #Fr: the number of frames, Avg.: the average performance, and Orig.: the average performance on clean (unperturbed) data. We exclude Fra. when computing Avg.† and Orig.†.",
+      "page": 8,
+      "index": 17,
+      "width": 836,
+      "height": 709
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-018.webp",
+      "caption": "Figure 2: Overview of ROVA: (1) structured spatio-temporal corruption that generates realistic perturbations, (2) self-reflective evaluation with difficulty-aware online training that adaptively prioritizes informative samples, and (3) dual-branch alignment reward modeling that enforces output consistency between clean and perturbed inputs.",
+      "page": 4,
+      "index": 18,
+      "width": 814,
+      "height": 346
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-019.webp",
+      "caption": "Table 7: VSI-Bench task distribution with spatial reasoning focus.",
+      "page": 19,
+      "index": 19,
+      "width": 714,
+      "height": 254
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-020.webp",
+      "caption": "Table 12: Effective training ratio ρt and corresponding discard rates over training. “Easy Disc.” denotes high-confidence easy samples discarded; “Difficult Def.” denotes hard samples deferred to the buffer.",
+      "page": 32,
+      "index": 20,
+      "width": 614,
+      "height": 202
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-021.webp",
+      "caption": "Figure 19: Cross-benchmark evaluation on VisBench and UrbanVideo under various perturbation types. ROVA achieves +14.6% and +12.9% average accuracy gains, respectively, demonstrating consistent cross-benchmark improvements.",
+      "page": 27,
+      "index": 21,
+      "width": 756,
+      "height": 319
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-022.webp",
+      "caption": "Figure 18: Per-task accuracy comparison of Qwen3-VL-13B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA.",
+      "page": 27,
+      "index": 22,
+      "width": 686,
+      "height": 285
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-023.webp",
+      "caption": "Figure 17: Per-task accuracy comparison of Qwen2.5-VL-72B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA.",
+      "page": 27,
+      "index": 23,
+      "width": 686,
+      "height": 285
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-024.webp",
+      "caption": "Table 9: Hyperparameter sensitivity analysis on the PVRBench validation set for Qwen2.5-VL-7B after the first training epoch. Best values are highlighted in bold.",
+      "page": 24,
+      "index": 24,
+      "width": 398,
+      "height": 329
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10652v1/fig-025.webp",
+      "caption": "Table 3: Training efficiency comparison (Qwen2.5-VL-7B, Orig. Acc. = 0.43; GPU-h = #GPUs×wall-clock hours). SRE = Self-Reflective Evaluation, DRE = Difficulty Re-Evaluation, ME = Memory Eviction. Robust. = dual-branch alignment with structured corruption (Secs. 3.1 and 3.3). Curric. = SRE + DRE + ME (Sec. 3.2).",
+      "page": 9,
+      "index": 25,
+      "width": 809,
+      "height": 394
+    }
+  ]
+}

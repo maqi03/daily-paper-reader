@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-001.webp",
+      "caption": "Figure 1. Best-of-K performance on mathematics (MATH, GSM, and AIME), Python (HumanEval and BigCodeBench), and SQL (Bird). The PRM trained on MCNIG labels achieves the highest performance at all values of the number of candidates K. The improvement over majority voting increases with increasing K.",
+      "page": 6,
+      "index": 1,
+      "width": 1000,
+      "height": 325
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-002.webp",
+      "caption": "Figure 2. Comparison between the labeling performance of Information Gain and Monte Carlo Net Information Gain in terms of balanced accuracy of the chain-of-thought score of each candidate.",
+      "page": 6,
+      "index": 2,
+      "width": 492,
+      "height": 329
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-003.webp",
+      "caption": "Figure 6. Illustration of the information trajectories for the correct answers (blue), incorrect answers (orange), and the resulting net information (green). This sample leads to an incorrect prediction. Left: aggregation using the average operator yields a flat, uninformative signal. Right: aggregation using the maximum operator yields a sharp discriminative signal at the final step.",
+      "page": 15,
+      "index": 3,
+      "width": 1017,
+      "height": 915
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-004.webp",
+      "caption": "Table 2. Performance of Process Reward Model trained on IG labels and MCNIG labels. We include ORM, MathShepherd, ImplicitPRM, OVM, QwenPRM, and majority voting as baselines. Additionally, we show “single sampling” to demonstrate the value of all those methods against single shot generation.",
+      "page": 7,
+      "index": 4,
+      "width": 923,
+      "height": 299
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-005.webp",
+      "caption": "Figure 3. Beeswarm chart from the SHAP analysis of the labeled dataset using IG (top figure) and MCNIG (bottom figure). We see the impact of three features: the length of the ground truth, the number of steps, and problem difficulty. Note that IG fails on problems with longer GT answers whereas MCNIG has consistent performance.",
+      "page": 7,
+      "index": 5,
+      "width": 492,
+      "height": 360
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-006.webp",
+      "caption": "Figure 5. Average BoK performance over the 6 tasks for PRMs trained on different subsets of the training set, ranging from 100k to the full 1.2M samples.",
+      "page": 14,
+      "index": 6,
+      "width": 533,
+      "height": 394
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-007.webp",
+      "caption": "Figure 8. Evolution of the empirical bias and variance with respect to the subsample size for the MATH dataset. Both quantities decrease rapidly as s increases.",
+      "page": 18,
+      "index": 7,
+      "width": 792,
+      "height": 387
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-008.webp",
+      "caption": "Table 7. Statistics of the generated CoTs. The best-of-K (BoK) columns show the percentage of problems where at least one sample achieves the correct solution, whereas the % correct columns show the percentage of generations that are correct. We show the statistics for the complete train set and the test set.",
+      "page": 13,
+      "index": 8,
+      "width": 659,
+      "height": 450
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-009.webp",
+      "caption": "Table 6. Training Dataset Composition",
+      "page": 12,
+      "index": 9,
+      "width": 637,
+      "height": 400
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-010.webp",
+      "caption": "Figure 4. Distribution of the number of steps in the chain of thoughts of all the datasets combined.",
+      "page": 12,
+      "index": 10,
+      "width": 512,
+      "height": 311
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17815v1/fig-011.webp",
+      "caption": "Figure 7. Example of a sample that is misclassified under IG but correctly identified under MCNIG, illustrating the sharper discriminative behavior of the max-based information signal.",
+      "page": 16,
+      "index": 11,
+      "width": 379,
+      "height": 363
+    }
+  ]
+}

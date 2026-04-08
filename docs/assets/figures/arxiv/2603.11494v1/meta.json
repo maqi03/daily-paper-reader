@@ -1,0 +1,110 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-001.webp",
+      "caption": "Fig. 1. CBT-based counseling dialogues require session-level coherence, long-term consistency across multiple sessions, and adherence to structured therapeutic progression.",
+      "page": 1,
+      "index": 1,
+      "width": 524,
+      "height": 629
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-002.webp",
+      "caption": "TABLE IV THE LEADERBOARD OF PRMB, RANKED BY THE AVERAGE OF PAIRWISE AND BON ACCURACY. ⋆ DENOTES LLM-AS-A-JUDGE MODELS.",
+      "page": 6,
+      "index": 2,
+      "width": 602,
+      "height": 334
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-003.webp",
+      "caption": "Fig. 11. Detailed per-category pairwise and BoN accuracies for the six evaluated models.",
+      "page": 11,
+      "index": 3,
+      "width": 513,
+      "height": 469
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-004.webp",
+      "caption": "Fig. 10. Prompt usage in long-term memory generation.",
+      "page": 11,
+      "index": 4,
+      "width": 524,
+      "height": 675
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-005.webp",
+      "caption": "Fig. 5. (a) Average accuracy (pairwise + BoN), (b) Pairwise accuracy, and (c) Best-of-N accuracy across the six therapeutic sessions. Generative LLM-as-ajudge models (dashed lines) and discriminative reward models (solid lines) are distinguished by color and marker style. Solid lines represent discriminative reward models; dashed lines represent generative LLM-as-a-judge models.",
+      "page": 7,
+      "index": 5,
+      "width": 1059,
+      "height": 359
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-006.webp",
+      "caption": "Fig. 9. Prompt usage in short-term memory generation.",
+      "page": 10,
+      "index": 6,
+      "width": 524,
+      "height": 708
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-007.webp",
+      "caption": "Fig. 2. An overview of data construction process: (1) Sampling multi-session dialogues into prompts and obtaining multiple responses for them. (2) Organizing them into pairs or best-of-N lists.",
+      "page": 3,
+      "index": 7,
+      "width": 1061,
+      "height": 656
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-008.webp",
+      "caption": "Fig. 6. Accuracy (%) of top generative and discriminative reward models across CBT strategies. Values represent the percentage of average correct judgments for each strategy.",
+      "page": 8,
+      "index": 8,
+      "width": 513,
+      "height": 438
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-009.webp",
+      "caption": "Fig. 7. Average pairwise (light bars) and BoN (dark bars) accuracy across the four main clusters of negative experiences. Values are averaged over the six evaluated reward models. Cluster I shows the highest performance, while Cluster IV exhibits the largest pairwise–BoN gap, highlighting challenges in detecting cumulative experiential harms.",
+      "page": 8,
+      "index": 9,
+      "width": 511,
+      "height": 319
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-010.webp",
+      "caption": "TABLE I DISTRIBUTION OF PROMPTS, PAIRWISE PAIRS, AND BEST-OF-N QUERIES ACROSS THERAPEUTIC STRATEGIES.",
+      "page": 4,
+      "index": 10,
+      "width": 516,
+      "height": 287
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-011.webp",
+      "caption": "Fig. 3. Distribution of prompts (with percentages annotated above each bar), pairwise preference pairs, and Best-of-N queries across therapeutic sessions. Pairwise and BoN counts are shown inside the respective stacked segments. Session themes: (1) Information gathering, goal setting, and case conceptualization; (2) Identifying and challenging automated thoughts; (3) Discussion case conceptualization; (4) Adjusting intermediate beliefs and core beliefs; (5) Relapse prevention; (6) Consolidation.",
+      "page": 4,
+      "index": 11,
+      "width": 512,
+      "height": 312
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-012.webp",
+      "caption": "TABLE V EFFECTS OF INFERENCE-TIME STRATEGIES ON PAIRWISE AND BEST-OF-N (BON) ACCURACY ACROSS DIFFERENT GENERATIVE REWARD MODEL BACKBONES.",
+      "page": 9,
+      "index": 12,
+      "width": 406,
+      "height": 346
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11494v1/fig-013.webp",
+      "caption": "TABLE II DISTRIBUTION OF PROMINENT SUB-CATEGORIES. PERCENTAGES ARE RELATIVE TO THE TOTAL NEGATIVE EXPERIENCES IN EACH SET (NOT WITHIN-CLUSTER).",
+      "page": 5,
+      "index": 13,
+      "width": 516,
+      "height": 519
+    }
+  ]
+}

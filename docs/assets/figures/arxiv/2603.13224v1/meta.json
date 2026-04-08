@@ -1,0 +1,150 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-001.webp",
+      "caption": "Figure 10: Visual-ERM inference prompt. The prompting template used by Visual-ERM at inference time. This prompt is specialized for the SVG-to-Code setting.",
+      "page": 25,
+      "index": 1,
+      "width": 858,
+      "height": 762
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-002.webp",
+      "caption": "Figure 11: VC-RewardBench evaluation prompt. For the subjective, free-form error descriptions in VC-RewardBench, we use an LLM-assisted judge to perform error matching and verification; the prompt used in this evaluation protocol is shown here.",
+      "page": 26,
+      "index": 2,
+      "width": 869,
+      "height": 875
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-003.webp",
+      "caption": "Figure 7: Prompt for distillation. The prompt used to distill GPT-5-mini to construct reward-modeling training data for Visual-ERM. We show the Chart-specific prompt here; due to its length, this table includes only the second part.",
+      "page": 21,
+      "index": 3,
+      "width": 867,
+      "height": 575
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-004.webp",
+      "caption": "Figure 14: Case study. We show representative examples from the SVG-to-Code reward-model training data and the benchmark.",
+      "page": 30,
+      "index": 4,
+      "width": 819,
+      "height": 1260
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-005.webp",
+      "caption": "Figure 1: Overview of vision-to-code reward modeling and Visual-ERM. (a) Vision-to-code transforms structured visual inputs (charts, tables, and SVGs) into structured textual outputs (code or markup). Rendering the predicted text back into an image enables evaluation in the visual space. (b) Prior rewards either rely on text-based rule metrics, which ignore critical visual cues, or use vision-encoder feature similarity, which is coarse-grained and lacks interpretability. (c) Visual-ERM provides fine-grained, interpretable, and task-agnostic reward signals for vision-to-code, serving as a reliable supervisor in both RL pipelines and test-time scaling.",
+      "page": 2,
+      "index": 5,
+      "width": 965,
+      "height": 562
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-006.webp",
+      "caption": "Figure 4: DINO vs. Visual-ERM. DINO scores are semantically-biased, which can lead to inflated rewards and reward hacking. In contrast, Visual-ERM accounts for fine-grained visual details and provides more precise and interpretable evaluations.",
+      "page": 7,
+      "index": 6,
+      "width": 463,
+      "height": 323
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-007.webp",
+      "caption": "Table 1: Evaluation Results on Chart-to-Code Tasks. We evaluate on ChartMimic(Direct) and ChartMimic(Customized). ChartMimic(Direct) requires generating Python code that reproduces the input chart, while ChartMimic(Customized) requires generating code for a new chart that matches the given chart’s style and data constraints. Exec_rate denotes the execution success rate; Low and High denote the low-level and high-level scores, respectively.",
+      "page": 7,
+      "index": 7,
+      "width": 910,
+      "height": 342
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-008.webp",
+      "caption": "Figure 13: Case study. We show representative examples from the Table-to-Markdown reward-model training data and the benchmark.",
+      "page": 29,
+      "index": 8,
+      "width": 821,
+      "height": 1277
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-009.webp",
+      "caption": "Table 8: Ablation Study of Multi-Task Data Mixing. We perform RL on the table parsing task using different reward models: one reward model is trained only on table data, while the other reward model is jointly trained on table, chart, and SVG data. TEDS-S denotes TEDS-Structure-Only, and TA represents the table subtask of olmOCRBench. For Edit-Dist, where lower values indicate better performance, we use (100− Edit-Dist) when computing the Average.",
+      "page": 18,
+      "index": 9,
+      "width": 941,
+      "height": 241
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-010.webp",
+      "caption": "Figure 8: Visual-ERM inference prompt. The prompting template used by Visual-ERM at inference time. This prompt is specialized for the Chart-to-Code setting.",
+      "page": 23,
+      "index": 10,
+      "width": 860,
+      "height": 685
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-011.webp",
+      "caption": "Figure 12: Case study. We show representative examples from the Chart-to-Code reward-model training data and the benchmark.",
+      "page": 28,
+      "index": 11,
+      "width": 817,
+      "height": 1212
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-012.webp",
+      "caption": "Table 3: Results on UniSVG. SSIM and LPIPS measure pixel-level and perceptual similarity between rendered and reference SVGs, CLIP assesses semantic alignment, and Score is the aggregated overall metric.",
+      "page": 8,
+      "index": 12,
+      "width": 462,
+      "height": 350
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-013.webp",
+      "caption": "Table 2: Evaluation Results on Table-to-Markdown. TEDS-S denotes TEDS-Structure-Only, and TA represents the table subtask of olmOCRBench. For Edit-Dist, where lower values indicate better performance, we use (100− Edit-Dist) when computing the Average.",
+      "page": 8,
+      "index": 13,
+      "width": 942,
+      "height": 263
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-014.webp",
+      "caption": "Figure 2: (a) Training Data Generation. Starting from raw images and associated text, we construct image pairs by (i) synthesizing negative samples via targeted edits that inject pre-defined error types, and (ii) sampling naturally occurring errors from direct model inference. We then obtain fine-grained annotations for each image pair using proprietary models. (b) Visual-ERM.We train Visual-ERM on the resulting data and integrate it into both RL training and test-time scaling.",
+      "page": 4,
+      "index": 14,
+      "width": 967,
+      "height": 427
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-015.webp",
+      "caption": "Figure 9: Visual-ERM inference prompt. The prompting template used by Visual-ERM at inference time. This prompt is specialized for the Table-to-Markdown setting.",
+      "page": 24,
+      "index": 15,
+      "width": 860,
+      "height": 779
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-016.webp",
+      "caption": "Table 4: Evaluation Results on Visual-ERM-Bench. We evaluate a range of proprietary and open-source models on Visual-ERM-Bench. 𝐹1ℎ denotes 𝐹1ℎ𝑎𝑟𝑑, the strict-match F1 score; 𝐹1𝑠 denotes 𝐹1𝑠𝑜𝑓𝑡, the soft-match F1 score; and 𝑆𝑐 denotes the correlation score, measuring the overall agreement between the predicted scores and the ground-truth labels.",
+      "page": 9,
+      "index": 16,
+      "width": 979,
+      "height": 294
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-017.webp",
+      "caption": "Figure 6: Prompt for distillation. The prompt used to distill GPT-5-mini to construct reward-modeling training data for Visual-ERM. We show the Chart-specific prompt here; due to its length, this table includes only the first part.",
+      "page": 20,
+      "index": 17,
+      "width": 862,
+      "height": 1246
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13224v1/fig-018.webp",
+      "caption": "Figure 3: VC-RewardBench. We construct VC-RewardBench by first leveraging several advanced proprietary models for preliminary annotation, followed by manual consolidation and filtering, resulting in 1,335 high-quality instances.",
+      "page": 5,
+      "index": 18,
+      "width": 969,
+      "height": 218
+    }
+  ]
+}

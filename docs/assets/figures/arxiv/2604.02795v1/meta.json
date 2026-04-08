@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-001.webp",
+      "caption": "Table 6: Token attribution visualization for different constraint types. Darker shading indicates higher discriminator relevance score.",
+      "page": 11,
+      "index": 1,
+      "width": 990,
+      "height": 1342
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-002.webp",
+      "caption": "Figure 1: Architecture of the RTT framework. The policy model first generates a response group for instructions. The top computes Â (i,t)",
+      "page": 2,
+      "index": 2,
+      "width": 913,
+      "height": 331
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-003.webp",
+      "caption": "Table 1: Main results on instruction-following benchmarks. Fine-tuned method rows show scores with delta (↑ /↓ ) relative to the base model. Highlighted rows are our proposed RTT variants. Best results per model group are bolded and second-best are underlined. † We use discriminator initialized from Qwen3-4B-Base, ⋆ initialized from Llama3.2-3B-Base.",
+      "page": 7,
+      "index": 3,
+      "width": 950,
+      "height": 590
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-004.webp",
+      "caption": "Table 4: Ablation on token weighting strategies for RL training.",
+      "page": 8,
+      "index": 4,
+      "width": 771,
+      "height": 192
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-005.webp",
+      "caption": "Table 3: Ablation on group partitioning strategies across all model configurations. We compare Inter-sample vs. Intra-sample Token Group Normalization for advantage estimation. Best results per model are bolded.",
+      "page": 8,
+      "index": 5,
+      "width": 950,
+      "height": 321
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-006.webp",
+      "caption": "Figure 2: Reward structure under standard GRPO and RTT-GRPO. In GRPO (left), each of G sampled completions receives one outcome-level reward, advantages are normalized along the sample axis only. The RTT-GRPO (right) assigns rewards over three dimensions, motivating two group normalization strategies, inter-sample and intra-sample group normalization.",
+      "page": 4,
+      "index": 6,
+      "width": 896,
+      "height": 325
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-007.webp",
+      "caption": "Figure 4: Training dynamics of RTT-CSR vs. RL-CSR baseline. Left side shows model performance on IFEval, IFBench, and MulDimIF benchmarks, while right side shows response entropy.",
+      "page": 9,
+      "index": 7,
+      "width": 942,
+      "height": 235
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-008.webp",
+      "caption": "Figure 5: Training stability comparison between RTT-CSR and RL-CSR on Llama3.2-3B-Instruct. We report rollout accuracy, entropy, KL loss, and clip fraction over training. RL-CSR exhibits severe instability, while RTT-CSR remains stable.",
+      "page": 9,
+      "index": 8,
+      "width": 935,
+      "height": 212
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02795v1/fig-009.webp",
+      "caption": "Table 8: Training configurations across methods and model backbones.",
+      "page": 16,
+      "index": 9,
+      "width": 950,
+      "height": 627
+    }
+  ]
+}

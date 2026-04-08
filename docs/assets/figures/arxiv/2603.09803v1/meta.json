@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.09803v1/fig-001.webp",
+      "caption": "Figure 7: Empirical verification of the log-linear relationship between logw(q, r) = logEe[exp(∆e)] and ∆(q, r) = Ee[∆e]. Strong Pearson correlations (r = 0.855 for 1.5B, r = 0.822 for 7B) confirm that Evidence Gain serves as a reliable proxy for the implicit weight.",
+      "page": 15,
+      "index": 1,
+      "width": 931,
+      "height": 428
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09803v1/fig-002.webp",
+      "caption": "Table 3: Ablation on demonstration quality. IC-DAPO (R1) uses refined reasoning traces from DeepSeek-R1, while IC-DAPO (V3.1) uses solutions from DeepSeek-V3.1, a non-reasoning model. Both variants outperform DAPO, with R1 demonstrations yielding stronger results. Bold and underline indicate best and second-best results. ↑ denotes improvement over DAPO.",
+      "page": 10,
+      "index": 2,
+      "width": 941,
+      "height": 197
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09803v1/fig-003.webp",
+      "caption": "Table 1: Performance comparison across mathematical reasoning benchmarks. Bold and underline indicate the best and second-best results respectively. ↑ denotes improvement over the DAPO baseline. Notably, training times are incomparable across scales due to different GPU configurations (32 vs. 128 GPUs). Given this high GPU requirements at 7B scales, GSPO and CISPO are evaluated only at 1.5B.",
+      "page": 4,
+      "index": 3,
+      "width": 941,
+      "height": 238
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09803v1/fig-004.webp",
+      "caption": "Figure 6: Quality Evaluation Prompt Template. Placeholders {question} and {response} are replaced with the actual math problem and reasoning trace during evaluation.",
+      "page": 12,
+      "index": 4,
+      "width": 950,
+      "height": 1367
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09803v1/fig-005.webp",
+      "caption": "Figure 4: Spearman correlation matrix between DeepSeek-V3.2 quality scores and four human expert ratings on 100 sampled reasoning traces, together with inter rater correlations among experts.",
+      "page": 9,
+      "index": 5,
+      "width": 440,
+      "height": 380
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-001.webp",
+      "caption": "Figure 11: Training reward distributions on Easy and Hard sets at a matched compute level (𝑛 = 8 vs. 𝑛 = 128). (1) Interference exists: On the Easy set (initial pass rate 0.3-0.6), optimization sacrifices some problems, leaving a non-zero fraction unsolved after training. (2) Easy set: Larger 𝑛 results in a more uniform distribution of pass rates, avoiding polarized outcomes seen in smaller 𝑛. (3) Hard set: Larger 𝑛 improves coverage (reducing zero fraction), while smaller 𝑛 sharpens performance on a subset.",
+      "page": 11,
+      "index": 1,
+      "width": 562,
+      "height": 308
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-002.webp",
+      "caption": "Figure 24: 𝑛* scaling is consistent under token-based vs. rollout-based compute. We fit sigmoid curves for log2(𝑛*) as a function of compute 𝐶, using either total generated tokens (left) or total rollouts (right). Both choices produce the same qualitative scaling curve—rapid growth followed by saturation—indicating that the compute-optimal 𝑛* trend is robust to the compute definition.",
+      "page": 25,
+      "index": 2,
+      "width": 918,
+      "height": 408
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-003.webp",
+      "caption": "Figure 25: Generalization to other RL algorithms (PPO and CISPO). Validation reward versus compute (million rollouts) for varying parallel rollouts per problem 𝑛. Left: Easy set with PPO. Middle: Hard set with PPO. Right: Easy set with CISPO. The qualitative trend matches the main text: as compute increases, larger 𝑛 becomes increasingly favorable, with a stronger separation on the Hard split.",
+      "page": 26,
+      "index": 3,
+      "width": 1018,
+      "height": 296
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-004.webp",
+      "caption": "Figure 18: Compute-optimal frontiers on the Easy set under fixed total batch size 𝐵 ∈ {4096, 8192, 16384}. Each subplot fixes the total batch size 𝐵 and sweeps the number of parallel rollouts per problem plotting validation reward versus compute (measured in millions of rollouts).",
+      "page": 21,
+      "index": 4,
+      "width": 1018,
+      "height": 227
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-005.webp",
+      "caption": "Figure 17: Compute-optimal frontiers maximizing over 𝑛 varying problems per batch (𝐵p) on the Hard set.",
+      "page": 21,
+      "index": 5,
+      "width": 1018,
+      "height": 541
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-006.webp",
+      "caption": "Figure 6: Validation reward vs. compute (𝐵p = 32). The frontier shifts to larger 𝑛 as compute increases. For easy problems (left), large 𝑛 dominates at high compute where small 𝑛 plateaus. Hard problems (right) show the same trend but saturate earlier with a smaller 𝑛.",
+      "page": 7,
+      "index": 6,
+      "width": 643,
+      "height": 279
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-007.webp",
+      "caption": "Figure 7: Compute-optimal scaling of parallel rollouts 𝑛 (𝐵p = 32). The optimal value of rollouts 𝑛 shifts systematically higher as the total sampling compute increases. Points show a running-average estimate of the frontierattaining 𝑛*(𝐶) at each compute budget (colored by reward), and the red curves fit a sigmoid parameterizing log𝑛 as a function of log𝐶.",
+      "page": 7,
+      "index": 7,
+      "width": 643,
+      "height": 279
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-008.webp",
+      "caption": "Figure 27: Dynamics of pass@1 distributions (sanity-checking the interference analysis in Fig. 11). We visualize the evolution of pass@1 histograms across training for the same four cases (Easy/Hard · 𝑛=8/128) at matched compute. The temporal trajectories corroborate the main-text interpretation: on Easy, small 𝑛 progressively polarizes into a mass near 1 with a persistent non-zero fraction near 0 (optimization-induced interference), whereas large 𝑛 maintains a more dispersed, uniform distribution. On Hard, large 𝑛 increases coverage by steadily reducing the zero-mass, while small 𝑛 concentrates gains on a subset of solvable problems, yielding sharper but less comprehensive improvements.",
+      "page": 29,
+      "index": 8,
+      "width": 1018,
+      "height": 920
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-009.webp",
+      "caption": "Figure 19: Compute-optimal frontiers on the Hard set under fixed total batch size 𝐵 ∈ {4096, 8192, 16384}. Compared to the Easy set, the trends are noisier in the Hard regime. Nevertheless, the qualitative trend remains consistent: as compute increases, the compute-optimal allocation increasingly favors larger parallel rollouts per problem, i.e., larger 𝑛.",
+      "page": 22,
+      "index": 9,
+      "width": 1018,
+      "height": 224
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-010.webp",
+      "caption": "Figure 20: Compute-optimal frontiers on the in-domain Extremely Hard subset (pass@128 = 0), evaluated with best@4 (left) and worst@4 (right). Larger 𝑛 improves best@4 at higher compute, whereas worst@4 is maximized by a moderate 𝑛 = 64, highlighting a strong coverage-sharpening trade-off in the extremely hard regime.",
+      "page": 22,
+      "index": 10,
+      "width": 918,
+      "height": 340
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-011.webp",
+      "caption": "Figure 10: Sensitivity of validation reward to 𝐵p vs. 𝑛. Easy (left): The impact of varying 𝑛 (9.2% range) shows a clear positive correlation and is significantly larger than varying 𝐵p (1.9%). Hard (right): Sensitivity to 𝐵p (2.2%) is comparable to 𝑛 (3.1%). The fluctuating trend in the top-right plot suggests that 𝐵p selection introduces optimization instability on hard tasks, explaining the less predictable trends when fixing 𝐵.",
+      "page": 10,
+      "index": 11,
+      "width": 594,
+      "height": 356
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-012.webp",
+      "caption": "Figure 14: Results across difficulty levels for small (𝑛 = 8) and large (𝑛 = 64) rollout budgets under different training data distributions (5K total samples) using Qwen2.5-7B-Instruct. We consider Hard (pass@128 = 0), Easy (pass@128 ∈ [0.3, 0.6]), and Very Easy (pass@128 ∈ [0.6, 0.9]) problems. Rows correspond to Hard Only, Heterogeneous-Dual Mix (50% Hard, 50% Easy), and Heterogeneous-Tri Mix (50% Hard, 25% Easy, 25% Very Easy; the J-shaped distribution from Polaris). Across distributions, larger 𝑛 consistently performs better at higher compute in in-domain evaluations, except on the Very Easy evaluation set, where the task is likely too easy for additional compute to matter. Training only on Hard data causes substantial catastrophic forgetting on Easy and Very Easy problems, while mixing Easy data largely mitigates this effect with only a small drop on Hard performance. In contrast, adding Very Easy data does not help and can hurt both Easy and Hard performance.",
+      "page": 14,
+      "index": 12,
+      "width": 814,
+      "height": 467
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-013.webp",
+      "caption": "Figure 22: Compute-optimal frontiers from sweeping (𝐵p, 𝑛,𝑀) on Easy and Hard problems. Points on the frontier are annotated by the pre-training sampling configuration (𝐵p, 𝑛), with𝑀 determined by the remaining compute. Consistent with earlier sections, the frontier shifts to systematically larger 𝑛 as compute increases. In contrast, the frontier-attaining 𝐵p varies across budgets but has only a marginal effect on performance within a moderate range (cf. Section 4.2).",
+      "page": 23,
+      "index": 13,
+      "width": 918,
+      "height": 402
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-014.webp",
+      "caption": "Figure 21: Compute-optimal parallel rollouts 𝑛*(𝐶) under joint optimization of (𝐵p, 𝑛,𝑀). For each total rollout compute budget 𝐶, we sweep (𝐵p, 𝑛,𝑀) and select the globally best configuration. The optimal 𝑛 increases monotonically with compute and is well-fit by a sigmoid trend on both the Easy (left) and Hard (right) splits.",
+      "page": 23,
+      "index": 14,
+      "width": 918,
+      "height": 399
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-015.webp",
+      "caption": "Figure 13: Impact of data size (𝐷). With more data (𝐷 = 6k; left), performance scales up to 𝑛 = 512. With small data (𝐷 = 500; right), the frontier saturates at smaller 𝑛 = 256, and scaling further to 𝑛 = 512 leads to overfitting and degradation.",
+      "page": 13,
+      "index": 15,
+      "width": 664,
+      "height": 264
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-016.webp",
+      "caption": "Figure 8: Different mechanisms of how 𝑛 values optimize best@4 vs. worst@4 on easy and hard problems. Bars show the 𝑛 maximizing reward for a given𝐵p. On the Easy set (left), the optimal 𝑛 for best@4 is smaller than for worst@4, indicating that improving robustness requires more parallel rollouts than for coverage. Conversely, on the Hard set (right), a larger 𝑛 is needed to improve best@4, while worst@4 saturates at smaller 𝑛.",
+      "page": 8,
+      "index": 16,
+      "width": 612,
+      "height": 299
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-017.webp",
+      "caption": "Figure 3: Regularization ablations on Easy and Hard. On the Easy set, standard KL+Entropy regularization achieves the best reward. On the Hard set, these regularizers destabilize training even with zero-variance filtering; disabling them yields significantly more stable optimization and higher reward.",
+      "page": 4,
+      "index": 17,
+      "width": 664,
+      "height": 259
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-018.webp",
+      "caption": "Figure 12: Generalizing 𝑛 scaling trends to other models. We observe increasing 𝑛 boosts returns at high compute across all settings, while optimal 𝑛 saturates differently.",
+      "page": 12,
+      "index": 18,
+      "width": 868,
+      "height": 364
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-019.webp",
+      "caption": "Figure 26: Effects of baseline estimation variance. Validation reward vs. compute (million rollouts) under a fixed problem batch size 𝐵p = 128, comparing three GRPO settings: (i) large group size 𝑛train/𝑛est = 256/256, (ii) small group size 64/64, and (iii) decoupled baseline estimation 64/256 (estimate baseline from 256 rollouts but sample 64 from them for the policy-gradient update). We observe consistent ordering (1) > (3) ≈ (2), showing that lower-variance baseline estimation yields negligible gains, while the full 𝑛 = 256 run remains best, indicating the dominant gains from scaling 𝑛 come from broader exploration.",
+      "page": 27,
+      "index": 19,
+      "width": 764,
+      "height": 421
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-020.webp",
+      "caption": "Figure 23: AIME 24 scores trained with varying parallel rollouts (𝑛) under a fixed problem batch size (𝐵p = 32).",
+      "page": 24,
+      "index": 20,
+      "width": 510,
+      "height": 512
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-021.webp",
+      "caption": "Figure 9: Compute-optimal allocation shifts from 𝐵p to 𝑛 under a fixed total batch size constraint on easy set.",
+      "page": 9,
+      "index": 21,
+      "width": 612,
+      "height": 229
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-022.webp",
+      "caption": "Figure 15: Demonstrations of frontier point detection for each 𝑛. (Left) Validation reward trajectories plotted against compute (rollouts) for varying population sizes (𝑛 = 32 in blue, 𝑛 = 64 in red). Scatter points show raw data; dashed curves show smoothed trends. Arrows illustrate the “record-breaking” extraction process, identifying the earliest compute step where reward crosses a discretized threshold (e.g., 0.5 or 0.6). In practice, we employ finer reward bins (e.g., 0.005) tailored to task difficulty. (Right) Extracted frontier points in the 𝑛 vs. Compute space. Each circle represents the compute budget 𝐶 required for a specific 𝑛 to reach a higher performance bin. The dashed curve shows the fitted scaling law, indicating the optimal 𝑛 scaling as compute increases.",
+      "page": 20,
+      "index": 22,
+      "width": 918,
+      "height": 358
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-023.webp",
+      "caption": "Figure 16: Compute-optimal frontiers maximizing over 𝑛 varying problems per batch (𝐵p) on the Easy set.",
+      "page": 20,
+      "index": 23,
+      "width": 1018,
+      "height": 542
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-024.webp",
+      "caption": "Figure 4: LR scaling strategy. Square-root scaling (√𝐵) outperforms linear and constant scaling at large batch sizes (𝐵 = 8192).",
+      "page": 5,
+      "index": 24,
+      "width": 1018,
+      "height": 376
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12151v1/fig-025.webp",
+      "caption": "Figure 5: Illustration of record-breaking points. Gray dots show validation reward points from multiple training runs, while orange dots mark record-breaking points, defined as the earliest (smallest compute) points that enter a higher discretized reward bin than all previous points. The dashed curve shows the monotonic fit over the retained points on the performance frontier.",
+      "page": 5,
+      "index": 25,
+      "width": 438,
+      "height": 277
+    }
+  ]
+}

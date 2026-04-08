@@ -1,0 +1,799 @@
+Title: RefReward-SR: LR-Conditioned Reward Modeling for Preference-Aligned Super-Resolution
+
+URL Source: https://arxiv.org/pdf/2603.24198v1
+
+Published Time: Thu, 26 Mar 2026 00:58:15 GMT
+
+Number of Pages: 32
+
+Markdown Content:
+# RefReward-SR: LR-Conditioned Reward Modeling for Preference-Aligned Super-Resolution 
+
+Yushuai Song 1,2, Weize Quan 1,2, Weining Wang 1,2, Jiahui Sun 1,2, Jing Liu 1,2,Meng Li 3, Pengbin Yu 3, Zhentao Chen 3, Wei Shen 3, Lunxi Yuan 3, and Dong-ming Yan 1,2 
+
+> 1
+
+Institute of Automation, Chinese Academy of Sciences  
+
+> 2
+
+School of Artificial Intelligence, University of Chinese Academy of Sciences  
+
+> 3
+
+OPPO AI Center, OPPO Inc. 
+
+{songyushuai2024}@ia.ac.cn 
+
+Abstract. Recent advances in generative super-resolution (SR) have greatly improved visual realism, yet existing evaluation and optimization frameworks remain misaligned with human perception. Full-Reference and No-Reference metrics often fail to reflect perceptual preference, ei-ther penalizing semantically plausible details due to pixel misalignment or favoring visually sharp but inconsistent artifacts. Moreover, most SR methods rely on ground-truth (GT)–dependent distribution matching, which does not necessarily correspond to human judgments. In this work, we propose RefReward-SR, a low-resolution (LR) reference-aware reward model for preference-aligned SR. Instead of relying on GT supervision or NR evaluation, RefReward-SR assesses high-resolution (HR) reconstruc-tions conditioned on their LR inputs, treating the LR image as a seman-tic anchor. Leveraging the visual–linguistic priors of a Multimodal Large Language Models (MLLM), it evaluates semantic consistency and plau-sibility in a reasoning-aware manner. To support this paradigm, we con-struct RefSR-18K, the first large-scale LR-conditioned preference dataset for SR, providing pairwise rankings based on LR–HR consistency and HR naturalness. We fine-tune the MLLM with Group Relative Policy Opti-mization (GRPO) using LR-conditioned ranking rewards, and further integrate GRPO into SR model training with RefReward-SR as the core reward signal for preference-aligned generation. Extensive experiments show that our framework achieves substantially better alignment with human judgments, producing reconstructions that preserve semantic con-sistency while enhancing perceptual plausibility and visual naturalness. Code, models, and datasets will be released upon paper acceptance. 
+
+Keywords: Image Super-Resolution · Multimodal Large Language Mod-els · Preference Alignment · Group Relative Policy Optimization 
+
+## 1 Introduction 
+
+Image Super-Resolution (SR) [11, 22, 24, 25, 45, 46, 65] aims to reconstruct high-resolution (HR) images from low-resolution (LR) observations. As an inherently  
+
+> arXiv:2603.24198v1 [cs.CV] 25 Mar 2026 2F. Author et al.
+
+ill-posed inverse problem, SR has evolved from bicubic degradation settings to real-world scenarios with complex and unknown degradations [31]. The ultimate goal of real-world SR is to produce perceptually pleasing results that align with human visual aesthetics while preserving content fidelity. Early representative methods, such as BSRGAN [62] and Real-ESRGAN [45], formulated this task as a supervised distribution-matching problem, leveraging adversarial losses to synthesize plausible high-frequency details. With diffusion priors [20, 35], recent methods [2, 27, 37, 44, 51, 59] surpass GAN-based models, generating fine details even under severe degradation. However, as generative models become increasingly powerful, existing evalua-tion and optimization frameworks for SR are encountering significant limitations. We summarize these challenges into two critical aspects: 
+
+1) Inadequacy of Existing Metrics for Semantic Alignment. Tra-ditional Full-Reference (FR) metrics [47, 63] provide indispensable benchmarks for measuring pixel-level or structural fidelity. However, their reliance on strict spatial correspondence can be overly conservative for generative SR, where they may penalize “reasonable hallucinations”—details that are semantically sound and visually enriching but spatially misaligned with the ground-truth (GT) [5]. On the other hand, No-Reference (NR) metrics [8, 17, 43, 48, 52, 58, 60] excel at assessing low-level visual sharpness and textural naturalness without requiring a reference. However, due to the lack of reference, they inherently struggle to preserve content fidelity. This often allows models to “game the metric” by intro-ducing sharp but unfaithful artifacts, or even altering the subject identity, while still receiving high scores. More importantly, both FR and NR metrics evaluate high-level semantic plausibility only passively through low-level cues, ignoring the top-down cognitive mechanism where human perception naturally priori-tizes semantic consistency before scrutinizing low-level details. Thus, they fail to explicitly penalize obvious semantic violations or structural distortions that con-tradict world knowledge. Consequently, existing metrics struggle to fully align with true human preferences. 
+
+2) The Insufficiency of Exclusively GT-Driven Optimization. Most SR methods [27, 44, 51, 59] rely on supervised losses for fidelity, while advanced approaches [28, 54] incorporate adversarial losses. However, while GT super-vision provides necessary structural bounds, relying exclusively on GT distri-bution matching restricts generative potential. Strictly fitting empirical GT is insufficient to capture higher-level human semantic preferences. Furthermore, real-world GT sometimes contains inherent degradations, causing overly GT-dependent models to reproduce imperfections rather than enhance quality. Un-like the Text-to-Image field, which actively aligns with human preferences via RLHF [4, 42, 56], using RLHF to complement GT constraints in SR remains limited. In this work, we propose RefReward-SR , an LR reference-aware semantic scoring model designed to complement existing evaluation paradigms. Address-ing the ill-posed nature of super-resolution, RefReward-SR mimics human as-sessment by treating the LR image as a semantic anchor, leveraging the visual-RefReward-SR 3PSNR  SSIM  LPIPS  CLIPIQA MUSIQ  Q-Align  Ours  Human     
+
+> FR Metrics NR Metrics RefReward -SR
+> No GT Dependency
+> Semantic Fidelity
+> Plausible Details
+> Preference Alignment
+> LR Image HR A HR B
+> A＞B
+> B＞A
+> Response for HR A ：<thinking>The HR image appears to be a
+> successful super -resolution reconstruction of the LR image, which
+> is itself very blurry and low -resolution. The HR image reveals fine
+> details of a mechanical gear assembly, including teeth, concentric
+> circles, and small rivets [...] </thinking><answer>3.80</answer>
+> Response for HR B ：<thinking> The HR image exhibits significant
+> artifacts that are not present in the LR image. The most
+> prominent issue is the severe distortion and warping of the spiral
+> structure, particularly in the center and along the curved pathways
+> [...] </thinking><answer>1.00</answer>
+
+(a) SR  Comparison Example  (b) LR -Conditioned  Interpretable Scoring 
+
+(c) Metric -Human  Alignment  (d) Evaluation Paradigm Comparison 
+
+> *
+
+Fig. 1: Overview of our proposed evaluation paradigm. (a) HR A preserves structures, while HR B shows severe distortions. (b) RefReward-SR uses an MLLM for inter-pretable, LR-conditioned semantic scoring. (c) Existing metrics wrongly favor the dis-torted HR B, whereas ours aligns with human perception. (d) RefReward-SR uniquely ensures semantic fidelity and preference alignment without GT dependency. The as-terisk(*) indicates that FR metrics evaluate high-level semantics only passively via low-level correspondence. 
+
+linguistic priors of a Multimodal Large Language Model (MLLM) to jointly assess semantic consistency and plausibility from a high-level cognitive perspec-tive. To this end, we construct RefSR-18K , the first large-scale LR-conditioned preference dataset focused on semantic-level annotations, establishing a critical foundation to shift SR evaluation and optimization from pixel-matching to hu-man preference alignment. We fine-tune the MLLM using Group Relative Policy Optimization (GRPO) [10, 33] to align its judgments with human preferences, thereby capturing the underlying logical reasoning intrinsic to human perception. This enables RefReward-SR to serve as a key semantic complement to low-level metrics, establishing a more comprehensive evaluation and optimization frame-work for generative SR. Building upon the learned reward models, we introduce GRPO into the super-resolution framework, employing a joint reward function with RefReward-SR as the core semantic signal to guide preference-aligned generation. Experimen-tal results demonstrate that incorporating RefReward-SR alongside perceptual and quality constraints significantly enhances alignment with human judgments, leading to reconstructions with superior semantic consistency and plausibility. Our contributions can be summarized as follows: 
+
+– We construct the first large-scale LR-conditioned preference dataset for SR. By treating the LR image as a semantic anchor, RefSR-18K provides 18,000 pairwise ranking annotations across diverse images, prioritizing high-level semantic consistency and plausibility. 
+
+– We propose RefReward-SR, an LR reference-aware semantic scoring model explicitly aligned with human perception. To address fine-grained discrimi-4 F. Author et al. 
+
+nation, we further introduce a global-local crop scoring strategy to enhance sensitivity to localized semantic violations and artifacts. 
+
+– We introduce GRPO into the SR task with RefReward-SR as the reward signal, enabling preference-aligned optimization that improves semantic con-sistency and visual plausibility. 
+
+## 2 Related Work 
+
+2.1 Evaluation Metrics for Super-Resolution 
+
+Traditional FR metrics, including PSNR, SSIM [47], and LPIPS [63], quantify reconstruction quality by measuring deviations from the ground truth (GT). While indispensable for ensuring basic structural fidelity, operating within a strict distortion-minimization framework [5] causes them to systematically pe-nalize spatially misaligned yet perceptually plausible details. Moreover, the fre-quent unavailability of high-quality GT in real-world scenarios further limits their practicality [9]. To remove GT dependency, NR metrics such as MUSIQ [17], MANIQA [58], and CLIPIQA [43] assess image quality without super-vision. Recent IQA approaches built on Multimodal Large Language Models (MLLMs) [48,52,60] introduce partial interpretability and region awareness. Al-though effective at evaluating low-level visual aesthetics, their lack of a semantic anchor inherently causes them to struggle to preserve content consistency, often allowing models to inflate scores via excessive sharpening or unfaithful halluci-nations. Furthermore, neither FR nor NR metrics can systematically evaluate semantic plausibility, which is the primary focus of human assessment for SR results. In contrast, we formulate SR evaluation as an LR-conditioned prefer-ence modeling problem. By jointly reasoning over the LR input and its HR reconstruction, RefReward-SR leverages the world knowledge of a Multimodal Large Language Model to provide semantically grounded, LR-anchored, and preference-aligned evaluation signals, effectively complementing the limitations of traditional FR/NR paradigms in semantic-level human preference assessment. 
+
+2.2 Generative Image Super-Resolution 
+
+Early SR methods optimized pixel-wise reconstruction losses under predefined degradations, achieving high PSNR but producing over-smoothed results [11, 18, 21, 25, 41, 66]. To improve visual quality, adversarial learning was introduced. Models such as ESRGAN [62] and Real-ESRGAN [45] framed SR as distri-bution matching, generating high-frequency details via GAN objectives. Later, diffusion-based approaches [27, 28, 49, 51] leveraging pretrained models like Sta-ble Diffusion [35] and FLUX [20] further advanced generative SR, demonstrating stronger semantic priors and improved perceptual quality under complex degra-dations. Despite these advances, existing optimization paradigms remain focused on fitting the GT data distribution, rather than directly optimizing objectives aligned with human preferences. Moreover, they are fundamentally constrained RefReward-SR 5
+
+by the quality of GT images. To address this limitation, inspired by reinforcement learning in text-to-image generation [4,16,29,42,56,57], several works [7,32,50,55] have begun exploring reinforcement learning for SR. However, these methods of-ten rely on existing evaluation metrics [7, 50] with inherent limitations, or on MLLMs [32, 55] that are not well-suited for low-level vision tasks, preventing them from fully unlocking the potential of reinforcement learning in SR. 
+
+## 3 Method 
+
+3.1 Construction of the RefSR-18K Dataset Motivation. In real-world generative SR, models frequently exhibit similar fail-ure modes, such as structural distortions, unreasonable textures, and localized content hallucinations that alter the semantics of the LR input. Traditional Im-age Quality Assessment (IQA) [14,26,34] and aesthetic datasets [19,53,56] fail to capture these generative anomalies, as they primarily focus on low-level distor-tions (e.g., noise) or global artistic appeal at the single-image level. Consequently, they lack corresponding LR references to evaluate semantic consistency and fail to provide explicit rankings for the semantic plausibility of the SR results. To ad-dress this gap, we construct RefSR-18K, a preference dataset specifically tailored for generative SR. Conditioned on the LR input, this dataset comprehensively evaluates the reconstructed HR images from two perspectives: semantic consis-tency and semantic plausibility. This provides crucial data support for training LR-conditioned, semantic-aware evaluation models. 
+
+Data Collection and Candidate Generation. To ensure diversity and broad scene coverage, we curated 5,130 high-quality images from the LSDIR dataset [23], encompassing a wide range of visual categories. Following the degradation pipeline proposed in SeeSR [51], we applied random cropping and complex degra-dations to synthesize the corresponding LR inputs. To ensure comprehensiveness and broad representativeness, the dataset must encompass diverse reconstruc-tion styles and typical generative distortions produced by various models. To achieve this, we employed 8 diverse, state-of-the-art SR models to generate HR candidates: DiffBIR [27], SeeSR [51], OESDiff [49], S3Diff [61], LucidFlux [15], DiT4SR [13], OMGSR-S [54], and HYPIR [28]. This model pool deliberately covers both single-step and multi-step generation paradigms, as well as distinct generative priors based on Stable Diffusion [35] and FLUX [20] architectures. 
+
+Annotation Protocol and Quality Control. Each annotation group consists of one LR reference image and four HR candidates randomly sampled from a pool of eight model outputs and the GT. Annotators are instructed to rank the four candidates based on two primary criteria: (1) LR–HR semantic consis-tency , i.e., whether the generated details faithfully align with the structures and semantic cues present in the LR input; and (2) semantic plausibility , i.e., whether reconstructed objects are semantically natural and free from distortion-induced anomalies. When quality differences are indistinguishable, tied rankings are allowed. Detailed annotation guidelines and visual examples are provided in 6 F. Author et al. (a) Fine -tuning MLLM via GRPO                  
+
+> 𝒙 𝑳𝑹 𝒙 𝒊 𝝐 𝓧 𝑯𝑹
+> 𝒙 𝑳𝑹 𝒙 𝒋 𝝐 𝓧 𝑯𝑹
+> LR -Conditioned Set
+> Prompt 𝒄
+> RefReward -SR
+> RefReward -SR
+> {𝒒 𝒌 (𝒙 𝒋 )}𝒌 =𝟏
+> 𝑲
+> {𝒒 𝒌 (𝒙 𝒊 )}𝒌 =𝟏
+> 𝑲
+> 𝒒 𝒌 (𝒙 𝒊 )
+> 𝝈 𝟐 (𝒒 𝒙 𝒋 )
+> 𝝁 (𝒒 𝒙 𝒊 )
+> 𝝈 𝟐 (𝒒 𝒙 𝒊 )
+> Thurstone Model
+> Rank Reward
+> Human Preference
+> from RefSR -18K
+> Format Reward
+> Reward for GRPO
+> (b) Global -Local Crop Scoring
+> RAM
+> Grounding DINO
+> Filtering Pipeline
+> RefReward -SR
+> RefReward -SR
+> Global Branch
+> Local Branch
+> Area -Weighted
+> Average
+> 𝑺 𝒈 ,𝑨 𝒈
+> {𝑺 𝒊 ,𝑨 𝒊 }𝒊 =𝟏
+> 𝑵
+
+Fig. 2: The proposed RefReward-SR framework. (a) MLLM Fine-tuning :Fine-tuning via GRPO with format and LR-conditioned rank rewards from RefSR-18K for human preference alignment. (b) Global-Local Crop Scoring : Extracting representative local crops via RAM and Grounding DINO, then fusing multi-scale MLLM scores via area-weighted averaging for comprehensive evaluation. 
+
+the Suppl. Mater. . Given the subjective and fine-grained nature of human prefer-ence annotation in image restoration, we adopt a strict quality control pipeline. Annotators are required to complete training and qualification tests prior to par-ticipation, and only those demonstrating high agreement with expert judgments are retained (approximately 50% are filtered out). Each group is independently annotated by at least three qualified annotators, and the final ranking is obtained via average rank aggregation. We further conduct expert review and post-hoc filtering to remove unreliable samples, including cases where candidate qualities are nearly indistinguishable, images lack sufficient semantic content for evalua-tion, or substantial disagreement exists among annotators. After this rigorous filtering process, 4,699 high-quality annotation groups are retained, resulting in 18,796 annotated HR reconstructions paired with LR references, forming the RefSR-18K dataset. 
+
+3.2 RefReward-SR: A Reference-Aware MLLM Evaluator 
+
+To build a human-aligned, reference-aware semantic evaluator, we fine-tune Qwen3-VL 8B [3] via GRPO [10, 33]. Given a low-resolution image xLR , an evaluation prompt c specifying the scoring criteria and reasoning instructions, and a high-resolution candidate xi from a candidate set XHR (where |X HR | = 4 ) in the RefSR-18K dataset, the MLLM generates a detailed reasoning process followed RefReward-SR 7
+
+by a structured score. The total reward for an output Oi comprises two core components: 
+
+Format Reward. To ensure the model functions as an interpretable evalu-ator rather than a “black-box” scorer, we enforce a structured output format. By inducing reasoning through reinforcement learning, we encourage the model to automatically explore reasonable reasoning paths guided by the evaluation prompt c. The model must first generate a reasoning chain within <thinking >
+
+. . . </thinking > tags, explicitly articulating the issues present in the HR image and their specific locations conditioned on the LR reference. The final numerical rating is then enclosed in <answer >... </answer > tags. If any of these formats are incorrect, the format score is 0. The reward is defined as: 
+
+Rformat (Oi) = 
+
+(
+
+1.0, if Oi satisfies all format requirements 
+
+0, otherwise  (1) 
+
+LR-Conditioned Rank Reward. The core of RefReward-SR is to learn the relative quality ordering of HR candidates conditioned on the same LR an-chor xLR and the evaluation prompt c. For a set of G HR candidates XHR =
+
+{x1, . . . , x G} corresponding to a specific LR input xLR , we apply GRPO to generate K quality score predictions for each candidate xi under the joint con-dition (xLR , c ), denoted as {qk(xi | xLR , c )}Kk=1 . Here, qk(xi | xLR , c ) denotes the scalar quality score produced by the k-th stochastic rollout of the policy 
+
+πθ (· | xi, x LR , c ). For notational simplicity, the conditioning on (xLR , c ) is im-plicit in the following formulations. Based on the Thurstone model [40, 52], we compute the comparative proba-bility of the k-th prediction of xi against another candidate xj within the same set by leveraging their sample means and variances: 
+
+pk(xi, x j ) = Φ qk(xi) − μ(q(xj )) 
+
+pσ2(q(xi)) + σ2(q(xj )) + γ
+
+!
+
+, (2) where μ(·) and σ2(·) are the sample mean and variance of the K predictions, Φ
+
+is the standard normal cumulative distribution, and γ is a small stabilizing con-stant. This explicitly accommodates predictive uncertainty for different images. The true preference p(xi, x j ) ∈ { 1, 0.5, 0} is derived from human annotations in RefSR-18K (representing win, tie, or loss). We define the reward Rk(xi) using a continuous fidelity measure averaged across the remaining G − 1 candidates: 
+
+Rk(xi) = 1
+
+G − 1
+
+X 
+
+> j̸=i
+
+q 
+
+p(xi, x j )pk(xi, x j ) + 
+
+q
+
+(1 − p(xi, x j ))(1 − pk(xi, x j )) 
+
+
+
+.
+
+(3) This continuous reward provides precise guidance by capturing subtle variations in quality ranking, penalizing outlier predictions. 
+
+Global-Local Crop Scoring. In practice, different SR results often exhibit consistent overall structures, with quality differences primarily manifesting in local details. Consequently, relying solely on global scoring can easily cause these 8 F. Author et al. 
+
+critical nuances to be overlooked. During manual annotation, human evaluators typically observe the entire image first before comparing the primary objects individually. To mimic this behavior, we propose Global-Local Crop Scoring, which performs a holistic assessment followed by a fine-grained local comparison. The strategy operates in two stages: (1) Region Proposals : We first leverage the RAM [64] to extract semantic tags, which then guide Grounding DINO [30] to generate candidate bounding boxes. To mimic human visual behavior that pri-oritizes texture-rich and salient objects, while balancing evaluation efficiency, we design a bounding box filtering pipeline to select representative regions with low overlap (details in Suppl. Mater. ). (2) Joint Evaluation : The MLLM evaluates the global image and the selected crops separately. To integrate these multi-scale assessments, the final score Sfinal is computed as an area-weighted average: 
+
+Sfinal = Ag Sg + PNi=1 AiSi
+
+Ag + PNi=1 Ai
+
+, (4) where Sg , A g denote the score and area of the global image, and Si, A i represent those of the i-th local crop. This mechanism accounts for both global information and local details, leading to a more accurate assessment score. 
+
+3.3 Preference-Aligned Super-Resolution via GRPO 
+
+Having established RefReward-SR as a reliable human-aligned evaluator, we further integrate it into the SR generation stage to directly optimize reconstruc-tion quality toward human preference alignment. In this work, we adopt the C-FLUX model from DP 2O-SR [50] as our base generative SR model. Specif-ically, we formulate the fine-tuning of this C-FLUX model as a reinforcement learning problem, which is optimized using GRPO [29, 57]. Let the pre-trained SR diffusion model be parameterized as a conditional policy πθ , which generates a high-resolution reconstruction y ∼ πθ (· | xLR ) con-ditioned on a low-resolution input xLR . For each input xLR , the policy produces a group of stochastic reconstructions Y = {y1, y 2, . . . , y G}, and optimization is performed based on relative quality comparisons within each group. Since the learning signal is entirely driven by reward feedback, the design of the reward function becomes the key factor for achieving preference alignment. To compre-hensively enhance SR reconstruction quality, we construct a composite reward consisting of three complementary components. 
+
+RefReward-SR ( RRef ). The primary reward signal is provided by RefReward-SR, our LR reference-aware evaluator described in Sec. 3.2. It jointly assesses semantic consistency between the generated image yi and the LR observation 
+
+xLR , as well as the semantic plausibility of the reconstructed content. 
+
+LPIPS Perceptual Reward ( RLPIPS ). To prevent excessive structural devi-ation and maintain perceptual fidelity with respect to the ground-truth image 
+
+yGT , we incorporate the LPIPS [63] metric as a perceptual constraint. Since lower LPIPS values indicate higher perceptual similarity, it is incorporated as a negative penalty term. RefReward-SR 9
+
+DEQA Quality Reward ( RDEQA ). We further incorporate DEQA [60] as an image quality assessment reward to enhance overall visual sharpness and strengthen the penalization of low-level visual degradations (e.g., blur and noise). The overall reward for each candidate reconstruction yi is defined as 
+
+Rtotal (yi) = λ1RRef (yi, x LR ) − λ2RLPIPS (yi, y GT ) + λ3RDEQA (yi), (5) where λ1, λ2, and λ3 are hyperparameters balancing semantic human preference alignment, perceptual fidelity, and artifact suppression, respectively. 
+
+## 4 Experiments 
+
+4.1 Effectiveness of RefReward-SR 
+
+To validate whether RefReward-SR can assess SR results at the semantic level in alignment with human judgment, and to investigate what extent existing evalua-tion metrics capture human preferences, we conduct a comprehensive evaluation mimicking human selection behavior and compare our model against traditional NR/FR metrics and state-of-the-art MLLMs. 
+
+Table 1: Quantitative results (in %) on human preference alignment. We report agree-ment with human annotators, as well as Recall@1 and Filter@1 on both in-domain and out-of-domain test sets. “Annotators” denotes the average agreement among human annotators. All ± values indicate the maximum deviation from the mean. Method In-Domain Out-of-Domain Agreement Recall@1 Filter@1 Agreement Recall@1 Filter@1 
+
+Human Agreement 
+
+Annotators 84 .7 ± 1.4 - - 81 .8 ± 1.3 - -
+
+FR Metrics 
+
+PSNR 41 .8 ± 1.6 45.0 9.5 35 .5 ± 2.3 25.5 8.5 SSIM [47] 51 .8 ± 2.0 51.0 25.5 43 .3 ± 1.8 26.0 19.0 LPIPS [63] 62 .5 ± 0.9 49.5 46.0 58 .8 ± 2.0 44.5 34.0 
+
+NR Metrics 
+
+MUSIQ [17] 60 .9 ± 1.4 40.5 42.0 57 .6 ± 2.7 38.0 34.5 CLIPIQA [43] 54 .0 ± 1.7 31.0 30.5 56 .9 ± 2.5 32.0 37.5 NIMA [38] 54 .5 ± 2.0 31.5 24.0 59 .5 ± 2.3 41.0 40.0 TOPIQ-IAA [8] 54 .1 ± 1.6 36.0 27.0 56 .4 ± 1.7 36.0 33.5 Q-Align [48] 54 .9 ± 1.7 35.0 29.5 54 .3 ± 1.0 40.5 32.0 VQ-R1 [52] 47 .8 ± 1.3 49.0 48.0 44 .1 ± 2.8 50.5 39.0 
+
+MLLMs 
+
+GPT-5.2 [1] 52 .5 ± 1.0 30.7 46.2 49 .7 ± 2.2 38.1 29.9 Gemini 3 Pro [39] 58 .8 ± 1.5 54.0 52.0 47 .9 ± 2.1 42.6 36.6 Qwen3-VL 8B [3] 31 .8 ± 0.4 67.5 58.0 26 .1 ± 0.9 59.0 57.0 Qwen3-VL 32B [3] 46 .4 ± 1.3 39.5 43.0 40 .7 ± 0.4 38.5 36.0 
+
+RefReward-SR 85.0 ± 2.4 84.5 78.0 80.2 ± 2.2 77.0 73.0 10 F. Author et al. 
+
+Experimental Setup. To evaluate performance and generalization, we estab-lish two test sets. Both sets share the same 200 LR reference images but differ in the source of their HR candidates: (1) In-domain Test Set : We randomly sample 200 groups directly from the original RefSR-18K dataset. These groups contain HR candidates generated by the 8 models seen during training, along with GT. (2) Out-of-domain Test Set : Utilizing the identical 200 LR inputs from the In-domain set, we construct new comparison groups to assess gener-alization. In each group, 2 candidates are generated by entirely unseen models (TSD-SR [12] and PiSA-SR [36]), while the remaining 2 are sampled from the GT and the SR models used in training. The out-of-domain set is annotated following the exact same pipeline as RefSR-18K to ensure consistency. We compare RefReward-SR with three categories of evaluators: (1) FR met-rics, including PSNR, SSIM [47], and LPIPS [63]; (2) NR metrics, including MUSIQ [17], CLIPIQA [43], Q-Align [48], NIMA [38], VQ-R1 [52], and TOPIQ-IAA [8]; and (3) general-purpose MLLMs, including GPT-5.2 [1], Gemini 3 Pro [39], and the non-fine-tuned Qwen3-VL 8B [3]. To ensure a fair compari-son, all MLLMs are evaluated using the same prompt design as RefReward-SR. Following the evaluation protocol established by ImageReward [56], we as-sess the models based on agreement and their ability to successfully recall the best images or filter out the worst images. Specifically, Agreement assesses the likelihood of the model sharing consistent preferences with human annotators. 
+
+Recall@1 evaluates the model’s ability to select the highly preferred images, mea-suring the frequency with which the human-annotated best image is ranked first by the model. Conversely, Filter@1 evaluates the model’s ability to identify and penalize the worst generations by measuring how often the human-annotated worst image is ranked last. More details are provided in the Suppl. Mater. .
+
+Results and Analysis. Table 1 reports the quantitative results on semantic-level human preference alignment. RefReward-SR achieves performance com-parable to human annotators on both in-domain and out-of-domain test sets, obtaining the best Recall@1 and Filter@1 while consistently outperforming all baselines. On the out-of-domain set, the performance of both human annotators and most metrics decreases, likely because the two unseen SR methods produce outputs with quality highly similar to other candidates, making preference dis-crimination more challenging. Although existing NR/FR metrics mainly focus on low-level features, they can indirectly reflect semantic-level human preferences, allowing most to maintain a positive agreement (i.e., >50%). Notably, except for PSNR, all methods with agreement below 50% are MLLM-based. When SR candidates share similar structures, zero-shot MLLMs tend to be insensitive to subtle image details and often assign identical scores. Under our calculation pro-tocol (detailed in the Suppl. Mater. ), this behavior drives the agreement below 50%, while paradoxically causing an upward trend in Recall@1 and Filter@1 (as typically seen in Qwen3-VL 8B). This phenomenon highlights the limitation of zero-shot MLLMs for fine-grained SR evaluation and further motivates the construction of the RefSR-18K dataset for preference-aligned fine-tuning. RefReward-SR 11 
+
+4.2 Performance of Preference-Aligned Super-Resolution Training and Test Data. We construct our paired training data from the LS-DIR dataset [23] using the Real-ESRGAN [45] degradation, setting the training resolution to 512 × 512 to align with our base model, C-FLUX [50]. For eval-uation, we follow the benchmark protocol provided by StableSR [44], including both synthetic and real-world test sets. The synthetic set is based on DIV2K-Val [63], where 3,000 images are randomly cropped to 512 × 512 , and LR inputs are generated using the same Real-ESRGAN degradation process. We further evaluate real-world performance on the RealSR dataset [6], which contains 100 paired LR–HR images at resolutions of 128 × 128 and 512 × 512 .
+
+Table 2: Quantitative comparison of state-of-the-art Real-ISR methods. To evaluate the effectiveness of our alignment strategy, the best results among the base model (C-FLUX), its DP 2O-fine-tuned variant (DP 2O-FLUX), and our proposed method are highlighted with a light red background. The best and second best results across all methods are highlighted in red and blue , respectively. Datasets Methods PSNR ↑ SSIM ↑ LPIPS ↓ MUSIQ ↑ CLIPIQA ↑ NIMA ↑ TOPIQ-IAA ↑ Q-Align ↑ VQ-R1 ↑                                                                                                                                                                                                                       
+
+> StableSR 24.54 0.7004 0.3068 65.92 0.6325 4.7880 4.5738 3.2930 3.7670 DiffBIR 24.83 0.6501 0.3650 69.28 0.7053 4.9192 4.8973 3.7889 4.1030 SeeSR 25.14 0.7211 0.3007 69.82 0.6705 4.9196 4.8548 3.7190 3.9830 OSEDiff 25.15 0.7341 0.2921 69.09 0.6693 4.8953 4.7545 3.6962 4.0930 PiSA-SR 25.50 0.7418 0.2672 70.15 0.6698 4.8954 4.7431 3.6354 4.0180 RealSR TSD-SR 23.40 0.6938 0.2823 71.26 0.7416 5.0439 4.8958 3.8444 4.0800 DIT4SR 23.52 0.6683 0.3153 67.70 0.6305 4.8737 4.5709 3.3875 3.9430 LucidFlux 20.62 0.6016 0.3895 71.95 0.7397 5.2414 5.1494 3.7662 3.9010 HYPIR 22.76 0.6669 0.3180 65.89 0.6369 4.9407 4.7330 3.6814 4.1530 C-FLUX 24.42 0.6742 0.3376 68.70 0.6221 4.8799 4.6303 3.4943 3.9650 DP 2O-FLUX 24.51 0.6774 0.3259 72.42 0.7156 4.9950 4.8873 3.9757 4.2170 Ours 24.68 0.7101 0.3202 71.70 0.7007 5.0567 4.9533 4.1596 4.2930
+> StableSR 23.26 0.5728 0.3112 65.78 0.6767 4.9243 4.7608 3.5213 3.8925 DiffBIR 23.14 0.5441 0.3669 69.87 0.7298 5.2070 5.1431 4.1015 4.2014 SeeSR 23.68 0.6043 0.3194 68.68 0.6936 5.0749 4.9928 3.9770 4.2013 OSEDiff 23.72 0.6109 0.2942 67.97 0.6682 4.9664 4.8432 3.8358 4.1832 PiSA-SR 23.87 0.6058 0.2823 69.68 0.6929 4.9584 4.8572 3.8804 4.2054 DIV2K-Val TSD-SR 22.41 0.5644 0.2710 71.64 0.7559 5.1239 5.0116 4.0147 4.1529 DIT4SR 21.79 0.5487 0.3451 67.96 0.6619 5.0888 4.8515 3.7135 4.1551 LucidFlux 20.42 0.5106 0.3769 71.52 0.7827 5.3984 5.3549 4.0886 4.0852 HYPIR 22.17 0.5669 0.3073 64.73 0.6421 5.0178 4.8767 3.7544 4.0757 C-FLUX 22.71 0.5520 0.3349 69.70 0.6781 5.1084 4.9519 4.0573 4.2558 DP 2O-FLUX 22.72 0.5536 0.3216 72.98 0.7536 5.2482 5.1347 4.3983 4.4343 Ours 22.88 0.5786 0.3260 71.95 0.7302 5.1507 5.0695 4.4605 4.4396
+
+Experimental Setup. We compare our proposed method against a comprehen-sive suite of state-of-the-art generative SR approaches, including StableSR [44], DiffBIR [27], SeeSR [51], OSEDiff [49], PiSA-SR [36], TSD-SR [12], DIT4SR [13], LucidFlux [15], and HYPIR [28]. To explicitly demonstrate the performance gains achieved by our alignment strategy, we further include the base model C-FLUX and its DPO-fine-tuned [42] variant DP 2O-FLUX (derived from DP 2O-SR [50]) for comparison, evaluating all methods using their official default set-tings to ensure fairness. The performance is quantitatively assessed using a com-12 F. Author et al. 
+
+prehensive set of FR metrics, including PSNR, SSIM [47], and LPIPS [63], as well as NR metrics such as MUSIQ [17], CLIPIQA [43], Q-Align [48], NIMA [38], VQ-R1 [52], and TOPIQ-IAA [8]. 72.7%  67.1%  60.2%    
+
+> 31.9%
+> 18.1%
+> 2.09 1.80 1.77
+> 1.63
+> 1.40
+> Fig. 3: The result of the user study win rate and average RefReward-SR score.
+
+User Study. As demonstrated in Sec. 4.1, existing FR and NR met-rics fail to fully capture human visual preferences in generative SR. More-over, directly evaluating SR models using RefReward-SR may risk reward hacking [29, 57], since our method is optimized using this evaluator during reinforcement learning. To ensure an unbiased evaluation, we compare our method with the base model C-FLUX and its DPO-fine-tuned variant (DP 2O-FLUX) through a human preference study. Additionally, PiSA-SR and TSD-SR are included to examine RefReward-SR’s generalization and alignment with human judgment on unseen methods. Specifically, we randomly sample 10 im-ages from DIV2K-Val and 10 images from RealSR to ensure both synthetic and real-world scenarios are covered. A total of 15 volunteers with prior experience in image processing are invited to participate in the evaluation. During each trial, participants are presented with one LR reference image and two HR reconstruc-tions generated by different models. Annotators are asked to select the better reconstruction according to the same criteria adopted in RefSR-18K. Ties are allowed and counted as 0.5 wins when computing overall win rates. 
+
+Results and Analysis. As shown in Table 2, our method consistently im-proves upon the base model (C-FLUX). Compared with DP 2O-FLUX, which is also fine-tuned using a reinforcement learning paradigm (DPO), our approach maintains a leading position on the majority of metrics. This demonstrates that our training strategy effectively enhances low-level fidelity while simultaneously boosting low-level visual naturalness. Qualitative comparisons in Fig. 4 further illustrate the advantages of our method. Compared with both the C-FLUX and the reinforcement learning baseline DP 2O-FLUX, our method produces visually cleaner, more realistic, and more semantically consistent high-resolution images, while remaining highly competitive with other recent SR methods. As illustrated in Fig. 3, the user study shows that our method achieves the highest win rate of 72.7%, significantly outperforming DP 2O-FLUX (67.1%) and C-FLUX (60.2%). Meanwhile, the average RefReward-SR scores exhibit a strong positive correlation with the win rates, further validating the effectiveness of RefReward-SR as a reliable evaluation metric. Moreover, optimizing SR models with our proposed framework consistently drives the generation process toward better alignment with human semantic preferences. Interestingly, although C-FLUX performs worse than TSD-SR and PiSA-SR under conventional NR/FR RefReward-SR 13 Zoomed LQ Image     
+
+> HYPIR
+> PiSA -SR
+> C-FLUX DP² O -FLUX
+> TSD -SR LucidFLUX
+> Our
+> Zoomed LQ Image
+> HYPIR
+> PiSA -SR
+> C-FLUX DP² O -FLUX
+> TSD -SR LucidFLUX
+> Our
+
+Fig. 4: Qualitative comparison of state-of-the-art generative SR methods. Please zoom in for a better view. Additional results are provided in the Suppl. Mater. .
+
+metrics, it achieves a higher human preference win rate. This implies that ex-isting metrics are insufficient for measuring alignment with human semantic preferences, which is consistent with the findings reported in Sec. 4.1. 
+
+4.3 Ablation Study Ablation on the RefReward-SR Evaluator. As reported in Table 3, we assess our reward model’s key design choices using human alignment metrics across in-domain and out-of-domain test sets. We compare the full model against variants trained on reduced data ( 1K and 2K groups) and without the global-local crop scoring mechanism. Scaling the training data yields consistent gains, demonstrating that larger preference datasets enhance human alignment and model generalization. Furthermore, removing crop scoring causes a performance drop, especially on the out-of-domain set, highlighting its effectiveness in cap-turing fine-grained semantic inconsistencies. Ultimately, the full configuration of 
+
+RefReward-SR achieves the highest agreement, validating both data scaling and our global-local scoring design. 
+
+Ablation on Preference-Aligned SR Optimization. We investigate the contribution of each reward component defined in Eq. 5 during the GRPO fine-tuning of the C-FLUX model. As shown in Table 4 and Fig. 5, we iteratively remove each reward term and evaluate the resulting reconstruction quality on the RealSR benchmark. Analysis of the experimental results reveals that each reward component plays a distinct role. When RefReward-SR is removed, the FR metrics experience only a slight decline. This is because RefReward-SR primarily focuses on high-level semantics, whereas content fidelity is mainly 14 F. Author et al. 
+
+Table 3: Ablation study of the RefReward-SR evaluator on both in-domain and out-of-domain test sets. Agreement is reported in %.                                 
+
+> Variant In-Domain Out-of-Domain 1K Data 81 .2±1.976 .6±3.2
+> 2K Data 82 .7±1.977 .4±1.8
+> w/o G-L 83 .6±2.678 .1±2.3
+> Ours (Full) 85 .0±2.480 .2±2.2（e）w/o DEQA （f）Our Settings
+> （c）w/o Refreward -SR （d）w/o LPIPS
+> （b）C-FLUX （a）Zoomed LQ Image
+
+Fig. 5: Visual comparison of different re-ward components in the ablation study. 
+
+Table 4: Ablation study of reward components on the RealSR benchmark. The best and second best results are highlighted in red and blue , respectively. Methods PSNR ↑ SSIM ↑ LPIPS ↓ MUSIQ ↑ CLIPIQA ↑ NIMA ↑ TOPIQ-IAA ↑ Q-Align ↑ VQ-R1 ↑                                           
+
+> C-FLUX (Base) 24.42 0.6742 0.3376 68.70 0.6221 4.8799 4.6303 3.4943 3.9650 w/o RefReward-SR 23.89 0.6920 0.3211 73.48 0.7239 5.2534 5.0935 4.1656 4.1655 w/o LPIPS 21.98 0.5798 0.4026 74.55 0.7434 5.4195 5.2948 4.3521 4.3348
+> w/o DEQA 23.87 0.7099 0.2967 69.02 0.6153 5.0189 4.6552 3.5313 4.0188
+> Ours (Full) 24.68 0.7101 0.3202 71.70 0.7007 5.0567 4.9533 4.1596 4.2930
+
+maintained by the LPIPS reward. Although some NR metrics even show im-provement, this absence still leads to semantic distortion and structural twisting in the generated results. Removing the LPIPS reward causes a significant drop in low-level fidelity metrics. While the model can still maintain a rough semantic correspondence, the generated details exhibit increased deviation from the LR input. Without the DEQA reward, the related NR metrics drop significantly compared to the full model. However, due to the enhanced semantic plausibility, these metrics still show a relative increase over the base model. Visually, the clarity of the results decreases, and the details become blurry. Overall, the full model achieves the most balanced performance across all metrics, yielding the most satisfactory generated results. 
+
+## 5 Conclusion 
+
+In this paper, we investigate the limitations of existing super-resolution (SR) evaluation metrics in capturing semantic understanding, which often leads to misalignment with human perceptual preferences. To address this issue, we in-troduce RefSR-18K, the first large-scale LR-conditioned preference dataset for generative SR with explicit annotations on semantic consistency and plausibility. Based on this dataset, we propose RefReward-SR, an MLLM-based evaluator de-signed to assess SR results from a semantic-level human preference perspective. We further incorporate RefReward-SR into the SR optimization pipeline as a RefReward-SR 15 
+
+core reward signal, enabling preference-aligned SR generation beyond conven-tional ground-truth distribution matching. Extensive experiments demonstrate that RefReward-SR provides a reliable proxy for human evaluation, and that the resulting preference-aligned SR model effectively suppresses generative artifacts while improving semantic fidelity and visual naturalness. We hope this work will inspire future research toward more human-centric evaluation and optimization paradigms for low-level vision tasks. 
+
+## References 
+
+1. Achiam, J., Adler, S., Agarwal, S., Ahmad, L., Akkaya, I., Aleman, F.L., Almeida, D., Altenschmidt, J., Altman, S., Anadkat, S., et al.: Gpt-4 technical report. arXiv preprint arXiv:2303.08774 (2023) 2. Ai, Y., Zhou, X., Huang, H., Han, X., Chen, Z., You, Q., Yang, H.: Dreamclear: High-capacity real-world image restoration with privacy-safe dataset curation. Ad-vances in Neural Information Processing Systems 37 , 55443–55469 (2024) 3. Bai, S., Cai, Y., Chen, R., Chen, K., Chen, X., Cheng, Z., Deng, L., Ding, W., Gao, C., Ge, C., Ge, W., Guo, Z., Huang, Q., Huang, J., Huang, F., Hui, B., Jiang, S., Li, Z., Li, M., Li, M., Li, K., Lin, Z., Lin, J., Liu, X., Liu, J., Liu, C., Liu, Y., Liu, D., Liu, S., Lu, D., Luo, R., Lv, C., Men, R., Meng, L., Ren, X., Ren, X., Song, S., Sun, Y., Tang, J., Tu, J., Wan, J., Wang, P., Wang, P., Wang, Q., Wang, Y., Xie, T., Xu, Y., Xu, H., Xu, J., Yang, Z., Yang, M., Yang, J., Yang, A., Yu, B., Zhang, F., Zhang, H., Zhang, X., Zheng, B., Zhong, H., Zhou, J., Zhou, F., Zhou, J., Zhu, Y., Zhu, K.: Qwen3-vl technical report. arXiv preprint arXiv:2511.21631 (2025) 4. Black, K., Janner, M., Du, Y., Kostrikov, I., Levine, S.: Training diffusion models with reinforcement learning. arXiv preprint arXiv:2305.13301 (2023) 5. Blau, Y., Michaeli, T.: The perception-distortion tradeoff. In: Proceedings of the IEEE conference on computer vision and pattern recognition. pp. 6228–6237 (2018) 6. Cai, J., Zeng, H., Yong, H., Cao, Z., Zhang, L.: Toward real-world single im-age super-resolution: A new benchmark and a new model. In: Proceedings of the IEEE/CVF international conference on computer vision. pp. 3086–3095 (2019) 7. Cai, M., Li, S., Li, W., Huang, X., Chen, H., Hu, J., Wang, Y.: Dspo: Direct seman-tic preference optimization for real-world image super-resolution. arXiv preprint arXiv:2504.15176 (2025) 8. Chen, C., Mo, J., Hou, J., Wu, H., Liao, L., Sun, W., Yan, Q., Lin, W.: Topiq: A top-down approach from semantics to distortions for image quality assessment. IEEE Transactions on Image Processing 33 , 2404–2418 (2024) 9. Chen, D., Wu, T., Ma, K., Zhang, L.: Toward generalized image quality assessment: Relaxing the perfect reference quality assumption. In: Proceedings of the Computer Vision and Pattern Recognition Conference. pp. 12742–12752 (2025) 10. DeepSeek-AI: Deepseek-r1: Incentivizing reasoning capability in llms via reinforce-ment learning. arXiv preprint arXiv:2501.12948 (2025) 11. Dong, C., Loy, C.C., He, K., Tang, X.: Learning a deep convolutional network for image super-resolution. In: European conference on computer vision. pp. 184–199. Springer (2014) 12. Dong, L., Fan, Q., Guo, Y., Wang, Z., Zhang, Q., Chen, J., Luo, Y., Zou, C.: Tsd-sr: One-step diffusion with target score distillation for real-world image super-resolution. In: Proceedings of the Computer Vision and Pattern Recognition Con-ference. pp. 23174–23184 (2025) 16 F. Author et al. 13. Duan, Z.P., Zhang, J., Jin, X., Zhang, Z., Xiong, Z., Zou, D., Ren, J.S., Guo, C., Li, C.: Dit4sr: Taming diffusion transformer for real-world image super-resolution. In: Proceedings of the IEEE/CVF International Conference on Computer Vision. pp. 18948–18958 (2025) 14. Fang, Y., Zhu, H., Zeng, Y., Ma, K., Wang, Z.: Perceptual quality assessment of smartphone photography. In: Proceedings of the IEEE/CVF conference on com-puter vision and pattern recognition. pp. 3677–3686 (2020) 15. Fei, S., Ye, T., Wang, L., Zhu, L.: Lucidflux: Caption-free universal image restora-tion via a large-scale diffusion transformer. arXiv preprint arXiv:2509.22414 (2025) 16. Guo, Y., Liu, J., Wang, Z., Chen, H., Sun, X., Zhao, Y., Wu, J., Yu, X., Liu, Z., Barsoum, E.: Imagedoctor: Diagnosing text-to-image generation via grounded image reasoning. arXiv preprint arXiv:2510.01010 (2025) 17. Ke, J., Wang, Q., Wang, Y., Milanfar, P., Yang, F.: Musiq: Multi-scale image quality transformer. In: Proceedings of the IEEE/CVF international conference on computer vision. pp. 5148–5157 (2021) 18. Kim, J., Lee, J.K., Lee, K.M.: Accurate image super-resolution using very deep convolutional networks. In: Proceedings of the IEEE conference on computer vision and pattern recognition. pp. 1646–1654 (2016) 19. Kirstain, Y., Polyak, A., Singer, U., Matiana, S., Penna, J., Levy, O.: Pick-a-pic: An open dataset of user preferences for text-to-image generation. Advances in neural information processing systems 36 , 36652–36663 (2023) 20. Labs, B.F.: Flux. https://github.com/black-forest-labs/flux (2024) 21. Lai, W.S., Huang, J.B., Ahuja, N., Yang, M.H.: Deep laplacian pyramid networks for fast and accurate super-resolution. In: Proceedings of the IEEE conference on computer vision and pattern recognition. pp. 624–632 (2017) 22. Ledig, C., Theis, L., Huszár, F., Caballero, J., Cunningham, A., Acosta, A., Aitken, A., Tejani, A., Totz, J., Wang, Z., et al.: Photo-realistic single image super-resolution using a generative adversarial network. In: Proceedings of the IEEE conference on computer vision and pattern recognition. pp. 4681–4690 (2017) 23. Li, Y., Zhang, K., Liang, J., Cao, J., Liu, C., Gong, R., Zhang, Y., Tang, H., Liu, Y., Demandolx, D., et al.: Lsdir: A large scale dataset for image restoration. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 1775–1787 (2023) 24. Liang, J., Cao, J., Sun, G., Zhang, K., Van Gool, L., Timofte, R.: Swinir: Image restoration using swin transformer. In: Proceedings of the IEEE/CVF international conference on computer vision. pp. 1833–1844 (2021) 25. Lim, B., Son, S., Kim, H., Nah, S., Mu Lee, K.: Enhanced deep residual networks for single image super-resolution. In: Proceedings of the IEEE conference on computer vision and pattern recognition workshops. pp. 136–144 (2017) 26. Lin, H., Hosu, V., Saupe, D.: Kadid-10k: A large-scale artificially distorted iqa database. In: 2019 Eleventh International Conference on Quality of Multimedia Experience (QoMEX). pp. 1–3. IEEE (2019) 27. Lin, X., He, J., Chen, Z., Lyu, Z., Dai, B., Yu, F., Qiao, Y., Ouyang, W., Dong, C.: Diffbir: Toward blind image restoration with generative diffusion prior. In: European conference on computer vision. pp. 430–448. Springer (2024) 28. Lin, X., Yu, F., Hu, J., You, Z., Shi, W., Ren, J.S., Gu, J., Dong, C.: Harnessing diffusion-yielded score priors for image restoration. ACM Transactions on Graphics (TOG) 44 (6), 1–21 (2025) 29. Liu, J., Liu, G., Liang, J., Li, Y., Liu, J., Wang, X., Wan, P., Zhang, D., Ouyang, W.: Flow-grpo: Training flow matching models via online rl. arXiv preprint arXiv:2505.05470 (2025) RefReward-SR 17 30. Liu, S., Zeng, Z., Ren, T., Li, F., Zhang, H., Yang, J., Li, C., Yang, J., Su, H., Zhu, J., et al.: Grounding dino: Marrying dino with grounded pre-training for open-set object detection. arXiv preprint arXiv:2303.05499 (2023) 31. Moser, B.B., Shanbhag, A.S., Raue, F., Frolov, S., Palacio, S., Dengel, A.: Diffusion models, image super-resolution, and everything: A survey. IEEE Transactions on Neural Networks and Learning Systems (2024) 32. Qiao, J., Cai, M., Li, W., Liu, Y., Huang, X., He, G., Xie, J., Hu, J., Chen, X., Lin, S.: Realsr-r1: Reinforcement learning for real-world image super-resolution with vision-language chain-of-thought. arXiv preprint arXiv:2506.16796 (2025) 33. Shao, Z., Wang, P., Zhu, Q., Xu, R., Song, J., Bi, X., Zhang, H., Zhang, M., Li, Y., Wu, Y., et al.: Deepseekmath: Pushing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300 (2024) 34. Sheikh, H.R., Sabir, M.F., Bovik, A.C., et al.: A statistical evaluation of recent full reference image quality assessment algorithms. IEEE Trans. Image Process. 
+
+15 (11), 3440–3451 (2006) 35. Stability.ai: https://stability.ai/stable-diffusion 
+
+36. Sun, L., Wu, R., Ma, Z., Liu, S., Yi, Q., Zhang, L.: Pixel-level and semantic-level ad-justable super-resolution: A dual-lora approach. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 2333–2343 (2025) 37. Tai, Y., Xie, R., Zhao, C., Zhang, K., Zhang, Z., Zhou, J., Yang, J.: Addsr: Acceler-ating diffusion-based blind super-resolution with adversarial diffusion distillation. Pattern Recognition p. 113012 (2026) 38. Talebi, H., Milanfar, P.: Nima: Neural image assessment. IEEE transactions on image processing 27 (8), 3998–4011 (2018) 39. Team, G., Anil, R., Borgeaud, S., Alayrac, J.B., Yu, J., Soricut, R., Schalkwyk, J., Dai, A.M., Hauth, A., Millican, K., et al.: Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805 (2023) 40. Thurstone, L.L.: A law of comparative judgment. In: Scaling, pp. 81–92. Routledge (2017) 41. Tong, T., Li, G., Liu, X., Gao, Q.: Image super-resolution using dense skip con-nections. In: Proceedings of the IEEE international conference on computer vision. pp. 4799–4807 (2017) 42. Wallace, B., Dang, M., Rafailov, R., Zhou, L., Lou, A., Purushwalkam, S., Ermon, S., Xiong, C., Joty, S., Naik, N.: Diffusion model alignment using direct preference optimization. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 8228–8238 (2024) 43. Wang, J., Chan, K.C., Loy, C.C.: Exploring clip for assessing the look and feel of images. In: Proceedings of the AAAI conference on artificial intelligence. vol. 37, pp. 2555–2563 (2023) 44. Wang, J., Yue, Z., Zhou, S., Chan, K.C., Loy, C.C.: Exploiting diffusion prior for real-world image super-resolution. International Journal of Computer Vision 
+
+132 (12), 5929–5949 (2024) 45. Wang, X., Xie, L., Dong, C., Shan, Y.: Real-esrgan: Training real-world blind super-resolution with pure synthetic data. In: Proceedings of the IEEE/CVF in-ternational conference on computer vision. pp. 1905–1914 (2021) 46. Wang, X., Yu, K., Wu, S., Gu, J., Liu, Y., Dong, C., Qiao, Y., Change Loy, C.: Esrgan: Enhanced super-resolution generative adversarial networks. In: Proceed-ings of the European conference on computer vision (ECCV) workshops. pp. 0–0 (2018) 18 F. Author et al. 47. Wang, Z., Bovik, A.C., Sheikh, H.R., Simoncelli, E.P.: Image quality assessment: from error visibility to structural similarity. IEEE transactions on image processing 
+
+13 (4), 600–612 (2004) 48. Wu, H., Zhang, Z., Zhang, W., Chen, C., Liao, L., Li, C., Gao, Y., Wang, A., Zhang, E., Sun, W., et al.: Q-align: Teaching lmms for visual scoring via discrete text-defined levels. arXiv preprint arXiv:2312.17090 (2023) 49. Wu, R., Sun, L., Ma, Z., Zhang, L.: One-step effective diffusion network for real-world image super-resolution. Advances in Neural Information Processing Systems 
+
+37 , 92529–92553 (2024) 50. Wu, R., Sun, L., ZHANG, Z., Wang, S., Wu, T., Yi, Q., Li, S., Zhang, L.: Dp 2o-sr: Direct perceptual preference optimization for real-world image super-resolution. In: The Thirty-ninth Annual Conference on Neural Information Processing Systems 51. Wu, R., Yang, T., Sun, L., Zhang, Z., Li, S., Zhang, L.: Seesr: Towards semantics-aware real-world image super-resolution. In: Proceedings of the IEEE/CVF con-ference on computer vision and pattern recognition. pp. 25456–25467 (2024) 52. Wu, T., Zou, J., Liang, J., Zhang, L., Ma, K.: Visualquality-r1: Reasoning-induced image quality assessment via reinforcement learning to rank. arXiv preprint arXiv:2505.14460 (2025) 53. Wu, X., Hao, Y., Sun, K., Chen, Y., Zhu, F., Zhao, R., Li, H.: Human preference score v2: A solid benchmark for evaluating human preferences of text-to-image synthesis. arXiv preprint arXiv:2306.09341 (2023) 54. Wu, Z., Sun, Z., Zhou, T., Fu, B., Cong, J., Dong, Y., Zhang, H., Tang, X., Chen, M., Wei, X.: Omgsr: You only need one mid-timestep guidance for real-world image super-resolution. arXiv preprint arXiv:2508.08227 (2025) 55. Xu, H., Liu, Y., Jiang, B., Peng, J., Luo, D., Hu, X., Yan, S., Li, H.: Irpo: Boosting image restoration via post-training grpo. arXiv preprint arXiv:2512.00814 (2025) 56. Xu, J., Liu, X., Wu, Y., Tong, Y., Li, Q., Ding, M., Tang, J., Dong, Y.: Imagere-ward: Learning and evaluating human preferences for text-to-image generation. Advances in Neural Information Processing Systems 36 , 15903–15935 (2023) 57. Xue, Z., Wu, J., Gao, Y., Kong, F., Zhu, L., Chen, M., Liu, Z., Liu, W., Guo, Q., Huang, W., et al.: Dancegrpo: Unleashing grpo on visual generation. arXiv preprint arXiv:2505.07818 (2025) 58. Yang, S., Wu, T., Shi, S., Lao, S., Gong, Y., Cao, M., Wang, J., Yang, Y.: Maniqa: Multi-dimension attention network for no-reference image quality assessment. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recog-nition. pp. 1191–1200 (2022) 59. Yang, T., Wu, R., Ren, P., Xie, X., Zhang, L.: Pixel-aware stable diffusion for real-istic image super-resolution and personalized stylization. In: European conference on computer vision. pp. 74–91. Springer (2024) 60. You, Z., Cai, X., Gu, J., Xue, T., Dong, C.: Teaching large language models to regress accurate image quality scores using score distribution. In: Proceedings of the Computer Vision and Pattern Recognition Conference. pp. 14483–14494 (2025) 61. Zhang, A., Yue, Z., Pei, R., Ren, W., Cao, X.: Degradation-guided one-step image super-resolution with diffusion priors. arXiv preprint arXiv:2409.17058 (2024) 62. Zhang, K., Liang, J., Van Gool, L., Timofte, R.: Designing a practical degradation model for deep blind image super-resolution. In: Proceedings of the IEEE/CVF international conference on computer vision. pp. 4791–4800 (2021) 63. Zhang, R., Isola, P., Efros, A.A., Shechtman, E., Wang, O.: The unreasonable effectiveness of deep features as a perceptual metric. In: Proceedings of the IEEE conference on computer vision and pattern recognition. pp. 586–595 (2018) RefReward-SR 19 64. Zhang, Y., Huang, X., Ma, J., Li, Z., Luo, Z., Xie, Y., Qin, Y., Luo, T., Li, Y., Liu, S., et al.: Recognize anything: A strong image tagging model. arXiv preprint arXiv:2306.03514 (2023) 65. Zhang, Y., Li, K., Li, K., Wang, L., Zhong, B., Fu, Y.: Image super-resolution using very deep residual channel attention networks. In: Proceedings of the European conference on computer vision (ECCV). pp. 286–301 (2018) 66. Zhang, Y., Li, K., Li, K., Wang, L., Zhong, B., Fu, Y.: Image super-resolution using very deep residual channel attention networks. In: ECCV (2018) 20 F. Author et al. 
+
+## A Details on RefSR-18K: Construction and Analysis 
+
+A.1 RefSR-18K Dataset Annotation Guidelines 
+
+To accurately capture human perceptual preferences for generative super-resolution (SR) results, we have designed a rigorous relative quality ranking protocol. In each evaluation trial, the system will present annotators with a low-resolution (LR) reference image alongside four high-resolution (HR) candidate images re-constructed by different generative SR algorithms. Fig. 6 illustrates the user interface of our dedicated annotation platform.  
+
+> Fig. 6: User interface of our annotation platform. The left panel shows the LR reference as a semantic anchor, while the right displays four HR candidates for annotators to rank from 1 (best) to 4 (worst).
+
+Treating the LR image as a semantic anchor, the annotator’s core task is to evaluate the HR candidates across two dimensions: LR-HR semantic consis-tency and semantic plausibility . Given that these two dimensions are highly correlated in actual human visual perception (e.g., severe structural distortions often simultaneously lead to semantic shifts), this guideline does not require sep-arate scoring. Instead, annotators must output a global preference ranking from 1 to 4 (1 indicating the best perceptual quality, 4 indicating the worst) based on a holistic trade-off. The specific evaluation guidelines are as follows: 
+
+Dimension 1: LR-HR Semantic Consistency This dimension focuses on evaluating whether the HR reconstruction is faithful to the original semantic content of the LR input, requiring the model not to exhibit excessive "hallucinations" or arbitrarily alter image RefReward-SR 21 
+
+details. Annotators should focus on whether the HR image exhibits the following behaviors that severely violate consistency: 
+
+• Object Addition/Deletion and Structural Alteration: Compared to the LR reference image, whether new objects are fabricated out of thin air in the HR image, or original key structures are erased. 
+
+• Semantic Identity Shift: Whether the core semantics of the target object have fundamentally changed. For example, erroneously reconstructing a blurry "tiger" contour in the LR image as a "cat", or "hallucinating" a blurry real text area into meaningless random patterns. 
+
+• Physical and Logical Inconsistencies: Whether materials or local logic are incorrectly replaced. For example, reconstructing a brick wall in the LR as a smooth concrete wall, or generating a wooden fence as metal railings. 
+
+• Evaluation Criterion: The more faithful the detail reconstruction is to the structure and semantic cues of the LR reference image, without arbitrarily "hallucinating" incorrect content, the better the candidate image performs in this dimension. Dimension 2: Semantic Plausibility This dimension aims to evaluate whether the generated HR image conforms to real-world visual common sense, both globally and locally. Breaking away from rigid pixel-to-pixel comparison, focus on identifying inherent artifacts and distortions of generative models: 
+
+• Local Distortions and Generative Artifacts: Carefully check if the image contains obvious unnatural phenomena such as twisted window shapes, distorted human facial features, collapsed object edge structures, or irregular line jitters. 
+
+• Global Logical Violations: Whether the scene content violates physical common sense, or if poor generation quality results in a completely unrecognizable block of colors, lacking the texture that a real natural image should have. 
+
+• Evaluation Criterion: The closer the visual appearance of the image is to a real high-definition photograph, and the more naturally smooth and distortion-free the scene is, the better the candidate image performs in this dimension. Holistic Preference Ranking Mechanism 22 F. Author et al. 
+
+After independently considering the above two dimensions, annotators need to perform a final global quality aggregation to provide a ranking from 1 to 4. 
+
+• Holistic Trade-off Decision: The final ranking is not a simple linear weighting of the two dimensions, but a comprehensive judgment based on visual perception. Evaluations often face a trade-off between semantic plausibility and semantic consistency: for example, choosing between an image with realistic details but deviated semantics (high plausibility, low consistency) and one faithful to the original but containing artifacts (high consistency, low plausibility). Annotators need to judge which distortion is less acceptable based on true visual preferences to select the globally optimal reconstruction result. 
+
+• Tie-Handling Protocol: To ensure sufficient discriminative power in the preference data, the annotation system defaults to requiring a strict total ordering. Tied rankings (e.g., 1, 1, 3, 4 or 2, 2, 3, 4) are permitted if and only if the reconstruction quality and visual appearance of multiple HR candidates are extremely close, making it impossible for the human visual system to reliably distinguish their superiority or inferiority. 
+
+A.2 Dataset Analysis 
+
+In this subsection, we systematically analyze the constructed RefSR-18K dataset from two key perspectives: its semantic diversity across visual scenarios and the statistical distribution of the collected human preference rankings. RefSR -18K 
+
+> 4699 groups
+> 33.7%
+> 27.4%
+> 18.3%
+> 11.1%
+> 9.6% Outdoor Urban &
+> Street Views
+> Biological Subjects
+> Natural Scenery
+> Indoor Scenes &
+> Still Life
+> Text & Macro Textures
+
+Fig. 7: Semantic categorization of the RefSR-18K dataset into five major groups. 
+
+Semantic Categorization. To ensure the robustness and generalization of the proposed reward model, RefSR-18K is curated to encompass a broad spec-trum of visual scenarios. We leverage Qwen3-VL-8B [3] to systematically an-alyze and categorize the 4,699 high-quality annotated samples into five ma-jor groups based on their dominant se-mantic content. As illustrated in Fig. 7, our dataset reflects the inherent com-plexity of real-world visual environ-ments—ranging from expansive out-door landscapes and structured archi-tectural scenes to intricate indoor details, essential biological features, and chal-lenging local textures. By maintaining such extensive visual coverage through RefReward-SR 23 
+
+this automated yet precise categorization, we effectively prevent the reward model from developing scene-specific biases and ensure its reliable performance across diverse SR applications.  
+
+> Fig. 8: Pairwise win-rate matrix among evaluated HR candidates.
+
+Preference Statistics and Win Rates. Based on the collected holistic preference rankings (from 1 to 4), we compute the pairwise win rates among evaluated HR candidates, as illustrated in Figure 8. A detailed analysis of the win-rate matrix reveals two no-table phenomena regarding human vi-sual perception. First, the Ground Truth (GT) is not universally preferred. When compared with the most advanced generative SR models, human evaluators favor the re-constructed images over the actual GT in over 10% of the comparisons (e.g., 12.8% against HYPIR and 14.2% against LucidFlux). This suggests that state-of-the-art generative models can occasionally synthesize results that are perceptu-ally preferred by humans at the semantic level over the original camera-captured images, a similar phenomenon observed by Chen et al. [9]. Second, although HYPIR exhibits relatively lower No-Reference (NR) and Full-Reference (FR) scores in Table 2, it achieves competitive win rates against other baselines, with its overall perceptual performance ranking second only to GT. This subjective preference can be largely attributed to its capability in preserving semantically realistic and natural details. This phenomenon further suggests that relying exclusively on traditional NR and FR metrics may have certain limitations when assessing the true visual quality of generative SR meth-ods. 
+
+## B More Details on RefReward-SR 
+
+B.1 Detailed Prompt Design 
+
+To effectively align the MLLM evaluator with human visual preferences, we meticulously designed a reference-aware instruction prompt. The prompt casts the MLLM as a highly discerning expert and mandates a rigorous step-by-step visual reasoning process. The exact prompt c used in RefReward-SR is as follows: 
+
+You are a highly discerning expert in image quality assessment. Your task is to evaluate a super-resolution (SR) output by comparing it with the original low-resolution reference. You will be given two images: the first (LR) shows the original scene, and the second (HR) is the super-resolution result. Assume the HR image may 24 F. Author et al. 
+
+contain problematic regions. Carefully inspect both images and identify any areas in the HR image that look unnatural or distorted (e.g., distorted regions or warped lines, unrealistic textures, unreasonable objects) or semantically inconsistent with the LR image (e.g., missing, added, or altered objects, inconsistent texture). For each problematic region, state its approximate location in the HR image (e.g., ’top left’, ’center lower’) and briefly explain why it appears incorrect. After inspection, assign an overall quality score from 1.00 to 5.00, with two decimal places (e.g., 1.31, 2.77, 4.53). First output your reasoning in <thinking>...</thinking> tags (a brief summary of observed defects and semantic issues). Then output only one numeric score in <answer>...</answer> tags (no extra text). 
+
+B.2 Evaluation Metrics 
+
+To quantitatively measure the alignment between the predicted quality rankings produced by RefReward-SR and the human-annotated ground-truth rankings, we adopt three complementary metrics: Agreement , Recall@1 , and Filter@1 .
+
+Score-to-Rank Conversion. RefReward-SR outputs a continuous quality score 
+
+si for each HR candidate i. To compare with the discrete human rankings, we convert these scores into ordinal ranks via descending sort. Ties are resolved using mid-ranks: if multiple candidates share the same score and jointly occupy rank positions [a, b ], each is assigned the average rank (a + b)/2. For example, two candidates tied for 2nd and 3rd place both receive a rank of 2.5.
+
+Agreement. An agreement measures the consistency of pairwise preference or-derings between the predicted and ground-truth rankings. Given N = 4 HR candidates per image group, we enumerate all  42
+
+ = 6 pairwise comparisons. For each pair (i, j ), the order relation is encoded as: 
+
+o(i, j ) = 
+
+
+
++1 , if ri > r j (candidate i is ranked worse), 
+
+−1, if ri < r j (candidate i is ranked better), 
+
+0, if ri = rj (tied), 
+
+(6) where ri denotes the rank of candidate i. Let opred and ogt denote the pairwise order functions derived from the predicted and ground-truth rankings, respec-tively. The Agreement rate is computed as: 
+
+Agreement = 1
+
+|P| 
+
+X
+
+> (i,j )∈P
+
+⊮opred (i, j ) = ogt (i, j ), (7) where P is the set of all ordered pairs across all evaluated image groups. This metric primarily reflects the correctness of the entire preference ordering, includ-ing the handling of ties. RefReward-SR 25 
+
+Recall@1. Recall@1 measures the proportion of image groups in which the human-annotated best candidate ( i.e. , the one with rank 1) is also ranked first by the model. Formally: 
+
+Recall@1 = 1
+
+|G| 
+
+X
+
+> g∈G
+
+⊮Bgt  
+
+> g
+
+∩ B pred 
+
+> g
+
+̸ = ∅, (8) where G denotes the set of all image groups, and Bgt  
+
+> g
+
+, Bpred  
+
+> g
+
+are the sets of candidates assigned the best rank ( i.e. , the minimum rank value) in the ground truth and prediction, respectively. 
+
+Filter@1. Complementary to Recall@1, Filter@1 measures the proportion of image groups in which the human-annotated worst candidate ( i.e. , the one with the maximum rank value) is also ranked last by the model: 
+
+Filter@1 = 1
+
+|G| 
+
+X
+
+> g∈G
+
+⊮Wgt  
+
+> g
+
+∩ W pred 
+
+> g
+
+̸ = ∅, (9) where Wgt  
+
+> g
+
+and Wpred  
+
+> g
+
+are the sets of candidates assigned the worst rank in the ground truth and prediction, respectively. 
+
+B.3 Fast Inference via No-Think Mode 
+
+The complete visual reasoning evaluation described above requires generating lengthy explanatory trajectories within the <thinking>...</thinking> tags, which introduces significant computational overhead. When RefReward-SR is deployed as a reward function in reinforcement learning, it must evaluate a massive number of candidate images at each training step, making inference efficiency a critical bottleneck. To address this issue, we introduce a fast inference mode [16] that bypasses the explicit reasoning process while preserving the model’s scoring capability. Specifically, after constructing the standard input prompt, we append a pre-filled placeholder <thinking>...</thinking><answer> directly to the model’s input sequence before generation. This causes the model to assume that the thinking phase has already been completed, prompting it to directly output the numeric quality score and thereby accelerating inference. We compare the performance of this “no-think” mode against the default mode in Table 5. The results indicate that the fast inference mode achieves highly consistent performance across all metrics compared to the default reasoning mode. 
+
+B.4 Detailed Pipeline for Global-Local Crop Filtering 
+
+As introduced in the main text, we employ a semantic-guided pipeline to extract informative local regions. Here, we provide the specific implementation details of the bounding box detection and multi-stage filtering mechanisms. 26 F. Author et al. 
+
+Table 5: Quantitative comparison (in %) between the default reasoning mode and the fast inference (No-Think) mode of RefReward-SR. All ± values indicate the maximum deviation from the mean across different annotator rankings.                       
+
+> Method In-Domain Out-of-Domain Agreement Recall@1 Filter@1 Agreement Recall@1 Filter@1
+> RefReward-SR (Default) 85 .0±2.484 .578 .080 .2±2.277 .073 .0
+> RefReward-SR (No-Think) 84 .9±2.184 .579 .079 .8±2.377 .073 .0
+
+Semantic Region Detection. Given a ground-truth (GT) image, we employ the Recognize Anything Model (RAM) [64] to generate a comprehensive set of open-vocabulary semantic tags describing the image content. These tags are then fed as text prompts to Grounding DINO [30], which produces a set of candidate bounding boxes with associated confidence scores. This enables fully automatic, class-agnostic detection of semantically meaningful regions without requiring manual annotation. 
+
+Multi-Stage Box Filtering. To balance inference efficiency and evaluation effectiveness, the raw candidate boxes are refined through a precise filtering pipeline to retain only regions suitable for fine-grained local quality evaluation: 1. Confidence & NMS Filtering : Candidate boxes with detection confidence below a threshold τbox = 0 .25 are discarded. Standard Non-Maximum Sup-pression (NMS) with an IoU threshold of 0.5 is then applied to remove re-dundant overlapping detections. 2. Low-Texture Region Exclusion : Boxes whose semantic labels match a predefined set of low-texture or homogeneous categories ( e.g. , sky, clouds, water surfaces, snow, fog) are removed, as these areas provide a limited dis-criminative signal for assessing generative SR quality. 3. Geometric Constraints : Boxes with extreme aspect ratios ( max( w/h, h/w )
+
+> 4.5) are discarded to avoid elongated, non-informative strips. Additionally, boxes whose normalized area falls outside the range [0 .1, 0.7] of the total im-age area are filtered out—eliminating both trivially small patches and near-full-image regions that would duplicate the global assessment. 4. Overlap Deduplication : Among remaining boxes with mutual overlap ex-ceeding 70% (IoU > 0.7), only the larger box is retained to maximize spatial coverage while avoiding redundant evaluations. 5. Diversity-Aware Top-K Selection : When the number of surviving boxes exceeds a maximum budget of K = 4 , we apply a diversity-aware selection strategy. Specifically, we compute the mean pairwise IoU of each box with all others, and greedily select the K boxes with the lowest mean IoU. This bal-ances evaluation efficiency while maximizing the coverage of diverse semantic details across the image. Ultimately, the final selected local crops are evaluated by the RefReward-SR, and their scores are aggregated with the global score using the area-weighted formula detailed in the main text. RefReward-SR 27 
+
+## C Implementation Details 
+
+All experiments are conducted on a single node equipped with 8 × NVIDIA H20 GPUs. To ensure full reproducibility, we detail the training configurations for both stages below. 
+
+C.1 Training Configuration for RefReward-SR 
+
+We fine-tune RefReward-SR from the pre-trained Qwen3-VL-8B-Instruct [3] checkpoint using Group Relative Policy Optimization (GRPO). The training is distributed across all 8 GPUs via torchrun with DeepSpeed ZeRO Stage 3 for memory-efficient optimization. Key hyperparameters are summarized in Table 6.                
+
+> Table 6: Training hyperparameters for RefReward-SR.
+> Hyperparameter Value
+> Base model Qwen3-VL-8B-Instruct Optimization strategy DeepSpeed ZeRO Stage 3 Number of GPUs 8×H20 Precision BFloat16 Attention implementation FlashAttention-2 Max prompt length 1,024 Number of generations per group 6 Per-device image group size 1Per-device image pair size 4Gradient accumulation steps 2Number of training steps 1200 Data seed 42
+
+C.2 Training Configuration for GRPO-based SR Fine-tuning 
+
+For the downstream SR model, we fine-tune the C-FLUX model from DP 2O-SR [50] using LoRA-based GRPO. LoRA adapters are injected exclusively into the attention layers ( to_q , to_k , to_v , to_out ) of the FLUX DiT transformer, while both the ControlNet branch and the VAE remain entirely frozen through-out training. The reward signal is a composite of three complementary objectives: (1) RefReward-SR (our trained reward model, operating in no-think mode), (2) LPIPS [63], and (3) DeQA [60], each weighted equally at 1.0. The complete set of hyperparameters is listed in Table 7. 
+
+## D More Visual Results 
+
+We provide additional visual results for the RefReward-SR evaluations, alongside preference-aligned SR outputs on real-world images [2, 6] and DIV2K-val [63] images in Figure 9, Figure 10, and Figure 11, respectively. 28 F. Author et al. 
+
+Table 7: Training hyperparameters for preference-aligned SR via GRPO. 
+
+Hyperparameter Value 
+
+Model & Architecture 
+
+Base model C-FLUX (DP 2O-SR [50]) ControlNet Frozen VAE Frozen LoRA target modules QKV & output projections of DiT Transformer LoRA rank / alpha 32 / 64 ControlNet conditioning scale 1.0 
+
+Optimization 
+
+Number of GPUs 8 × H20 Precision BFloat16 Learning rate 3 × 10 −4
+
+Weight decay 1 × 10 −4
+
+Max gradient norm 1.0 Train batch size (per device) 2Gradient accumulation steps 12 Max training steps 180 Seed 42 
+
+Sampling & GRPO 
+
+Image resolution 512 × 512 
+
+Sampling steps 25 Guidance scale 2.5 Number of generations per group 12 PPO clip range ( ϵ) 1 × 10 −4
+
+Advantage clip max 5.0 
+
+η (KL penalty) 0.3 Sampler seed 1,223,627 
+
+Reward Weights 
+
+λRefReward-SR 1.0 
+
+λDeQA 1.0 
+
+λLPIPS 1.0 
+
+## E Limitations 
+
+In this section, we discuss some limitations identified during the development of RefReward-SR. 
+
+Dataset scale and model diversity. Although our RefSR-18K dataset encom-passes a wide variety of representative SR models and ground-truth images, and our experiments demonstrate RefReward-SR’s excellent performance in both in-domain and out-of-domain scenarios, a continuously expanding dataset is still needed for more comprehensive RM training. Given the rapid evolution of gen-erative AI, incorporating an even broader array of cutting-edge SR algorithms would allow RefReward-SR to generalize better and reach its full potential. RefReward-SR 29 
+
+Reward model training and reasoning. During the training of RefReward-SR, we rely on reinforcement learning to guide the model to output its reasoning process. While our model can reasonably and accurately articulate the visual ar-tifacts and semantic inconsistencies present in HR images, given the absence of explicit supervision on these reasoning trajectories during training, the full potential of its interpretable reasoning remains to be further unlocked. A promis-ing direction is to augment the annotation process with human-written scoring rationales and perform an initial supervised fine-tuning (SFT) stage before rein-forcement learning, which may lead to more reliable explanations and stronger alignment with human judgments. 
+
+Granularity of reward for SR optimization. In the current process of align-ing SR models with human preferences, the reward signal is primarily utilized at the image level. While effective, this holistic approach might overlook the opportunity for more fine-grained penalties. Building upon our global-local crop scoring mechanism, it would be an interesting direction to explicitly identify the worst-performing local regions and apply targeted reinforcement learning optimization at the patch level. 30 F. Author et al. <thinking> 
+
+The HR image appears to be a super -resolution reconstruction of the LR 
+
+image. While the overall scene is recognizable, several areas show 
+
+artifacts and unnatural details. The most prominent issue is the 
+
+distortion of the girl in the foreground: her facial features are 
+
+unnaturally sharp and detailed, with an exaggerated, almost cartoonish 
+
+quality that doesn't match the soft, low -resolution appearance of the 
+
+original. Her hair and clothing also show unnatural texture and edge 
+
+sharpness. The background figures are also overly detailed and appear 
+
+slightly warped or misaligned compared to the LR image. The shadows 
+
+on the grass are overly crisp and uniform, which is inconsistent with the 
+
+diffuse lighting in the original. These artifacts suggest the SR 
+
+algorithm has over -sharpened and over -enhanced details, leading to an 
+
+unnatural and semantically inconsistent result. 
+
+</thinking> 
+
+<answer>2.33</answer> 
+
+Prompt  𝒄 :
+
+<thinking> 
+
+The super -resolution output exhibits several unnatural artifacts. The 
+
+most prominent issue is the severe warping and distortion of the wooden 
+
+fence in the foreground, particularly along its curved path. The fence 
+
+posts appear to bend and stretch unnaturally, and the railings are 
+
+misaligned, creating an impossible geometry. The texture of the grass 
+
+and earth also appears overly smooth and plasticky, lacking the natural 
+
+variation seen in the low -resolution reference. The building structures, 
+
+while more detailed, show inconsistent scaling and perspective, with 
+
+some elements appearing to float or be incorrectly proportioned. These 
+
+artifacts suggest the SR algorithm has introduced significant geometric 
+
+and textural distortions rather than faithfully enhancing the original 
+
+scene. 
+
+</thinking> 
+
+<answer>1.11</answer> 
+
+Prompt  𝒄 :
+
+<thinking> 
+
+The HR image appears to be a successful super -resolution attempt 
+
+overall, with significantly improved detail and texture compared to the 
+
+LR image. However, upon close inspection, there are several areas that 
+
+appear unnatural or distorted. The most prominent issue is the texture 
+
+of the wall: the HR image exhibits an overly smooth, almost painterly 
+
+texture with exaggerated highlights and shadows, particularly in the 
+
+upper left quadrant, which does not match the rough, weathered, and 
+
+uneven texture of the original wall. The shutter details, while clearer, 
+
+also show some unnatural sharpness and edge artifacts that were not 
+
+present in the LR image. The plant in the lower left corner appears 
+
+slightly over -sharpened and has an unnatural, almost plastic -like quality 
+
+to its leaves. These artifacts suggest the SR algorithm has over -
+
+enhanced the image, introducing artificial textures and details that are 
+
+not semantically consistent with the original scene. 
+
+</thinking> 
+
+<answer>3.80</answer> 
+
+Prompt  𝒄 :
+
+Fig. 9: Additional visual results of RefReward-SR evaluations, illustrating the visual reasoning trajectories and the predicted quality scores. RefReward-SR 31 PiSA -SR 
+
+TSD -SR Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+LucidFLUX 
+
+Our 
+
+Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Zoomed LQ Image 
+
+HYPIR  C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Fig. 10: Visual comparisons of preference-aligned SR results on real-world datasets. Please zoom in for a better view. 32 F. Author et al. Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Zoomed LQ Image 
+
+HYPIR 
+
+PiSA -SR 
+
+C-FLUX  DP² O -FLUX 
+
+TSD -SR  LucidFLUX 
+
+Our 
+
+Fig. 11: Visual comparisons of preference-aligned SR results on the DIV2K-val dataset. Please zoom in for a better view.

@@ -1,0 +1,815 @@
+Title: PRMB: Benchmarking Reward Models in Long-Horizon CBT-based Counseling Dialogue
+
+URL Source: https://arxiv.org/pdf/2603.11494v1
+
+Published Time: Fri, 13 Mar 2026 00:25:32 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 1
+
+# PRMB: Benchmarking Reward Models in Long-Horizon CBT-based Counseling Dialogue 
+
+Yougen Zhou, Qin Chen, Ningning Zhou, Jie Zhou, and Liang He 
+
+Abstract —Large language models (LLMs) hold potential for mental healthcare applications, particularly in cognitive behav-ioral therapy (CBT)-based counseling, where reward models play a critical role in aligning LLMs with preferred therapeutic behaviors. However, existing reward model evaluations often fail to capture alignment effectiveness in long-horizon interventions due to limited coverage of process-oriented datasets and misalign-ment between evaluation targets and psychological alignment objectives. To address these limitations, we present PRMB, a comprehensive benchmark tailored for evaluating reward models in multi-session CBT counseling. PRMB spans 6 sessions and 21 diverse negative scenarios, incorporating both pairwise and Best-of-N preference evaluations. We demonstrate a positive correlation between our benchmark and downstream counseling dialogue performance. Based on our benchmark, we conduct extensive analysis on the state-of-the-art reward models, revealing their generalization defects that were not discovered by previous benchmarks and highlighting the potential of generative reward models. Furthermore, we delve into examining the effectiveness of inference-time strategy for the evaluation of reward models and analyzing the impact factors of generative reward models. This work advances intelligent informatics for personalized healthcare by establishing a framework for reward model assessment in mental health dialogues. Evaluation code and datasets are publicly available at https://github.com/YouKenChaw/PRMB. 
+
+Index Terms —Large language model, reward model, bench-mark, CBT, psychological counseling dialogue. 
+
+I. I NTRODUCTION 
+
+# LARGE language models (LLMs) are increasingly being adopted in mental health-related scenarios, including emotional support conversation, cognitive restructuring, and psychotherapy dialogues [1]–[4]. Among established thera-peutic paradigms, Cognitive Behavioral Therapy (CBT) is one of the most structured and evidence-based approaches, making it a natural target for LLM-based simulated counseling systems [5]. Effective CBT-based counseling requires not only linguistic fluency and helpfulness, but also safety, therapeutic appropriateness, and consistency across sessions. However, evaluating whether an LLM-based simulated counselor sat-isfies these requirements remains an open challenge. Recent work has explored using LLM-based judge agents to evaluate responses under predefined criteria [6], [7]. These judge mod-els are often further adapted as reward models (RMs) to guide 
+
+Yougen Zhou is with the Shanghai Institute of Artificial Intelligence for Education, East China Normal University, Shanghai, China (e-mail: zyg@stu.ecnu.edu.cn). Ningning Zhou is with the School of Psychology and Cogni-tive Science, East China Normal University, Shanghai, China (e-mail: nnzhou@psy.ecnu.edu.cn). Qin Chen, Jie Zhou, and Liang He are with the School of Computer Science and Technology, East China Normal University, Shanghai, China (e-mail: qchen@cs.ecnu.edu.cn). Qin Chen is the corresponding author. Raw CBT  counseling dialogues 
+
+Session 1                  
+
+> Response B:
+> So, when you think about
+> possibly facing your mother at
+> the wedding, what specific…
+> Response A:
+> Can you elaborate on what
+> specific things you anticipate
+> happening on the wedding day…
+> CBT counseling task :You are aprofessional psychological counselor
+> specializing in Cognitive Behavioral Therapy (CBT) .
+> 2025/01/29 2025/02/21 2025/03/ -
+
+Long -periodic CBT -based prompts  (at Session n)      
+
+> Session 1 (2025/01/29): Focus on the intense stress…
+> Long -term Memory Storage
+> Session 2 (2025/02/21): Specifically exploring family pressure
+> (wedding) and anxiety (mother)...
+> Client: I've basically made excuses not to go...
+> Current Dialogue Flow
+> Counselor Agent: I understand. So besides avoidance, have you
+> tried any other ways to cope with this family pressure?
+> Client: Lately, I've started doing things that make me happy to
+> distract myself. But when it comes to my family... I still don’t ...
+
+Session  2 Session  n
+
+Fig. 1. CBT-based counseling dialogues require session-level coherence, long-term consistency across multiple sessions, and adherence to structured therapeutic progression. 
+
+reinforcement learning in training simulated counselor agents [8], [9]. Despite their growing use, the reliability of RMs in counseling-oriented settings remains insufficiently validated. Most existing RM benchmarks focus on short-context gen-eral dialogue settings, typically involving single-turn or brief multi-turn exchanges that emphasize isolated response qual-ity [10]–[12]. In contrast, CBT-based counseling dialogues require session-level coherence, long-term consistency across multiple sessions, and adherence to therapeutic progression, as illustrated in Fig. 1. As a result, RM signals derived from short-horizon benchmarks may fail to capture critical process violations that only emerge over extended counseling trajectories, leaving a critical gap in validating RMs for long-horizon counseling tasks. To address this gap, we introduce PRMB , a benchmark for evaluating RMs in long-horizon, multi-session CBT-based counseling. PRMB is constructed using publicly available  
+
+> arXiv:2603.11494v1 [cs.DB] 12 Mar 2026 JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 2
+
+CBT counseling cases and carefully crafted simulated client personas solely for research and evaluation. For each coun-seling case, we adopt a progressive summarization framework that incrementally integrates historical information with the current session context, enabling realistic long-context evalu-ation without exposing raw dialogue histories. Based on this setup, we curate over 12 k pairwise preference instances and Best-of-N samples generated by ten representative LLMs. Using PRMB, we investigate three key dimensions. First, we examine whether existing RMs can generalize across diverse CBT counseling scenarios and long-term interaction contexts. Second, we examine the predictive power of our benchmark for downstream performance by performing Best-of-N sam-pling. Third, we conduct controlled analyses to examine how different inference-time strategies affect RM in long-horizon CBT counseling evaluation. Through extensive benchmarking and analysis, our results reveal substantial limitations of cur-rent RMs in CBT counseling, particularly in terms of con-sistency, robustness, and downstream alignment. We believe that PRMB provides a necessary foundation for systematically evaluating RMs in process-oriented conversational tasks. The main contributions of this paper are as follows:  
+
+> •
+
+We introduce PRMB , a benchmark designed to evaluate reward models in long-horizon, multi-session CBT-based counseling dialogue.  
+
+> •
+
+We benchmark representative discriminative and LLM-as-judge reward models, revealing significant limita-tions in their consistency and robustness for counseling-oriented evaluation.  
+
+> •
+
+We conduct analyses of inference-time strategies across reward models to provide empirical insights on improv-ing reward model reliability in long-horizon settings for counseling dialogue. The remainder of this paper is organized as follows. Section II reviews related work on LLM-based simulated psycholog-ical dialogue, reward models, and existing benchmarks for reward model evaluation. Section III details the construction process and statistics of our benchmark. Section IV presents benchmarking results on state-of-the-art reward models. Sec-tion V assess the correlation between our benchmark and downstream counseling dialogue. Section VI discusses the ef-fectiveness of inference-time strategy and analyzing the impact factors of reward models. Finally, Section VII concludes the paper and outlines directions for future work. II. R ELATED WORK 
+
+A. Simulated Psychological Dialogue 
+
+Large language models (LLMs) have advanced therapy-oriented dialogue by enabling more coherent and emotionally supportive interactions [13]–[16]. Subsequent studies incorpo-rate counseling knowledge and structured therapeutic strate-gies to improve psychological support quality [17]–[19], em-phasizing symptom identification and strategy-conditioned re-sponse generation. Recently, reinforcement learning (RL) has been introduced to align conversational agents with therapeutic objectives [9], [20]. Affect-aware reward signals are used to optimize empathetic behavior and perceived support quality. This shifts optimization from text similarity toward higher-level psychological outcomes, making reward models key components for behavioral alignment in therapeutic dialogue systems. However, reward models are often treated as task-specific modules, with limited examination of their validity or consistency with psychotherapy principles. In particular, little work systematically evaluates whether reward models capture long-horizon therapeutic goals. This gap motivates the need for dedicated benchmarking of reward models in long-horizon CBT-based psychological counseling settings. 
+
+B. Reward Model 
+
+Reward models (RMs) are a core component of large lan-guage model (LLM) alignment, providing preference signals that guide models toward human-preferred responses [21]– [23]. They can be broadly divided into discriminative and generative RMs [11], [24]. Discriminative RMs are typically trained on human preference datasets to output scalar scores reflecting relative response quality, and are commonly used as optimization targets in reinforcement learning from hu-man feedback (RLHF) pipelines [10], [21], [25]. Generative RMs, often referred to as LLM-as-a-judge [26]–[28], leverage powerful pretrained LLMs to directly evaluate responses via prompting. By providing explicit evaluation criteria, these models can produce preference judgments or detailed ratio-nales without additional fine-tuning. Recent work has demon-strated that strong closed-source models can rival traditional discriminative RMs on general-domain preference tasks [29], [30]. However, their reliability in domain-specific and long-horizon evaluation settings remains less understood. 
+
+C. Benchmarks of Reward Models 
+
+Several benchmarks have been introduced to systemati-cally evaluate reward model reliability. Early efforts, such as RewardBench [10], provided a unified infrastructure for testing reward models across diverse domains, from open-ended chat to reasoning, and helped establish reward mod-eling as a research field. RMB [11] propose the Best-of-N (BoN) evaluation as a new benchmark paradigm for assessing RMs. Subsequent efforts have expanded evaluation to more challenging or specialized settings, such as multilinguality [31], mathematical reasoning [32], and agentic behavior [33]. RoleRMBench [34] introduce the first benchmark for reward modeling in role-playing dialogue, where human preferences are nuanced, multi-faceted, and context-dependent. Despite their comprehensiveness, existing benchmarks predominantly focus on short-context or brief multi-turn interactions, leaving long-horizon preference modeling largely underexplored. III. D ATA CONSTRUCTION 
+
+Our goal is to construct a benchmark that evaluates whether reward models (RMs) can serve as reliable proxies for CBT counselor preferences in long-horizon counseling scenarios, and whether they can provide effective reward signals for downstream tasks. Following prior work, we construct two types of partial ordering: a pairwise preference set with JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 3Session 1 Session n 
+
+> Loser n:
+> I can not
+> tell which..
+> Loser 1:
+> I am sorry
+> that made..
+> Winner:
+> Have you
+> thought…
+> Rejected Response:
+> I know you are
+> worried, but please...
+> Chosen Response:
+> Have you thought
+> about reaching ...
+> Pairwise set
+> Best of N
+> Model Bag
+> Reference Response from original dataset:
+> Have you thought about reaching out ...
+> Generated Responses:
+> Neg. Res.
+> 1
+> Neg. Res .
+> 2
+> Neg. Res.
+> n
+> Chosen
+> Rejected
+
+(1) Prompt -Response Construction (2) Partial Order Construction    
+
+> …
+> …
+> Client’s Finished Counseling Dialogue History
+> Decompose & Summarize
+> Shot -Term
+> Memory
+> Raw
+> Dialogue
+> Wedding … [t : t+10]
+> Anxiety … [t : t+20]
+> Long -Term
+> Memory
+> Focus on …
+> pressure …
+> Topic Summary (Current Session)
+> Topic Summary (Previous Session)
+> Current Dialogue Flow:
+> Counselor Agent : It sounds like this situation is ...
+> Client : I don’t want to come across as just being
+> paranold or ...
+
+# …
+
+> Filtering
+> Fig. 2. An overview of data construction process: (1) Sampling multi-session dialogues into prompts and obtaining multiple responses for them. (2) Organizing them into pairs or best-of-N lists.
+
+(chosen , rejected ) response pairs, and a Best-of-N (BoN) set with ( query , winner , losers ) tuples, where an RM selects the best response among multiple candidates. Fig. 2 provide an overall of the construction pipeline. 
+
+A. Prompt-Response Construction 1) Counseling Case Sourcing: We collect CBT counseling cases from publicly available resources, including real-world examples from the American Psychological Association (APA) website 1, CBT textbooks, and simulated multi-session cases from DiaCBT [35], a large-scale synthetic dataset created under CBT-guided constraints. All cases are used exclusively for research and evaluation. Each case is screened to ensure coverage to core CBT stages, including problem formulation, identification of automatic thoughts, cognitive restructuring, and behavioral interventions. After filtering and verification, we retain 118 validated cases, each comprising six sessions. 
+
+2) Prompt Design: To simulate long-horizon CBT counsel-ing, each prompt follows a unified format consisting of: (1) a task instruction defining the counselor role, (2) a long-term summary capturing cross-session client states, (3) a short-term summary of the current session so far, and (4) the most recent dialogue turns. We adopt a progressive summarization strategy [36], which incrementally integrates prior session information 
+
+> 1https://www.apa.org/pubs/databases/psyctherapy/
+
+into the current context. This approach preserves key thera-peutic trajectories (e.g., core beliefs and prior strategies) while maintaining manageable context length. The prompt used are provided in the Appendix A-1. In total, we construct over 13 kprompts spanning diverse long-horizon conditions. 
+
+3) Response Generation: For each prompt, we generate counselor responses using ten state-of-the-art LLMs selected for their strong performance on mainstream leaderboards 2 and widespread use as baselines in recent studies. The models span diverse architectures and training paradigms. The complete list and generation settings are provided in the Appendix A-2. To create a robust preference benchmark, we generate two types of responses for each prompt: Positive responses 
+
+are directly adopted from the original counselor utterances in the sourced CBT cases. These serve as clinically grounded chosen responses, reflecting established CBT practice, which act as stable, evidence-based anchors for preference signals, acknowledging that real therapeutic responses may vary but provide reliable reference points rooted in professional stan-dards [37]. Negative responses are generated via targeted prompt engineering on the same LLMs. We draw upon the qualitative meta-analysis by [38], which identifies 21 client-reported negative experience meta-categories across four clus-ters (therapists’ misbehavior, hindering relationship aspects, poor treatment fit, and negative treatment impacts). Negative  
+
+> 2https://opencompass.org.cn/home JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 4
+
+variants start from a positive baseline prompt but introduce controlled, subtle deviations to embody one or more cate-gories. Deviations are designed to be hidden (apparent only upon expert scrutiny) to simulate realistic, cumulative micro-harms in psychotherapy without overt toxicity. 
+
+4) Response Filtering: We apply a multi-stage filtering process to retain only high-quality, comparable responses. Candidates are removed if they are incomplete, off-topic, excessively repetitive, or contain unsafe content. We further exclude responses with extreme length deviations relative to reference responses from real CBT cases using rule-based checks. This filtering mitigates verbosity-related bias, ensuring that preference judgments reflect counseling quality rather than superficial length differences. 
+
+B. Partial Order Construction 1) Pairwise Preference Construction: For each prompt, we form preference pairs by treating the original counselor response from the sourced case as the chosen response and one model-generated negative response as the rejected response. To increase difficulty and discriminative value, we retain only pairs with moderate quality gaps, discarding trivially poor responses. Rejected responses are sampled across multiple LLMs to balance model distributions. 
+
+2) Agreement with Human Preference: To validate the quality of our constructed preference pairs in the complex long-horizon CBT domain, we randomly sampled 200 pairs and invited three independent human annotators (licensed CBT practitioners) to independently select the preferred counseling response (ties were not allowed). The annotators showed strong alignment with our constructed pairs, selecting the cho-sen response in 86%, 92%, and 94% of the pairs, respectively. Moreover, all three annotators reached full consensus in 84% of the pairs, and the majority vote agreed with our expert labels in 96% of cases. These results demonstrate that clear and consistent preference signals exist in the majority of instances, confirming the high reliability of our benchmark. 
+
+3) Best-of-N Set Construction: We additionally create a BoN evaluation set using a Best-of-4 configuration. For each query, the reference response is designated as the winner , with four model-generated responses (distinct from those used in the pairwise set) as losers . This design tests whether reward models can reliably recover clinically grounded responses in competitive settings, rather than exhaustively capturing all possible high-quality strategies. 
+
+C. Detailed Statistics of our Benchmark 
+
+The benchmark comprises over 13000 prompts derived from 118 CBT cases (each with 6 sessions), generating a large set of pairwise preference pairs and Best-of-N (BoN) queries. Below we present the distribution across the 6 therapeutic sessions, the 14 core CBT strategies, and the 21 negative experience categories, highlighting the scale and balance of the dataset. 
+
+1) Distribution across Sessions: The benchmark contains 13893 prompts distributed across six sessions per case. As shown in Fig. 3, the number of prompts gradually increases from Session One to Session Six, with Session Six having Session 1 Session 2 Session 3 Session 4 Session 5 Session 6 
+
+> 0
+> 500
+> 1000
+> 1500
+> 2000
+> 2500
+> 3000
+> 3500
+> Number of Prompts
+> 794
+> 806
+> 1600
+> (11.52%)
+> 1239
+> 1189
+> 2428
+> (17.48%)
+> 1121
+> 1106
+> 2227
+> (16.03%)
+> 1244
+> 1224
+> 2468
+> (17.76%)
+> 1189
+> 1256
+> 2445
+> (17.6%)
+> 1361
+> 1364
+> 2725
+> (19.61%)
+> Pairwise
+> BoN
+
+Fig. 3. Distribution of prompts (with percentages annotated above each bar), pairwise preference pairs, and Best-of-N queries across therapeutic sessions. Pairwise and BoN counts are shown inside the respective stacked segments. Session themes: (1) Information gathering, goal setting, and case conceptualization; (2) Identifying and challenging automated thoughts; (3) Discussion case conceptualization; (4) Adjusting intermediate beliefs and core beliefs; (5) Relapse prevention; (6) Consolidation. TABLE I DISTRIBUTION OF PROMPTS , PAIRWISE PAIRS , AND BEST -OF -N QUERIES ACROSS THERAPEUTIC STRATEGIES .                                                
+
+> Strategy Prompts (%) Pairwise BoN
+> Information Gathering 811 (5.84) 404 407 Setting the Agenda 580 (4.17) 278 302 Weekly Review 411 (2.96) 231 180 Defining Therapeutic Objectives 165 (1.19) 85 80 Psychoeducation 1156 (8.32) 571 585 Working with Automatic Thoughts 3973 (28.60) 1990 1983 Motivational Enhancement 1905 (13.71) 968 937 Working with Intermediate and Core Beliefs 799 (5.75) 400 399 Behavioral Techniques 1087 (7.82) 547 540 Relapse Prevention 553 (3.98) 257 296 Homework Assignments 823 (5.92) 419 404 Requesting Feedback 457 (3.29) 227 230 Summarization 481 (3.46) 239 242 Other 692 (4.98) 332 360
+> Total 13893 (100.00) 6948 6945
+
+the highest proportion (19.61%). This distribution reflects the natural accumulation of therapeutic content and complexity in longer CBT interventions. The number of pairwise preference pairs (6948) and BoN queries (6945) maintains a relatively balanced allocation across sessions, ensuring robust evaluation across different therapeutic stages. 
+
+2) Distribution across Core CBT Strategies: Table I sum-marizes the coverage of 14 core CBT strategies across the benchmark. The most frequently occurring strategy was “Working with Automatic Thoughts ” (28.60%), followed by “Motivational Enhancement ” (13.71%) and “Psychoeduca-tion ” (8.32%), which aligns with the core cognitive and preparatory elements of CBT. Less frequently occurring strate-gies, such as “ Defining Therapeutic Objectives ” (1.19%) and “Relapse Prevention ” (3.98%), tended to appear in early or late treatment phases, consistent with typical therapeutic progres-sion. These distributions ensure that the benchmark simulta-neously captures long-horizon temporal dynamics and content diversity across specific CBT techniques, thereby providing a clinically representative testbed for assessing reward models’ ability to detect subtle preference signals in psychotherapy. JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 5I: Therapists  
+
+> misbehavior
+> 33.3%
+> II: Hindering
+> relationship
+> 19.2%
+> III: Poor
+> treatment fit
+> 18.6%
+> IV: Negative
+> impacts
+> 29.0%
+> Pairwise
+> I: Therapists
+> misbehavior
+> 33.5%
+> II: Hindering
+> relationship
+> 18.8% III: Poor
+> treatment fit
+> 19.3%
+> IV: Negative
+> impacts
+> 28.4%
+> Best-of-N Losers
+
+Fig. 4. Percentage distribution of negative experience categories in the pairwise and BoN loser sets, grouped by the four-cluster taxonomy. TABLE II DISTRIBUTION OF PROMINENT SUB -CATEGORIES . P ERCENTAGES ARE RELATIVE TO THE TOTAL NEGATIVE EXPERIENCES IN EACH SET (NOT WITHIN -CLUSTER ). 
+
+Sub-category Pairwise (%) BoN (%) Cluster I: therapists’ misbehavior 
+
+Therapist Not Listening 4.63% 4.96% Therapist Not Understanding 4.76% 4.67% Therapist Perceived as Incompetent 4.59% 4.74% Therapist Devaluing the Client 4.72% 4.86% Therapist Judging 4.88% 4.76% Therapist Using Client for Own Benefit 4.92% 4.73% Other Inappropriate Verbal Reactions 4.78% 4.81% 
+
+Cluster II: hindering relationship 
+
+Distance and/or Lack of Empathy 4.94% 4.61% Insecurity or Distrust 4.56% 4.72% Confusion or Uncertainty 5.04% 4.81% Poor Interpersonal Match with the Therapist 4.63% 4.62% 
+
+Cluster III: poor treatment fit 
+
+Negative Evaluation of Practical Aspects 4.43% 4.71% Unmet Expectations 4.56% 4.81% Lack of Fit with the Intervention 4.88% 4.76% Dissatisfaction with Therapy Ending 4.71% 4.99% 
+
+Cluster IV: negative impacts of treatment 
+
+No Change or Insufficient Change 4.88% 4.75% Increased Problems after Therapy 5.38% 4.68% Feeling Fear of the Therapy Process 4.99% 4.73% Loss of Motivation or Hope 4.53% 4.75% Unpleasant Feelings During Therapy 4.69% 4.75% Negative Cognitions Aroused in Therapy 4.48% 4.77% 
+
+3) Distribution of Negative Experience Categories: The distribution of negative experience categories is summarized at the cluster level in Fig. 4, following the four-cluster taxonomy proposed by [38]. In both the pairwise and BoN sets, Thera-pists’ misbehavior (Cluster I) is the most prevalent (33.3% and 33.5%, respectively), followed by Negative impacts of treatment (Cluster IV, 29.0% and 28.4%). Clusters II and III (hindering relationship aspects and poor treatment fit) exhibit relatively lower but still substantial representation. A more detailed breakdown of prominent sub-categories within each cluster is provided in Table II. The most frequent sub-categories in the pairwise set are Increased Problems after Therapy (5.38%), Confusion or Uncertainty (5.04%), and 
+
+Feeling Fear of the Therapy Process (4.99%). In the BoN set, the top three are Therapist Not Listening (4.96%), Therapist Devaluing the Client (4.86%), and Other Inappropriate Verbal Reactions (4.81%). This balanced yet clinically meaningful distribution across the four clusters, with relatively uniform sub-category contributions within each, ensures that the bench-mark adequately captures the breadth of client-reported nega-tive experiences, thereby enabling robust evaluation of reward models’ sensitivity to subtle therapeutic harms. 
+
+D. Comparison with Existing Benchmarks 
+
+PRMB differs from existing RM benchmarks in both task structure and evaluation focus, as summarized in Table III. RewardBench, RMB, and RewardBench2 primarily evaluate preferences under short-context settings, targeting general-purpose skills such as factual correctness. Although effec-tive for broad dialogue evaluation, these benchmarks do not capture the process-oriented nature of counseling interactions. Similarly, RoleRMBench focuses on role-playing consistency within a single interaction, but does not model session-level progression preference dependencies. In contrast, PRMB is designed for long-horizon, multi-session CBT counseling. Preferences in PRMB depend on session-level coherence across counseling progression. More-over, the progressive summarization framework distinguishes PRMB from prior benchmarks by preserving essential his-torical information while avoiding full dialogue transcripts, enabling realistic long-context evaluation at scale without exceeding context limits. IV. B ENCHMARKING REWARD MODELS 
+
+We evaluate a broad range of state-of-the-art reward models (RMs) on PRMB. This section presents the evaluation setup and the main result. 
+
+A. Evaluation Setup 
+
+We evaluate both discriminative RMs and generative models under the LLM-as-a-Judge paradigm, assessing their ability to capture counselor-aligned preferences in long-horizon CBT counseling. Discriminative RMs assign a scalar reward to each prompt–response pair, following their standard role in RLHF pipelines. Generative RMs are prompted to directly select the preferred response among candidates following prior LLM-as-a-judge evaluations [11]. For each pairwise instance i, the benchmark provides a chosen and rejected response (x+ 
+
+> i
+
+, x − 
+
+> i
+
+). A discriminative RM is correct when it assigns a higher score to the chosen response. A generative RM is considered correct when it explicitly selects the chosen response. The pairwise accuracy 
+
+Apw is computed as: 
+
+Apw = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+g(x+ 
+
+> i
+
+, x − 
+
+> i
+
+), (1) where g(·) is 1 if the RM prefers chosen over rejected response, otherwise is 0.For each BoN instance i, the benchmark provides a winner 
+
+x⋆i and a set of losers {x− 
+
+> ij
+
+}Pi
+
+> j=1
+
+. An RM succeeds on instance i
+
+only if it prefers the winner over all losers. The BoN accuracy 
+
+ABoN is therefore: 
+
+ABoN = 1
+
+N
+
+> N
+
+X
+
+> i=1
+> Pi
+
+Y
+
+> j=1
+
+g(x⋆i , x − 
+
+> ij
+
+). (2) JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 6
+
+> TABLE III COMPARISON OF REPRESENTATIVE REWARD MODEL BENCHMARKS .
+
+Benchmark Best-of-N (N > 2) Multi-session Unseen Prompts Target Skill 
+
+RewardBench [10] ✗ ✗ ✗ General RMB [11] ✓ ✗ ✗ General RewardBench2 [12] ✓ ✗ ✓ General RoleRMBench [34] ✗ ✗ ✗ Role-playing 
+
+PRMB (ours) ✓ ✓ ✓ CBT Counseling                                                           
+
+> TABLE IV THE LEADERBOARD OF PRMB, RANKED BY THE AVERAGE OF PAIRWISE AND BONACCURACY .⋆DENOTES LLM-AS -A-JUDGE MODELS .
+> Reward Model Pairwise Acc. BoN Acc. Overall Acc.
+> Llama-3.1-8B-Instruct-RM-RB2 0.8646 0.6700 0.7673 deepseek-v3.2-exp ⋆0.7796 0.7344 0.7570 gpt-4o-mini ⋆0.8368 0.6266 0.7317 Skywork-Reward-V2-Qwen3-8B 0.8365 0.6092 0.7229 Skywork-Reward-V2-Qwen3-4B 0.8247 0.5885 0.7066 internlm2-20b-reward 0.8122 0.5758 0.6940 internlm2-7b-reward 0.7974 0.5675 0.6825 Skywork-Reward-V2-Qwen3-1.7B 0.8051 0.5454 0.6753 Qwen2.5-7B-Instruct ⋆0.7860 0.5584 0.6722 Gemma3-4B-IT ⋆0.7533 0.5006 0.6270 Skywork-Reward-V2-Qwen3-0.6B 0.7596 0.4825 0.6211 gpt-oss-20b ⋆0.7500 0.4862 0.6181 Mistral-7B-Instruct-v0.3 ⋆0.7306 0.4937 0.6122 Skywork-Reward-V2-Llama-3.1-8B 0.7306 0.4556 0.5931 internlm2-1.8b-reward 0.7047 0.3950 0.5499 LLaMA-3.2-3B-Instruct ⋆0.6513 0.4001 0.5257
+
+We adopt these accuracy-based metrics to directly measure the correctness of relative preference judgments, which is the core requirement for RMs to recover grounded rankings and serve as reliable training signals. 
+
+B. Evaluation Results 1) Comparison across Reward Models: Table IV reports the performance of all evaluated reward models, ranked by the average of pairwise and BoN accuracy. The leaderboard reveals a clear performance gradient on PRMB, with the strongest models achieving pairwise accuracies in the mid-to-high 80% but BoN accuracies rarely exceeding 70%, resulting in overall scores ranging from 52.57% to 76.73% , which substantially below typical ceilings on general-purpose reward modeling benchmarks. The top-performing model, LLAMA -3.1-8B-I NSTRUCT -RM-RB2, attains 86.46% pairwise accuracy and 67.00% BoN accuracy (overall 76.73%). The second-ranked model, 
+
+> DEEPSEEK
+
+-V3.2-EXP (an LLM-as-a-judge model), follows closely with 77.96% pairwise and 73.44% BoN accu-racy (overall 75.70%). The S KYWORK -R EWARD -V2 family demonstrates strong consistency and monotonic scaling: per-formance improves reliably with capacity (8B > 4B > 1.7B 
+
+> 0.6B), with pairwise accuracies ranging from 75.96% to 83.65% and BoN accuracies from 45.25% to 60.92%. Scaling trends in the INTERNLM 2-REWARD family are non-monotonic but overall positive: pairwise accuracy increases from 70.47% (1.8B) to 79.74% (7B) to 81.22% (20B), and overall accuracy rises from 54.99% to 68.25% to 69.40%, although gains dimin-ish substantially from 7B to 20B. This pattern indicates that while larger capacity generally contributes to better alignment in this domain, returns to scale become marginal beyond mid-size models, potentially due to the specialized, process-sensitive nature of long-horizon CBT preferences. Generative LLM-as-a-judge models exhibit mixed but generally limited transferability. High-capacity judges such as GPT -4 O-MINI (83.68% pairwise, 62.66% BoN) and QWEN 2.5-7B-I NSTRUCT (78.60% pairwise, 55.84% BoN) perform respectably in pairwise comparisons but drop markedly in BoN, often approaching or falling below 60%. This suggests that generic evaluative reasoning does not read-ily generalize to the nuanced, consistency-oriented preference signals required in long-term psychotherapy. Overall, PRMB exposes challenges for both discriminative and generative reward models, highlighting gaps in their ability to maintain therapeutic preference alignment over extended interactions and against multiple subtle negative distractors. 
+
+2) Comparison across Pairwise and BoN: A substantial and consistent performance gap exists between the pairwise and BoN evaluation protocols across nearly all models. Pairwise accuracy ranges from 65.13% (LL AMA-3.2-3B-I NSTRUCT ) to 86.46% (L LAMA -3.1-8B-I NSTRUCT -RM-RB2), with most models clustered between 73% and 84%. In contrast, BoN accuracy spans a lower range from 39.50% (INTERNLM 2-1.8 B-REWARD ) to 73.44% ( DEEPSEEK -V3.2-
+
+> EXP
+
+), with the majority falling between 45% and 67%. The average pairwise–BoN gap across all models exceeds 20 percentage points, and in many cases approaches 30 points. This pronounced degradation in the BoN setting indicates that pairwise evaluation may overestimate RM alignment JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 7Session 1 Session 2 Session 3 Session 4 Session 5 Session 6                
+
+> Therapeutic Session
+> 60
+> 65
+> 70
+> 75
+> 80
+> 85
+> 90
+> Accuracy (%)
+> (a) Average Accuracy
+> Session 1 Session 2 Session 3 Session 4 Session 5 Session 6
+> Therapeutic Session
+> 70
+> 75
+> 80
+> 85
+> 90
+> Accuracy (%)
+> (b) Pairwise Accuracy
+> Session 1 Session 2 Session 3 Session 4 Session 5 Session 6
+> Therapeutic Session
+> 50
+> 55
+> 60
+> 65
+> 70
+> 75
+> 80
+> 85
+> Accuracy (%)
+> (c) BoN Accuracy
+> deepseek-v3.2-exp gpt-4o-mini Qwen2.5-7B-Instruct Llama-3.1-8B-Instruct-RM-RB2 Skywork-Reward-V2-Qwen3-8B Skywork-Reward-V2-Qwen3-4B
+
+Fig. 5. (a) Average accuracy (pairwise + BoN), (b) Pairwise accuracy, and (c) Best-of-N accuracy across the six therapeutic sessions. Generative LLM-as-a-judge models (dashed lines) and discriminative reward models (solid lines) are distinguished by color and marker style. Solid lines represent discriminative reward models; dashed lines represent generative LLM-as-a-judge models. 
+
+capability in realistic therapeutic contexts. While models can often reliably distinguish a positive reference response from a single negative variant in direct comparison, they frequently fail to rank the reference as the best when presented with four competing negative responses, many of which embody subtle harms drawn from the psychotherapy practice. The gap is particularly large for generative LLM-as-a-judge models, whose BoN scores frequently hover near or below 60%, suggesting limited ability to maintain preference consistency amid multiple distractors. 
+
+C. Performance across Sessions 
+
+To examine how reward models perform across dif-ferent stages of CBT treatment, we report pairwise ac-curacy, BoN accuracy, and their average for six repre-sentative models on prompts stratified by the six ther-apeutic sessions. The selected models include the top three generative LLM-as-a-judge models ( DEEPSEEK -V3.2-
+
+EXP , GPT -4 O-MINI , QWEN 2.5-7B-I NSTRUCT ) and the top three discriminative reward models (L LAMA -3.1-8B-INSTRUCT -RM-RB2, S KYWORK -R EWARD -V2-Q WEN 3-8B, SKYWORK -R EWARD -V2-Q WEN 3-4B). Fig. 5 illustrates the average accuracy (pairwise + BoN) of these models across the six sessions. Performance varies by therapeutic stage, with early sessions (1–2) generally yielding higher BoN accuracies, likely due to simpler assessment, rapport-building, and agenda-setting content. Mid-to-late ses-sions (3–5) exhibit greater degradation in BoN performance for most models, reflecting the increasing complexity of cognitive restructuring, behavioral experiments, homework review, and consolidation phases. Discriminative reward models (solid lines) consistently out-perform generative LLM-as-a-judge models (dashed lines) across all sessions. LLAMA -3.1-8B-I NSTRUCT -RM-RB2 achieves the highest overall performance, with average accu-racy improving from early sessions ( 75.8%) to late sessions ( 81.2%), suggesting better handling of accumulated therapeu-tic context and process-oriented preferences in later stages. SKYWORK -R EWARD -V2 variants maintain relatively stable performance, with modest improvement in later sessions. In contrast, generative judges show larger pairwise–BoN gaps (average 15–20 percentage points) and more pronounced drops in mid-to-late sessions. For example, GPT -4 O-MINI ’s BoN accuracy falls from 62.3% (Session 1) to 58.9%–68.5% in Sessions 4–6, indicating limited robustness when multiple negative variants are present as treatment progresses. These stage-dependent patterns highlight the increasing difficulty of therapeutic decision-making as CBT moves from initial problem formulation to behavioral consolidation and re-lapse prevention. The results suggest that current reward mod-els remain more effective at coarse preference discrimination than at robust recovery of therapeutically optimal responses in long-horizon scenarios, particularly in later sessions where subtle, cumulative harms are more likely to emerge. 
+
+D. Performance across CBT strategies 
+
+To evaluate the effectiveness of different reward models in guiding LLM responses within CBT sessions, we compared the preference accuracy across 14 core CBT strategies. The selected models included the top-3 performing generative reward models and the top-3 discriminative reward models, as determined in prior evaluation stages. Fig. 6 presents the average accuracy (%) of each model in correctly selecting the preferred response for instances labeled with each CBT strategy. Overall, the discriminative models achieved a marginally higher grand mean accuracy (72.39%) compared to the generative models (71.50%), although sub-stantial variation existed both within and across model types. The highest-performing model overall was L LAMA -3.1-8B-I NSTRUCT -RM-RB2 (mean = 76.66%), which achieved the highest accuracy in eight out of the fourteen strategies, particularly excelling in homework assignments (82.01%), requesting feedback (83.22%), and behavioral techniques (81.74%). The DEEPSEEK -V3.2-EXP model ranked second (mean = 75.23%) and demonstrated particular strength in JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 8qwen2.5-7b-instruct                                                                       
+
+> deepseek-v3.2-exp
+> gpt-4o-mini
+> Llama-3.1-8B-Instruct-RM-RB2
+> Skywork-Reward-V2-Qwen3-8B
+> Skywork-Reward-V2-Qwen3-4B
+> Information Gathering
+> Setting the Agenda
+> Weekly Review
+> Defining Therapeutic Objectives
+> Psychoeducation
+> Working with Automatic Thoughts
+> Motivational Enhancement
+> Working with Intermediate and Core Beliefs
+> Behavioral Techniques
+> Relapse Prevention
+> Homework Assignments
+> Requesting Feedback
+> Summarization
+> Other
+> CBT Strategies
+> 61.03 66.84 65.64 77.98 66.39 67.36
+> 60.64 72.22 65.47 75.31 61.15 63.59
+> 58.30 69.67 63.63 72.37 68.76 65.97
+> 61.92 70.11 67.08 65.19 59.05 67.06
+> 67.58 79.39 75.70 75.73 70.55 70.38
+> 66.68 74.66 69.67 74.72 74.00 71.56
+> 70.14 79.72 79.70 80.37 74.42 74.63
+> 62.84 71.21 67.83 74.72 70.96 65.06
+> 72.70 79.75 80.26 81.73 73.44 71.59
+> 67.21 80.83 77.66 79.11 73.44 69.37
+> 67.67 78.95 81.39 82.00 76.22 71.50
+> 71.20 72.88 72.50 83.22 77.77 74.04
+> 78.20 82.53 79.45 78.65 75.95 78.03
+> 66.46 74.39 71.09 72.11 68.97 66.03
+> Accuracy of Different Reward Models Across CBT Strategies (%)
+> 60
+> 65
+> 70
+> 75
+> 80
+> Accuracy (%)
+
+Fig. 6. Accuracy (%) of top generative and discriminative reward models across CBT strategies. Values represent the percentage of average correct judgments for each strategy. 
+
+summarization (82.54%), relapse prevention (80.83%), and psychoeducation (79.39%). Notably, performance varied markedly across CBT strate-gies. Summarization, behavioral techniques, motivational en-hancement, and homework assignments were among the highest-performing categories (grand means > 76%), suggest-ing that reward models more reliably distinguish high-quality responses in these structured, action-oriented domains. In con-trast, strategies such as defining therapeutic objectives, setting the agenda, and weekly review showed comparatively lower and more variable performance (grand means ≈ 65 −66%), po-tentially reflecting greater subjectivity or context-dependence in these early-session or agenda-setting elements. These findings indicate that discriminative reward mod-els, particularly those fine-tuned with ranking-based objec-tives, may offer a modest but consistent advantage in CBT-specific preference modeling compared to generative reward approaches. However, the strong performance of certain gen-erative models in specific high-level strategies highlights the potential value of generative reward models in future reward modeling for therapeutic dialogue systems. 
+
+E. Performance on Fine-grained Negative Experience 
+
+To assess how reward models discriminate subtle negative experiences reported by psychotherapy clients, we aggregate the 21 meta-categories into their four main clusters and com-pute average pairwise and BoN accuracy across all instances within each cluster. Fig. 7 shows the average pairwise and BoN accuracy across these four clusters for the top three generative and discrimina-tive reward models. Detailed per-category pairwise and BoN accuracies for the six evaluated models are provided in Ap-pendix B. Pairwise accuracy remains relatively high and stable across clusters (81–87%), with the strongest performance I: Misbehavior II: Relationship III: Poor Fit IV: Negative Impacts 
+
+> Negative Experience Cluster
+> 50
+> 55
+> 60
+> 65
+> 70
+> 75
+> 80
+> 85
+> 90
+> 95
+> Average Accuracy (%)
+> 84.7
+> 63.8
+> 81.0
+> 62.9
+> 83.7
+> 63.7
+> 79.0
+> 62.7
+> Average Accuracy by Negative Experience Cluster
+> (Pairwise vs. BoN across Models)
+> Pairwise Accuracy
+> BoN Accuracy
+
+Fig. 7. Average pairwise (light bars) and BoN (dark bars) accuracy across the four main clusters of negative experiences. Values are averaged over the six evaluated reward models. Cluster I shows the highest performance, while Cluster IV exhibits the largest pairwise–BoN gap, highlighting challenges in detecting cumulative experiential harms. 
+
+on Cluster I (average 85.8%) and the lowest performance on Cluster IV(average 79.4%). BoN accuracy is consistently lower (65–68%), with the largest degradation observed in Cluster I (average 20.9%). Models show greater sensitivity to overt, immediate therapist errors than to subtle, process-oriented or cumulative harms. For instance, categories such as “ Therapist Judging ”, “ Therapist Devaluing the Client ”, and “Therapist Not Listening ” tend to yield higher BoN accuracies, while “ Increased Problems after Therapy ”, “ Loss of Motivation or Hope ”, and “ Unpleasant Feelings During Therapy ” are among the most challenging, with BoN scores often falling below 65% even for top-performing models. These findings suggest that current reward models are more attuned to salient, observable misbehaviors than to experiential harms that accumulate over time and are central to client dissatisfaction in psychotherapy. The persistent BoN degrada-tion across clusters underscores the need for reward modeling approaches that explicitly incorporate long-horizon reasoning and sensitivity to the full spectrum of negative therapeutic experiences. V. D OWNSTREAM EVALUATIONS 
+
+A core requirement of any RM benchmark is its ability to predict downstream alignment performance, rather than merely reflecting isolated preference judgments. In this section, we assess whether reward model rankings induced by PRMB correlate with real-world effectiveness under Best-of-N (BoN) inference, a widely used test-time strategy. 
+
+A. Experimental Setup 
+
+We assess downstream performance using a held-out set of counseling prompts. For each prompt, we sample 16 candidate responses from a policy model with temperature 0.8. Each reward model then scores and ranks the candidates, and the highest-scoring response is selected as the final output. To automatically evaluate generation quality, we compare the selected responses against a reference CBT counselor response JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 91 2 3 4 5 6 7 8 9        
+
+> Downstream Ranking
+> (1 = best)
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> 7
+> 8
+> 9
+> Benchmark Ranking
+> (1 = best)
+> Llama-3.1-8B
+> Instruct-RM-RB2
+> Skywork-Reward
+> V2-Qwen3-8B
+> Skywork-Reward
+> V2-Qwen3-4B
+> internlm2
+> -20b-reward
+> internlm2
+> -7b-reward
+> Skywork-Reward
+> V2-Qwen3-1.7B
+> Skywork-Reward
+> V2-Qwen3-0.6B
+> Skywork-Reward
+> V2-Llama-3.1-8B
+> internlm2
+> -1.8b-reward
+> PRMB (ρ = +0.700*, p = 0.036)
+> 123456789
+> Downstream Ranking
+> (1 = best)
+> Benchmark Ranking
+> (1 = best)
+> Llama-3.1-8B
+> Instruct-RM-RB2
+> Skywork-Reward
+> V2-Qwen3-8B
+> Skywork-Reward
+> V2-Qwen3-4B
+> internlm2
+> -20b-reward
+> internlm2
+> -7b-reward
+> Skywork-Reward
+> V2-Qwen3-1.7B
+> Skywork-Reward
+> V2-Qwen3-0.6B
+> Skywork-Reward
+> V2-Llama-3.1-8B
+> internlm2
+> -1.8b-reward
+> RewardBench2 (ρ = +0.633†, p = 0.067)
+> Rank Correlation between Reward Model Benchmarks
+> and Downstream Task Performance
+
+Fig. 8. Rank correlation between benchmark rankings (PRMB and Reward-Bench2) and downstream performance (ranked by average BERTScore of Best-of-N responses across four policy models; 1 = best). PRMB: ρ = 0 .700 
+
+(p ≈ 0.036 ); RewardBench2: ρ = 0 .633 (p ≈ 0.067 ). 
+
+using BERTScore [39]. Although BERTScore is a surface-level metric and does not fully capture therapeutic appro-priateness, it provides a stable and reproducible proxy for relative quality differences, which is sufficient for evaluating ranking consistency across reward models. We then compute Spearman’s rank correlation coefficient between reward model rankings induced by PRMB and downstream rankings based on BERTScore. Correlations are computed by aggregating downstream BoN performance across four policy models 3.This evaluation focuses on relative ranking consistency, rather than absolute generation quality. 
+
+B. Results 
+
+Fig. 8 shows the rank correlation between two automated re-ward model benchmark scores and downstream BoN inference sampling performance across four diverse policy models. The downstream ranking is derived from the average BERTScore of the BoN selected responses across four policy models, with 1 denoting the highest average BERTScore. PRMB shows a strong positive monotonic relationship with downstream performance (Spearman ρ = 0 .700 , p ≈ 0.036 ), indicating that reward models ranked highly by PRMB consistently select responses exhibiting better lexical alignment (via BERTScore) to reference counselor responses. RewardBench2 exhibits a moderately strong correlation ( ρ = 0 .633 , p ≈ 0.067 ), which is directionally positive but only marginally significant. These findings suggest that PRMB offers more reliable predictive signal for inference-time alignment effectiveness in this long-horizon, therapeutic-domain task compared to the broader, general-purpose RewardBench2. VI. D ISCUSSION 
+
+A. Effects of Inference-Time Strategies 
+
+Table V presents the effects of several common inference-time strategies applied to generative reward models with different backbone architectures. The results reveal substantial 
+
+> 3
+
+Qwen2.5-7B-Instruct, LLaMA-3.2-3B-Instruct, Mistral-7B-Instruct-v0.3, and Gemma3-4B-IT. TABLE V EFFECTS OF INFERENCE -TIME STRATEGIES ON PAIRWISE AND BEST -OF -N (B ON) ACCURACY ACROSS DIFFERENT GENERATIVE REWARD MODEL BACKBONES .
+
+Method Pairwise Acc. BoN Acc. 
+
+gpt-4o-mini 0.8368 0.6266 + Few shot (2-shot) 0.8271 0.6000 + RAG 0.8582 0.6584 
+
++ Self Refine 0.8472 0.6288 + CoT 0.8276 0.5783 Qwen2.5-7B-Instruct 0.7860 0.5584 + Few shot (2-shot) 0.7706 0.5379 + RAG 0.8044 0.6029 
+
++ Self Refine 0.7700 0.5479 + CoT 0.7884 0.5054 LLaMA-3.2-3B-Instruct 0.6513 0.4001 + Few shot (2-shot) 0.6220 0.3865 + RAG 0.6950 0.4813 
+
++ Self Refine 0.4800 0.2071 + CoT 0.5025 0.2535 
+
+variability in performance across model families and evalua-tion protocols (pairwise vs. Best-of-N), with no strategy de-livering consistent improvements except Retrieval-Augmented Generation (RAG). Few-shot prompting (2-shot) consistently degrades perfor-mance across all three backbones and both evaluation pro-tocols. Pairwise accuracy decreases by 0.97% on GPT -4 O-
+
+MINI , 1.54% on QWEN 2.5-7B-I NSTRUCT , and 2.93% on LL AMA-3.2-3B-I NSTRUCT , with corresponding BoN de-clines of 2.66%, 2.05%, and 1.36%. This uniform degradation suggests that providing a small number of in-context pref-erence examples introduces noise or fails to align with the complex preference distributions in long-horizon therapeutic dialogues, regardless of model scale or architecture. Self-Refine and Chain-of-Thought (CoT) prompting exhibit the most detrimental effects, particularly in the more challeng-ing Best-of-N setting. On GPT -4 O-MINI and Q WEN 2.5-7B-INSTRUCT , both methods cause small to moderate declines in pairwise accuracy and more pronounced drops in BoN accuracy. The degradation is especially severe for LL AMA-3.2-3B-I NSTRUCT : Self-Refine reduces pairwise accuracy to 48.00% ( −17.13%) and BoN to 20.71% ( −19.30%), while CoT reduces pairwise to 50.25% ( −14.88%) and BoN to 25.35% ( −14.66%). These sharp collapses indicate that iter-ative self-correction and verbose step-by-step reasoning can amplify initial errors or reinforce superficial heuristics rather than resolve subtle, trajectory-level preference misalignments typical of multi-turn therapeutic interactions. Retrieval-Augmented Generation (RAG) stands out as the strategy that consistently improves performance across all three backbones and both evaluation protocols. It delivers the largest relative gains on LL AMA-3.2-3B-I NSTRUCT 
+
+(+4.37% pairwise, +8.12% BoN), followed by Q WEN 2.5-7B-I NSTRUCT (+1.84% pairwise, +4.45% BoN) and GPT -4O-MINI (+2.14% pairwise, +3.18% BoN). These consistent positive effects suggest that injecting external CBT-related knowledge effectively compensates for knowledge gaps and improves alignment with therapeutically optimal responses. JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 10 
+
+The reliable improvement from RAG highlights a promising direction: incorporating high-quality external reference feed-back signals during inference may help generative reward models better capture process-oriented preferences in coun-seling dialogues. Unlike heuristic-based methods (few-shot, Self-Refine, CoT) that often introduce noise or amplify weak-nesses, RAG provides domain-specific guidance that aligns more closely with the task’s requirements. While the absolute gains remain modest and do not fully close the performance gap between open and closed models, these results motivate further exploration of reference-augmented approaches, such as preference-pair retrieval, session-context-aware RAG. Collectively, the experiments indicate that popular post-training inference-time strategies offer no robust or reli-able benefit for generative reward modeling in long-horizon, process-oriented counseling tasks. Among the tested methods, only RAG consistently yields positive (albeit limited) gains, while few-shot prompting, Self-Refine, and CoT frequently degrade performance, particularly in the Best-of-N setting and on resource-constrained models. These findings highlight the limitations of heuristic-based inference enhancements and underscore the need for training-time interventions, more so-phisticated reference mechanisms, and evaluation benchmarks that better capture session-level preference dynamics and long-term therapeutic coherence. VII. C ONCLUSION 
+
+In this paper, we propose PRMB, a benchmark designed to evaluate reward models in long-horizon, multi-session CBT-based counseling. Extensive evaluations show that both discriminative and generative reward models struggle to re-liably capture counselor-aligned preferences in this setting. We additionally find that inference-time heuristics alone are insufficient for aligning reward models in process-oriented conversational domains. We hope PRMB will serve as afoundation for future research on reward modeling methods that explicitly account for long-horizon structure, relative judgment, and therapeutic trajectories. APPENDIX AADDITIONAL MATERIALS ON DATA CONSTRUCTION 
+
+1) Progressive Summary Generation: To support long-horizon CBT counseling evaluation while keeping prompt length manageable, we adopt a progressive summary gener-ation framework to construct counseling prompts. Historical information is incrementally compressed into structured sum-maries that are carried forward across sessions. Specifically, for each counseling case consisting of multiple sessions, we maintain two types of summaries:  
+
+> •
+
+Short-term summary , which captures the key devel-opments within the current session up to the present turn, such as recent emotional states and newly expressed thoughts, as show in Fig. 9.  
+
+> •
+
+Long-term summary , which captures stable and cross-session information about the client, including presenting problems, core beliefs, recurring automatic thoughts, pre-viously identified cognitive distortions, and therapeutic strategies that have been introduced, as shown in Fig. 10. Prompt for short -term memory (stage one)      
+
+> You are a professional cognitive behavioral therapy (CBT) therapist. Please
+> write a **150 -250 word** summary based on the following dialogue.
+> Requirements:
+> -Identify key events and themes
+> -The client's core emotions, concerns, and struggles
+> -Possible automatic thoughts or core beliefs
+> -The focus of the therapist -client interaction and initial goals
+> Dialogue content :
+> {dialogue_text }
+> Please output: A clear, structured summary of 150 -250 words.
+> Prompt for short -term memory (stage two)
+> You are a professional Cognitive Behavioral Therapist (CBT) counselor.
+> Below is your previous summary of the dialogue (please do not discard
+> any useful information ):
+> ----------------
+> {previous_summary }
+> ----------------
+> Now, you are given new additional dialogue content. Please :
+> 1. Read the new content and extract any new information relevant to the
+> counseling progress (including emotions, automatic thoughts,
+> interpersonal events, topic changes, newly emerging issues, etc .).
+> 2. **Supplement, revise, and enhance** the previous summary .
+> 3. Output a **coherent and consistent updated summary of 150 –250
+> words.**
+> The new dialogue content is as follows :
+> ----------------
+> {dialogue_text }
+> ----------------
+> Please output: a comprehensive summary (150 -250 words) that integrates
+> all previous dialogue content and includes the new information from this
+> round, not just a summary of the new content.
+
+Fig. 9. Prompt usage in short-term memory generation. 
+
+At the beginning of the first session, both summaries are initialized as empty. After each session concludes, the short-term summary is merged into the long-term summary using a structured summarization prompt, and the short-term sum-mary is reset for the next session. This process ensures that essential therapeutic trajectories are preserved across sessions without exceeding context length. Importantly, summaries are constructed solely from prior dialogue content and do not incorporate or reference any candidate counselor responses used for preference evaluation. This prevents information leakage and ensures that reward models are evaluated only on information that would be available in realistic long-horizon counseling settings. 
+
+2) Model List Usage in Response Candidate Genera-tion: The models used for response candidate generation include both open-weight and closed-source systems, and span instruction-tuned and chat-optimized variants. All models are used in a zero-shot generation setting with fixed decoding parameters to ensure comparability across candidates. Across all models, responses are generated with temperature set to 
+
+0.8 and a maximum output length sufficient to complete a full counseling turn. No model-specific prompt tuning or post-processing is applied. Each prompt is paired with multiple independently generated responses sampled from different models, enabling the construction of challenging preference pairs and Best-of-N instances that reflect realistic model di-JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 11 Prompt for lon g-term memory 
+
+You are a professional Cognitive Behavioral Therapist (CBT) counselor. 
+
+Below are several segmented summaries of this session, arranged 
+
+chronologically. Please synthesize these summaries to generate a 
+
+structured session -level summary of this consultation, ensuring the format 
+
+is identical to the example: 
+
+Session Summary 
+
+Focus :
+
+- Main discussion topics and triggering situations 
+
+- Key issues discussed in this session (e.g., cognitive restructuring, 
+
+emotion regulation, avoidance behavior, behavioral experiments, etc .) 
+
+Progress :
+
+- The client's specific progress in emotion recognition, cognitive 
+
+restructuring, and behavioral adjustment 
+
+- New insights, completed exercises, or improved skills 
+
+Setbacks / Challenges :
+
+- Unresolved difficulties from this session 
+
+- Recurring automatic thoughts, behavioral patterns, and hindering factors 
+
+- Bottlenecks in skill application or challenges in real -world situations 
+
+Next Steps :
+
+- Recommended next -stage CBT intervention directions (cognitive 
+
+reappraisal, behavioral experiments, exposure, emotion monitoring, 
+
+homework assignments, etc .) 
+
+- Specific and actionable follow -up action suggestions 
+
+Requirements: 
+
+1. Language should be objective, neutral, and professional, using clear and 
+
+specific expressions. 
+
+2. List 2 –4 items in each section using bullet points (-). 
+
+3. All content must be based on the input summaries and cannot be 
+
+fabricated .
+
+4. Do not output explanations, prompts, or additional text. 
+
+Input content is as follows :
+
+{summaries_text }
+
+Please generate a session -level summary according to the above 
+
+requirements. 
+
+Fig. 10. Prompt usage in long-term memory generation. 
+
+versity. A complete list of models used for response candidate generation is shown in Table VI. 
+
+TABLE VI MODELS USED FOR COUNSELOR RESPONSE CANDIDATE GENERATION .
+
+Model Name Type 
+
+GLM-4.6 Closed-source Qwen3-235B-A22B-Thinking-2507 Open-weight Qwen3-30B-A3B-Thinking-2507 Open-weight Qwen3-32B Open-weight DeepSeek-V3.2-Exp Open-weight DeepSeek-R1-0528 Open-weight gpt-4o-mini Closed-source gpt-oss-20b Open-weight MiniMax-M2 Open-weight Kimi-K2 Open-weight 
+
+APPENDIX BDETAILED PERFORMANCE ON NEGATIVE EXPERIENCE 
+
+This appendix provides detailed pairwise and BoN accuracy for each of the 21 negative experience meta-categories, across the six evaluated reward models. Categories are grouped by their original four-cluster taxonomy for reference. Fig. 11 provides a heatmap visualization of BoN accuracy across models and categories, with darker shades indicating higher performance. Llama-3.1-8B-Instruct-RM-RB2                                                                                                                                                                                                                                                 
+
+> Skywork-Reward-V2-Qwen3-8B
+> Skywork-Reward-V2-Qwen3-4B
+> deepseek-v3.2-exp
+> gpt-4o-mini
+> Qwen2.5-7B-Instruct
+> Reward Model
+> 87.9 90.0 85.9 91.5 83.5 90.3 87.0 86.9 85.2 90.0 87.3 89.3 87.4 87.0 84.1 87.0 79.4 86.5 87.3 80.4 82.3
+> 86.0 88.2 85.6 90.2 84.1 90.9 88.5 83.4 70.7 83.7 84.2 86.4 81.1 86.7 86.5 83.2 74.3 78.4 84.8 79.1 81.3
+> 84.5 87.0 81.5 91.2 83.8 91.2 84.0 81.6 71.6 82.6 82.0 83.4 82.3 87.6 85.0 82.0 73.0 79.8 82.9 78.5 76.5
+> 75.2 83.4 80.9 83.2 82.6 83.6 76.5 70.5 85.5 76.6 78.0 81.2 71.9 83.5 80.7 71.1 70.0 76.7 74.6 75.5 77.5
+> 80.8 87.3 81.8 87.2 85.0 89.5 85.2 84.0 88.0 80.9 83.2 88.6 82.3 87.9 84.4 81.7 76.2 87.0 82.5 73.6 80.7
+> 73.3 86.4 78.4 83.8 75.8 83.9 80.7 73.8 78.9 78.9 78.0 81.5 75.7 84.4 78.9 76.4 71.4 81.3 81.3 72.1 76.5
+> Pairwise Accuracy across Fine-grained Negative Experiences
+> Not Listening
+> Not Understanding
+> Perceived Incompetent
+> Devaluing Client
+> Judging
+> Using Client for Benefit
+> Inappropriate Reactions
+> Distance / No Empathy
+> Insecurity / Distrust
+> Confusion / Uncertainty
+> Poor Interpersonal Match
+> Negative Practical Eval
+> Unmet Expectations
+> Lack of Fit
+> Dissatisfaction Ending
+> No/Insufficient Change
+> Increased Problems
+> Fear of Process
+> Loss of Motivation
+> Unpleasant Feelings
+> Negative Cognitions
+> Negative Experience Category
+> Llama-3.1-8B-Instruct-RM-RB2
+> Skywork-Reward-V2-Qwen3-8B
+> Skywork-Reward-V2-Qwen3-4B
+> deepseek-v3.2-exp
+> gpt-4o-mini
+> Qwen2.5-7B-Instruct
+> Reward Model
+> 65.7 70.2 67.0 68.9 67.4 71.1 68.4 67.8 66.6 67.4 68.7 69.2 65.9 68.5 67.6 68.5 65.0 67.2 64.7 67.2 66.8
+> 58.5 62.9 60.7 64.3 60.9 65.6 61.1 59.8 54.0 61.6 62.0 62.2 59.1 62.4 61.4 61.2 59.6 60.9 61.0 60.0 60.0
+> 58.6 60.5 57.2 63.0 56.3 63.9 58.5 59.6 53.5 57.5 58.8 59.1 58.0 60.4 57.2 61.3 57.7 59.7 59.8 57.8 57.4
+> 69.8 74.7 74.5 75.1 73.3 74.7 74.9 73.7 74.6 75.8 76.8 75.2 73.5 74.0 74.1 74.4 71.1 73.5 72.4 72.8 71.7
+> 59.0 63.8 59.8 65.3 62.7 62.2 64.9 60.8 62.4 64.0 63.7 63.2 61.1 65.0 65.7 63.6 60.0 64.0 62.4 60.5 61.9
+> 52.7 56.0 56.8 57.3 56.1 57.4 56.2 52.9 55.6 56.4 56.7 55.5 54.1 58.9 56.7 55.1 53.3 57.9 55.6 56.2 55.2
+> BoN Accuracy across Fine-grained Negative Experiences
+> 75
+> 80
+> 85
+> 90
+> Pairwise Accuracy (%)
+> 55
+> 60
+> 65
+> 70
+> 75
+> BON Accuracy (%)
+
+Performance of Reward Models on Fine-grained Negative Experiences 
+
+in Psychotherapy 
+
+Fig. 11. Detailed per-category pairwise and BoN accuracies for the six evaluated models. 
+
+REFERENCES [1] H. Qiu, H. He, S. Zhang, A. Li, and Z. Lan, “SMILE: Single-turn to multi-turn inclusive language expansion via ChatGPT for mental health support,” in Findings of the Association for Computational Linguistics: EMNLP 2024 . Association for Computational Linguistics, Nov. 2024, pp. 615–636. [2] Y. Chen, X. Xing, J. Lin, H. Zheng, Z. Wang, Q. Liu, and X. Xu, “SoulChat: Improving LLMs’ empathy, listening, and comfort abilities through fine-tuning with multi-turn empathy conversations,” in Findings of the Association for Computational Linguistics: EMNLP 2023 . As-sociation for Computational Linguistics, Dec. 2023, pp. 1170–1183. [3] Y. He, Y. Pan, W. Li, J. You, J. Deng, and F. Ren, “ECC: An emotion-cause conversation dataset for empathy response,” in Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing . Association for Computational Linguistics, Nov. 2025, pp. 6011–6028. [4] A. Sharma, K. Rushton, I. W. Lin, T. Nguyen, and T. Althoff, “Facili-tating self-guided mental health interventions through human-language model interaction: A case study of cognitive restructuring,” in Proceed-ings of the 2024 CHI Conference on Human Factors in Computing Systems , ser. CHI ’24. Association for Computing Machinery, 2024. [5] S. Lee, S. Kim, M. Kim, D. Kang, D. Yang, H. Kim, M. Kang, D. Jung, M. H. Kim, S. Lee, K.-M. Chung, Y. Yu, D. Lee, and J. Yeo, “Cactus: To-wards psychological counseling conversations using cognitive behavioral theory,” in Findings of the Association for Computational Linguistics: EMNLP 2024 . Association for Computational Linguistics, Nov. 2024, pp. 14 245–14 274. [6] H. Xie, Y. Chen, X. Xing, J. Lin, and X. Xu, “PsyDT: Using LLMs to construct the digital twin of psychological counselor with personalized counseling style for psychological counseling,” in Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) . Association for Computational Linguistics, Jul. 2025, pp. 1081–1115. [7] C. Zhang, R. Li, M. Tan, M. Yang, J. Zhu, D. Yang, J. Zhao, G. Ye, C. Li, and X. Hu, “CPsyCoun: A report-based multi-turn dialogue reconstruc-tion and evaluation framework for Chinese psychological counseling,” in 
+
+Findings of the Association for Computational Linguistics: ACL 2024 .Association for Computational Linguistics, Aug. 2024, pp. 13 947– 13 966. [8] B. Zhang, R. Ma, Q. Jiang, P. Wang, J. Chen, Z. Xie, X. Chen, Y. Wang, F. Ye, J. Li, Y. Yang, Z. Tu, and X. Li, “Sentient agent as a judge: Evaluating higher-order social cognition in large language JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 12 
+
+models,” ArXiv , vol. abs/2505.02847, 2025. [Online]. Available: https://api.semanticscholar.org/CorpusID:278338890 [9] P. Wang, R. Ma, B. Zhang, X. Chen, Z. He, K. Luo, Q. Lv, Q. Jiang, Z. Xie, S. Wang, Y. Li, F. Ye, J. Li, Y. Yang, Z. Tu, and X. Li, “Rlver: Reinforcement learning with verifiable emotion rewards for empathetic agents,” ArXiv , vol. abs/2507.03112, 2025. [10] N. Lambert, V. Pyatkin, J. Morrison, L. Miranda, B. Y. Lin, K. Chandu, N. Dziri, S. Kumar, T. Zick, Y. Choi, N. A. Smith, and H. Hajishirzi, “RewardBench: Evaluating reward models for language modeling,” in 
+
+Findings of the Association for Computational Linguistics: NAACL 2025 . Association for Computational Linguistics, Apr. 2025, pp. 1755– 1797. [11] E. Zhou, G. Zheng, B. Wang, Z. Xi, S. Dou, R. Bao, W. Shen, L. Xiong, J. Fan, Y. Mou, R. Zheng, T. Gui, Q. Zhang, and X. Huang, “Rmb: Comprehensively benchmarking reward models in llm alignment,” ArXiv , vol. abs/2410.09893, 2024. [Online]. Available: https://api.semanticscholar.org/CorpusID:273346208 [12] S. Malik, V. Pyatkin, S. Land, J. D. Morrison, N. A. Smith, H. Hajishirzi, and N. Lambert, “Rewardbench 2: Advancing reward model evaluation,” ArXiv , vol. abs/2506.01937, 2025. [Online]. Available: https://api.semanticscholar.org/CorpusID:279119102 [13] J. M. Liu, D. Li, H. Cao, T. Ren, Z. Liao, and J. Wu, “Chatcounselor: A large language models for mental health support,” arXiv preprint arXiv:2309.15461 , 2023. [14] Y. Chen, X. Xing, J. Lin, H. Zheng, Z. Wang, Q. Liu, and X. Xu, “Soulchat: Improving llms’ empathy, listening, and comfort abilities through fine-tuning with multi-turn empathy conversations,” in Findings of the Association for Computational Linguistics: EMNLP 2023 , 2023, pp. 1170–1183. [15] E. Jo, D. A. Epstein, H. Jung, and Y.-H. Kim, “Understanding the benefits and challenges of deploying conversational ai leveraging large language models for public health intervention,” in Proceedings of the 2023 CHI Conference on Human Factors in Computing Systems , 2023, pp. 1–16. [16] J. Wei, S. Kim, H. Jung, and Y.-H. Kim, “Leveraging large language models to power chatbots for collecting user self-reported data,” Pro-ceedings of the ACM on Human-Computer Interaction , vol. 8, no. CSCW1, pp. 1–35, 2024. [17] S.-L. Hsu, R. S. Shah, P. Senthil, Z. Ashktorab, C. Dugan, W. Geyer, and D. Yang, “Helping the helper: Supporting peer counselors via ai-empowered practice and feedback,” arXiv preprint arXiv:2305.08982 ,2023. [18] S. Chen, M. Wu, K. Q. Zhu, K. Lan, Z. Zhang, and L. Cui, “Llm-empowered chatbots for psychiatrist and patient simulation: application and evaluation,” arXiv preprint arXiv:2305.13614 , 2023. [19] H. Na, “Cbt-llm: A chinese large language model for cognitive behav-ioral therapy-based mental health question answering,” in Proceedings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024) , 2024, pp. 2930–2940. [20] N. Zhang, R. Sun, R. Su, S. Ma, S. Zhang, X. Weng, X. Zhang, Y. Zhan, Y. Xu, Z. Chen et al. , “Echo-n1: Affective rl frontier,” arXiv preprint arXiv:2512.00344 , 2025. [21] L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. L. Wainwright, P. Mishkin, C. Zhang, S. Agarwal, K. Slama, A. Ray, J. Schulman, J. Hilton, F. Kel-ton, L. Miller, M. Simens, A. Askell, P. Welinder, P. Christiano, J. Leike, and R. Lowe, “Training language models to follow instructions with human feedback,” in Proceedings of the 36th International Conference on Neural Information Processing Systems , ser. NIPS ’22. Curran Associates Inc., 2022. [22] A. Askell, Y. Bai, A. Chen, D. Drain, D. Ganguli, T. J. Henighan, A. Jones, N. Joseph, B. Mann, N. Dassarma, N. Elhage, Z. Hatfield-Dodds, D. Hernandez, J. Kernion, K. Ndousse, C. Olsson, D. Amodei, T. B. Brown, J. Clark, S. McCandlish, C. Olah, and J. Kaplan, “A general language assistant as a laboratory for alignment,” ArXiv , vol. abs/2112.00861, 2021. [23] Y. Bai, A. Jones, K. Ndousse, A. Askell, A. Chen, N. Dassarma, D. Drain, S. Fort, D. Ganguli, T. J. Henighan, N. Joseph, S. Kada-vath, J. Kernion, T. Conerly, S. El-Showk, N. Elhage, Z. Hatfield-Dodds, D. Hernandez, T. Hume, S. Johnston, S. Kravec, L. Lovitt, N. Nanda, C. Olsson, D. Amodei, T. B. Brown, J. Clark, S. McCandlish, C. Olah, B. Mann, and J. Kaplan, “Training a helpful and harmless assistant with reinforcement learning from human feedback,” ArXiv , vol. abs/2204.05862, 2022. [24] L. Zhang, A. Hosseini, H. Bansal, M. Kazemi, A. Kumar, and R. Agarwal, “Generative verifiers: Reward modeling as next-token prediction,” ArXiv , vol. abs/2408.15240, 2024. [Online]. Available: https://api.semanticscholar.org/CorpusID:271963324 [25] P. F. Christiano, J. Leike, T. B. Brown, M. Martic, S. Legg, and D. Amodei, “Deep reinforcement learning from human preferences,” in 
+
+Proceedings of the 31st International Conference on Neural Information Processing Systems , ser. NIPS’17. Curran Associates Inc., 2017, p. 4302–4310. [26] L. Zhu, X. Wang, and X. Wang, “Judgelm: Fine-tuned large language models are scalable judges,” ArXiv , vol. abs/2310.17631, 2023. [27] L. Zheng, W.-L. Chiang, Y. Sheng, S. Zhuang, Z. Wu, Y. Zhuang, Z. Lin, Z. Li, D. Li, E. Xing, H. Zhang, J. E. Gonzalez, and I. Stoica, “Judging llm-as-a-judge with mt-bench and chatbot arena,” in Advances in Neural Information Processing Systems , A. Oh, T. Naumann, A. Globerson, K. Saenko, M. Hardt, and S. Levine, Eds., vol. 36. Curran Associates, Inc., 2023, pp. 46 595–46 623. [28] S. Kim, J. Suk, S. Longpre, B. Y. Lin, J. Shin, S. Welleck, G. Neubig, M. Lee, K. Lee, and M. Seo, “Prometheus 2: An open source language model specialized in evaluating other language models,” in Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing . Association for Computational Linguistics, Nov. 2024, pp. 4334–4353. [29] W. Yuan, R. Y. Pang, K. Cho, X. Li, S. Sukhbaatar, J. Xu, and J. Weston, “Self-rewarding language models,” in Proceedings of the 41st International Conference on Machine Learning , ser. ICML’24. JMLR.org, 2024. [30] Z. Sun, Y. Shen, H. Zhang, Q. Zhou, Z. Chen, D. D. Cox, Y. Yang, and C. Gan, “Salmon: Self-alignment with instructable reward models,” in 
+
+International Conference on Learning Representations , 2023. [Online]. Available: https://api.semanticscholar.org/CorpusID:263831633 [31] S. Gureja, L. J. V. Miranda, S. B. Islam, R. Maheshwary, D. Sharma, G. T. Winata, N. Lambert, S. Ruder, S. Hooker, and M. Fadaee, “M-RewardBench: Evaluating reward models in multilingual settings,” in Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) . Association for Computational Linguistics, Jul. 2025, pp. 43–58. [32] S. Kim, D. Kang, T. Kwon, H. Chae, J. Won, D. Lee, and J. Yeo, “Evaluating robustness of reward models for mathematical reasoning,” ArXiv , vol. abs/2410.01729, 2024. [Online]. Available: https://api.semanticscholar.org/CorpusID:273025999 [33] X. H. L` u, A. Kazemnejad, N. Meade, A. Patel, D. Shin, A. Zambrano, K. Sta´ nczak, P. Shaw, C. Pal, and S. Reddy, “Agentrewardbench: Evaluating automatic evaluations of web agent trajectories,” ArXiv , vol. abs/2504.08942, 2025. [Online]. Available: https://api.semanticscholar.org/CorpusID:277780411 [34] H. Ding, Q. Feng, D. Liu, Q. Zhao, T. Yao, S. Wang, D. Chen, J. Li, Z. Gan, J. Zhang, C. Wang, and Y. Wang, “Rolermbench&rolerm: Towards reward modeling for profile-based role play in dialogue systems,” 2025. [Online]. Available: https://api.semanticscholar.org/ CorpusID:283737256 [35] Y. Zhou, N. Zhou, Q. Chen, J. Zhou, A. Zhou, and L. He, “Diacbt: A long-periodic dialogue corpus guided by cognitive conceptualization diagram for cbt-based psychological counseling,” 
+
+ArXiv , vol. abs/2509.02999, 2025. [Online]. Available: https://api. semanticscholar.org/CorpusID:281091992 [36] Y. Lv, H. Pan, Z. Wang, J. Liang, Y. Liu, R. Fu, M. Liu, Z. Wang, and B. Qin, “CogGPT: Unleashing the power of cognitive dynamics on large language models,” in Findings of the Association for Computational Linguistics: EMNLP 2024 . Association for Computational Linguistics, Nov. 2024, pp. 6074–6091. [37] Y. Y. Chiu, A. Sharma, I. W. Lin, and T. Althoff, “A computational framework for behavioral assessment of llm therapists,” ArXiv , vol. abs/2401.00820, 2024. [Online]. Available: https://api.semanticscholar. org/CorpusID:266693148 [38] Z. Vyb´ ıral, B. M. Ogles, T. ˇ Rih´ aˇ cek, B. Urbancov´ a, and V. Gociekov´ a, “Negative experiences in psychotherapy from clients’ perspective: A qualitative meta-analysis.” Psychotherapy Research , 2024. [39] T. Zhang*, V. Kishore*, F. Wu*, K. Q. Weinberger, and Y. Artzi, “Bertscore: Evaluating text generation with bert,” in International Conference on Learning Representations , 2020. [Online]. Available: https://openreview.net/forum?id=SkeHuCVFDr

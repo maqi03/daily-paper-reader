@@ -1,0 +1,110 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-001.webp",
+      "caption": "Table 1: Example of misalignment between the weighted-sum ranking (Section 3.1) and human preference. For each response, the first row reports the original MRBench annotation labels, and the second row reports their weighted contributions (annotation score × dimension weight). Abbreviations: MI – Mistake Identification; ML – Mistake Location; RA – Revealing the Answer; PG – Providing Guidance; AC – Actionability; HM – Human-likeness; CO – Coherence; TT – Tutor Tone; TSE – To some extent; Enc – Encouraging.",
+      "page": 6,
+      "index": 1,
+      "width": 939,
+      "height": 379
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-002.webp",
+      "caption": "Table 4: Examples of misalignment between the weighted-sum ranking (Section 3.1) and human preference. For each response, the first row reports the original MRBench annotation labels, and the second row reports their weighted contributions (annotation score × dimension weight). Abbreviations: MI – Mistake Identification; ML – Mistake Location; RA – Revealing the Answer; PG – Providing Guidance; AC – Actionability; HM – Human-likeness; CO – Coherence; TT – Tutor Tone; TSE – To some extent; Neu – Neutral.",
+      "page": 15,
+      "index": 2,
+      "width": 939,
+      "height": 1379
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-003.webp",
+      "caption": "Figure 1: Example of annotated tutor responses from MRBench. The Sonnet response is annotated as more actionable (“Yes” vs. “To some extent”) because it prompts the student to recall the prefix for a five-sided shape rather than revealing it directly. In contrast, the Expert response is more encouraging in tone (“Encouraging” vs. “Neutral”).",
+      "page": 2,
+      "index": 3,
+      "width": 402,
+      "height": 681
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-004.webp",
+      "caption": "Table 2: Synthetic augmentation results by evaluation aspects. Aspect-wise worsening of the pairs corresponds to Step 3, improvement to Step 1, and joint improvement to Step 2. †The “global nonpreference” block aggregates comparisons from Steps 4–5, where factually incorrect or mistake-unaware responses are non-preferred.",
+      "page": 7,
+      "index": 4,
+      "width": 733,
+      "height": 423
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-005.webp",
+      "caption": "Figure 2: Pipeline for synthetic data augmentation. The procedure augments MRBench by generating aspect-specific improvements of suboptimal responses, jointly improved variants, and controlled degradations of optimal responses, thereby constructing structured preference pairs aligned with human annotation preferences. Suboptimal responses are those that do not receive desirable annotations in one or more of the following MRBench dimensions: Revealing the Answer, Providing Guidance, Actionability, and Coherence. In contrast, poor responses receive undesirable annotations across all four of these dimensions.",
+      "page": 7,
+      "index": 5,
+      "width": 885,
+      "height": 450
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-006.webp",
+      "caption": "Figure 4: Basic prompt template used for LLM-based preference annotation.",
+      "page": 14,
+      "index": 6,
+      "width": 867,
+      "height": 450
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-007.webp",
+      "caption": "Figure 5: Prompt template with guidelines used for LLM-based preference annotation.",
+      "page": 14,
+      "index": 7,
+      "width": 867,
+      "height": 613
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-008.webp",
+      "caption": "Figure 7: Prompt template with a decision-making process based on a hierarchy (see Appendix A) that was used for LLM-based preference annotation in Section 3.2.",
+      "page": 18,
+      "index": 8,
+      "width": 865,
+      "height": 1073
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-009.webp",
+      "caption": "Figure 6: Prompt template with a decision checklist used for LLM-based preference annotation.",
+      "page": 17,
+      "index": 9,
+      "width": 867,
+      "height": 911
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-010.webp",
+      "caption": "Figure 3: Illustrative contrastive examples for the hierarchy of pedagogical aspects.",
+      "page": 12,
+      "index": 10,
+      "width": 887,
+      "height": 1246
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-011.webp",
+      "caption": "Table 3: Reward model performance (pairwise accuracy) across different training data setups and models. External baselines are evaluated only on the human test set. Bold values indicate the best results on the human test set, and underlined values indicate the second-best ones.",
+      "page": 9,
+      "index": 11,
+      "width": 948,
+      "height": 245
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-012.webp",
+      "caption": "Table 5: Example of annotator disagreement: one annotator preferred Response B, while three preferred Response A.",
+      "page": 16,
+      "index": 12,
+      "width": 939,
+      "height": 612
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24375v1/fig-013.webp",
+      "caption": "Table 6: Reward model performance (pairwise accuracy) for Qwen2.5-0.5B across different training data setups. External baselines are evaluated only on the human test set. Bold values indicate the best results on the human test set.",
+      "page": 16,
+      "index": 13,
+      "width": 948,
+      "height": 591
+    }
+  ]
+}

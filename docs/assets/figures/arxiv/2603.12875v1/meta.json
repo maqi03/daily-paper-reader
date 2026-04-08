@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.12875v1/fig-001.webp",
+      "caption": "Figure 8: Evaluation of models aligned via TTRA compared to human doctors and a directly evaluated baseline. For models marked with (*), base model performance is taken from [Hag+24]. After applying TTRA, the models significantly outperform direct evaluation, indicating that the base models possess latent capabilities previously underestimated, and relative comparisons between models change.",
+      "page": 10,
+      "index": 1,
+      "width": 579,
+      "height": 231
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12875v1/fig-002.webp",
+      "caption": "Figure 2: Overview of the TTRA base train-before-test evaluation pipeline.",
+      "page": 3,
+      "index": 2,
+      "width": 777,
+      "height": 382
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12875v1/fig-003.webp",
+      "caption": "Figure 12: Sensitivity of SFT to training data selection. We evaluate the performance of the base model fine-tuned on various open-source datasets with a fixed data budget (1k samples). The results reveal significant performance variance across different data sources.",
+      "page": 18,
+      "index": 3,
+      "width": 697,
+      "height": 189
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12875v1/fig-004.webp",
+      "caption": "Figure 7: Performance comparison of Qwen2.5-Math base and fine-tuned models under TTRA evaluation. Results are shown for 7B models (top) and 1.5B models (bottom) across four benchmarks. The orange bars denote the base models, while blue bars denote various fine-tuned variants. The orange dashed line marks the base model’s performance level, highlighting that the performance advantage of fine-tuned models largely disappears after applying TTRA.",
+      "page": 8,
+      "index": 4,
+      "width": 879,
+      "height": 438
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12875v1/fig-005.webp",
+      "caption": "Table 2: Comparison between direct evaluation and evaluation using train-before-test with TTRA. Scores marked with * are reported from the original papers. Under direct evaluation, fine-tuned variants show large improvements; after applying TTRA, these gains are substantially smaller.",
+      "page": 19,
+      "index": 5,
+      "width": 848,
+      "height": 200
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12875v1/fig-006.webp",
+      "caption": "Table 1: Evaluation time and relative computational cost of direct evaluation and train-before-test methods (SFT and TTRA) using Qwen3-0.6B on GSM8K.",
+      "page": 12,
+      "index": 6,
+      "width": 743,
+      "height": 338
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12875v1/fig-007.webp",
+      "caption": "Figure 4: TTRA preserves existing ranking harmony between GSM8K and GSM-plus-mini. Left: Direct evaluation shows already consistent rankings for these similar-format tasks. Right: TTRA evaluation maintains this high consistency.",
+      "page": 5,
+      "index": 7,
+      "width": 457,
+      "height": 365
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12875v1/fig-008.webp",
+      "caption": "Figure 3: TTRA harmonizes model rankings between GSM8K and MathQA. Left: Direct evaluation shows highly discordant model rankings across the two benchmarks. Right: After TTRA alignment, the rankings become substantially more consistent and harmonized.",
+      "page": 5,
+      "index": 8,
+      "width": 457,
+      "height": 359
+    }
+  ]
+}

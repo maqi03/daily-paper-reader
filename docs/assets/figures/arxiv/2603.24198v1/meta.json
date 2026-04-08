@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-001.webp",
+      "caption": "Fig. 2: The proposed RefReward-SR framework. (a) MLLM Fine-tuning: Fine-tuning via GRPO with format and LR-conditioned rank rewards from RefSR18K for human preference alignment. (b) Global-Local Crop Scoring: Extracting representative local crops via RAM and Grounding DINO, then fusing multi-scale MLLM scores via area-weighted averaging for comprehensive evaluation.",
+      "page": 6,
+      "index": 1,
+      "width": 697,
+      "height": 409
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-002.webp",
+      "caption": "Table 2: Quantitative comparison of state-of-the-art Real-ISR methods. To evaluate the effectiveness of our alignment strategy, the best results among the base model (C-FLUX), its DP2O-fine-tuned variant (DP2O-FLUX), and our proposed method are",
+      "page": 11,
+      "index": 2,
+      "width": 723,
+      "height": 541
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-003.webp",
+      "caption": "Fig. 9: Additional visual results of RefReward-SR evaluations, illustrating the visual reasoning trajectories and the predicted quality scores.",
+      "page": 30,
+      "index": 3,
+      "width": 652,
+      "height": 1069
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-004.webp",
+      "caption": "Fig. 1: Overview of our proposed evaluation paradigm. (a) HR A preserves structures, while HR B shows severe distortions. (b) RefReward-SR uses an MLLM for interpretable, LR-conditioned semantic scoring. (c) Existing metrics wrongly favor the distorted HR B, whereas ours aligns with human perception. (d) RefReward-SR uniquely ensures semantic fidelity and preference alignment without GT dependency. The asterisk(*) indicates that FR metrics evaluate high-level semantics only passively via low-level correspondence.",
+      "page": 3,
+      "index": 4,
+      "width": 704,
+      "height": 290
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-005.webp",
+      "caption": "Table 7: Training hyperparameters for preference-aligned SR via GRPO.",
+      "page": 28,
+      "index": 5,
+      "width": 694,
+      "height": 765
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-006.webp",
+      "caption": "Fig. 4: Qualitative comparison of state-of-the-art generative SR methods. Please zoom in for a better view. Additional results are provided in the Suppl. Mater..",
+      "page": 13,
+      "index": 6,
+      "width": 652,
+      "height": 398
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-007.webp",
+      "caption": "Fig. 11: Visual comparisons of preference-aligned SR results on the DIV2K-val dataset. Please zoom in for a better view.",
+      "page": 32,
+      "index": 7,
+      "width": 725,
+      "height": 1114
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-008.webp",
+      "caption": "Table 6: Training hyperparameters for RefReward-SR.",
+      "page": 27,
+      "index": 8,
+      "width": 510,
+      "height": 323
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-009.webp",
+      "caption": "Table 1: Quantitative results (in %) on human preference alignment. We report agreement with human annotators, as well as Recall@1 and Filter@1 on both in-domain and out-of-domain test sets. “Annotators” denotes the average agreement among human annotators. All ± values indicate the maximum deviation from the mean.",
+      "page": 9,
+      "index": 9,
+      "width": 640,
+      "height": 514
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-010.webp",
+      "caption": "Fig. 10: Visual comparisons of preference-aligned SR results on real-world datasets. Please zoom in for a better view.",
+      "page": 31,
+      "index": 10,
+      "width": 725,
+      "height": 1116
+    },
+    {
+      "url": "assets/figures/arxiv/2603.24198v1/fig-011.webp",
+      "caption": "Fig. 6: User interface of our annotation platform. The left panel shows the LR reference as a semantic anchor, while the right displays four HR candidates for annotators to rank from 1 (best) to 4 (worst).",
+      "page": 20,
+      "index": 11,
+      "width": 725,
+      "height": 385
+    }
+  ]
+}

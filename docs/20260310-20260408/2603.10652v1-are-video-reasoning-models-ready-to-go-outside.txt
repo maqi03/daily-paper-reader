@@ -1,0 +1,1790 @@
+Title: Are Video Reasoning Models Ready to Go Outside?
+
+URL Source: https://arxiv.org/pdf/2603.10652v1
+
+Published Time: Thu, 12 Mar 2026 01:18:00 GMT
+
+Number of Pages: 37
+
+Markdown Content:
+# Are Video Reasoning Models Ready to Go Outside? 
+
+Yangfan He 
+
+NTU Singapore 
+
+yhe873232@gmail.com 
+
+Changgyu Boo 
+
+Korea University 
+
+2019150348@korea.ac.kr 
+
+Jaehong Yoon ∗
+
+NTU Singapore 
+
+jaehong.yoon@ntu.edu.sg 
+
+## Abstract 
+
+In real-world deployment, vision-language models often encounter disturbances such as weather, occlusion, and camera motion. Under such conditions, their under-standing and reasoning degrade substantially, revealing a gap between clean, con-trolled (i.e., unperturbed) evaluation settings and real-world robustness. To address this limitation, we propose ROVA, a novel training framework that improves robust-ness by modeling a robustness-aware consistency reward under spatio-temporal corruptions. ROVA introduces a difficulty-aware online training strategy that prior-itizes informative samples based on the model’s evolving capability. Specifically, it continuously re-estimates sample difficulty via self-reflective evaluation, en-abling adaptive training with a robustness-aware consistency reward. We also introduce PVRBench, a new benchmark that injects real-world perturbations into embodied video datasets to assess both accuracy and reasoning quality under real-istic disturbances. We evaluate ROVA and baselines on PVRBench, UrbanVideo, and VisBench, where open-source and proprietary models suffer up to 35% and 28% drops in accuracy and reasoning under realistic perturbations. ROVA effec-tively mitigates performance degradation, boosting relative accuracy by at least 24% and reasoning by over 9% compared with baseline models (QWen2.5/3-VL, InternVL2.5, Embodied-R). These gains transfer to clean standard benchmarks, yielding consistent improvements. Project Page: https://robust-video-reason.github.io/ 
+
+## 1 Introduction 
+
+Vision-language models (VLMs) [Zhang et al., 2023, Maaz et al., 2024, Shu et al., 2025, Yuan et al., 2025, Li et al., 2025, Yu et al., 2025, Clark et al., 2026] have rapidly advanced video understanding and reasoning, allowing systems to interpret complex scenes and perform temporally grounded inference. These capabilities support many real-world applications, yet a key question remains: are current VLMs robust enough to operate reliably beyond clean, controlled conditions? In practice, these models frequently face challenging video streams, corrupted by adverse weather (e.g., rain, fog, snow), dynamic occlusions (e.g., pedestrians, vehicles, vegetation), abrupt illumination changes (e.g., glare, shadows, low light), and camera motion induced by vibration or viewpoint shifts. Such perturbations are common in the real world, yet these models severely degrade perception and lead to brittle or unreliable reasoning (Fig. 1). For instance, under conditions such as video occlusion or adverse weather, baseline models may incorrectly output “Turn Left” or “Turn Right” rather 
+
+> ∗
+
+Corresponding author Preprint.                     
+
+> arXiv:2603.10652v1 [cs.CV] 11 Mar 2026 Guess the driving direction and movement trajectory ？
+> occlusion occlusion
+> occlusion occlusion
+> Fog severely reduced visibility and obscured lane
+> markings, with the vehicle gradually drifting to the
+> right . Based on this, I formulated a driving strategy
+> in accordance with traffic rules , determining the
+> vehicle should execute a right-turn path.
+> Reasoning
+> Process
+> Pred Action: Turn Left
+> GT Action: Go Ahead
+> Question
+> frame 1 frame
+> 4
+> frame 12 frame 8
+> Pred Action: Turn Right
+> GT Action: Go Ahead
+> fog
+> fog
+> Heavy rain made it hard to see and the wipers were
+> blocking my view , I, I formulated a driving strategy
+> in accordance with current traffic rules and signals ,
+> determining the vehicle should execute a left-turn
+> path.
+> fog
+> fog
+> frame 2
+> What is the inferred final driving decision ?
+> frame 12 frame 8
+> frame 1 frame 4
+> Reasoning
+> Process
+> occlusion
+> occlusio
+> n
+> frame
+> 4
+> frame 16
+> frame 4
+> fog
+> fog
+> frame 16
+> frame 4
+> Question
+
+Figure 1: Failure cases of Qwen2.5-VL under two representative perturbations: (a) occlusion (left) and (b) adverse weather (right). The model incorrectly predicts Turn Left” under occlusion and Turn Right” under fog, despite the ground-truth being “Go Ahead” in both cases, demonstrating how realistic perturbations mislead reasoning and motivating the need for robustness-aware training. than the ground-truth “Going Ahead.” This gap between benchmark assumptions and real-world conditions highlights the need for training frameworks that promote reliable generalization under realistic variability and uncertainty. A few prior studies [Mao et al., 2022, Zhou et al., 2024, Zhang et al., 2024] have explored improving the robustness of VLMs through generic data augmentation, random frame masking, zero-shot, or adversarial training. However, these methods typically treat robustness as a single objective, overlooking that different perturbations induce distinct failure modes. Consequently, they struggle to address structured, semantically meaningful corruptions common in real-world environments, since perturbation-specific failure behaviors are not explicitly modeled. To address this challenge, we propose RObust Video Alignment (ROVA) , a novel training approach for robust vision reasoning under realistic visual disturbances. We first apply corruption-based augmentation to generate perturbed videos. ROVA then measures divergence in reasoning coherence and answer quality between clean and corrupted videos as a proxy for corruption-induced difficulty. Moderately difficult instances are used for training, while overly easy samples are discarded and ex-cessively difficult ones are stored in a temporal memory buffer for later revisiting. Unlike curriculum learning, which follows a fixed, easy-to-hard schedule, this self-reflective evaluation estimates the difficulty and informativeness of each video–query instance based on the model’s current capability, enabling an adaptive curriculum that prioritizes informative samples while deferring overly difficult ones through memory replay. Next, we introduce a dual-branch alignment objective that enforces output consistency between paired clean and perturbed inputs. This robustness-aware consistency alignment is guided by reward modeling over reasoning and answer consistency, and optimized using group relative policy optimization. Specifically, we enforce output consistency between paired clean and perturbed video inputs through reward-guided optimization that evaluates both reasoning and answer consistency, trained via group relative policy optimization [Shao et al., 2024]. We further introduce Perturbed Video Reasoning Benchmark (PVRBench) , for evaluating the robust-ness of video reasoning under diverse realistic perturbations. Unlike existing benchmarks, including VisBench [Yang et al., 2025a] and UrbanVideo [Zhao et al., 2025a], which primarily evaluate mod-els on curated environments, PVRBench systematically injects perturbations from 12 corruption styles associated with lighting, camera motion, occlusion, and weather (Tab. 1), across 27 scene categories. Notably, all perturbations are spatially aware and temporally coherent, capturing realistic video disturbances. We observe that performant proprietary models (GPT-4o [Hurst et al., 2024] / Gemini-3-Pro [Team et al., 2023]) suffer 11–17% and 10–14% drops in accuracy and reasoning, and open-source models degrade by up to 35% and 26%, respectively, highlighting robustness gaps in VLMs under realistic conditions. ROVA consistently outperforms proprietary and open-source models on PVRBench, UrbanVideo, and VisBench across all perturbation types in both answer accuracy and reasoning quality. Specifically, ROVA surpasses the strongest open-source baselines of comparable size, Embodied-R, by 17%, while larger variants (13B/72B) match or exceed leading proprietary models such as Gemini-3-Pro and GPT-2Table 1: Comparison of PVRBench with existing video understanding benchmarks. #Types counts perturbation subtypes. #Cat. counts scene or class categories. Synthetic , Spatial , and Temporal indi-cate artificially generated, spatially grounded, and temporally consistent perturbations, respectively. PVRBench covers 27 tasks covering in door , out door , and emb odied AI scenarios. ‡: An image-level benchmark for reference.                                                                                                       
+
+> Benchmark Scale Perturbation Properties Scene Coverage #Videos #QAs Synthetic Real Spatial Temporal #Types Ind. Out. Emb. #Cat.
+> ImageNet-C ‡[Xie et al., 2020] 50K 50K ✓✗✗✗19 ✓✓✗1K MVBench [Li et al., 2024] 4K 4K ✗✗✗✗0✓✓✗20 Video-MME [Fu et al., 2025] 900 2.7K ✗✗✗✗0✓✓✗30 ALFRED [Shridhar et al., 2020] 8K 25K ✗✗✗✗0✓✗✓7Ego4D [Grauman et al., 2022] 3.7K 3.8M ✗✗✗✗0✓✓✓5VisBench [Yang et al., 2025a] 500 3K ✗✗✗✗0✓✗✓11 UrbanVideo [Zhao et al., 2025a] 1.5K 6K ✗✗✗✗0✗✓✓16
+> PVRBench (Ours) 9K 52K ✓✗✓✓12 ✓✓✓27
+
+4o. Notably, these improvements extend to clean videos, demonstrating enhanced generalizability and stronger performance on clean data. Furthermore, ROVA achieves higher reasoning quality, with improved consistency and belief scores, reflecting more stable, confident reasoning under visual corruption. 
+
+## 2 Related Work 
+
+Robust Training for Multimodal Models. Several works [Mao et al., 2022, Zhao et al., 2023, Sheng et al., 2025, Oh et al., 2025, Agarwal et al., 2025, Schiappa et al., 2022] have explored robustness to distribution shifts and adversarial inputs through data augmentation [Duan et al., 2023], test-time adaptation [Zhao et al., 2024], and transfer-based strategies [Tong et al., 2025, Cai et al., 2024]. However, these approaches primarily address generic perturbations or optimization efficiency, rather than the structured, semantically grounded disturbances encountered in real-world video settings. In video reasoning, recent methods [Zhou et al., 2025, Wang et al., 2025a, Chen et al., 2025a, Wang et al., 2025b] improve efficiency via adaptive frame sampling or data filtering, but they do not explicitly model realistic corruption patterns [Zeng et al., 2024, Yang et al., 2025b] that alter scene visibility and temporal coherence. As a result, robustness is treated as incidental resilience rather than being explicitly modeled during optimization. In contrast, ROVA incorporates structured and semantically grounded perturbations that reflect realistic environmental disturbances. The proposed architecture and training objectives enforce representation consistency between clean and perturbed videos, progressively strengthening disturbance-aware reasoning. 
+
+Robust Video Reasoning in Real-World Environments. Recent advances in video–language models [Zhang et al., 2023, Nguyen et al., 2024, Yuan et al., 2025, Yu et al., 2025, Clark et al., 2026] have substantially improved temporal reasoning and long-horizon embodied planning [Chen et al., 2025b, Azzolini et al., 2025, Zhang et al., 2025, Zhao et al., 2025b, Yu et al., 2026, Yeo et al., 2026]. However, most existing benchmarks evaluate models under nearly clean visual conditions [Maaz et al., 2024], implicitly assuming stable lighting, unobstructed views, and smooth camera movement. Although robustness is sometimes measured via synthetic textual perturbations [Wu et al., 2025], such evaluations do not capture structured, semantically grounded visual disturbances encountered in real-world environments. Consequently, no standardized benchmark systematically integrates realistic disturbances into embodied video reasoning, leaving a gap between benchmarks and deployment conditions. In contrast, we introduce PVRBench that integrates semantically meaningful perturbations into temporally coherent reasoning tasks. Rather than treating corruption as incidental noise, we ask models to reliably reason about scene content, even in the presence of disturbances. 
+
+## 3 Training Robust Video Reasoning Models with ROVA 
+
+As illustrated in Fig. 2, ROVA, a novel training approach for robust video reasoning under real-world perturbations, comprises three stages: we first generate corruption-augmented video-query pairs via dynamic, physically plausible perturbations (Sec. 3.1). Next, a difficulty-aware curriculum performs 3Figure 2: Overview of ROVA : (1) structured spatio-temporal corruption that generates realistic perturbations, (2) self-reflective evaluation with difficulty-aware online training that adaptively prioritizes informative samples, and (3) dual-branch alignment reward modeling that enforces output consistency between clean and perturbed inputs. self-reflective evaluation to selectively curate informative training samples conditioned on the model’s evolving capability (Sec. 3.2) . Finally, dual-branch alignment enforces consistency between clean and perturbed videos via reasoning-aware rewards and group relative policy optimization (GRPO) (Sec. 3.3). 
+
+3.1 Learning with Structured Spatio-Temporal Corruption 
+
+We first design a structured spatio-temporal corruption pipeline that models four realistic disturbances, including weather, lighting, occlusion, and camera motion , using style-specific, cross-frame coherent masks for spatial perturbations and temporal shuffling to disrupt temporal order. Unlike generic augmentations that apply independent pixel or frame perturbations (e.g., random masking, color jittering) [Xie et al., 2020], we explicitly model perturbation styles with spatial grounding and temporal coherence, yielding structured spatio-temporal disturbances. Each video is then paired with its corrupted counterpart in a dual-branch alignment framework to optimize output consistency. Through this design, the model learns perturbation-invariant representations for robust real-world generalization. Let a video sequence be denoted as V = {f1, f 2, . . . , f T }, where ft ∈ RH×W ×C denotes the t-th frame of height H, width W , and C channels. 
+
+Temporal Corruption. To disrupt temporal coherence, we randomly permute the frame sequence. A permutation π : {1, . . . , T } → { 1, . . . , T } is sampled uniformly at random, and the temporally shuffled video is defined as 
+
+Vtemp = {fπ(1) , f π(2) , . . . , f π(T )}, (1) which completely scrambles temporal order while preserving all frame content. 
+
+Spatial Corruption. Rather than coarse block-wise masking that risks removing crit-ical cues, we apply fine-grained masks across four perturbation styles m ∈ P =
+
+{weather , lighting , camera , occlusion }. For each frame ft, the mask P (m) 
+
+> t
+
+= B(m) 
+
+> t
+
+⊙ C(m) 
+
+> t
+
+fuses a binary map B(m) 
+
+> t
+
+∈ { 0, 1}H×W , where 1/0 denotes corrupted/clean pixels, with layouts driven by depth awareness or stochastic sampling, and a continuous modulation map C(m) 
+
+> t
+
+∈ [0 , 1] H×W
+
+encoding per-pixel effect intensity (e.g., rain strength, shadow depth, blur kernel; see Sec. B.2.) The corrupted frame is computed as f masked  
+
+> t
+
+= ft ⊙ P (m) 
+
+> t
+
+, where ⊙ denotes element-wise multiplication. 
+
+Spatio-Temporal Corruption. For each video, a perturbation style m ∈ P is uniformly sampled to generate the corrupted frame sequence: 
+
+V ′ =
+
+n
+
+fπ(t) ⊙ P (m)
+
+> t
+
+oTt=1 
+
+, (2) 4where P (m) 
+
+> t
+
+denotes the smooth, style-specific mask associated with style m. By jointly introduc-ing temporal order disruption and spatially realistic, continuous masking, our approach promotes perturbation-invariant representation learning while preserving essential visual semantics. 
+
+3.2 Self-Reflective Difficulty-Aware Training 
+
+Introducing structured visual corruptions exposes the model to a broader spectrum of reasoning difficulty than training on clean videos alone. While clean inputs typically lie within a narrow difficulty range, corrupted versions vary widely in severity, expanding the diversity of learning signals during training. Crucially, training is most effective on samples that are neither too easy nor excessively difficult [Wang et al., 2025b] under the model’s current capacity, as these instances provide the most informative learning signals and support stable optimization. Rather than uniformly sampling across the expanded difficulty range, we therefore prioritize appropriately challenging examples through a self-reflective, difficulty-aware strategy that implicitly forms an online curriculum. By continuously focusing on corrupted samples that provide meaningful learning signals, the model enables to promote robust and reliable reasoning under realistic visual disturbances. To this end, we propose a self-reflective, difficulty-aware training pipeline that implicitly builds an adaptive curriculum in an online manner. Formally, let Fθ denote a learnable VLM parameterized by θ.We assume that training video–text pairs arrive sequentially, and let θi denote the model parameters at training iteration i. At each iteration, ROVA performs two internal steps: 1) self-reflective evaluation ,where Fθi estimates the usefulness of incoming samples for training under its current state; and 2) difficulty-aware selective training , where model updates are performed using only a subset of samples selected according to the proposed policy. 
+
+Self-Reflective Evaluation. At iteration i, the model F evaluates each masked video V ′ 
+
+> i
+
+and produces a difficulty label d ∈ { easy , difficult , informative } and a confidence score c ∈ [0 , 1] , defined as, 
+
+d, c = Fθi (qi, V ′ 
+
+> i
+
+, S e), (3) where qi denotes the input query and Se denotes the evaluation prompt (See Fig. 10). Specifically, 
+
+d is obtained by prompting Fθi with Se to compare its responses on clean and corrupted inputs: if the model answers correctly and consistently, the sample is labeled d = easy ; if responses diverge substantially or are incorrect, it is labeled d = difficulty ; otherwise, the sample is labeled 
+
+d = informative , indicating moderate uncertainty that is most beneficial for training. The confidence score c is derived from the model’s output token probabilities. Unlike traditional curriculum learning with a fixed schedule, our prompt-based sample-level evaluation dynamically estimates the model’s current capability and prioritizes informative samples to stabilize the effective training distribution. Based on d and c, we design the following data selection policy: (i) high-confidence easy samples ( d = easy , c > τ , where τ is a confidence threshold) are considered as sufficiently learned and filtered out, enabling the model to prioritize disturbance-sensitive samples that provide strong learning signals. (ii) difficult samples ( d = difficult ) are stored in a temporal memory buffer M for deferred training and periodically re-evaluated. While potentially informative, they may yield weak or unstable learning signals under the current model state, and are revisited once the model has sufficiently improved. (iii) informative samples ( d = informative ) as well as low-confidence easy samples ( d = easy , c < = τ ) are treated as high-information instances and prioritized for immediate training. 
+
+Difficulty Re-evaluation and Deferred Training with Memory. As the model improves over time, samples that were previously too difficult to learn from may later provide meaningful training signals. To leverage this evolving capability, we introduce a memory-based deferred training mechanism that periodically re-evaluates difficult instances. Formally, when newly arriving data are evaluated as 
+
+difficult , it is stored in a temporal memory buffer M as: 
+
+M ← M ∪ { (q, ˜V , k = 0) }, (4) where ˜V encodes the mask metadata, including perturbation style, parameters, and spatial-temporal regions. This design allows the corrupted video V ′ to be regenerated on demand during re-evaluation, avoiding the need to store full video data. During training, instances in M are periodically re-evaluated under the updated model. The counter k tracks the number of re-assessments performed for each sample. For each entry (qn, ˜Vn, k n) ∈ M , the current model F periodically re-assesses its 5difficulty using the current parameter θi:
+
+d′, c ′ = F (qn, ˜Vn, S e; θi), kn ← kn + 1 . (5) Here, d′ and c′ denote the updated difficulty level and confidence score, respectively. Entries reclassified as informative are immediately used for training, whereas those labeled easy are removed from the memory buffer. Entries that remain difficult are retained in M with their re-evaluation counter incremented. The confidence score c′ serves as an auxiliary diagnostic signal for self-monitoring and stability anal-ysis, but is not used directly for memory retention decisions to avoid sensitivity to noisy confidence estimates. As training progresses, samples that were previously difficult may transition to informative or easy categories, allowing the curriculum to adapt to the model’s evolving capability. However, repeated re-evaluation can lead to unbounded memory growth, particularly when samples remain persistently difficult or heavily corrupted, yielding little effective learning signal. To prevent this, we impose a maximum re-evaluation threshold and evict entries exceeding it: 
+
+M ← M \ { (q, ˜V , k ) | k > K max }. (6) Overall, the proposed self-reflective, difficulty-aware training framework establishes a closed-loop mechanism that dynamically adjusts the training data distribution to the model’s evolving capability. By prioritizing samples based on estimated difficulty and confidence, the framework selects instances that yield effective learning signals under corrupted conditions while filtering low-utility ones. Although periodic re-evaluation incurs modest computational overhead, this cost is negligible relative to the high per-sample cost of reinforcement learning on videos. In addition, selectively discarding uninformative instances leads to substantial gains in training efficiency (See Tab. 3). 
+
+3.3 Dual-Branch Alignment Optimization 
+
+ROVA trains the model through a dual-branch alignment mechanism that aligns representations from clean and partially perturbed video inputs. The training objective enforces consistency between two branches using the proposed reward modeling combined with GRPO [Shao et al., 2024]. Here, the clean video branch serves as a fixed anchor with gradients detached, while the perturbed branch is optimized to align its outputs with those of the clean branch. Given a group of G paired samples, the clean branch produces reference outputs {oj }Gj=1 and the perturbed branch generates aligned outputs 
+
+{˜oj }Gj=1 . Each pair (oj , ˜oj ) corresponds to the same video query under clean and perturbed visual conditions. We treat a Fθ as a policy that generates reasoning outputs conditioned on video inputs: 
+
+J(θ) = E(q,V )∼D , {oj }Gj=1 ∼Fθold (O|q,V )
+
+1
+
+G
+
+> G
+
+X
+
+> j=1
+
+ min  rj Aj ,
+
+clip (rj , 1 − ϵ, 1 + ϵ)Aj
+
+ − βD KL 
+
+ Fθ ∥Fref 
+
+ ,
+
+(7) where rj = Fθ (oj |q)/F θold (oj |q), ϵ and β are hyperparameters, and DKL 
+
+ Fθ ∥Fref 
+
+ denotes the KL-divergence penalty term. The advantage Aj corresponding to output oj is calculated from the associated reward set {r1, r 2, . . . , r G}:
+
+Aj = rj − mean  {r1, r 2, . . . , r G}
+
+std  {r1, r 2, . . . , r G} . (8) 
+
+Format Reward. The model is required to generate an output oj consisting of an embodied reasoning process pj followed by a final answer aj , enclosed within <think></think> and 
+
+<answer></answer> tags, respectively. Compliance with this format is verified via a regular expression, producing the format reward rF 
+
+> j
+
+.
+
+rF 
+
+> j
+
+=
+
+1, if the format is correct; 
+
+0, if the format is incorrect. (9) 
+
+Accuracy Reward. The accuracy reward rAcc  
+
+> j
+
+evaluates whether the extracted answer oj is seman-tically consistent with the ground truth g. Multiple-choice questions typically have a unique and precise answer that can be directly compared once the response follows the required format. 
+
+rAcc  
+
+> j
+
+=
+
+1, oj = g;0, oj̸ = g. (10) 6Alignment Reward. For each output pair (oj , ˜oj ), the alignment reward is decomposed into reasoning and answer components: rAj = ralign, r  
+
+> j
+
++ ralign, a  
+
+> j
+
+, where ralign, r  
+
+> j
+
+= αr · Sim r(oj , ˜oj ) and ralign,a  
+
+> j
+
+=
+
+αa · Sim a(oj , ˜oj ). Here, αr and αa weight the respective contributions, with Sim r and Sim a to measure semantic consistency in the reasoning process and answer segment (see Figs. 8 and 9). The total reward combines alignment with three rewards: Rj = rF 
+
+> j
+
++ rAcc  
+
+> j
+
++ rAj .
+
+With the proposed dual-branch alignment framework, the model is optimized via GRPO using a combined reward signal with robustness-aware consistency, encouraging stable reasoning and answer predictions across clean and perturbed video inputs, thereby improving robustness and generalization. 
+
+## 4 Evaluating Video Reasoning under Various Realistic Disturbances 
+
+Motivation. Existing video reasoning benchmarks, including MVBench [Li et al., 2024], Video-MME [Fu et al., 2025], ALFRED [Shridhar et al., 2020], Ego4D [Grauman et al., 2022], and UrbanVideo [Zhao et al., 2025a], evaluate models primarily under clean visual conditions (Tab. 1). In contrast, real-world deployment often exposes VLMs to adverse weather, dynamic occlusions, abrupt illumination changes, and camera instability. As shown in Tab. 1, such perturbations can degrade both accuracy and reasoning quality by 12 to 35%. Although ImageNet-C [Xie et al., 2020] introduced the evaluation of corruption robustness for image classification, no existing benchmark systematically measures how temporally coherent and spatially grounded visual perturbations affect reasoning over videos. This leaves a critical blind spot: we lack the tools to diagnose whether failures under visual corruption arise from perceptual errors, reasoning fragility, or both. 
+
+Figure 3: Overview of the perturbation types in PVRBench. 
+
+Construction. To close this gap, we introduce Per-turbed Video Reasoning Benchmark (PVRBench) , de-signed to evaluate the robustness of video reason-ing models under structured, real-world visual varia-tions beyond simple pixel-level corruption. Our focus is on reasoning reliability , defined as the ability to maintain coherent and logically consistent inference chains grounded in correct visual observations and valid causal steps despite degraded video input. PVR-Bench integrates four categories of realistic, video-specific disturbances: lighting (dusk, night, overex-posure, shadow), camera motion (translation, zoom, rotation), occlusion (static, dynamic), and weather (fog, rain, snow). Each disturbance is applied with spatial awareness (e.g., depth-conditioned occlusion placement and scene-adapted weather rendering) and temporal coherence across frames. The benchmark comprises over 9K videos and 51K question-answer pairs spanning diverse indoor, outdoor, and embodied scenarios, with 27 task coverage from Zhao et al. [2025a], Yang et al. [2025a], which exercise a broad spectrum of video reasoning capabilities. 
+
+Perturbation Injection. At its core, we generate video-specific masks (Equation (2)) that contain semantically coherent perturbations conditioned on each video’s content, including depth layout, object locations, and motion patterns. These perturbations are contextually adapted to scene semantics; for instance, weather appears as windshield rain refraction in driving scenes, while occlusions are placed at plausible foreground locations. For benchmark evaluation, we adopt a static protocol in which masks are pre-generated and fixed per video to ensure reproducible cross-model comparison, while ROVA training (Sec. 3) uses a dynamic protocol that generates perturbations on the fly with stochastically sampled parameters at each iteration to prevent overfitting and promote perturbation invariant representation learning. 
+
+Evaluation Metrics. To quantify reasoning reliability, PVRBench introduces five complementary metrics (Fragility, Consistency, Belief, Recovery, and Attention; see Tab. 2) that assess the quality and stability of intermediate reasoning, as well as final-answer accuracy. To assess reasoning process quality, we leverage a powerful vision-language foundational model (e.g., GPT-4o) to score reasoning traces in coherence, perturbation awareness, and evidence grounding via a structured template (see Fig. 9), following the LLM-as-judge paradigm [Zheng et al., 2023, He et al., 2024]. 7Table 2: Evaluation on PVRBench. We report accuracy under four visual perturbations ( Lig hting, 
+
+Occ lusion, camera Sha ke, Wea ther) on the left, and reasoning quality metrics on the right, including 
+
+Fra gility, Con sistency, Bel ief, Rec overy, and Att ention (0 - 5 scale; Higher is better, except for Fra 
+
+(↓)). #Fr : the number of frames, Avg. : the average performance, and Orig. : the average performance on clean (unperturbed) data. We exclude Fra. when computing Avg. † and Orig. †.
+
+Answer Accuracy Reasoning Quality Model Size #Fr Lig. Occ. Sha. Wea. Avg. Orig. Fra. ↓ Con. Bel. Rec. Att. Avg. † Orig. †
+
+Proprietary Models 
+
+GPT-4o – 32 .54 .47 .50 .52 .51 ↓14% .59 1.85 3.42 3.55 3.38 3.21 3.39 ↓11% 3.82 Gemini-3-Pro – 32 .57 .52 .54 .55 .55 ↓11% .62 1.72 3.61 3.48 3.58 3.41 3.52 ↓10% 3.91 Claude-3.5-Son. – 32 .45 .41 .44 .45 .44 ↓17% .53 2.08 3.18 3.22 2.95 3.15 3.13 ↓14% 3.65 
+
+Video Reasoning Models 
+
+Video-R1 7B 32 .43 .37 .42 .41 .41 ↓20% .51 2.48 2.75 2.85 2.68 2.65 2.73 ↓20% 3.42 Video-R1 72B 32 .51 .45 .49 .49 .49 ↓16% .58 2.11 3.25 3.18 3.21 2.98 3.16 ↓14% 3.68 VideoChat-R 7B 16 .36 .31 .36 .35 .35 ↓22% .45 2.65 2.62 2.55 2.71 2.28 2.54 ↓22% 3.25 LLaVA-Video-R 7B 32 .40 .34 .38 .38 .38 ↓21% .48 2.58 2.68 2.61 2.78 2.42 2.62 ↓21% 3.32 Embodied-R 7B 32 .45 .38 .42 .43 .42 ↓22% .54 2.45 2.82 2.91 2.72 2.68 2.78 ↓19% 3.45 
+
++ ROVA (Ours) 7B 32 .52 .46 .49 .51 .50 ↓9% .55 2.25 3.15 3.18 3.22 2.91 3.12 ↓13% 3.58 
+
+Open-Source Video LLMs 
+
+LLaVA-Video 7B 32 .32 .29 .30 .32 .31 ↓30% .44 2.78 2.45 2.35 2.52 2.25 2.39 ↓23% 3.12 VideoLLaMA2 7B 16 .28 .25 .27 .29 .27 ↓25% .36 2.92 2.18 2.25 2.12 2.15 2.18 ↓28% 3.01 VideoChat2 7B 16 .26 .23 .25 .27 .25 ↓26% .34 3.01 2.08 2.15 2.05 2.02 2.08 ↓28% 2.88 MiniCPM-V 2.6 8B 64 .34 .28 .31 .32 .31 ↓28% .43 2.75 2.48 2.42 2.55 2.21 2.42 ↓24% 3.18 InternVL2.5 8B 32 .31 .26 .32 .33 .31 ↓33% .46 2.85 2.38 2.28 2.42 2.18 2.32 ↓26% 3.15 
+
++ ROVA (Ours) 8B 32 .43 .36 .41 .40 .40 ↓15% .47 2.45 2.82 2.75 2.78 2.58 2.73 ↓17% 3.28 
+
+Qwen2.5-VL 7B 32 .35 .28 .34 .34 .33 ↓35% .51 2.71 2.58 2.62 2.68 2.31 2.55 ↓25% 3.41 
+
++ ROVA (Ours) 7B 32 .48 .43 .47 .49 .47 ↓11% .53 2.31 3.05 3.08 2.98 2.85 2.99 ↓15% 3.52 
+
+Qwen2.5-VL 72B 32 .48 .41 .44 .47 .45 ↓21% .57 2.18 3.15 3.08 2.92 3.12 3.07 ↓16% 3.64 
+
++ ROVA (Ours) 72B 32 .57 .53 .56 .56 .56 ↓5% .59 1.95 3.45 3.35 3.42 3.18 3.35 ↓10% 3.72 
+
+Qwen3-VL 13B 32 .43 .35 .39 .42 .40 ↓25% .53 2.41 2.85 2.92 2.78 2.72 2.82 ↓19% 3.48 
+
++ ROVA (Ours) 13B 32 .53 .49 .52 .54 .52 ↓7% .56 2.12 3.28 3.32 3.18 3.05 3.21 ↓11% 3.62 
+
+## 5 Experiment 
+
+5.1 Implementation Details. Models. We train our model on 4 NVIDIA A100 (80GB) GPUs. For optimization, we set the ordered group size to G = 8 and the shuffled group size to ˜G = G/ 2. Details are provided in Sec. D. 
+
+Datasets. We use both clean and perturbed video data for training and evaluation. For training, we curate an outdoor-scene-relevant subset of Video-R1-260k ( ∼10% of its video split, filtered by scene category labels) and apply dynamic, randomly sampled perturbation masks to construct corruption-augmented video-query pairs. For evaluation, we assess generalization on the proposed PVRBench, which contains over 51K question answer pairs across more than 9K videos spanning diverse scene categories beyond the training distribution. Static perturbation masks are systematically injected to measure model accuracy, reasoning quality, and robustness under both clean and corrupted conditions. We further evaluate the generalization of VLMs on standard VisBench and UrbanVideo. 
+
+5.2 Main Results ROVA Performance on PVRBench. We extensively evaluate our approach on PVRBench and the clean benchmark (Orig.: UrbanVideo and VSI-Bench) across diverse backbones, including video reasoning models and open-source video LLMs ranging from 7B to 72B. As shown in Tab. 2, among dedicated video reasoning models, ROVA consistently outperforms prior methods. In the 7B setting, it improves the best-performing model, Embodied-R, from 0.42 to 0.50 average accuracy under perturbations (more than 17% relative gain), and even matches or surpasses the much larger Video-R1 8Table 3: Training efficiency comparison (Qwen2.5-VL-7B, Orig. Acc. = 0.43; GPU-h = #GPUs × wall-clock hours). SRE = Self-Reflective Evaluation, DRE = Difficulty Re-Evaluation, ME = Memory Eviction. Robust. = dual-branch alignment with structured corruption (Secs. 3.1 and 3.3). Curric. = SRE + DRE + ME (Sec. 3.2). 
+
+Training Data Architecture Config. Performance SFT RL Total Branch Robust. Curric. GPUs GPU-h Avg. Acc. 
+
+Std. GRPO — — — Single ✗ ✗ 4×A100 71.6 .45 Naïve Dual — — — Dual ✓ ✗ 4×A100 142.8 .48 Video-R1 165K 260K 425K Single ✗ ✗ 8×A100 339.2 .49 
+
+ROVA 6.5K 26K 32.5K Dual ✓ ✓ 4×A100 134.4 .53 1 2 3 4 5
+
+> Epoch
+> 4
+> 6
+> 8
+> 10
+> 12
+> Discard Rate (%)
+> Easy
+> Difficult
+
+(a) Sample discard rate evolution during self-reflective curriculum training. 0 100 200 300 
+
+> Training Steps
+> 0
+> 25
+> 50
+> Cumulative Ratio (%)  Difficult
+> Informative
+> Easy
+> Total samples fixed
+
+(b) Evolution of estimated easy, in-formative, and difficult sample pro-portions over training. 0 10 20 30 40 
+
+> Discard Rate (%)
+> 32
+> 34
+> 36
+> 38
+> 40
+> Accuracy on PVRBench (%)
+> +3.4%
+> Random Discard
+> Difficulty-Aware (Ours)
+
+(c) Difficulty-aware confidence-threshold discard vs. random across retention. 
+
+Figure 4: Analysis of Self-Reflective Evaluation and Difficulty-Aware Training for ROVA during the first Epoch of Qwen-VL-2.5-7B Training. 72B. Importantly, it also achieves consistent improvements in reasoning quality, indicating stable and reliable reasoning under visual corruption. Most open-source video LLMs suffer substantial degradation under perturbations, with 21–35% drops in accuracy and 16–28% declines in reasoning quality relative to clean inputs. Notably, ROVA not only withstands the proposed perturbations but also enhances the model’s gen-eralization performance, observing consistent gains on PVRBench and across unseen benchmarks (VisBench and UrbanVideo, Fig. 19) in both answer accuracy and reasoning quality under clean and perturbed videos. These findings suggest that ROVA is able to learn perturbation-robust representa-tions with strong transferability, enabling improved robustness and semantic understanding beyond the training distribution without domain-specific fine-tuning, while maintaining superior performance on clean data. Beyond the accuracy and reasoning quality improvements, Tab. 3 shows that ROVA is highly resource-efficient. Although the dual-branch design doubles the forward pass, the proposed curriculum (SRE + DRE + ME) more than offsets this overhead, reducing GPU-hours by 5.9% compared to naive Dual-Branch (134.4 vs. 142.8) while improving accuracy from 0.37 to 0.47. Moreover, ROVA surpasses Video-R1 by 23.7% (0.47 vs. 0.38) while using 60.4% fewer GPU-hours (134.4 vs. 339.2), half the GPUs, and less than 8% of the training data (32.5K vs. 425K). These results suggest that the dual-branch alignment objective learns transferable, perturbation-robust representations that generalize beyond the training distribution without domain-specific fine-tuning, while maintaining strong performance on clean data. 
+
+Analysis of self-reflective evaluation and sample-selective training. We also analyze the behavior of our self-reflection evaluation mechanism during training. As shown in Fig. 4a, the discard rate for easy samples increases steadily over epochs while that for difficult samples declines, indicating that the model keeps evolving and smarter and prefers to decline more samples as they are already good at those, Fig. 4a, shows a moderate fraction of samples is discarded overall, and the model selectively filters low-utility or overly noisy instances rather than aggressively pruning data. Fig. 4b further illustrates the evolution of the estimated sample difficulty in training steps. While the total number of discarded samples is fixed, the composition gradually shifts toward easy samples, 90 5 10 15 20  
+
+> Improvement over Qwen3-VL-13B (%)
+> Temporal Shuffle
+> Memory
+> Easy Sample Discarding
+> Reasoning Reward
+> Full Components
+> +1.82%
+> (0.4609)
+> +2.73%
+> (0.4651)
+> +3.46%
+> (0.4684)
+> +4.91%
+> (0.4749)
+> +15.66%
+> (0.5236)
+> Answer-Only Alignment (Avg: 0.4527)
+
+(a) Accuracy improvements from each component in ROVA over the base model (final-answer alignment only). Original Weather Occlusion Shake Lighting                     
+
+> Inference
+> Weather + Occlusion
+> Weather + Shake
+> Occlusion + Lighting
+> Fixed-shape Random
+> Pixel-level Random
+> Training
+> 0.5649 0.5418 0.5037 0.5289
+> 0.0780
+> 0.5361
+> 0.0666
+> 0.5672 0.5389 0.5246
+> 0.0885 0.5327 0.5281
+> 0.0586
+> 0.5591 0.5318
+> 0.0649 0.5019 0.5247
+> 0.0738 0.5487
+> 0.5214 0.4687 0.4319 0.4541 0.4706
+> 0.5187 0.4652 0.4403 0.4478 0.4683 0.44
+> 0.46
+> 0.48
+> 0.50
+> 0.52
+> 0.54
+> 0.56
+
+(b) Models trained on two mask styles are evaluated on in-domain and held-out OOD perturbations (highlighted in red). 
+
+Figure 5: Ablation studies of ROVA . (a) Impact of individual components on answer accuracy. (b) Comparison of corruption mask strategies across perturbation types. Experiments are conducted using the Qwen3-VL-13B model trained for 3 epochs. reflecting the improving competence of the model: samples initially deemed difficult are increasingly reclassified as easy as training progresses. This dynamic redistribution suggests that the self-reflective evaluator captures meaningful learning signals and adapts the curriculum in a data-driven manner. Fig. 4c demonstrates the effectiveness of difficulty-aware data selection for training. Compared to random discarding, our strategy consistently achieves higher accuracy across discard rates, with an improvement of up to 3.4% on PVRBench. This indicates that selective removal of samples based on estimated difficulty preserves informative training signals while avoiding detrimental noise. 
+
+5.3 Ablation Study and Analysis Ablation of Core Components. We ablate each component of ROVA to assess its contribution (Fig. 5a). The reasoning reward yields the largest gain, followed by easy sample discarding, un-derscoring the central role of semantic reasoning and targeted curation. The memory module and temporal shuffle provide smaller but consistent gains, serving as complementary regularizers that stabilize training and enhance robustness. 
+
+Ablation of Mask Styles. We explore the generalizability of the proposed structured masking strategy compared to random masking baselines. As shown in Fig. 5b, models trained on only two corruption mask styles achieve strong in-domain performance on the perturbation types seen during training, and more importantly, transfer effectively to held-out perturbation types (highlighted in red): out-of-domain performance remains close to in-domain results while both consistently surpass fixed-shape and pixel-level random masking by a significant margin (6 - 9% absolute). This indicates that structured, perturbation-aware masks capture transferable corruption patterns rather than overfitting to specific disturbance types, confirming that a small subset of mask styles suffices to achieve broad robustness under diverse real-world disturbances. Table 4: Ablation study of the re-ward model on PVRBench using commercial and open source VLMs. 
+
+Reward Judge Acc. Avg. Free 
+
+GPT-4o 0.470 2.99 ✗
+
+Qwen3-13B 0.467 2.97 ✓
+
+Qwen2.5-7B 0.463 2.95 ✓
+
+Ablation of reward models. Notably, our LLM judge (GPT-4o by default) outperforms rule- or embedding-based matching in evaluating semantic consistency across reasoning traces and final answers. Replacing it with open-source models (e.g., Qwen3-13B) yields comparable results, suggesting that the approach generalizes beyond proprietary APIs (Tab. 4). In con-trast, more granular reward designs, such as conditional align-ment or step-level consistency, introduce additional variance that destabilizes GRPO and degrades performance (Tab. 15), further supporting LLM-based evaluation as the most effective approach. 10 1. Navigation under Heavy Rain 2. Trajectory Planning under Rain 
+
+Question :Answer: Reasoning: Question :Answer: Reasoning: 
+
+> Based on the video frames captured during heavy rain, should the agent move backward or turn left to each the tower crane? Start from the scooter lane in the park, turn left to face the street, rise to building height, then move forward and slightly downward to reach the store. The video shows the agent starting from the scooter lane in the park, turning left to face the street, rising to building height, and then moving forward slightly downward to reach the destination. By analyzing the spatial relationship in the video frames, the tower crane is located directly behind the agent's current viewpoint, requiring backward rather than a left turn to reach the target. Turn left from the park, rise to building height, then move forward and downward to the store. Based on the video frames showing the path from the park to the store, which trajectory correctly describes the agent's path?
+
+Figure 6: Qualitative examples of ROVA-trained Qwen2.5-VL-7B performing obstacle avoidance and target identification under night-time low-light conditions. See more examples in Figs. 20 to 23. 
+
+5.4 Qualitative Analysis 
+
+We further validate the robustness of ROVA through qualitative examples on representative tasks in Fig. 6. Even in challenging scenarios where adverse weather or visual disturbances significantly degrade visibility, ROVA remains effective, correctly reasoning about the scene and task requirements. For instance, when heavy rain and glare obscure key visual cues, ROVA can still infer spatial relationships and scene structure, and when large objects block the field of view, it correctly reasons about the underlying layout rather than relying on partial appearances. This shows that ROVA reliably interprets and reasons in visually impaired conditions, demonstrating robustness beyond controlled settings and confirming its effectiveness in difficult, realistic environments. 
+
+## 6 Conclusion 
+
+In this work, we present ROVA, a robust training framework for embodied video reasoning that lever-ages structured spatio-temporal corruptions, dual-branch alignment, and self-reflective data curation to learn perturbation-robust representations. To evaluate robustness under realistic disturbances, we introduce PVRBench. We show that ROVA consistently improves robustness under diverse real-world perturbations in video inputs while also improving performance on clean video–question pairs. These contributions provide both a principled benchmark and a practical training recipe, enabling future studies on broader perturbation families and more complex long-horizon embodied tasks. 
+
+## References 
+
+Amit Agarwal, Srikant Panda, Angeline Charles, Hitesh Laxmichand Patel, Bhargava Kumar, Pri-yaranjan Pattnayak, Taki Hasan Rafi, Tejaswini Kumar, Hansa Meghwani, Karan Gupta, and Dong-Kyu Chae. MVTamperBench: Evaluating robustness of vision-language models. In Findings of the Association for Computational Linguistics (ACL Findings) 2025 , pages 1–10, Stroudsburg, PA, 2025. Association for Computational Linguistics. 3 Alisson Azzolini, Junjie Bai, Hannah Brandon, Jiaxin Cao, Prithvijit Chattopadhyay, Huayu Chen, Jinju Chu, Yin Cui, Jenna Diamond, Yifan Ding, et al. Cosmos-reason1: From physical common sense to embodied reasoning. arXiv preprint arXiv:2503.15558 , 2025. 3 11 Yichao Cai, Yuhang Liu, Zhen Zhang, and Javen Qinfeng Shi. Clap: Isolating content from style through contrastive learning with augmented prompts. In Proceedings of the European Conference on Computer Vision (ECCV) , pages 1–10, Cham, 2024. Springer. 3 Ruizhe Chen, Zhiting Fan, Tianze Luo, Heqing Zou, Zhaopeng Feng, Guiyang Xie, Hansheng Zhang, Zhuochen Wang, Zuozhu Liu, and Huaijian Zhang. Datasets and recipes for video temporal grounding via reinforcement learning. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: Industry Track , pages 1–10, Stroudsburg, PA, 2025a. Association for Computational Linguistics. 3 Shoubin Chen, Zehao Wu, Kai Zhang, Chunyu Li, Baiyang Zhang, Fei Ma, Fei Richard Yu, and Qingquan Li. Exploring embodied multimodal large models: Development, datasets, and future directions. arXiv preprint arXiv:2502.15336 , 2025b. 3 Christopher Clark, Jieyu Zhang, Zixian Ma, Jae Sung Park, Mohammadreza Salehi, Rohun Tripathi, Sangho Lee, Zhongzheng Ren, Chris Dongjoo Kim, Yinuo Yang, et al. Molmo2: Open weights and data for vision-language models with video understanding and grounding. arXiv preprint arXiv:2601.10611 , 2026. 1, 3 Jinhao Duan, Quanfu Fan, Hao Cheng, Xiaoshuang Shi, and Kaidi Xu. Improve video representation with temporal adversarial augmentation. In Proceedings of the International Joint Conference on Artificial Intelligence (IJCAI) , pages 1–10, Palo Alto, CA, 2023. IJCAI Organization. 3 Chaoyou Fu, Yuhan Dai, Yongdong Luo, Lei Li, Shuhuai Ren, Renrui Zhang, Zihan Wang, Chenyu Zhou, Yunhang Shen, Mengdan Zhang, et al. Video-mme: The first-ever comprehensive evaluation benchmark of multi-modal llms in video analysis. In Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 1–10, Piscataway, NJ, 2025. IEEE/CVF. 3, 7 Kristen Grauman, Andrew Westbury, Eugene Byrne, Zachary Chavis, Antonino Furnari, Rohit Girdhar, Jackson Hamburger, Hao Jiang, Miao Liu, Xingyu Liu, et al. Ego4d: Around the world in 3,000 hours of egocentric video. In Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 18995–19010, Piscataway, NJ, 2022. IEEE/CVF. 3, 7 Andreas Griewank and Andrea Walther. Evaluating derivatives: principles and techniques of algorithmic differentiation . SIAM, Philadelphia, PA, 2008. 29 Xuan He, Dongfu Jiang, Ge Zhang, Max Ku, Achint Soni, Sherman Siu, Haonan Chen, Abhranil Chandra, Ziyan Jiang, Aaran Arulraj, et al. Videoscore: Building automatic metrics to simulate fine-grained human feedback for video generation. In Proceedings of the Conference on Empir-ical Methods in Natural Language Processing (EMNLP) , pages 1–10, Stroudsburg, PA, 2024. Association for Computational Linguistics. 7 Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Os-trow, Akila Welihinda, Alan Hayes, Alec Radford, et al. Gpt-4o system card. arXiv preprint arXiv:2410.21276 , 2024. 2 Kunchang Li et al. Mvbench: A comprehensive multi-modal video understanding benchmark. In 
+
+CVPR , pages 1–10, Piscataway, NJ, 2024. IEEE/CVF. 3, 7 Xinhao Li, Ziang Yan, Desen Meng, Lu Dong, Xiangyu Zeng, Yinan He, Yali Wang, Yu Qiao, Yi Wang, and Limin Wang. Videochat-r1: Enhancing spatio-temporal perception via reinforcement fine-tuning. arXiv preprint arXiv:2504.06958 , 2025. 1 Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Khan. Video-chatgpt: Towards de-tailed video understanding via large vision and language models. In Proceedings of the Association for Computational Linguistics (ACL) , pages 12585–12602, Stroudsburg, PA, 2024. Association for Computational Linguistics. 1, 3 Chengzhi Mao, Scott Geng, Junfeng Yang, Xin Wang, and Carl Vondrick. Understanding zero-shot adversarial robustness for large-scale models. arXiv preprint arXiv:2212.07016 , 2022. 2, 3 12 Thong Nguyen, Yi Bin, Junbin Xiao, Leigang Qu, Yicong Li, Jay Zhangjie Wu, Cong-Duy Nguyen, See-Kiong Ng, and Anh Tuan Luu. Video-language understanding: A survey from model archi-tecture, model training, and data perspectives. In Findings of the Association for Computational Linguistics (ACL Finding) , pages 1–10, Stroudsburg, PA, August 2024. Association for Computa-tional Linguistics. 3 Changdae Oh, Zhen Fang, Shawn Im, Xuefeng Du, and Yixuan Li. Understanding multimodal LLMs under distribution shifts: An information-theoretic approach. In Proceedings of the International Conference on Machine Learning (ICML) , 2025. 3 Madeline C. Schiappa, Shruti Vyas, Hamid Palangi, Yogesh S. Rawat, and Vibhav Vineet. Robustness analysis of video-language models against visual and language perturbations. In 36th Conference on Neural Information Processing Systems Track on Datasets and Benchmarks , 2022. 3 Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK Li, Yang Wu, et al. Deepseekmath: Pushing the limits of mathemat-ical reasoning in open language models. arXiv preprint arXiv:2402.03300 , 2024. 2, 6 Lijun Sheng, Jian Liang, Zilei Wang, and Ran He. R-tpt: Improving adversarial robustness of vision-language models through test-time prompt tuning. In Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 1–10, Piscataway, NJ, 2025. IEEE/CVF. 3 Mohit Shridhar, Jesse Thomason, Daniel Gordon, Yonatan Bisk, Winson Han, Roozbeh Mottaghi, Luke Zettlemoyer, and Dieter Fox. Alfred: A benchmark for interpreting grounded instructions for everyday tasks. In Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 10740–10749, Piscataway, NJ, 2020. IEEE/CVF. 3, 7 Yan Shu, Zheng Liu, Peitian Zhang, Minghao Qin, Junjie Zhou, Zhengyang Liang, Tiejun Huang, and Bo Zhao. Video-xl: Extra-long vision language model for hour-scale video understanding. In 
+
+Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 1–10, Piscataway, NJ, 2025. IEEE/CVF. 1 Gemini Team, Rohan Anil, Sebastian Borgeaud, Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth, Katie Millican, et al. Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805 , 2023. 2 Baoshun Tong, Hanjiang Lai, Yan Pan, and Jian Yin. On the zero-shot adversarial robustness of vision-language models: A truly zero-shot and training-free approach. In Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 1–10, Piscataway, NJ, 2025. IEEE/CVF. 3 Ye Wang, Ziheng Wang, Boshen Xu, Yang Du, Kejun Lin, Zihan Xiao, Zihao Yue, Jianzhong Ju, Liang Zhang, Dingyi Yang, et al. Time-r1: Post-training large vision language model for temporal video grounding. In Advances in Neural Information Processing Systems (NeurIPS) , pages 1–10, Red Hook, NY, 2025a. Curran Associates, Inc. 3 Ziyang Wang, Jaehong Yoon, Shoubin Yu, Md Mohaiminul Islam, Gedas Bertasius, and Mohit Bansal. Video-rts: Rethinking reinforcement learning and test-time scaling for efficient and enhanced video reasoning. In Proceedings of the Conference on Empirical Methods in Natural Language Process-ing (EMNLP) , pages 1–10, Stroudsburg, PA, 2025b. Association for Computational Linguistics. 3, 5Yulong Wu, Viktor Schlegel, and Riza Batista-Navarro. Pay attention to real world perturbations! natural robustness evaluation in machine reading comprehension. arXiv preprint arXiv:2502.16523 ,2025. 3 Qizhe Xie, Minh-Thang Luong, Eduard Hovy, and Quoc V Le. Self-training with noisy student improves imagenet classification. In Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 1–10, Piscataway, NJ, 2020. IEEE/CVF. 3, 4, 7 13 Jihan Yang, Shusheng Yang, Anjali W Gupta, Rilyn Han, Li Fei-Fei, and Saining Xie. Thinking in space: How multimodal large language models see, remember, and recall spaces. In Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 1–10, Piscataway, NJ, 2025a. IEEE/CVF. 2, 3, 7, 17, 18 Zixi Yang, Jiapeng Li, Muxi Diao, Yinuo Jing, and Kongming Liang. Ro-bench: Large-scale robustness evaluation of mllms with text-driven counterfactual videos. arXiv:2510.08936 , 2025b. 3Woongyeong Yeo, Kangsan Kim, Jaehong Yoon, and Sung Ju Hwang. Worldmm: Dynamic mul-timodal memory agent for long video reasoning. In Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 1–10, Piscataway, NJ, 2026. IEEE/CVF. 3 Shoubin Yu, Jaehong Yoon, and Mohit Bansal. Crema: Generalizable and efficient video-language reasoning via multimodal modular fusion. In Proceedings of the International Conference on Learning Representations (ICLR) , pages 1–10. OpenReview.net, 2025. 1, 3 Shoubin Yu, Yue Zhang, Zun Wang, Jaehong Yoon, Huaxiu Yao, Mingyu Ding, and Mohit Bansal. When and how much to imagine: Adaptive test-time scaling with world models for visual spatial reasoning. arXiv preprint arXiv:2602.08236 , 2026. 3 Liping Yuan, Jiawei Wang, Haomiao Sun, Yuchen Zhang, and Yuan Lin. Tarsier2: Advancing large vision-language models from detailed video description to comprehensive video understanding. 
+
+arXiv preprint arXiv:2501.07888 , 2025. 1, 3 Runhao Zeng, Xiaoyong Chen, Jiaming Liang, Huisi Wu, Guangzhong Cao, and Yong Guo. Bench-marking the robustness of temporal action detection models against temporal corruptions. In 
+
+Proceedings of the IEEE International Conference on Computer Vision and Pattern Recognition (CVPR) , pages 1–10, Piscataway, NJ, 2024. IEEE/CVF. 3 Hang Zhang, Xin Li, and Lidong Bing. Video-llama: An instruction-tuned audio-visual language model for video understanding. In Proceedings of the 2023 conference on empirical methods in natural language processing: system demonstrations , pages 543–553, Stroudsburg, PA, 2023. Association for Computational Linguistics. 1, 3 Jiawei Zhang, Tianyu Pang, Chao Du, Yi Ren, Bo Li, and Min Lin. Benchmarking large multimodal models against common corruptions. arXiv preprint arXiv:2401.11943 , 2024. 2 Wenqi Zhang, Mengna Wang, Gangao Liu, Xu Huixin, Yiwei Jiang, Yongliang Shen, Guiyang Hou, Zhe Zheng, Hang Zhang, Xin Li, et al. Embodied-reasoner: Synergizing visual search, reasoning, and action for embodied interactive tasks. arXiv preprint arXiv:2503.21696 , 2025. 3 Baining Zhao, Jianjie Fang, Zichao Dai, Ziyou Wang, Jirong Zha, Weichen Zhang, Chen Gao, Yue Wang, Jinqiang Cui, Xinlei Chen, et al. Urbanvideo-bench: Benchmarking vision-language models on embodied intelligence with video data in urban spaces. In Proceedings of the Associa-tion for Computational Linguistics (ACL) , pages 1–10, Stroudsburg, PA, 2025a. Association for Computational Linguistics. 2, 3, 7, 17 Baining Zhao, Ziyou Wang, Jianjie Fang, Chen Gao, Fanhang Man, Jinqiang Cui, Xin Wang, Xinlei Chen, Yong Li, and Wenwu Zhu. Embodied-r: Collaborative framework for activating embodied spatial reasoning in foundation models via reinforcement learning. In Proceedings of the 33rd ACM International Conference on Multimedia , pages 1–10, New York, NY, 2025b. ACM. 3 Shuai Zhao, Xiaohan Wang, Linchao Zhu, and Yi Yang. Test-time adaptation with clip reward for zero-shot generalization in vision-language models. In Proceedings of the International Conference on Learning Representations (ICLR) , pages 1–10. OpenReview.net, 2024. 3 Yunqing Zhao, Tianyu Pang, Chao Du, Xiao Yang, Chongxuan Li, Ngai-Man Cheung, and Min Lin. On evaluating adversarial robustness of large vision-language models. In Advances in Neural Information Processing Systems (NeurIPS) , pages 1–10, Red Hook, NY, 2023. Curran Associates, Inc. 3 14 Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, et al. Judging llm-as-a-judge with mt-bench and chatbot arena. In Advances in Neural Information Processing Systems (NeurIPS) , pages 1–10, Red Hook, NY, 2023. Curran Associates, Inc. 7 Wanqi Zhou, Shuanghao Bai, Danilo P. Mandic, Qibin Zhao, and Badong Chen. Revisiting the adversarial robustness of vision language models: a multimodal perspective. arXiv preprint arXiv:2404.19287 , 2024. 2 Yiyang Zhou, Yangfan He, Yaofeng Su, Siwei Han, Joel Jang, Gedas Bertasius, Mohit Bansal, and Huaxiu Yao. Reagent-v: A reward-driven multi-agent framework for video understanding. In 
+
+Advances in Neural Information Processing Systems (NeurIPS) , pages 1–10, Red Hook, NY, 2025. Curran Associates, Inc. 3 15 Appendix 
+
+A Limitation 17 B Full Details of Dataset Construction 17 
+
+B.1 Source Dataset Integration . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 B.2 Video Perturbation Generation System . . . . . . . . . . . . . . . . . . . . . . . . 19 
+
+C Prompt Templates 19 
+
+C.1 Alignment Reward Prompts . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 C.2 Difficulty Assessment Judge Prompt . . . . . . . . . . . . . . . . . . . . . . . . . 20 C.3 Complete Reward Computation Pipeline . . . . . . . . . . . . . . . . . . . . . . . 20 
+
+D Hyperparameter 22 E Additional Experimental Results 24 F Additional Case Study 28 G Time Complexity Analysis 28 
+
+G.1 Per-Step Cost Decomposition . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28 G.2 Amortized Cost Savings from Curriculum . . . . . . . . . . . . . . . . . . . . . . . 31 G.3 Wall-Clock Time Measurements . . . . . . . . . . . . . . . . . . . . . . . . . . . 32 G.4 Amortized Memory Re-evaluation Cost . . . . . . . . . . . . . . . . . . . . . . . 33 
+
+H Analysis of Reward Modeling Design 33 
+
+H.1 Motivation: Why Multi-Component Rewards? . . . . . . . . . . . . . . . . . . . . 33 H.2 Alignment Reward: Optimizing Geodesic distance . . . . . . . . . . . . . . . . . 34 H.3 Interaction Between Reward Components and Curriculum . . . . . . . . . . . . . 34 H.4 Comparison with Alternative Reward Designs . . . . . . . . . . . . . . . . . . . . 35 
+
+I Theoretical Analysis 36 
+
+16 A Limitation 
+
+While the proposed composite reward design proves effective in practice, several design choices warrant further investigation. First, both the format reward and accuracy reward are binary (0 or 1), offering no partial credit for nearly correct answers or partially well-structured outputs; a softer, continuous reward signal could provide richer gradients for GRPO optimization. Second, the proposed reward components are combined with equal weights, but the optimal balance among format compliance, answer correctness, and cross-branch alignment may vary across perturbation types and reasoning complexity. For simplicity, our framework does not adaptively adjust these weights during training. Third, the alignment reward relies on an external LLM judge to assess semantic consistency between clean and perturbed outputs, which introduces a dependency on the judge’s own capability and potential biases; although we show that open-source alternatives (Qwen3-13B) yield comparable results, the reward signal remains bounded by the judge model’s understanding of domain-specific reasoning. Fourth, our reward operates only at the holistic output level, evaluating the final answer and the overall reasoning trace, without providing step-level feedback on intermediate reasoning quality. As our ablation study confirms, more fine-grained reward designs, such as step-level consistency checks, tend to introduce variance that destabilizes GRPO training. Addressing this challenge between reward granularity and optimization stability, for instance, through hierarchical or curriculum-based reward shaping, remains an important direction for future work. 
+
+## B Full Details of Dataset Construction 
+
+This section provides comprehensive documentation of the PVRBench benchmark construction, including data sources, curation methodology, perturbation generation algorithms, and quality assur-ance protocols. Our benchmark integrates and augments two established embodied video reasoning datasets, UrbanVideo-Bench [Zhao et al., 2025a] and VSI-Bench [Yang et al., 2025a], to create the first large-scale robustness evaluation benchmark for video reasoning under realistic visual perturbations. 
+
+B.1 Source Dataset Integration 
+
+PVRBench is constructed by systematically combining the complete video corpora and question-answer annotations from two complementary benchmarks, resulting in a unified evaluation framework spanning both outdoor urban navigation and indoor spatial reasoning scenarios (Fig. 7). 
+
+B.1.1 UrbanVideo-Bench 
+
+UrbanVideo-Bench [Zhao et al., 2025a] is an embodied video reasoning benchmark specifically designed for evaluating Video-LLMs on aerial agent motion in urban open-ended three-dimensional spaces. The benchmark addresses a critical gap in existing evaluations by focusing on the unique challenges of drone-based navigation in complex urban environments. 
+
+Data Collection Sources. The video corpus comprises 1,547 video clips collected from three distinct sources: 1. Real-World Drone Footage (Guangdong Province, China): Videos captured using two DJI Mini 4K drones operated by experienced pilots with over 1,000 hours of flight time. Data collection was conducted in Shenzhen and Zhaoqing, covering diverse urban landscapes including commercial districts, residential areas, parks, and waterfront regions. Resolution: 1280 × 720 pixels. 2. EmbodiedCity Simulator : A high-fidelity simulation environment built on Unreal Engine using real Beijing city data. The simulator provides realistic 3D urban modeling with over 100 categories of micro urban elements (buildings, vehicles, pedestrians, signage, etc.). Resolution: 960 × 720 
+
+pixels. 3. AerialVLN Simulator : A virtual urban environment specifically designed for aerial vision-language navigation research, built on Unreal Engine with AirSim integration for realistic drone physics. Resolution: 520 × 520 pixels. 17 0 5 10 15 20 25 
+
+> Sampling Ratio (%)
+> Sequence Recall
+> Scene Recall
+> Causal
+> Proximity
+> Object Recall
+> Duration
+> Counterfactual
+> Start/End Position
+> Association Reasoning
+> High-level Planning
+> Cognitive Map
+> Goal Detection
+> Trajectory Captioning
+> Progress Evaluation
+> Landmark Position
+> Action Generation
+> Problem Types
+> 2.0%
+> 2.0%
+> 2.3%
+> 2.3%
+> 2.3%
+> 2.3%
+> 2.3%
+> 2.7%
+> 4.3%
+> 4.7%
+> 5.1%
+> 5.9%
+> 7.8%
+> 14.5%
+> 16.8%
+> 22.7%
+> UrbanVideo VQA Problem Type Distribution
+> Action Generation (22.7%)
+> Landmark Position (16.8%)
+> Progress Evaluation (14.5%)
+> Other Types (2.0 7.8%)
+
+(a) UrbanVideo-Bench QA type distribution. Action Generation (22.7%), Landmark Position (16.8%), and Progress Evaluation (14.5%) dominate, reflecting the navigation-centric design. 0 5 10 15 20 25 
+
+> Sampling Ratio (%)
+> Direction (Easy)
+> Route Planning
+> Room Size Estimation
+> Direction (Hard)
+> Appearance Order
+> Object Counting
+> Direction (Medium)
+> Relative Distance
+> Absolute Distance
+> Size Estimation
+> 1.2%
+> 2.7%
+> 3.1%
+> 9.4%
+> 10.9%
+> 11.3%
+> 11.7%
+> 14.5%
+> 14.5%
+> 20.7%
+
+VSI-Bench Problem Type Distribution 
+
+> Size Estimation (20.7%)
+> Absolute Distance (14.5%)
+> Relative Distance (14.5%)
+> Other Types (1.2 11.7%)
+
+(b) VSI-Bench QA type distribution. Size Estima-tion (20.7%) and distance tasks (29.0% combined) are most prevalent, reflecting the spatial measurement fo-cus. 
+
+Figure 7: Question-answer type distributions for PVRBench source datasets. The complementary distributions - UrbanVideo emphasizing navigation/action and VSI-Bench emphasizing spatial per-ception - together provide comprehensive coverage of embodied video reasoning capabilities. Table 5: Complete task taxonomy for UrbanVideo-Bench with 16 tasks across 4 cognitive ability categories. 
+
+Category Task Description 
+
+Recall Trajectory Captioning Summarize agent movement using visual landmarks Sequence Recall Identify next action after specific movement Object Recall Locate objects relative to landmarks Scene Recall Describe observations during specific actions Start/End Position Identify journey origin and destination Perception Proximity Track distance changes to landmarks Duration Compare temporal duration of movements Landmark Position Determine egocentric position relative to goals Goal Detection Identify if/where destination is visible Cognitive Map Summarize spatial environment layout Reasoning Causal Explain reasons for specific movements Counterfactual Evaluate alternative action consequences Association Identify relevant objects when the goal is not visible Navigation Progress Evaluation Assess current step in navigation route High-level Planning Determine next waypoint toward goal Action Generation Output specific control actions 
+
+Video Characteristics. The collected videos span a wide range of characteristics. Their durations vary from 10 seconds to 10 minutes, with a mean length of 87.3s and a median of 52.1s, and frame rates range from 24 to 30 fps depending on the source. All videos are captured using a single forward-facing camera mounted on a gimbal that supports a downward tilt between 0◦ and 90 ◦. In terms of motion, the videos feature purposeful navigation trajectories, including ascent and descent, horizontal translation, rotation, as well as compound movements that combine multiple motion types. 
+
+Task Taxonomy. UrbanVideo-Bench defines 16 task types organized into four cognitive ability categories, as shown in Tab. 5. 
+
+B.1.2 VSI-Bench 
+
+VSI-Bench (Visual Spatial Intelligence Benchmark) [Yang et al., 2025a] evaluates spatial reasoning capabilities from egocentric video perspectives in indoor environments. The benchmark focuses on 18 Table 6: VSI-Bench scene category distribution across 288 videos.               
+
+> Scene Type Proportion Characteristics
+> Living Rooms 22.1% Social spaces with seating, entertainment systems Bedrooms 19.3% Sleeping areas with beds, wardrobes, personal items Kitchens 18.4% Cooking areas with appliances, countertops, cabinets Offices 15.8% Workspaces with desks, chairs, equipment Bathrooms 12.7% Sanitary facilities with fixtures Hallways/Other 11.7% Transitional spaces and miscellaneous areas
+
+Table 7: VSI-Bench task distribution with spatial reasoning focus.                       
+
+> Task Prop. Description
+> Size Estimation 20.7% Estimate absolute dimensions of objects Absolute Distance 14.5% Measure distance between camera and objects Relative Distance 14.5% Compare distances to multiple objects Direction (Medium) 11.7% Determine object directions with moderate complexity Object Counting 11.3% Count instances of object categories Appearance Order 10.9% Sequence objects by order of appearance Direction (Hard) 9.4% Complex directional reasoning with occlusions Room Size Estimation 3.1% Estimate room dimensions Route Planning 2.7% Plan navigation paths through spaces Direction (Easy) 1.2% Simple directional questions
+
+fundamental spatial cognition tasks that require understanding of 3D space from sequential visual observations. 
+
+Data Sources. VSI-Bench aggregates videos from three public indoor scene datasets: ARKitScenes, which provides real-world indoor scans captured using Apple ARKit; ScanNet, a widely used dataset of RGB-D indoor scene reconstructions; and 3RScan, a large-scale real-world indoor dataset enriched with instance-level annotations. 
+
+Scene Categories. The 288 videos span six indoor environment types, as detailed in Tab. 6. 
+
+Task Categories. VSI-Bench defines 11 spatial reasoning tasks, as shown in Tab. 7. 
+
+B.2 Video Perturbation Generation System 
+
+We develop a comprehensive video perturbation system that generates semantically coherent, tem-porally consistent, and physically plausible visual corruptions. Unlike generic image augmentation techniques (e.g., random cropping, color jittering, and Gaussian noise), our system models realistic disturbances that preserve the answerable nature of questions while challenging model robustness. 
+
+B.2.1 System Architecture Overview 
+
+The perturbation system comprises four specialized modules organized in a modular pipeline architec-ture. Each module can be applied independently or in combination, with perturbation type sampled uniformly from M = {lighting , camera , occlusion , weather }.
+
+## C Prompt Templates 
+
+This section documents the complete prompt templates used in ROVA for alignment reward computa-tion and self-reflective difficulty assessment. 19 Table 8: Video perturbation system architecture overview. Input video V = {f1, . . . , f T } is trans-formed to perturbed video V ′ = {f ′
+
+> 1
+
+, . . . , f ′ 
+
+> T
+
+} via one of four modules.           
+
+> Module Effects Real-World Scenario
+> Lighting Dusk, Night, Overexposure, Shadow Time-of-day changes, exposure er-rors Camera Motion Translation, Zoom, Rotation Handheld shake, platform instability Occlusion Static, Dynamic Lens obstruction, passing objects Weather Fog, Rain, Snow Atmospheric conditions
+
+C.1 Alignment Reward Prompts 
+
+As shown in Algorithm 2, the alignment reward rAj evaluates the consistency between outputs from the original and perturbed video branches by decomposing it into two complementary components: answer-level consistency and reasoning-level consistency, both assessed using GPT-4o. For answer consistency, the evaluator employs a strict binary matching rule: if the candidate answer exactly matches or is semantically equivalent to the reference answer (e.g., “0” vs. “zero”), a score of 1.0 is assigned; otherwise, the score is 0.0, with no partial credit allowed (see answer consistency prompt template (Fig. 8)). For reasoning consistency, a three-tier scoring scheme is used: a score of 1.0 indicates that the candidate reasoning is fully consistent with the reference, allowing for paraphrasing and minor omissions; 0.5 indicates general consistency but includes unsupported additions or missing key steps; and 0.0 indicates contradiction or hallucination of core facts. Critically, scoring is based solely on the reasoning process, independent of the final answer (see reasoning consistency prompt template (Fig. 9)). Together, these two metrics - answer matching and reasoning alignment - enable a fine-grained evalu-ation of output consistency under perturbation, promoting both semantic robustness and reasoning fidelity in the model. 
+
+C.2 Difficulty Assessment Judge Prompt 
+
+Fig. 10 illustrates the self-reflective difficulty assessment that employs an LLM judge to determine sample answerability under visual perturbations. The LLM receives a binary assessment prompt that strictly constrains it to evaluate only using the masked video. If the masked video provides sufficient information to reliably answer the given question, the LLM must output YES; otherwise, it must output NO. Following this judgment, samples classified as YES are treated as easy with low confidence or informative difficulty and are retained for training, while those classified as NO are deemed hard and are placed into a buffer for later re-evaluation—thereby enabling an adaptive, difficulty-aware curriculum that dynamically prioritizes informative training instances and defers overly challenging ones until the model is better equipped to handle them. 
+
+C.3 Complete Reward Computation Pipeline 
+
+Algorithm 1 details the complete reward computation pipeline used in ROVA. Given a paired output 
+
+(oj , ˜oj ) generated from the original and perturbed video branches, the pipeline proceeds in five sequential steps. First, format validation checks whether the output adheres to the required First, format validation checks whether the output adheres to the required format: 
+
+<think> · · · </think><answer> · · · </answer> 
+
+. Second, the reasoning trace and final answer are extracted from both branches. Third, a binary accuracy reward rAcc  
+
+> j
+
+is computed by comparing the extracted answer against the ground truth. Fourth, two alignment rewards are obtained via GPT-4o: a three-tier reasoning consistency score 
+
+ralign,r  
+
+> j
+
+∈ { 0, 0.5, 1} that evaluates whether the key logical steps are preserved across branches, and a binary answer consistency score ralign,a  
+
+> j
+
+∈ { 0, 1} that checks semantic equivalence of the final answers. Finally, these components are aggregated into the total reward Rj = rFj +rAcc  
+
+> j
+
++αr ·ralign,r  
+
+> j
+
++αa ·ralign,a  
+
+> j
+
+,20 ▷ Answer Consistency Evaluation Prompt 
+
+[Task] 
+
+You are a strict evaluator responsible for assessing whether the candidate answer matches the reference answer. Score consistency only based on whether the CANDIDATE ⟨answer ⟩
+
+is semantically identical to the REFERENCE ⟨answer ⟩. Do not consider reasoning quality, explanation depth, or stylistic differences. 
+
+[Evaluation Criteria] 
+
+Rate the answer on a binary scale: • Score 1.0 : The candidate answer is exactly the same as, or clearly equivalent to, the reference answer (e.g., “0” vs. “zero”, “NYC” vs. “New York City”). • Score 0.0 : The candidate answer differs from the reference answer in any substantive way. Do not reward partial credit. Minor formatting or punctuation differences should be tolerated, but semantic mismatches must receive a score of 0.0. 
+
+[Input] 
+
+• Reference Answer: {reference_answer} 
+
+• Candidate Answer: {candidate_answer} 
+
+[Output Format] 
+
+Return a JSON object with the following fields. Only output the JSON object - no explanations, no justifications, and no extra text of any kind. 
+
+> {"score": 0.0 or 1.0, "match_type": "exact" or "equivalent" or "mismatch"}
+
+Figure 8: Answer consistency evaluation prompt for binary answer matching. 
+
+Algorithm 1 Alignment Reward Computation 
+
+Require: Output pair (oj , ˜oj ) from original and perturbed branches, ground truth g
+
+Ensure: Total reward Rj 
+
+> 1:
+
+Step 1: Format Validation  
+
+> 2:
+
+rFj ← regex_match (oj , "<think>.*</think>.*<answer>.*</answer>" ) 
+
+> 3:
+
+Step 2: Extract Components  
+
+> 4:
+
+pj ← extract (oj , "<think>" ); aj ← extract (oj , "<answer>" ) 
+
+> 5:
+
+˜pj ← extract (˜ oj , "<think>" ); ˜aj ← extract (˜ oj , "<answer>" ) 
+
+> 6:
+
+Step 3: Accuracy Reward  
+
+> 7:
+
+rAcc  
+
+> j
+
+← 1[aj = g] 
+
+> 8:
+
+Step 4: Alignment Rewards via GPT-4o  
+
+> 9:
+
+ralign,r  
+
+> j
+
+← GPT4o (reasoning_prompt , p j , ˜pj ) {∈ { 0, 0.5, 1}} 
+
+> 10:
+
+ralign,a  
+
+> j
+
+← GPT4o (answer_prompt , a j , ˜aj ) {∈ { 0, 1}} 
+
+> 11:
+
+Step 5: Aggregation  
+
+> 12:
+
+rAj ← αr · ralign,r  
+
+> j
+
++ αa · ralign,a  
+
+> j
+> 13:
+
+Rj ← rFj + rAcc  
+
+> j
+
++ rAj 
+
+> 14:
+
+Return Rj
+
+where the asymmetric weights αr = 0 .3 and αa = 0 .7 prioritize answer-level robustness while still encouraging reasoning fidelity (see Sec. D for detailed hyperparameter specifications). 21 ▷ Reasoning Consistency Evaluation Prompt 
+
+[Task] 
+
+You are a strict evaluator responsible for assessing whether the candidate reasoning is consis-tent with the reference reasoning. Score consistency only based on whether the CANDIDATE 
+
+⟨think ⟩ matches the REFERENCE ⟨think ⟩ in key evidence and logical steps. Do not evaluate the correctness of the final answer. 
+
+[Evaluation Criteria] 
+
+Rate the reasoning on a three-tier scale: • Score 1.0 : The candidate reasoning is consistent with the reference up to paraphrasing and minor omissions. All key observations and logical steps are preserved. • Score 0.5 : The candidate reasoning is mostly consistent but contains unsupported addi-tions, missing key intermediate steps, or minor logical deviations. • Score 0.0 : The candidate reasoning contradicts core observations from the reference or hallucinates key facts not present in the reference. 
+
+[Evaluation Guidelines] 
+
+• Focus exclusively on the reasoning process — ignore the final answer. • Tolerate stylistic and structural differences if the underlying logic is equivalent. • Penalize fabricated evidence or contradictions to reference observations. 
+
+[Input] 
+
+• Reference Reasoning: {reference_think} 
+
+• Candidate Reasoning: {candidate_think} 
+
+[Output Format] 
+
+Return a JSON object with the following fields. Only output the JSON object — no explana-tions, no justifications, and no extra text of any kind. 
+
+> {"score": 0.0 or 0.5 or 1.0, "justification": "<explanation>"}
+
+Figure 9: Reasoning consistency evaluation prompt with three-tier scoring. 
+
+## D Hyperparameter 
+
+All hyperparameters used in ROVA are summarized in Fig. 11. For the reward function, the alignment component assigns αr = 0 .3 to reasoning consistency and αa = 0 .7 to answer consistency, reflecting the greater difficulty of strict reasoning alignment while prioritizing answer robustness; the base reward uses binary format and accuracy terms ( wF = wAcc = 1 .0) with KL regularization β = 0 .01 
+
+and Kmax = 537 . For GRPO training, ordered and shuffled group sizes G = 8 and ˜G = 4 ensure reliable advantage estimation, PPO clipping ϵ = 0 .2 with gradient norm 1.0 stabilizes policy updates, and GAE λGAE = 0 .95 with γ = 0 .99 yields a favorable bias–variance trade-off. For the difficulty-aware curriculum, confidence threshold τ = 0 .8 with bounds amin = 0 .3 and amax = 0 .85 governs sample selection, while the buffer permits Nmax = 3 replay attempts over at most |M| max = 1000 
+
+samples with re-evaluation every 50 steps. Training uses 16 frames at 128 ×28 ×28 (32 frames at 
+
+256 ×28 ×28 at inference), AdamW with lr = 1 ×10 −5 and cosine schedule on 4×A100 (80GB) GPUs, with 1 SFT epoch and 300 RL steps. 
+
+D.0.1 Hyperparameter Sensitivity Analysis 
+
+We conduct ablation studies on key hyperparameters to validate our design choices, as shown in Fig 9. The results indicate that setting the alignment weights to αr = 0 .3 and αa = 0 .7, which prioritizes answer alignment, leads to improved downstream accuracy while preserving reasoning quality. A confidence threshold of τ = 0 .8 provides an effective balance: lower thresholds retain an excessive 22 ▶ LLM Judge Prompt for Difficulty Assessment 
+
+[Task] 
+
+You may ONLY use the MASKED video to judge. 
+
+[Evaluation Criteria] 
+
+• If the masked video DOES give enough information to reliably answer, respond: YES .• If the masked video does NOT give enough information, respond: NO .• Additionally, provide a confidence score in [0 .0, 1.0] (one decimal place) reflecting how certain you are in your judgment. Reply with ONE WORD and ONE NUMBER only. 
+
+[Input] 
+
+• Question: {question_text} 
+
+[Output Format] 
+
+> {"answer": "YES or NO", "confidence": 0.0 }
+
+Figure 10: LLM judge prompt for binary answerability assessment under perturbation. The confidence score controls the sample discard rate via threshold τ .
+
+Algorithm 2 RO BUST VIDEO ALIGNMENT (ROVA) 
+
+Require: Policy Fθ , buffer M = ∅, data D, params (α, τ, K max , G )
+
+# Self-Reflective Difficulty-Aware Training  
+
+> 1:
+
+for (q, V ) ∼ D do  
+
+> 2:
+
+˜V ← PERTURB (V ) ▷ Spatio-temporal corruption 3: {oj }Gj=1 ∼ Fθ (·| q, V ); {˜oj }Gj=1 ∼ Fθ (·| q, ˜V ) ▷ Dual-branch 4: Rj ← rj + α·SIM (oj , ˜oj ); Aj ← (Rj − ¯R)/σ R ▷ Alignment reward 5: Fθ ← GRPOS TEP (Fθ , {Ai}) ▷ Policy update 6: (d, c ) ← F (q, ˜V , S e; θ) ▷ Self-assessment 7: if d = HARD then  
+
+> 8:
+
+M ← M ∪ { (q, ˜V , 0) } ▷ Buffer hard sample 9: else if d = EASY ∧ c > τ then  
+
+> 10:
+
+skip ▷ Prune mastered 11: end if  
+
+> 12:
+
+# Difficulty Re-Evaluation  
+
+> 13:
+
+only when the memory is full or after sufficient iterations:  
+
+> 14:
+
+for (q, ˜V , n ) ∈ M do  
+
+> 15:
+
+d′ ← A (q, ˜V , θ curr ); n ← n+1  
+
+> 16:
+
+if d′ = INFORMATIVE then  
+
+> 17:
+
+Train on (q, ˜V ); remove from M ▷ Promote 18: else if d′ = EASY or n > N max then  
+
+> 19:
+
+Remove from M ▷ Evict 20: end if  
+
+> 21:
+
+end for  
+
+> 22:
+
+end for 
+
+number of easy samples, whereas higher thresholds discard valuable training signals. We find that a group size of G = 8 is sufficient to ensure stable advantage estimation, with larger group sizes yielding diminishing returns. Finally, a perturbation intensity of η = 0 .7 achieves an appropriate 23 0.1 0.3 0.5           
+
+> 34
+> 36
+> 38
+> 40
+> 42
+> Acc (%)
+> 36.2
+> 39.1 37.8
+> r
+> 0.6 0.8 0.95
+> 34
+> 36
+> 38
+> 40
+> 42
+> 37.4 39.1 38.2
+> 4816
+> 34
+> 36
+> 38
+> 40
+> 42
+> 37.9 39.1
+> 38.7
+> G
+> 0.5 0.7 0.9
+> 34
+> 36
+> 38
+> 40
+> 42
+> 40.2
+> 39.1
+> 36.8
+> Hyperparameter Sensitivity Analysis
+
+Figure 11: Hyperparameter sensitivity analysis of ROVA on the validation set, illustrating the effect of key training hyperparameters on model performance. Table 9: Hyperparameter sensitivity analysis on the PVRBench validation set for Qwen2.5-VL-7B after the first training epoch. Best values are highlighted in bold .
+
+Hyperparameter Value Avg. Acc. (%) 
+
+αr (reasoning weight) 0.1 36.2 
+
+0.3 39.1 
+
+0.5 37.8 
+
+τ (confidence threshold) 0.6 37.4 
+
+0.8 39.1 
+
+0.95 38.2 
+
+G (group size) 4 37.9 
+
+8 39.1 
+
+16 38.7 
+
+η (perturbation intensity) 0.5 40.2 
+
+0.7 39.1 
+
+0.9 36.8 
+
+balance between challenge and solvability - lower intensities fail to sufficiently enhance robustness, while higher intensities render samples unanswerable. 
+
+## E Additional Experimental Results 
+
+Fine-Grained Performance Analysis. We further analyze ROVA’s performance through comple-mentary perspectives (Figs. 14 to 18), which present radar charts comparing per-task accuracy of ROVA against the baselines across multiple task categories, revealing consistent improvements in high-level planning and associative reasoning. Fig. 12 shows the impact of input frame count on robustness: increasing frames from 16 to 64 improves both baseline and ROVA performance across all perturbation types, confirming the benefit of longer temporal context. Notably, ROVA consistently outperforms the baseline at every frame count, indicating that our framework learns more robust representations rather than merely exploiting additional frames. 
+
+Evolution of Reasoning and Answer Rewards. We examine the reward dynamics of core compo-nents during ROVA training (Fig. 13). The total reward converges stably, while decomposed rewards show distinct patterns: accuracy reward rises rapidly and plateaus, reflecting task-specific learning; reasoning reward grows gradually, indicating deeper semantic understanding; and temporal reward shows gradual growth with the lowest variation rate among all components, acting as a temporal regularizer. This confirms that each component effectively guides different learning aspects. 
+
+Cross-Benchmark Evaluation. Fig. 19 compares ROVA against baselines on the VisBench and UrbanVideo benchmarks under various perturbation types. Our method achieves consistent improve-ments across both benchmarks, with average accuracy gains of +14.6% on VisBench and +12.9% on UrbanVideo, demonstrating strong cross-benchmark generalization. 24 Original Weather Occlusion Shake Lighting 
+
+Condition         
+
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> 0.50
+> Performance Score
+> Baseline ROVA
+> 16F 32F 48F 64F 16F 32F 48F 64F
+
+Figure 12: Performance of ROVA vs. baseline on Qwen2.5-VL-7B across varying frame counts (F = Number of Frames). ROVA outperforms the baseline at every frame count. 0 50 100 150 200 250 
+
+> Training Steps
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> Reward
+
+ROVA Training Reward Curves 
+
+> Accuracy Reward
+> Format Reward
+> Temporal Reward
+> Total Reward
+
+Figure 13: First epoch of Qwen-VL-2.5-7B train-ing, the reward curves of ROVA Table 10: The stability of easy-classified samples for Qwen2.5-VL-7B 
+
+Step Retain Rate (%) ↑ Confidence ↑
+
+Ep.1 Ep.2 Ep.3 Ep.1 Ep.2 Ep.3 0 – – – – – –50 82.3 86.1 89.4 0.71 0.74 0.77 100 87.5 90.2 92.8 0.73 0.78 0.81 150 91.2 93.6 95.1 0.76 0.81 0.84 200 93.8 95.2 96.3 0.79 0.83 0.86 250 95.1 96.0 96.8 0.81 0.85 0.88 300 95.4 96.2 97.1 0.82 0.86 0.89 
+
+Stability of Easy-Classified Samples. Tab. 10 further quantifies the stability of easy-sample classifi-cation. Easy samples are re-evaluated at each training step; the retention rate measures the proportion that remain classified as easy upon re-evaluation, while the confidence score reflects the model’s certainty in its classification. Both metrics increase steadily over training, with the retention rate reaching 97.1% and confidence reaching 0.89 by step 300 (epoch 3), confirming that the self-reflective evaluation mechanism becomes increasingly reliable as training progresses. 
+
+Analyses of Self-Reflective Evaluation. We analyze the discarding statistics across training runs and track the evolving proportions of medium, difficult, and easy samples throughout training. Difficult samples consistently exhibit the highest retention rate, confirming their role as persistent learning bottlenecks that require sustained attention. In contrast, easy samples show lower and more variable retention, highlighting their context-dependent utility -once learned, they act as reusable primitives that facilitate generalization. This evolving behavior is further quantified in Tab. 11. As training progresses, both pairwise overlap rates and all-epoch overlap increase substantially, while the consistency ratio improves from 0.68 to 0.88, demonstrating that easy-sample identification becomes increasingly stable over time. This growing stability reinforces that easy samples transition from being context-sensitive to consolidated, transferable knowledge units. Collectively, these patterns validate the difficulty estimation mechanism and reveal the curriculum’s adaptive nature, where challenging samples persistently push the learning frontier while easier ones consolidate and transfer acquired knowledge, enabling efficient and robust representation learning. 25 Duration Causal 
+
+Proximity 
+
+Cognitive 
+
+Map 
+
+Scene 
+
+Recall 
+
+Sequence 
+
+Recall 
+
+Start/End 
+
+Pos. 
+
+Assoc. 
+
+Reason. Landmark 
+
+Pos. 
+
+Progress 
+
+Eval. 
+
+Action 
+
+Gen. 
+
+Goal 
+
+Detect 
+
+High-level 
+
+Planning 
+
+Traj. 
+
+Caption 
+
+Counter-
+
+factual 
+
+Object 
+
+Recall 
+
+> 0.4
+> 0.8
+
+(a) PVRBench (Outdoor) 
+
+Rel. Dir. 
+
+(Easy) 
+
+Rel. Dir. 
+
+(Hard) 
+
+Rel. Dir. 
+
+(Medium) 
+
+Appear. 
+
+Order 
+
+Rel. 
+
+Distance 
+
+Route 
+
+Plan 
+
+> 0.4
+> 0.8
+
+(b) PVRBench (Indoor)  
+
+> Baseline + ROVA (Ours)
+
+Figure 14: Per-task accuracy comparison of QwenVL-2.5-7B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA. Rel. Dir. 
+
+(Easy) 
+
+Rel. Dir. 
+
+(Hard) 
+
+Rel. Dir. 
+
+(Med.) 
+
+Appear. 
+
+Order 
+
+Rel. 
+
+Dist. 
+
+Route 
+
+Plan 
+
+> 0.2
+> 0.4
+> 0.6
+
+PVRBench (Indoor) 
+
+Duration Causal 
+
+Proximity 
+
+Cog. 
+
+Map 
+
+Scene 
+
+Recall 
+
+Seq. 
+
+Recall 
+
+Start/End 
+
+Pos. 
+
+Assoc. 
+
+Reason. Landmark 
+
+Pos. 
+
+Progress 
+
+Eval. 
+
+Action 
+
+Gen. 
+
+Goal 
+
+Detect 
+
+High-lvl 
+
+Plan. 
+
+Traj. 
+
+Caption 
+
+Counter-
+
+fact. 
+
+Object 
+
+Recall 
+
+> 0.2
+> 0.4
+> 0.6
+
+PVRBench (Outdoor) 
+
+Figure 15: Per-task accuracy comparison of Embodied-R-7B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA. Rel. Dir. 
+
+(Easy) 
+
+Rel. Dir. 
+
+(Hard) 
+
+Rel. Dir. 
+
+(Med.) 
+
+Appear. 
+
+Order 
+
+Rel. 
+
+Dist. 
+
+Route 
+
+Plan 
+
+> 0.2
+> 0.4
+> 0.6
+
+PVRBench (Indoor) 
+
+Duration Causal 
+
+Proximity 
+
+Cog. 
+
+Map 
+
+Scene 
+
+Recall 
+
+Seq. 
+
+Recall 
+
+Start/End 
+
+Pos. 
+
+Assoc. 
+
+Reason. Landmark 
+
+Pos. 
+
+Progress 
+
+Eval. 
+
+Action 
+
+Gen. 
+
+Goal 
+
+Detect 
+
+High-lvl 
+
+Plan. 
+
+Traj. 
+
+Caption 
+
+Counter-
+
+fact. 
+
+Object 
+
+Recall 
+
+> 0.2
+> 0.4
+> 0.6
+
+PVRBench (Outdoor) 
+
+Figure 16: Per-task accuracy comparison of InternVL2.5-8B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA. 26 Rel. Dir. 
+
+> (Easy)
+> Rel. Dir.
+> (Hard)
+> Rel. Dir.
+> (Med.)
+> Appear.
+> Order
+> Rel.
+> Dist.
+> Route
+> Plan
+> 0.2
+> 0.4
+> 0.6
+
+PVRBench (Indoor)  
+
+> Duration Causal
+> Proximity
+> Cog.
+> Map
+> Scene
+> Recall
+> Seq.
+> Recall
+> Start/End
+> Pos.
+> Assoc.
+> Reason. Landmark
+> Pos.
+> Progress
+> Eval.
+> Action
+> Gen.
+> Goal
+> Detect
+> High-lvl
+> Plan.
+> Traj.
+> Caption
+> Counter-
+> fact.
+> Object
+> Recall
+> 0.2
+> 0.4
+> 0.6
+
+PVRBench (Outdoor) Figure 17: Per-task accuracy comparison of Qwen2.5-VL-72B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA. Rel. Dir. 
+
+> (Easy)
+> Rel. Dir.
+> (Hard)
+> Rel. Dir.
+> (Med.)
+> Appear.
+> Order
+> Rel.
+> Dist.
+> Route
+> Plan
+> 0.2
+> 0.4
+> 0.6
+
+Qwen3-VL-13B (Indoor)  
+
+> Duration Causal
+> Proximity
+> Cog.
+> Map
+> Scene
+> Recall
+> Seq.
+> Recall
+> Start/End
+> Pos.
+> Assoc.
+> Reason. Landmark
+> Pos.
+> Progress
+> Eval.
+> Action
+> Gen.
+> Goal
+> Detect
+> High-lvl
+> Plan.
+> Traj.
+> Caption
+> Counter-
+> fact.
+> Object
+> Recall
+> 0.2
+> 0.4
+> 0.6
+
+Qwen3-VL-13B (Outdoor) 
+
+Figure 18: Per-task accuracy comparison of Qwen3-VL-13B baseline vs. +ROVA on indoor spatial reasoning (left) and outdoor urban navigation (right) tasks, where the inner curve denotes the baseline, and the outer curve denotes +ROVA. 
+
+Figure 19: Cross-benchmark evaluation on VisBench and UrbanVideo under various perturbation types. ROVA achieves +14.6% and +12.9% average accuracy gains, respectively, demonstrating consistent cross-benchmark improvements. 27 Table 11: Consistency of easy-sample identification across training epochs. Pairwise : percentage of samples identified as easy in both epochs. All-Epoch : percentage identified as easy in all three epochs. Consistency : ratio of samples easy in all epochs to those easy in at least one.                                            
+
+> Pairwise Overlap (%) All-Epoch Consist. Step Ep.1 ∩Ep.2 Ep.2 ∩Ep.3 Ep.1 ∩Ep.3 Ovlp. (%) Ratio
+> 50 78.4 81.2 76.8 72.1 0.68 100 83.7 86.5 82.4 78.9 0.74 150 87.2 89.8 86.1 83.4 0.79 200 90.5 92.1 89.7 87.2 0.83 250 92.8 94.3 91.9 89.6 0.86 300 94.1 95.2 93.5 91.3 0.88
+
+## F Additional Case Study 
+
+Qualitative analyses show that ROVA-trained models develop perturbation-aware reasoning: under dense fog (Fig. 20), Qwen2.5-VL-7B recognizes fog-induced depth distortion to correctly estimate a crane at over 200m and conservatively limits visibility to 30m refusing path continuity assumptions; under heavy snowstorm (Fig. 21), InternVL2.5-8B chains multi-frame evidence tracking vertical edges (Frames 0–16) for building identification, estimating NW-to-SE wind from snow trajectories (Frames 27–38), locating entrances via illuminated ground-floor areas (Frame 50), and selecting 2/3 tallest-building altitude by reasoning about upper-frame snow density and obscured building tops (Frame 0, 4); under sandstorm (Fig. 22), Qwen3-VL-13B shifts from unreliable color cues to structural matching via vertical edge tracking (Frames 0–27) and silhouette cross-referencing to locate the target at 10 o’clock while avoiding a 2 o’clock trap, and infers easterly headwind from left-to-right sand movement to plan steeper descent avoiding building turbulence; under sun glare (Fig. 23), Qwen2.5-VL-7B identifies overexposed regions as sensor artifacts, confirms target via cross-frame consistency (glare shifts while store remains fixed), and plans southeast descent toward shadowed lower-right regions avoiding the glare direction—all consistently exhibiting, without explicit supervision, three emergent behaviors: (1) explicit perturbation identification naming perturbations in reasoning traces, (2) strategy adaptation modifying approaches per perturbation type (e.g., color-to-structural cue switching), and (3) cross-frame evidence integration distributing attention across frames to compensate per-frame information loss, suggesting the dual-branch alignment objective implicitly encourages perturbation-aware meta-reasoning as a byproduct of output-consistency optimization. 
+
+## G Time Complexity Analysis 
+
+We provide a detailed analysis of the computational cost of ROVA and demonstrate that, despite introducing additional components, the difficulty-aware curriculum significantly reduces the effective training cost compared to a naïve dual-branch baseline that trains on all samples uniformly. 
+
+G.1 Per-Step Cost Decomposition 
+
+Let N denote the batch size, Gtotal = G + ˜G = 12 the total group size, T the number of frames, L
+
+the maximum sequence length, and Cfwd the cost of a single model forward pass on one video-query pair. We decompose the per-step cost of each training paradigm. 
+
+Standard GRPO (Baseline). Standard GRPO generates Gtotal rollouts per sample from clean video only and performs one backward pass: 
+
+CGRPO = N · Gtotal · Cfwd + Cbwd , (11) where Cbwd ≈ 0.5 · N · Gtotal · Cfwd . The coefficient 0.5 arises from the asymmetry between rollout generation and gradient computation: during generation, each token is decoded autoregressively ,requiring a full forward pass per step; in contrast, the backward pass operates on the already-generated 
+
+sequences in a single teacher-forced forward - backward sweep, which can be fully parallelised across all token positions. Although the gradient computation itself costs roughly 2× the corresponding 28 Figure 20: Qualitative examples of ROVA-trained Qwen2.5-VL-7B performing depth estimation and path continuity reasoning under dense fog conditions. 
+
+Figure 21: Qualitative examples of ROVA-trained InternVL2.5-8B performing structure recognition and visibility-aware altitude control under heavy snowstorm conditions. forward pass [Griewank and Walther, 2008], the teacher-forced forward is substantially cheaper than autoregressive decoding (approximately 1/4 to 1/3 of the total generation cost in our setting due to KV-cache reuse and parallel position processing), yielding an effective backward cost of roughly half the total rollout budget. 2   
+
+> 2We empirically verified this ratio on our 4 ×A100 setup; the measured backward-to-forward cost ratio was
+> 0.48 ±0.03 across 300 steps.
+
+29 Figure 22: Qualitative examples of ROVA-trained Qwen3-VL-13B performing landmark matching and wind-aware path planning under sandstorm conditions. 
+
+Figure 23: Qualitative examples of ROVA-trained Embodied-R (Qwen2.5-VL-7B as Vision Language Models) performing glare region identification and glare-aware approach planning under strong sun glare conditions. 
+
+Naïve Dual-Branch. A straightforward dual-branch approach generates Gtotal rollouts from both 
+
+clean and perturbed videos for every sample, computes alignment rewards, and updates the policy: 
+
+Cnaive = N · Cpert 
+
+| {z }
+
+> perturbation
+
++ 2 N · Gtotal · Cfwd 
+
+| {z }
+
+> dual rollout
+
++ 2 N · CAPI 
+
+| {z }
+
+> alignment reward
+
++ C′
+
+> bwd
+
+|{z} 
+
+> backward
+
+, (12) where Cpert is the per-sample perturbation generation cost, CAPI is the GPT-4o API call latency per evaluation, and C′ 
+
+> bwd
+
+≈ 0.5 · 2N · Gtotal · Cfwd reflects the doubled rollout pool entering the backward pass. 30 ROVA (with difficulty-aware curriculum). ROVA introduces two additional stages—self-reflective assessment and memory re-evaluation—but critically, it also discards a fraction of samples from training via its difficulty-aware curriculum (Sec. 3.2). Let ρt ∈ [0 , 1] denote the effective training ratio at step t, i.e., the fraction of samples that survive curriculum filtering (neither pruned as high-confidence easy nor deferred as excessively hard). The per-step cost becomes: 
+
+CROVA = N · Cpert 
+
+| {z }
+
+> perturbation
+
++ 2 N · Gtotal · Cfwd 
+
+| {z }  
+
+> dual rollout (all N)
+
++ N · Cjudge 
+
+| {z }
+
+> self-assessment
+
++ 2ρtN · CAPI 
+
+| {z }
+
+> alignment (selected)
+
++ |M t| · Cjudge · 1[t mod Tre = 0] 
+
+| {z }
+
+> memory re-eval (periodic)
+
++ C′′ 
+
+> bwd
+
+|{z} 
+
+> backward (selected)
+
+, (13) where Cjudge ≈ 0.4 · Cfwd denotes the cost of the self-reflective difficulty assessment (a single forward pass with a shortened prompt over the perturbed video), |M t| is the current memory buffer size, and 
+
+Tre is the re-evaluation period. Three design choices jointly explain why this formulation leads to a favorable cost–accuracy trade-off despite the added components: 
+
+(i) Curriculum filtering reduces downstream cost. Although dual rollouts are performed over the full batch of N samples (necessary for the self-assessment stage to observe model behavior before filtering), the expensive alignment reward calls and the backward pass operate only on the ρtN
+
+selected samples. In practice, ρt stabilizes around 0.55 –0.65 during training (see Tab. 10, effectively halving the API and gradient costs relative to the naïve dual-branch baseline. 
+
+(ii) Self-assessment is lightweight. The self-reflective difficulty judgment Cjudge reuses the already-loaded model weights and operates on a single truncated prompt per sample, costing only ∼0.4× astandard rollout forward pass. This modest overhead is more than compensated by the downstream savings from filtering: the net cost reduction from discarding (1 − ρt)N samples far exceeds the 
+
+N · Cjudge assessment cost. 
+
+(iii) Memory re-evaluation is amortized. Re-evaluating the memory buffer Mt is the most expensive auxiliary operation, as it requires a difficulty re-assessment of all |M t| stored samples under the current policy. We set the re-evaluation period to Tre = 50 steps, which we found to balance freshness and overhead: the model’s difficulty landscape shifts meaningfully over ∼50 update steps (see Fig. 4), while more frequent re-evaluation yields diminishing returns at linearly increasing cost. Amortized over Tre steps, the per-step memory overhead is only |M t| · Cjudge /T re , which constitutes less than 
+
+2% of the total per-step budget in our experiments. Combining these factors, we obtain C′′  
+
+> bwd
+
+≈ 0.5 · 2ρtN · Gtotal · Cfwd , since only the selected samples contribute to the policy gradient. The overall per-step cost of ROVA is thus approximately: 
+
+CROVA ≈  2 + 0 .4 + 2 ρt
+
+ · N · Gtotal · Cfwd + (minor terms) , (14) compared with (2 + 2) · N · Gtotal · Cfwd for the naïve baseline (Eq. 12), yielding a theoretical speedup of 4/(2 .4+2 ρt). At ρt ≈ 0.6, this gives ∼1.11 × speedup, consistent with the 1.06 × effective speedup measured in Tab. 13 (the small gap is attributable to scheduling and synchronization overhead on our multi-GPU setup). 
+
+G.2 Amortized Cost Savings from Curriculum 
+
+The key insight is that the self-assessment overhead is more than compensated by the reduction in downstream computation. Specifically, for each discarded sample, ROVA saves the cost of alignment reward API calls and a portion of the backward pass gradient computation. We formalize this tradeoff below. 
+
+Proposition 1 (Amortized cost advantage of ROVA) . Let ρt denote the effective training ratio at step 
+
+t, and let ¯ρ = 1
+
+> TRL
+
+PTRL  
+
+> t=1
+
+ρt be the average training ratio over TRL RL steps. Ignoring the amortized memory re-evaluation cost (which occurs every 50 steps), the per-step cost ratio of ROVA relative to naïve dual-branch training satisfies: 
+
+CROVA 
+
+Cnaive 
+
+≈ 2Gtotal · Cfwd + Cjudge + 2¯ ρ · CAPI + 1 .5¯ ρ · Gtotal · Cfwd 
+
+2Gtotal · Cfwd + 2 CAPI + 1 .5Gtotal · Cfwd 
+
+. (15) 
+
+When ¯ρ < 1 (i.e., the curriculum discards some fraction of samples), and Cjudge < (1 − ¯ρ)(2 CAPI +1.5Gtotal · Cfwd ), then CROVA < C naive .
+
+31 Table 12: Effective training ratio ρt and corresponding discard rates over training. “Easy Disc.” denotes high-confidence easy samples discarded; “Difficult Def.” denotes hard samples deferred to the buffer. 
+
+Step Easy Disc. (%) Difficult Def. (%) Effective ρt Buffer |M t|
+
+0–50 2.1 11.8 0.861 127 50–100 3.8 9.5 0.867 248 100–150 5.4 7.2 0.874 341 150–200 7.1 5.8 0.871 389 200–250 8.6 4.3 0.871 352 250–300 9.8 3.5 0.867 298 
+
+Average 6.1 7.0 ¯ρ = 0.869 293 
+
+Proof. For the naïve dual-branch, every sample incurs full rollout, alignment reward, and backward costs. For ROVA, the dual-branch rollout is performed for all N samples (needed for difficulty assessment), but the expensive alignment reward computation ( 2CAPI per sample) and the backward pass are performed only for the ρtN selected samples. The additional cost is the self-assessment judge call ( Cjudge per sample). Substituting and simplifying per sample: 
+
+Cper-sample naive = 2 Gtotal Cfwd + 2 CAPI + 1 .5Gtotal Cfwd , (16) 
+
+Cper-sample ROVA = 2 Gtotal Cfwd + Cjudge + 2 ρtCAPI + 1 .5ρtGtotal Cfwd . (17) The saving per sample is: 
+
+∆C = (1 − ρt) (2 CAPI + 1 .5Gtotal Cfwd ) − Cjudge . (18) This is positive whenever ρt < 1 − Cjudge  
+
+> 2CAPI +1 .5Gtotal Cfwd
+
+.
+
+Empirical training ratio. From the training dynamics shown in Sec. 3.2, the effective training ratio evolves over training. In early steps, most samples are informative ( ρ ≈ 0.90 ), but as the model improves, more samples are classified as high-confidence easy and discarded. We measure the empirical training ratio across three runs in Tab. 12. With ¯ρ = 0 .869 , approximately 13.1% of samples are removed from each training step on average (6.1% easy discarded + 7.0% hard deferred). Substituting our measured values ( Cjudge ≈ 0.4Cfwd ,
+
+CAPI ≈ 0.9Cfwd , Gtotal = 12 ): 
+
+CROVA 
+
+Cnaive 
+
+= 24 Cfwd + 0 .4Cfwd + 2(0 .869)(0 .9Cfwd ) + 1 .5(0 .869)(12 Cfwd )24 Cfwd + 2(0 .9Cfwd ) + 1 .5(12 Cfwd )= 24 + 0 .4 + 1 .56 + 15 .64 24 + 1 .8 + 18 = 41 .60 43 .80 ≈ 0.950 .
+
+(19) Thus, ROVA is approximately 5.0% cheaper per step than naïve dual-branch training , despite the additional self-assessment overhead. The savings come from avoiding expensive alignment reward API calls and reducing gradient computation for uninformative samples. 
+
+G.3 Wall-Clock Time Measurements 
+
+To validate the theoretical analysis, we measure actual wall-clock times on our 4× A100 (80GB) training setup. Tab. 13 reports per-step and total training times across paradigms. Several observations emerge from Tab. 13. First, ROVA (full) requires 403s per step compared to 428s for naïve dual-branch, achieving a 1.06 × wall-clock speedup while delivering +2.3% higher accuracy. Second, removing memory re-evaluation saves only 7s per step (since re-evaluation occurs every 50 steps, amortized to ∼7s), confirming that memory management overhead is minimal. Third, 32 Table 13: Wall-clock time comparison across training paradigms on 4× A100 GPUs. Per-step times are averaged over 300 RL steps. “Eff. Speedup” measures speedup relative to naïve dual-branch. 
+
+Method Per-Step (s) Total 300 Steps (h) Eff. Speedup Avg. Acc. (%) 
+
+Standard GRPO 215 ± 12 17.9 — 33.0 Naïve Dual-Branch 428 ± 18 35.7 1.00 × 36.8 ROVA (full) 403 ± 21 33.6 1.06 × 39.1 
+
+w/o memory re-eval 396 ± 19 33.0 1.08 × 38.4 w/o self-assessment 422 ± 17 35.2 1.01 × 37.2 
+
+Table 14: Component-wise wall-clock timing breakdown per training step for ROVA on 4× A100 GPUs ( N = 4 per GPU, Gtotal = 12 ).                            
+
+> Component Time (s) Fraction (%) Parallelizable?
+> Perturbation generation 8.2 2.0 Yes (CPU) Clean-branch rollout 142.5 35.4 Yes (GPU 0–1) Perturbed-branch rollout 142.5 35.4 Yes (GPU 2–3) Self-reflective assessment 18.6 4.6 Yes (batched) Alignment reward (API) 38.4 9.5 Yes (async) Backward pass (selected) 46.8 11.6 No Memory re-eval (amortized) 6.0 1.5 Yes (batched)
+> Total 403 100 —
+
+removing self-assessment entirely increases per-step cost to 422s—only 6s less than naïve dual-branch—because without difficulty-aware filtering, all samples proceed to the expensive alignment reward and backward stages, negating any potential savings and reducing accuracy by 1.9%. 
+
+Component-wise timing breakdown. We further decompose the per-step time of ROVA in Tab. 14. The dual-branch rollout dominates at 70.8% of total time, confirming that the additional components (self-assessment at 4.6%, memory re-evaluation at 1.5%) introduce marginal overhead. The alignment reward API calls (9.5%) benefit from asynchronous batching; without curriculum-based filtering, this would increase to 9.5/0.869 ≈ 10 .9% .
+
+G.4 Amortized Memory Re-evaluation Cost 
+
+Memory re-evaluation occurs every 50 steps, with the buffer containing on average |M| ≈ 293 
+
+samples (Tab. 12). Each re-evaluation requires one judge forward pass per buffered sample: 
+
+Cre-eval = |M| · Cjudge = 293 × 0.4Cfwd . (20) Amortized over 50 steps, this contributes 293 ×0.450 ≈ 2.3Cfwd per step-less than 1% of the total per-step cost. Furthermore, approximately 18% of re-evaluated samples are promoted to training (classified as informative) and 12% are evicted (classified as easy or exceeding Kmax ), confirming that the memory mechanism provides a meaningful stream of recovered training signal at negligible cost. 
+
+## H Analysis of Reward Modeling Design 
+
+In this section, we provide an in-depth analysis of the reward modeling design in ROVA, discussing the motivation behind our multi-component formulation, its theoretical grounding, the interplay with the difficulty-aware curriculum, and empirical evidence supporting each design choice. 
+
+H.1 Motivation: Why Multi-Component Rewards? 
+
+Standard reinforcement learning from human feedback (RLHF) and its variants typically employ a single scalar reward signal. However, the robustness objective in embodied video reasoning presents 33 multiple, partially orthogonal desiderata: (1) task accuracy , ensuring correct answers; (2) format compliance , maintaining structured output for downstream parsing; and (3) perturbation invariance ,ensuring both final answers and underlying reasoning remain stable under visual corruptions. A single scalar reward conflates these objectives, making it difficult for the policy to disentangle which aspect of its behavior is being reinforced. Our multi-component reward Rj = rFj + rAcc  
+
+> j
+
++ rAj addresses this by providing separable gradient signals for each objective. To empirically validate this design, we compare our multi-component reward against two alternatives: (1) a single combined reward that merges all components into one scalar via weighted summation 
+
+before advantage estimation, and (2) an accuracy-only reward that drops the alignment component entirely. The multi-component reward outperforms both alternatives across all metrics, with particularly large gains in reasoning quality (Consistency +0.24, Belief +0.23 over single combined). This confirms that decomposed rewards provide more informative gradient signals. 
+
+H.2 Alignment Reward: Optimizing Geodesic distance 
+
+The alignment reward rAj = αr · ralign ,r j + αa · ralign ,a j is the central novelty of our reward design. This reward formula can easily optimize geodesic distance in manifold without additional cost. 
+
+From Output Consistency to minimizing Geodesic path. As established in the theoretical analysis (Sec. I), the KL divergence between induced output distributions π(z) and π(zϕ) is locally equivalent to the squared Fisher–Rao distance on the statistical manifold M. Maximizing the alignment reward drives the policy toward producing identical outputs for clean and perturbed inputs, which—under the Local Proximity Assumption—is equivalent to minimizing the Fisher - Rao distance: 
+
+max rAj ⇐⇒ min d2FR (π(z), π (zϕ)) ≈ min DKL (π(z)∥π(zϕ)) . (21) This connection suggests that the alignment reward serves as an informative, difficulty-aware signal within the training dynamics. By modulating updates according to sample complexity, it shapes the model’s trajectory on the underlying statistical manifold, encouraging stable and generalizable parameter movements while mitigating overfitting. Compared to random sampling, such reward-guided optimization is more likely to follow a favorable geodesic trajectory, ultimately reducing the discrepancy between the probability distributions π(z) and π(zϕ) induced by the original and perturbed data. 
+
+Asymmetric Weighting Rationale. The asymmetric weighting ( αa = 0 .7 > α r = 0 .3) reflects two key observations. First, answer consistency provides a sharper, lower-variance gradient signal (binary {0, 1}) compared to reasoning consistency (three-tier {0, 0.5, 1}), making it a more reliable optimization target. Second, reasoning traces exhibit higher inherent variability - even for identical inputs, stochastic decoding produces diverse reasoning paths that may differ stylistically while remaining semantically equivalent. Assigning a lower weight to reasoning alignment prevents the reward from penalizing legitimate reasoning diversity while still encouraging core logical consistency. The sensitivity analysis (Tab. 9) confirms that this asymmetric weighting outperforms both symmetric (αr = αa = 0 .5, Avg. Acc. 37.8%) and reasoning-dominated ( αr = 0 .5 > α a = 0 .5) configurations. 
+
+H.3 Interaction Between Reward Components and Curriculum 
+
+A key insight of ROVA is that the reward components and the difficulty-aware curriculum are mutually reinforcing . We identify three specific interaction mechanisms. 
+
+Accuracy Reward as Curriculum Bootstrapper. During early training, rAcc provides the dominant learning signal, enabling the model to acquire basic task competence before the alignment reward becomes informative. This is because alignment requires meaningful outputs on both branches—if the model cannot solve the task on clean inputs, comparing clean and perturbed outputs is uninformative. The curriculum amplifies this effect by initially presenting predominantly easy and medium samples, where the accuracy reward gradient is strongest. 
+
+Alignment Reward as Implicit Difficulty Signal. The alignment reward also serves as an implicit difficulty indicator that complements the LLM-judge-based assessment. Samples that consistently 34 receive low alignment scores ( rAj ≈ 0) despite high accuracy ( rAcc  
+
+> j
+
+= 1 ) indicate that the perturbation disrupts reasoning without affecting the final answer - a subtle failure mode that the binary judge may miss. By incorporating rAj into the total reward, such samples receive lower overall rewards, naturally reducing their influence on the policy gradient and preventing the model from learning brittle shortcuts. 
+
+Format Reward as Training Stabilizer. The format reward rFj , while seemingly trivial, plays a critical stabilization role during early RL training. Without it, the policy may drift toward degenerate outputs (e.g., omitting the <think> block) that trivially minimize the alignment penalty by producing empty reasoning traces. The format reward ensures structured outputs are maintained throughout training, preserving the prerequisite for meaningful alignment evaluation. 
+
+H.4 Comparison with Alternative Reward Designs 
+
+Beyond the default alignment reward used in ROVA, we explore two principled reward variants that target specific limitations of the default formulation, aiming to further improve training signal quality. 
+
+Conditional Alignment Reward. A potential failure mode of the default alignment is the “con-sistently wrong” regime: when the clean branch itself produces an incorrect answer, enforcing consistency with a flawed output may reinforce erroneous reasoning. To address this, we design a conditional variant that modulates the alignment target based on clean-branch correctness. When the clean branch is correct, the perturbed branch is aligned to it as usual; when incorrect, the reward instead encourages the perturbed branch to deviate from the erroneous output and align with the closest correct rollout within the same generation group: 
+
+rcond =
+
+
+
+sim (ˆ ypert , ˆyclean ) if ˆyclean = y∗,
+
+sim ˆypert , arg min  
+
+> yj∈Y +
+
+d(yj , ˆypert )
+
+!
+
+otherwise , (22) where Y+ is the set of correct rollouts within the group and d(·, ·) denotes edit distance in the reasoning trace. 
+
+Step-Level Reasoning Consistency Reward. The default GPT-4o-based evaluation assigns a holistic three-tier score to the entire reasoning trace, which may obscure perturbation-specific failure modes at different reasoning stages. To enable finer-grained credit assignment, we decompose each reasoning trace into three atomic stages - visual observation , spatial/temporal reasoning , and action decision - and compute per-stage similarity using a frozen sentence encoder (all-MiniLM-L6-v2): 
+
+rstep = X  
+
+> k∈{ obs ,reason ,act }
+
+βk · cos  eclean  
+
+> k
+
+, epert 
+
+> k
+
+, (23) where e(·) 
+
+> k
+
+denotes the frozen encoder embedding for stage k, and βk are stage weights ( βobs = 0 .3,
+
+βreason = 0 .5, βact = 0 .2). This formulation offers the additional benefit of eliminating GPT-4o API costs for reasoning evaluation, and in principle allows the policy gradient to independently target each failure mode. 
+
+Experimental Results. We evaluate both variants - as well as their combination - on PVRBench using the Qwen2.5-VL-7B backbone under identical training configurations (Tab. 15). Contrary to our expectations, neither alternative improves upon the default ROVA reward; both lead to consistent degradation across all metrics, with the step-level variant exhibiting the largest drop ( −0.02 in Avg. Acc., −0.08 in Avg. †). Combining both alternatives does not recover the lost performance, suggesting that the two failure modes are compounding rather than complementary. We evaluate both variants and their combination on PVRBench using Qwen2.5-VL-7B under identical training configurations (Tab. 15), finding that neither alternative improves upon the default ROVA reward - both lead to consistent degradation across all metrics, with the step-level variant exhibiting the largest drop ( −0.02 in Avg. Acc., −0.08 in Avg. †), and their combination compounds rather than complements the failure modes. Three underlying causes explain this negative result: (i) the conditional reward’s applicability diminishes rapidly as clean-branch accuracy rises during 35 Table 15: Comparison of alternative reward designs on PVRBench (Qwen2.5-VL-7B). The default ROVA reward consistently outperforms both alternatives and their combination.                      
+
+> Answer Accuracy Reasoning Quality Reward Design Perturbed Clean Perturbed Clean
+> Default ROVA .47 .53 2.99 3.52
+> Conditional Alignment .46 .52 2.95 3.48 Step-Level Consistency .45 .51 2.91 3.45 Cond. + Step-Level .45 .52 2.93 3.46
+
+early training and plateaus at a high level (Fig. 13), reducing applicable samples to below 20% by mid-training, and further degenerating for genuinely difficult samples where all G=12 rollouts are incorrect, yielding no corrective signal precisely when most needed; (ii) the step-level reward’s heuristic segmentation of free-form reasoning traces into three predefined stages introduces substantial noise - particularly for traces interleaving observation and inference - while the frozen sentence encoder captures only surface-level lexical similarity lacking GPT-4o’s deeper semantic judgment, causing semantically equivalent but lexically divergent paths to receive misleadingly low similarity scores that misguide policy updates; and (iii) both alternatives introduce additional stochasticity ( Y+
+
+sampling and edit-distance in conditional alignment, heuristic segmentation boundaries in step-level consistency) that increases reward variance, which in the GRPO framework directly translates to noisier advantage estimates destabilizing policy updates and offsetting any theoretical benefit from finer-grained credit assignment. These findings suggest that for dual-branch alignment, reward 
+
+stability matters more than reward granularity : the default holistic GPT-4o evaluation, while coarser, provides a substantially more stable optimization landscape that best balances informativeness and optimization reliability for consistent, monotonic policy improvement. 
+
+## I Theoretical Analysis 
+
+Geometry of the output space. Let (Y, B) be a measurable space and P(Y) the space of proba-bility measures on Y. We consider the statistical manifold 
+
+M := {PY |z : z ∈ Z} ⊂ P (Y),
+
+equipped with the Fisher–Rao metric. Let ξ denote the local coordinates on M.
+
+gM 
+
+> ξ
+
+(u, v ) = EY ∼pξ [∂uℓ(ξ; Y ) ∂v ℓ(ξ; Y )] , ℓ(ξ; y) = log pξ (y), (24) where μ is a dominating measure. 
+
+Convention. For convenience, we unify all training-used samples (medium samples and easy samples with low confidence) under the term medium-level samples. And we let easy-level easy samples discarded during training. 
+
+Definition of Representations. Let z denote the model representation induced by the original input 
+
+x, i.e., 
+
+z = fθ (x),
+
+Local Proximity Assumption. We assume that, during stable training steps, the induced output distributions π(z) and π(zϕ) remain sufficiently close such that their discrepancy lies within a locally learnable regime. Formally, there exists ε > 0 such that 
+
+DKL (π(z) ∥ π(zϕ)) ≤ ε, 
+
+where ε is small enough to ensure that learning dynamics remain within the local trust region of the statistical manifold. 
+
+Local KL expansion Let pξ ∈ M be a smooth statistical model with Fisher information I(ξ). For sufficiently small ∆ξ,
+
+DKL π(pξ ) ∥ π(pξ+∆ ξ ) ≈ 12 ∆ξ⊤I(ξ)∆ ξ + o(∥∆ξ∥3).
+
+Thus, in a normal neighborhood of M, KL divergence is locally equivalent to the Fisher information metric. Hence, we can use local approximation of KL divergence on manifold. 36 Model-induced semantic map. The model induces a semantic map π : Z → M defined by 
+
+π(z) = PY |z . Semantic discrepancy between a clean representation z and its perturbed counterpart 
+
+zϕ is measured on M via their induced distributions π(z) and π(zϕ).
+
+DTV (π(z), π (zϕ)) ≤
+
+q
+
+(1 /2) ∗ DKL (π(z) ∥ π(zϕ)) (25) by Pinsker’s inequality. 
+
+Reward-to-KL surrogate Let r(π(z), π (zϕ) ∈ [0 , 1] be a reward and define the surrogate 
+
+L(π(z), π (zϕ)) ∝ ψ(r(π(z), π (zϕ))) , where ψ is decreasing. Then there exists κ > 0 and a local Lipschitz constant L > 0 such that for all z and zϕ satisfying DKL (π(z)∥π(zϕ)) ≤ κ,
+
+L(π(z), π (zϕ)) ≤ L ∗ DTV (π(z), π (zϕ)) ≤ L ∗
+
+q
+
+(1 /2) ∗ DKL (π(z)∥π(zϕ)) . (16) 
+
+(A1) (Local KL–Fisher equivalence). There exist constants 0 < c min ≤ cmax such that, in a normal neighborhood of the statistical manifold M:
+
+cmin d2FR ≤ DKL ≤ cmax d2FR .
+
+(A2) (Trust-region energy dissipation via Medium-first sampling). Let the active difficulty measure for a perturbation ϕ be defined as the semantic KL energy: 
+
+Ut(ϕ) := Ez∼pt [DKL (πt(z) ∥ πt(zϕ))] .
+
+Medium-difficulty sampling qt restricts the update to a stable trust region on M. Unlike random sampling, this constraint ensures: 1. Gradient Alignment: The task gradient ∇θ L remains well-aligned with the descent direc-tion of the semantic energy ∇θ Ut.2. Non-vanishing Dissipation: By avoiding the singular regions of "hard" samples and the flat regions of "easy" samples, the update maintains a strictly positive inner product 
+
+⟨∇ θ Ut, ∇θ L⟩ > 0.This alignment forces Ut to follow a dissipative path toward the invariant state. 37
