@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-001.webp",
+      "caption": "Table 3 Comparative results on semi-synthetic PKU-SafeRLHF datasets under α = 0.5, ρ01 = 0.2 and ρ10 = 0.1.",
+      "page": 11,
+      "index": 1,
+      "width": 964,
+      "height": 252
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-002.webp",
+      "caption": "Figure 3 Performance comparison under different learning rate and batch size on PKU-SafeRLHF.",
+      "page": 11,
+      "index": 2,
+      "width": 941,
+      "height": 199
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-003.webp",
+      "caption": "Figure 6 Performance comparison under different bias mildness α on three datasets.",
+      "page": 25,
+      "index": 3,
+      "width": 936,
+      "height": 361
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-004.webp",
+      "caption": "Figure 7 Performance comparison under different noise strength ρ on three datasets.",
+      "page": 25,
+      "index": 4,
+      "width": 936,
+      "height": 360
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-005.webp",
+      "caption": "Table 8 Qualitative case study on HarmBench with Qwen2.5-7B steered by different reward models.",
+      "page": 26,
+      "index": 5,
+      "width": 1046,
+      "height": 1325
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-006.webp",
+      "caption": "Table 5 Downstream RLHF safety evaluation results with training performed on PKU-SafeRLHF dataset.",
+      "page": 14,
+      "index": 6,
+      "width": 982,
+      "height": 399
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-007.webp",
+      "caption": "Table 4 Performance comparison with different backbone and model size on PKU-SafeRLHF.",
+      "page": 13,
+      "index": 7,
+      "width": 988,
+      "height": 619
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-008.webp",
+      "caption": "Table 7 Comparative results on semi-synthetic UltraFeedback datasets under α = 0.5, ρ01 = 0.2 and ρ10 = 0.1.",
+      "page": 24,
+      "index": 8,
+      "width": 964,
+      "height": 252
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-009.webp",
+      "caption": "Table 6 Comparative results on semi-synthetic HelpSteer datasets under α = 0.5, ρ01 = 0.2 and ρ10 = 0.1.",
+      "page": 24,
+      "index": 9,
+      "width": 964,
+      "height": 252
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-010.webp",
+      "caption": "Table 1 Comparative results on observational feedback datasets.",
+      "page": 9,
+      "index": 10,
+      "width": 972,
+      "height": 1002
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18736v1/fig-011.webp",
+      "caption": "Figure 2 The case study demonstrating user preference bias by comparing two typical scenarios in (a) and (b). Different colors indicate different r∗.",
+      "page": 5,
+      "index": 11,
+      "width": 979,
+      "height": 255
+    }
+  ]
+}

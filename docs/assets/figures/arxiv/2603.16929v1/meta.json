@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.16929v1/fig-001.webp",
+      "caption": "Figure 1. Overview of MHPO. (a) Performance gain over baseline (Avg@32, %) on Qwen3-4B-Base. The bar chart displays the improvement (∆) achieved by different RL methods across five benchmarks. MHPO (navy) consistently achieves the largest gain on every benchmark. (b) Gradient norm trajectory during RL training. Baseline methods exhibit frequent gradient spikes, whereas MHPO maintains consistently low and stable gradient magnitudes throughout training, empirically confirming the bounded gradient multiplier guaranteed by our theoretical analysis. (c) Overall reward curve during training. MHPO attains higher reward earlier and sustains this advantage, while competing methods plateau or exhibit degradation in later stages.",
+      "page": 2,
+      "index": 1,
+      "width": 976,
+      "height": 750
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16929v1/fig-002.webp",
+      "caption": "Figure 2. Characteristics of the Log-Fidelity Modulator (LFM). (a) The LFM operator ψ(ri t(θ)) with different values of c. The transformation exhibits reciprocal antisymmetry (ψ(1/ri t(θ)) = −ψ(ri t(θ))) around the on-policy anchor (ri t(θ) = 1) and smoothly bounds the output within the interval [−c, c]. The marked points at ri t(θ) = 1 2 and ri t(θ) = 2 (for c = 1.0) confirm ψ( 1 2 ) = −ψ(2). (b) The derivative of the LFM operator, demonstrating smooth gradient attenuation for extreme importance ratios while preserving local fidelity (dψ/dr = 1) near the on-policy anchor.",
+      "page": 7,
+      "index": 2,
+      "width": 974,
+      "height": 375
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16929v1/fig-003.webp",
+      "caption": "Table 3. Hyperparameter sensitivity of MHPO (Qwen2.5-VL-7B, Geo3K training). We report macro-average Avg@32 (%) across MathVista, MathVision, and MathVerse. Bold denotes the best value among the reported settings.",
+      "page": 13,
+      "index": 3,
+      "width": 690,
+      "height": 194
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16929v1/fig-004.webp",
+      "caption": "Figure 3. Analysis of the Decoupled Hazard Penalty (DHP). (a) The penalty ζ(ψ) with different (λ, k) configurations. The default asymmetric setting (λ+ = 1.0, k+ = 1.5, λ− = 0.8, k− = 2.0) applies stronger suppression for negative shifts. (b) The corresponding survival weight w = exp(−ζ) ∈ (0, 1], demonstrating that the DHP can only attenuate and never amplify token contributions.",
+      "page": 8,
+      "index": 4,
+      "width": 972,
+      "height": 275
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16929v1/fig-005.webp",
+      "caption": "Table 1. Main results on instruction-tuned backbones. We report Avg@32 (%) for the best checkpoint. Subtable (A) reports results on Qwen2.5-7B-Instruct (general-purpose), Subtable (B) reports text-only math reasoning on Qwen2.5-Math-7BInstruct (domain-specialized), and Subtable (C) reports vision-language math reasoning on Qwen2.5-VL-7B-Instruct.",
+      "page": 12,
+      "index": 5,
+      "width": 977,
+      "height": 577
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.23184v1/fig-001.webp",
+      "caption": "Figure 1 Four typical generation processes of implicit preference data, where “copy” represents user feedback. We denote the true user preference as positive (r∗ = 1) or negative (r∗ = 0), and the user interaction as active (a = 1) or passive (a = 0). Different colors indicate different r∗. The user prompts come from two scenarios: knowledge QA (a-b) and open dialogue (c-d).",
+      "page": 2,
+      "index": 1,
+      "width": 979,
+      "height": 244
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23184v1/fig-002.webp",
+      "caption": "Table 3 Ablation study results.",
+      "page": 7,
+      "index": 2,
+      "width": 987,
+      "height": 800
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23184v1/fig-003.webp",
+      "caption": "Table 2 The overall performance on implicit preference datasets.",
+      "page": 7,
+      "index": 3,
+      "width": 976,
+      "height": 387
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23184v1/fig-004.webp",
+      "caption": "Table 5 Downstream reinforcement learning performance.",
+      "page": 10,
+      "index": 4,
+      "width": 952,
+      "height": 314
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23184v1/fig-005.webp",
+      "caption": "Table 6 Qualitative case study on HarmBench with Qwen2.5-7B steered by different reward models.",
+      "page": 18,
+      "index": 5,
+      "width": 956,
+      "height": 1074
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23184v1/fig-006.webp",
+      "caption": "Table 4 Varying LLM backbone performance on PKU-SafeRLHF.",
+      "page": 8,
+      "index": 6,
+      "width": 940,
+      "height": 311
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23184v1/fig-007.webp",
+      "caption": "Figure 2 Performance comparison under different update rate η and batch size B on HelpSteer.",
+      "page": 9,
+      "index": 7,
+      "width": 978,
+      "height": 192
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23184v1/fig-008.webp",
+      "caption": "Figure 3 Performance comparison under different proportions of positive samples that elicit user actions (α).",
+      "page": 9,
+      "index": 8,
+      "width": 979,
+      "height": 190
+    }
+  ]
+}

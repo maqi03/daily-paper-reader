@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.17305v1/fig-001.webp",
+      "caption": "Figure 3: Overall pipeline of CRAFT. The framework integrates Latent Contrastive Learning for Reasoning (LCLR) with Reinforcement over Reasoning Latents (R2L). LCLR geometrically structures the latent space of reasoning traces by separating safe, unsafe, and rethink states into distinct regions, yielding a stable and interpretable safety representation. Building on this structure, R2L applies latent-aware reinforcement to steer reasoning trajectories toward safe regions while preserving alignment between internal reasoning dynamics and final outputs.",
+      "page": 6,
+      "index": 1,
+      "width": 970,
+      "height": 425
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17305v1/fig-002.webp",
+      "caption": "Table 1: Comparison with Reasoning-based Alignment Methods. We evaluate safety alignment by comparing CRAFT against six baselines on two jailbreak benchmarks, JailbreakBench and StrongReject. We report the StrongReject score for final responses and the safety rate of intermediate reasoning traces as evaluation metrics; variances are omitted as they are consistently ≤ 0.2%. Best results are in bold and second-best results underlined. Across most settings, CRAFT achieves the strongest overall performance. In particular, compared to the base model, CRAFT reduces the StrongReject score by 87.7% while increasing the reasoning safety rate by 79.0%.",
+      "page": 11,
+      "index": 2,
+      "width": 964,
+      "height": 281
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17305v1/fig-003.webp",
+      "caption": "Table 3: Effect of individual CRAFT modules. We assess the contribution of each module by ablating CRAFT on two jailbreak benchmarks, JailbreakBench (JBB) and StrongReject. Performance is measured using the StrongReject score on final responses and the safety rate of intermediate reasoning traces; variances are omitted as they are consistently ≤ 0.2%. Best and second-best results are highlighted in bold and underlined, respectively. Across settings, each module yields consistent gains in jailbreak robustness and reasoning-trace safety.",
+      "page": 15,
+      "index": 3,
+      "width": 660,
+      "height": 182
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17305v1/fig-004.webp",
+      "caption": "Figure 1: Comparison of reasoning-level safety behaviors under a jailbreak prompt. The base model exhibits superficial safety alignment, where harmful expressions appear in reasoning despite a safe refusal. An aligned baseline reduces explicit toxicity but still retains risky reasoning patterns. CRAFT aligns reasoning at the latent level, avoiding explicit harmful expressions and guiding the reasoning process toward positive value-oriented, safety-consistent interpretations while producing a safe refusal.",
+      "page": 3,
+      "index": 4,
+      "width": 958,
+      "height": 498
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17305v1/fig-005.webp",
+      "caption": "Figure 5: Prompt used for reasoning-trace safety evaluation.",
+      "page": 18,
+      "index": 5,
+      "width": 972,
+      "height": 896
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17305v1/fig-006.webp",
+      "caption": "Figure 4: CRAFT performance under advanced jailbreak attacks. We evaluate CRAFT against two strong jailbreak methods, GPTFuzzer and AutoDAN. Performance is measured using the StrongReject score on final responses and the safety rate of intermediate reasoning traces. Across settings, CRAFT achieves substantial safety improvements, with gains of 72.1% in reasoning-trace safety and 85.9% in final-response safety, demonstrating robustness under aggressive jailbreak conditions.",
+      "page": 13,
+      "index": 6,
+      "width": 926,
+      "height": 540
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17305v1/fig-007.webp",
+      "caption": "Figure 2: Latent separation of reasoning traces. Left: PCA projection of hidden states from DeepSeek-R1-Distill-Llama-8B reveals a clear geometric separation between safe and unsafe reasoning traces, with rethink traces forming a distinct transitional subspace. Right: PCA projection of hidden states from Qwen3-4B-Thinking exhibits the same separation pattern, indicating modelagnostic latent structure.",
+      "page": 4,
+      "index": 7,
+      "width": 946,
+      "height": 379
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17305v1/fig-008.webp",
+      "caption": "Table 2: Comparison of Performance Drop under Reasoning-based Alignment Methods. We evaluate the impact of safety alignment on reasoning performance by comparing CRAFT against six baselines on three mathematical benchmarks (AIME24, Minerva, and Math-500) and one code-generation benchmark (LiveCodeBench). We report Pass@1 as the evaluation metric; variances are omitted as they are consistently ≤ 0.2%. Best results are in bold and second-best results underlined. Across most settings, CRAFT exhibits the smallest overall performance drop. In particular, compared to the base model, CRAFT improves the average performance by 4.7%.",
+      "page": 12,
+      "index": 8,
+      "width": 964,
+      "height": 214
+    }
+  ]
+}

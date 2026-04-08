@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.22829v1/fig-001.webp",
+      "caption": "Table 1. Performance on diverse benchmarks reflects both safety and general performance. “Avg.” is the average performance of all benchmarks. For all reported metrics, the best results are marked in bold and the second best results are marked by underline.",
+      "page": 7,
+      "index": 1,
+      "width": 1027,
+      "height": 584
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22829v1/fig-002.webp",
+      "caption": "Figure 2. The statistical analysis of Mutual Information for preference pairs on Qwen-2-7B-Instruct and Mistral-7B-Instruct-v0.3. The x and y axes represent the Mutual Information between queries and dispreferred vs. preferred responses, respectively. We can find that both the LLMs exist Imbalanced Preference Comprehension phenomenon for both the safe and unsafe query types (For a portion of the queries, preferred responses exhibit higher mutual information than dispreferred ones, whereas the reverse holds for the remaining queries).",
+      "page": 4,
+      "index": 2,
+      "width": 991,
+      "height": 246
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22829v1/fig-003.webp",
+      "caption": "Figure 6. The responses towards harmful prompts of LLMs trained by DPO and B-DPO.",
+      "page": 12,
+      "index": 3,
+      "width": 967,
+      "height": 406
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22829v1/fig-004.webp",
+      "caption": "Figure 7. The responses towards jailbreak instructions of LLMs trained by DPO and B-DPO.",
+      "page": 12,
+      "index": 4,
+      "width": 967,
+      "height": 395
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10624v1/fig-001.webp",
+      "caption": "Figure 2. This figure illustrates the computation of CER as defined in Eq. (8). The left panel shows the question, the reference answer, and the 16 generated answers. The right panel depicts the components: the reward vector R (left column), the row-normalized matrix D−1W (central block), and the reference-likelihood vector P (right column).",
+      "page": 8,
+      "index": 1,
+      "width": 1015,
+      "height": 358
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10624v1/fig-002.webp",
+      "caption": "Table 1. The performance of models trained on a general-domain dataset.",
+      "page": 6,
+      "index": 2,
+      "width": 987,
+      "height": 481
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10624v1/fig-003.webp",
+      "caption": "Table 2. The performance of models trained on a mathematical dataset.",
+      "page": 6,
+      "index": 3,
+      "width": 987,
+      "height": 480
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10624v1/fig-004.webp",
+      "caption": "Figure 1. An illustration of CER computation, where RN(·) denotes row normalization. The left panel depicts the generation process of the quadruple (q, si, ai, a ∗), while the right panel shows the CER computation for the quadruple, corresponding to Eq. (8).",
+      "page": 5,
+      "index": 4,
+      "width": 958,
+      "height": 289
+    }
+  ]
+}

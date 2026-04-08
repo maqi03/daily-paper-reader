@@ -1,0 +1,134 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-001.webp",
+      "caption": "Figure 4. Sensitivity of α: reward gap relative to the standard GRPO baseline versus α (log scale). Marker color indicates the average CSR measured during actual training, while the triangle marker denotes the value of α selected during the calibration phase.",
+      "page": 6,
+      "index": 1,
+      "width": 460,
+      "height": 275
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-002.webp",
+      "caption": "Table 11. Example output from the GRPO-trained 1.5B baseline, exhibiting redundant reasoning loops, repeated self-doubt, and failure to produce a conclusive final answer.",
+      "page": 21,
+      "index": 2,
+      "width": 991,
+      "height": 1169
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-003.webp",
+      "caption": "Figure 2. Training dynamics of GR3, which retains GRPO’s reward gains without loss while significantly reducing average tokens. The base models used for the two settings are DeepSeek-R1-Distill-1.5B and Qwen3-8B (without thinking mode), respectively.",
+      "page": 2,
+      "index": 3,
+      "width": 961,
+      "height": 363
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-004.webp",
+      "caption": "Table 4. Performance on code generation tasks. GR3 achieves competitive scores with fewer tokens across model sizes.",
+      "page": 7,
+      "index": 4,
+      "width": 450,
+      "height": 277
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-005.webp",
+      "caption": "Table 5. Performance on chat tasks. GRPO improves performance but incurs substantial length bias, while GR3 achieves stronger alignment gains while preserving the length of the initial policy.",
+      "page": 7,
+      "index": 5,
+      "width": 450,
+      "height": 277
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-006.webp",
+      "caption": "Table 3. Mathematical reasoning performance for 7B models. Length-oriented methods reduce tokens but may sacrifice accuracy, while GR3 consistently achieves comparable accuracy with significantly fewer tokens, establishing a markedly better Pareto frontier.",
+      "page": 7,
+      "index": 6,
+      "width": 979,
+      "height": 306
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-007.webp",
+      "caption": "Table 6. Example output from the Efficiently (Arora & Zanette, 2025) 1.5B baseline at step 800, showing excessive reasoning truncation and omission of critical intermediate steps, resulting in an incoherent chain of thought.",
+      "page": 14,
+      "index": 7,
+      "width": 991,
+      "height": 268
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-008.webp",
+      "caption": "Table 1. Comparison of length-aware reward shaping methods (Liu et al., 2025c; Arora & Zanette, 2025; Aggarwal & Welleck, 2025; Team et al., 2025; Yu et al., 2025; Cheng et al., 2025). ℓ(i) is the response length of sample i. ℓmin, ℓmax, ℓ̄, and σℓ are computed within each group. α, λ, ℓT and ℓC are fixed hyperparameters. s(·) denotes the sigmoid function.",
+      "page": 3,
+      "index": 8,
+      "width": 488,
+      "height": 537
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-009.webp",
+      "caption": "Table 8. Mathematical reasoning performance for 1.5B models.",
+      "page": 18,
+      "index": 9,
+      "width": 991,
+      "height": 309
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-010.webp",
+      "caption": "Figure 5. Comparison of multiplicative and gated additive shaping during RLHF training. Multiplicative shaping matches standard GRPO in task reward while achieving controlled length reduction. In contrast, gated additive variants with different reward thresholds underperform and produce overly short responses, reflecting optimization instability introduced by hard gating.",
+      "page": 13,
+      "index": 10,
+      "width": 742,
+      "height": 354
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-011.webp",
+      "caption": "Figure 3. Additive length regularization consistently degrades task reward across different choices of λ, whereas the multiplicative scheme maintains stable reward improvement throughout training.",
+      "page": 4,
+      "index": 11,
+      "width": 480,
+      "height": 270
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-012.webp",
+      "caption": "Table 9. Hyperparameter sweep of the length penalty coefficient α in GR3 on 1.5B models.",
+      "page": 19,
+      "index": 12,
+      "width": 991,
+      "height": 261
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-013.webp",
+      "caption": "Table 7. Hyper-parameters used in our experiments.",
+      "page": 17,
+      "index": 13,
+      "width": 587,
+      "height": 424
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-014.webp",
+      "caption": "Table 10. Example output from our GR3-trained 1.5B model, demonstrating robust, clearly structured step-by-step reasoning and a correct final answer in boxed format.",
+      "page": 20,
+      "index": 14,
+      "width": 991,
+      "height": 790
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-015.webp",
+      "caption": "Table 2. Comparison of standard RLVR training, threshold-based truncation (Hou et al., 2025), and group-relative methods (Arora & Zanette, 2025). All methods are evaluated at the 800th step.",
+      "page": 5,
+      "index": 15,
+      "width": 479,
+      "height": 285
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10535v1/fig-016.webp",
+      "caption": "Figure 6. Effect of reward density on the strict advantage-preservation objective. As reward density increases, the strict constraint satisfaction rate decreases, even for a small penalty coefficient α = 0.05, and more noticeably for a larger penalty α = 5.0.",
+      "page": 16,
+      "index": 16,
+      "width": 801,
+      "height": 319
+    }
+  ]
+}

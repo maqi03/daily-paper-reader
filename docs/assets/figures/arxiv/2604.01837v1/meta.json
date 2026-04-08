@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.01837v1/fig-001.webp",
+      "caption": "Table 1: The Attack Success Rate (ASR) results for various models and preference learning methods under multiple red teaming attack scenarios consistently demonstrate that integrating LPLOT leads to a significant reduction in ASR across all evaluated models (Llama3.2-3B, Llama3.1-8B, and Qwen2.5-7B) and alignment techniques (SFT, DPO, PRO, and AOT). This highlights the universal effectiveness and robustness of PLOT in enhancing the preference learning capabilities of LLMs.",
+      "page": 6,
+      "index": 1,
+      "width": 941,
+      "height": 804
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01837v1/fig-002.webp",
+      "caption": "Table 2: Comparative evaluation of Instruct, DPO, and PLOT models across Human Values and Logic & Problem Solving, demonstrating consistent superiority of PLOT in multifaceted preference learning domains.",
+      "page": 7,
+      "index": 2,
+      "width": 904,
+      "height": 208
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01837v1/fig-003.webp",
+      "caption": "Table 8: Detailed experimental results of Llama3.2-3B-Instruct for the Harmlessness preference learning. Attack Success Rate (ASR) is used to assess the defense capability of the model under various attack methods. PLOT demonstrates significant performance enhancements over DPO across all attack methods, showing improvements in each test data subset as well as the overall performance with better stability.",
+      "page": 14,
+      "index": 3,
+      "width": 887,
+      "height": 486
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01837v1/fig-004.webp",
+      "caption": "Figure 2: The ASR curves of three models under different case counts for the Zero-Shot method (Left) and varying update steps of GCG (Right). PLOT consistently demonstrates superior defense capabilities and stability compared to DPO.",
+      "page": 13,
+      "index": 4,
+      "width": 936,
+      "height": 354
+    }
+  ]
+}

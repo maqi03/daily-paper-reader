@@ -1,0 +1,1397 @@
+Title: Reward Prediction with Factorized World States
+
+URL Source: https://arxiv.org/pdf/2603.09400v1
+
+Published Time: Wed, 11 Mar 2026 00:49:11 GMT
+
+Number of Pages: 35
+
+Markdown Content:
+# Reward Prediction with Factorized World States 
+
+## Yĳun Shen 1,* Delong Chen 2,* 
+
+## Xianming Hu 1 Jiaming Mi 1 Hongbo Zhao 1 Kai Zhang 1, † Pascale Fung 2 
+
+> 1
+
+East China Normal University 2 HKUST * Equal contribution † Corresponding Author 
+
+kzhang@cs.ecnu.edu.cn 
+
+Agents must infer action outcomes and select actions that maximize a reward signal indicating how close the goal is to being reached. Supervised learning of reward models could introduce biases inherent to training data, limiting generalization to novel goals and environments. In this paper, we investigate whether well-defined world state representations alone can enable accurate reward prediction across domains. To address this, we introduce StateFactory , a factorized representation method that transforms unstructured observations into a hierarchical object-attribute structure using language models. This structured representation allows rewards to be estimated naturally as the semantic similarity between the current state and the goal state under hierarchical constraint. Overall, the compact representation structure induced by StateFactory enables strong reward generalization capabilities. We evaluate on RewardPrediction , a new benchmark dataset spanning five diverse domains and comprising 2,454 unique action-observation trajectories with step-wise ground-truth rewards. Our method shows promising zero-shot results against both VLWM-critic and LLM-as-a-Judge reward models, achieving 60% and 8% lower EPIC distance, respectively. Furthermore, this superior reward quality successfully translates into improved agent planning performance, yielding success rate gains of +21.64% on AlfWorld and +12.40% on ScienceWorld over reactive system-1 policies and enhancing system-2 agent planning. Project Page: 
+
+https://statefactory.github.io 
+
+# 1 Introduction 
+
+We are interested in building agents with planning ca-pabilities that generalize across different goals and envi-ronments in zero-shot. Many real-world scenarios do not allow agents to perform massive trial-and-error to obtain explicit reward signals, making model-free approaches, 
+
+e.g., reinforcement learning from verifiable rewards (RLVR) [Guo et al., 2025a] not applicable. This limitation neces-sitates world models [Ha and Schmidhuber, 2018, Richens et al., 2025] that predict the consequences of actions as future world states to guide policy learning [Hafner et al., 2023] or plan search [LeCun, 2022, Hansen et al., 2023]. To leverage the state predictions of world models, agents need to evaluate to what extent a predicted state aligns with the goal , typically via a scalar reward, and then maximize it [M. Moerland et al., 2023]. Our work focuses on accurately predicting such rewards with effective generalization . One direct approach is to train the models [Chen et al., 2025] or reward prediction heads on top of world models [Hafner et al., 2023] using task-specific supervision. However, explicit supervision may introduce biases and overfitting [Di Langosco et al., 2022, Gao et al., 2023, Casper et al., 2023, Sharma et al., 2023], limiting generalization to the novel environments. A promising alternative is to estimate task progress by measuring the semantic distance between the current state and the desired goal state [Liu et al., 2022, Schaul et al., 2015], effectively avoiding explicit reward modeling and enabling zero-shot planning [Ma et al., 2023a, Wang et al., 2023a]. There are two bottlenecks in using world-state distances as reward signals. First, constructing an abstract state representation space [M. Moerland et al., 2023] whose ge-ometry accurately reflects task progress [Trott et al., 2019, Wu et al., 2018] is nontrivial. Prior successes leveraged representations from visual foundation models, such as DINO-WM [Zhou et al., 2024], JEPA-WMs [Terver et al., 2025], and RoboCLIP [Sontakke et al., 2023]. Yet, how to extend from low-level continuous planning to high-level language-based agent planning [Wang et al., 2024a, Luketina et al., 2019, Cao et al., 2024], especially for pro-cedural tasks [Chen et al., 2025] that require stronger semantic and temporal abstraction [Sutton, 1998], remains an open challenge. Second, for agents that operate in text space, rigorous evaluation of reward quality (especially in terms of fine-grained, step-wise proximity to the goal state) is difficult due to the lack of suitable benchmarks. Existing datasets mainly focus on sparse, outcome-oriented rewards, which can make it difficult to systematically assess quality of rewards and how they guide the planning process. We address both challenges by introducing a new state representation method and a dedicated benchmark for rigorous reward evaluation. Specifically, we propose State-Factory , a semantic factorization framework that factorizes   
+
+> arXiv:2603.09400v1 [cs.CL] 10 Mar 2026 Reward Prediction with Factorized World States
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+world states into hierarchical object–attribute structures. Within this framework, unstructured observations are decomposed into atomic semantic factors using large lan-guage models. The reward signals are then naturally estimated by measuring semantic similarity between the current and goal states through the hierarchical routing. This process effectively distills the unstructured observa-tions into compact abstractions, thereby improving the zero-shot reward generalization. To enable fine-grained evaluation of reward prediction, we introduce RewardPrediction , a benchmark spanning five interactive environments: AlfWorld [Shridhar et al., 2020] for robotics planning, ScienceWorld [Wang et al., 2022] for scientific reasoning, TextWorld [Côté et al., 2018] for text-based games, WebShop [Yao et al., 2022a] for website navigation, and BlocksWorld [Valmeekam et al., 2023a] for classical planning. In total, there are 2,454 unique trajectories, each with step-wise action–observation pairs and scalar rewards, allowing any predicted reward to be evaluated via the EPIC distance [Gleave et al., 2020] to the ground-truth rewards. Overall, the representation structure in StateFactory 
+
+demonstrates strong reward generalization capabilities. While supervised reward models exhibit a 138% increase in reward prediction error in novel domains on Reward-Prediction , StateFactory achieves superior zero-shot per-formance, reducing EPIC distance by 60% and 8% com-pared to VLWM-critic and LLM-as-a-Judge, respectively. These improvements in reward quality turn directly into enhanced agent planning performance, yielding success rate gains of +21.64% on AlfWorld and +12.40% on Science-World over reactive system-1 policies, while consistently strengthening system-2 agent planning. The main contributions of this work are summarized: 
+
+• We introduce RewardPrediction benchmark, cover-ing 2,454 unique trajectories with step-wise ground truth reward across five text-based environments. 
+
+• We propose StateFactory , a new representation method to transform the flat text descriptions to the structured hierarchies for the generalizable reward prediction. 
+
+• We demonstrate that StateFactory representation is able to enhance agent planning performance when combined with a world model and action proposal. 
+
+# 2 The RewardPrediction 
+
+# Benchmark 
+
+We introduce the RewardPrediction benchmark to evalu-ate zero-shot reward prediction across different domains. In the following sections, we first present the formal task 
+
+Figure 1. RewardPrediction benchmark Overview. Given a textual goal description, the model computes step-wise progress estimates [ˆ 𝑟 𝑡 ]𝑛 𝑡 =0   
+
+> from sequences of action-observation pairs. The reward predictions are compared against ground-truth [𝑟 𝑡 ]𝑛 𝑡 =0using EPIC distance [Gleave et al., 2020] to quantify alignment.
+
+formulations (§2.1), and then describe implementation de-tails of benchmark construction (§2.2). Figure 1 provides an overview of the benchmark task, and Figure 2 presents representative examples of different domains. 
+
+## 2.1 Formulation 
+
+Since we are interested in building objective-driven goal-reaching agents, we consider a Goal-Augmented Markov Decision Process (GA-MDP) [Liu et al., 2022] with Partial Observation [Kaelbling et al., 1998] constraints: ℳ =
+
+⟨𝒮 , 𝒜 , 𝒪 , 𝒯 , ℛ, 𝒢 , 𝜙 , Ω⟩. Here 𝒮 , 𝒜 , and 𝒪 respectively denote state, action, and the observation space. 𝒯 is the underlying transition function of the environment. The function Ω : 𝒮 → 𝒪 maps underlying states into agent observations. Each observation 𝑜 𝑡 usually partially contains the information of the ground truth states 𝑠 𝑡 .
+
+ℛ denotes reward function and 𝒢 is the goal space–we consider language goal in this work. Given a textual goal description 𝑔 ∈ 𝒢 and an agent that reaches 𝑠 𝑡 , the corresponding reward ℛ( 𝑠 𝑡 , 𝑔 ) should measure how close is the agent from achieving the goal. With the mapping 𝜙 :
+
+𝒢 → 𝒮 that interprets the goals and translates them into state space, it should have ℛ( 𝑠 𝑡 , 𝑔 ) = 1 if the goal is reached, 
+
+i.e., when || 𝑠 𝑡 − 𝜙 (𝑔 )|| ≤ 𝜖 with a small 𝜖 [Andrychowicz et al., 2017]. To allow representing the richer task progress information, we adopt the distance-to-goal reward [Trott et al., 2019, Liu et al., 2022]: 
+
+ℛ( 𝑠 𝑡 , 𝑔 ) = 1 − || 𝑠 𝑡 − 𝜙 (𝑔 )|| . (1) 
+
+Prediction Task . At each time 𝑡 , an agent 𝜋 perceives an observation 𝑜 𝑡 , takes an action 𝑎 𝑡 , and obtains the reward 
+
+𝑟 𝑡 . We can collect offline trajectories of agent interacting with environments to achieve goals, each expressed as 2Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Figure 2. RewardPrediction Benchmark Overview. Representative trajectories across five diverse domains. Each column displays a task instance with actions, observations, and the corresponding ground-truth task progress score ( 𝑅 ∈ [ 0, 1]) at key time steps. 
+
+⟨𝑔, [𝑜 𝑡 , 𝑎 𝑡 , 𝑟 𝑡 ]𝑛 𝑡 =0⟩. Based on collected goals and trajectories, we define the RewardPrediction task (Fig. 1), which re-quires a reward predictor 𝑓 pred to estimate ground truth rewards based on the goal to achieve, past observations, and action history: 
+
+𝑓 pred (𝑔, 𝑜 [0: 𝑡 ] , 𝑎 [0: 𝑡 ]) → ˆ 𝑟 𝑡 . (2) Iterating over every step, we obtain a sequence of predicted rewards [ˆ 𝑟 𝑡 ]𝑛 𝑡 =0. Prediction of each step could be indepen-dent ( stateless ), but alternatively, 𝑓 pred is also allowed to keep and access intermediate results from previous steps in the trajectory ( stateful ), e.g., allowing them to maintain a memory of belief states for more efficient prediction. 
+
+Evaluation Metric . We adopt the Equivalent Policy-Invariant Comparison (EPIC) distance [Gleave et al., 2020, Frick et al., 2024] between ground truth rewards and predicted rewards as the metric. EPIC distance is an approach to quantify the difference between reward func-tions, providing a policy-invariant measure that preserves the fine-grained magnitude information essential for ro-bust planning. Drawing on Rocamonde et al. [2023], which simplifies EPIC to a closed-form function of Pearson corre-lation for state-only rewards, we formulate the metric as: 
+
+𝐷 EPIC = 1
+
+√2
+
+q
+
+1 − 𝜌 ( ˆ 𝑅, 𝑅 ), (3) where 𝜌 represents Pearson correlation, ˆ𝑅 = [ˆ 𝑟 𝑡 ]𝑛 𝑡 =0 are the predicted rewards and 𝑅 = [𝑟 𝑡 ]𝑛 𝑡 =0 are the ground truths. We report average EPIC distance across all trajecto-ries as the final performance. 
+
+## 2.2 Implementation 
+
+To ensure robustness across diverse physical and semantic landscapes, we construct this benchmark by collecting 
+
+task-balanced interaction trajectories directly from a suite of five real text-based environments. To mitigate heuristic reward hacking, we employ a paired data construction strategy. Specifically, each instance consists of a positive-negative pair tailored to the same task. The positive anchor is derived from an expert trajectory with deterministic progress gradients[Yang et al., 2024] ( 𝑟 𝑡 = 𝑡 /𝑇 ) [Ziakas and Russo, 2025]. Crucially, we augment these sequences with random interaction steps at the boundaries, inherit their native environment rewards, to decouple trajectory length from reward signals. Complementing this, the negative baseline is generated via a random policy to represent failure trajectories ( 𝑟 𝑡 = 0). This structural coupling forces the model to explicitly distinguish meaningful semantic progress from stochastic noise within the same task context. The final evaluation set comprises 2,454 trajectories , as illustrated in Figure 2. For the supervised training stage, we scale up data generation to produce approximately 350,000 trajectories. 
+
+AlfWorld [Shridhar et al., 2020]. A benchmark for em-bodied household instruction following requiring agents to map high-level goals (e.g., put a hot mug in cabinet ) to sequences of executable step-level actions (e.g., take mug ,
+
+heat mug , and put mug in cabinet ). Our dataset covers 3Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Figure 3. Two paradigms of reward prediction. Unlike representation-free methods that regress rewards directly from raw inputs (top), representation-based frameworks derive progress signals by measuring the alignment between factorized state representations 𝑠 𝑡 and goal inter-pretations 𝑔 𝑡 (bottom). 
+
+all six standard interaction types, including Pick & Place ,
+
+Examine , Cool , Heat , Clean , and Movable , comprising a total of 672 expert trajectories. 
+
+ScienceWorld [Wang et al., 2022]. A complex environ-ment simulating elementary science experiments across topics like thermodynamics and life sciences. It requires agents to perform multi-step causal reasoning, such as 
+
+“determine the melting point of lead” via tool-use actions like move lead to stove , turn on stove , and focus on thermometer . We curated 382 trajectories from the test. 
+
+TextWorld [Côté et al., 2018]. A generative framework for procedural text-adventure games requiring multi-step reasoning. We focused on the quests involving com-plex object manipulation and the lock-and-key puzzles (e.g., “retrieve the shoe from the safe and place it on the table” ). These tasks require the sequence-dependent actions such as take keycard , unlock safe with the keycard , and 
+
+put shoe on the table . We utilized the native engine to procedurally generate 300 trajectories focusing on these state-change puzzles. 
+
+WebShop [Yao et al., 2022a]. A scalable simulation of e-commerce website navigation requiring agents to find products matching specific attributes (e.g., “looking for a blue running shoe size 9” ). Actions simulate real browser inter-actions, including keyword searches and selecting options (e.g., search[blue shoe] , click[size-9] , click[buy] ). Unlike other domains, we leveraged human demonstra-tions to capture realistic navigation nuances. From a pool of successful human trajectories, we subsampled high-quality instances to serve as positive anchors, forming a total of 600 trajectories. 
+
+BlocksWorld [Valmeekam et al., 2023a]. A classical planning benchmark for evaluating multi-step spatial rea-soning and stack manipulation under strict physical con-straints. Tasks involve reconfiguring block arrangements to match a target state (e.g., “stack block A on top of block B” )using atomic actions like pick up , unstack , and put down .We subsampled official instances and utilized a PDDL-to-text translator to ground symbolic states (e.g., on(a,b) )into dense natural language descriptions. This process bridges the gap between symbolic logic and linguistic reasoning, constructing 500 trajectories that challenge the agent’s ability to track long-horizon dependencies. 
+
+# 3 Reward Prediction Methods 
+
+In this section, we explore different approaches to solv-ing the RewardPrediction benchmark. We introduce two families of methods: representation-free methods and 
+
+representation-based methods, as illustrated in Fig. 3. The key distinction lies in whether the reward predictor con-structs explicit world state representations (belief states) and explicit goal interpretations (approximating 𝜙 ). De-spite architectural differences, methods can also be cate-gorized by whether they leverage the RewardPrediction 
+
+training set, resulting in two regimes: supervised predictors and zero-shot predictors. 
+
+## 3.1 Representation-free Methods 
+
+3.1.1 Finetuned Language Models 
+
+Inspired by reward models used in Reinforcement Learn-ing from Human Feedback (RLHF) [Ouyang et al., 2022] and the self-supervised critic used in the Vision Language World Model (VLWM) [Chen et al., 2025], we train language models with linear head as 𝑓 pred to predict the reward. Specifically, we generate paired samples from the training set of RewardPrediction , where the positive sample has a reward that is higher than the negative sample. We then train the language model with a contrastive ranking loss [Chen et al., 2025] with a reward centering term [Naik et al., 2024]. The reward model here is fully stateless. Given input goal description and (partial) trajectory at each time step, it predicts the reward independently. 
+
+3.1.2 LLM-as-a-Judge Prompting 
+
+This approach leverages prompted LLM-as-a-Judge [Zheng et al., 2023] as generative reward predictor [Guo et al., 2025b, Gunjal et al., 2025, Whitehouse et al., 2025]. We provide goal and trajectory to an LLM, with additional guidance describing the reward prediction task, to instruct it to respond with a scaler reward on a scale of 0 to 1. See Appendix Table 8 for the full prompt. In addition to this simple stateless baseline, the flexibility of prompting allow us to implement a stateful variant: the LLM is instructed 4Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Figure 4. StateFactory Framework. State extraction and goal interpretation are coupled recurrent processes (left). Our approach factorizes states into explicit objects and attributes (right), deriving dense rewards from semantic similarity between ˆ𝑠 𝑡 and ˆ𝑔 𝑡 .
+
+to construct and manage belief state over time–a summary as memory that tracks the world state. 
+
+## 3.2 Representation-based Method (StateFactory )
+
+StateFactory predicts task progress by decomposing the GA-MDP ℳ into three integrated layers: world state tran-sition , state extraction (ˆ𝑠 𝑡 ), and goal interpretation ( ˆ𝑔 𝑡 ). As illustrated in Fig. 4, raw observations 𝑜 𝑡 = Ω (𝑠 𝑡 ) are dis-tilled into structured object-attribute states ˆ𝑠 𝑡 , while the textual goal 𝑔 ∈ 𝒢 is iteratively grounded into a dynamic goal state ˆ𝑔 𝑡 . The reward signal is derived via seman-tic alignment: ˆ𝑟 𝑡 = sim ( ˆ 𝑔 𝑡 , ˆ𝑠 𝑡 ). This factorization ensures zero-shot rewards remain grounded in physical transitions while staying responsive to specific goal description. 
+
+3.2.1 State Extraction 
+
+Unlike the unstructured representations that retain the task-irrelevant noise [Hao et al., 2023, Chen et al., 2025] or simple object-centric approaches that fail to capture fine-grained attribute dynamics [Yoneda et al., 2024, Feng et al., 2025], our framework explicitly separates entity identity from evolving attributes. StateFactory treats state extraction as a recurrent, goal-conditioned update process. We employ a tracking function 𝑓 state to dynamically refine the semantic state ˆ𝑠 𝑡 by integrating the raw observation 𝑜 𝑡 
+
+with both execution history and task progress: 
+
+ˆ𝑠 𝑡 = 𝑓 state (𝑔, ˆ𝑔 𝑡 −1 , ˆ𝑠 𝑡 −1 , 𝑜 𝑡 , 𝑎 𝑡 −1), (4) where 𝑎 𝑡 −1 and ˆ𝑠 𝑡 −1 enforce temporal consistency, while the goal context ( 𝑔, ˆ𝑔 𝑡 −1) acts as an attentional prior to filter task irrelevant details. The resulting state ˆ𝑠 𝑡 is structured as a set of 𝑁 object instances {𝑒 𝑖 }𝑁 𝑖 =1:
+
+𝑒 𝑖 =
+
+D
+
+d𝑖 , {( 𝜶 𝑖,𝑙 , v𝑖,𝑙 )} 𝐿 𝑖 
+
+> 𝑙 =1
+
+E
+
+, (5) where d𝑖 denotes an identity ( e.g., “Mug” ) and {( 𝜶 𝑖,𝑙 , v𝑖,𝑙 )} 
+
+represents the dynamic semantic attributes ( e.g., “location: on the table” ). 
+
+3.2.2 Goal Interpretation 
+
+Effective goal interpretation must bridge abstract instruc-tions with evolving physical states. Traditional methods typically fix the goal representation at initialization [Mah-moudieh et al., 2022, Xie et al., 2023], which often creates an “illusion of progress” as they fail to adapt to environmental changes during task execution [Xue et al., 2025]. In contrast to static methods, StateFactory treats goal interpretation as an iterative, state-aware process. As illustrated in the blue pathway of Figure 4, we employ a function 𝑓 goal to dynamically update the goal state ˆ𝑔 𝑡 based on the goal description 𝑔 ∈ 𝒢 and the current context: 
+
+ˆ𝑔 𝑡 = 𝑓 goal (𝑔, ˆ𝑔 𝑡 −1 , ˆ𝑠 𝑡 , 𝑜 𝑡 , 𝑎 𝑡 −1). (6) 
+
+3.2.3 Hierarchical Routing 
+
+We derive the reward ˆ𝑟 𝑡 by quantifying the semantic simi-larity between the goal state ˆ𝑔 𝑡 and world state ˆ𝑠 𝑡 . This eval-uation proceeds hierarchically, starting from fine-grained attribute alignment to global progress aggregation. 
+
+Object Matching. For each goal object instance 𝑒 𝑘 ∈ ˆ 𝑔 𝑡 ,we identify its corresponding physical object instance in the current state ˆ𝑠 𝑡 . We search for the candidate 𝑒 𝑖 that maximizes the joint consistency of identity and attributes: 
+
+ˆ𝑟 𝑘,𝑡 = max  
+
+> 𝑒 𝑖 ∈ˆ 𝑠 𝑡
+
+ sim (d𝑘 , d𝑖 ) · 𝜓 attr (𝑒 𝑘 , 𝑒 𝑖 ) , (7) where sim (d𝑘 , d𝑖 ) measures identity similarity, ensuring the correct object is selected before evaluating its state. 
+
+Attribute Matching. We compute state satisfaction 𝜓 attr 
+
+by averaging the similarity between each goal attribute value v𝑘 and its semantically aligned counterpart ˆv𝑖 in candidate: 
+
+𝜓 attr (𝑒 𝑘 , 𝑒 𝑖 ) = 1
+
+|𝐴 𝑘 |
+
+Õ  
+
+> (𝜶 𝑘 ,v𝑘 )∈ 𝐴 𝑘
+
+sim (v𝑘 , ˆv𝑖 ), (8) 5Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Table 1. Main Results: We compare StateFactory with baselines across RewardPrediction benchmark. StateFactory establishes a new SOTA among zero-shot methods and approaches supervised baselines. Bold and underline denote the best and second-best results.                                                                                                   
+
+> Method Backbone Training Data Reasoning Zero-shot Reward Prediction Error (𝐷 EPIC ↓)
+> AlfWorld ScienceWorld WebShop BlocksWorld TextWorld Overall
+> Monotonic Baseline –––✓0.532 0.508 0.535 0.589 0.536 0.540
+> Supervised RM Qwen2.5-1.5B
+> AlfWorld N/A ✗
+> 0.212 0.542 0.618 0.596 0.414 0.476 ScienceWorld 0.506 0.305 0.661 0.706 0.580 0.552 WebShop 0.707 0.624 0.242 0.706 0.707 0.597 BlocksWorld 0.556 0.471 0.596 0.472 0.556 0.530 TextWorld 0.523 0.658 0.678 0.604 0.203 0.533 All Domains 0.178 0.283 0.285 0.489 0.177 0.282
+> VLWM-critic Llama3.2-1B VLWM Trajectories N/A ✓0.823 0.673 0.636 0.663 0.896 0.738
+> LLM-as-a-Judge
+> Qwen3-14B
+> –
+> ✗✓
+> 0.395 0.542 0.403 0.466 0.316 0.424
+> ✓0.370 0.371 0.356 0.436 0.211 0.349
+> gpt-oss-20b Low 0.368 0.394 0.376 0.362 0.119 0.324 Medium 0.366 0.391 0.374 0.363 0.115 0.322
+> StateFactory gpt-oss-20b –Medium ✓0.285 0.288 0.286 0.427 0.201 0.297
+
+where ˆv𝑖 denotes the value in 𝑒 𝑖 associated with the key 
+
+𝜶 𝑖 that maximizes semantic similarity to the goal key 𝜶 𝑘 .
+
+Reward Prediction. The global reward signal ˆ𝑟 𝑡 is com-puted by aggregating the local fulfillment scores across all goal object instances to quantify the overall task progress: 
+
+ˆ𝑟 𝑡 = 1
+
+| ˆ 𝑔 𝑡 |
+
+Õ 
+
+> 𝑒 𝑘 ∈ ˆ 𝑔 𝑡
+
+ˆ𝑟 𝑘,𝑡 . (9) 
+
+# 4 Experiments 
+
+In this section, we evaluate StateFactory across diverse planning domains to address the following research ques-tions: 1) whether our zero-shot approach provides more accurate reward signals than baselines; 2) whether it gen-eralizes better to new domains compared to supervised models; 3) how structural granularity contributes to the performance improvement; 4) how robust the framework is to different design choices (e.g., embeddings, reason-ing capacity); and 5) whether these signals can effectively guide online planning to improve success rates. 
+
+## 4.1 Baselines and Setup 
+
+We standardize experiments on RewardPrediction us-ing gpt-oss-20b for state extraction and all-MiniLM-L6-v2 for alignment. We compare StateFactory against three distinct categories of baselines: (1) a naive Monotonic Baseline ; (2) supervised approaches, including VLWM-critic [Chen et al., 2025] and other reward models explicitly trained on RewardPrediction ; and (3) LLM-as-a-Judge. Full implementation details are provided in Appx. C. 
+
+## 4.2 Main results on RewardPrediction 
+
+We evaluate reward prediction accuracy using the EPIC distance ( 𝐷 EPIC ), where lower values indicate better align-ment with ground-truth progress. Table 1 presents a comprehensive comparison of StateFactory against both supervised and representation-free baselines on the Re-wardPrediction benchmark dataset. 
+
+Supervised Reward Models. Table 1 reveals the severe generalization bottleneck of supervised approaches. While these models achieve exceptional precision within their training domains (e.g., 0.212 in AlfWorld ), they exhibit an average error increase of 138% when transferred to unseen tasks. This confirms that supervised critics tend to overfit domain-specific surface patterns rather than learn a generalized notion of progress, rendering them less effective for zero-shot generalization. 
+
+Representation-free Methods. Training-free baselines avoid the overfitting trap but face unique challenges. In-spection of reasoning traces reveals that LLMs implicitly maintain a belief state and extract goals at each step, which improves reward prediction. However, constrained by the probabilistic nature of generation, these implicit reward signals remain discrete and volatile. While they per-form slightly better in structured domains like TextWorld 
+
+(where tasks resemble a “checklist”) and BlocksWorld 
+
+(suitable for reverse engineering), this implicit tracking breaks down in open-ended environments. 
+
+Representation-based Method. StateFactory addresses the dual challenges of reward generalization and signal continuity. By explicitly decomposing the state space into structured object-attribute representations, our method transforms reward estimation from a discrete generation task into a continuous semantic distance calculation. The fine-grained hierarchical factorization structure not only effectively mitigates noise in flat text observations, but also enables StateFactory to capture subtle progresses that im-plicit methods could miss, thus yielding a robust estimator 6Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Figure 5. StateFactory ablation experiments. We report the EPIC distance ( 𝐷 EPIC ) across settings (a-d) and Triplet-based Accuracy for embedding models (e). For metrics, lower 𝐷 EPIC and higher Accuracy indicate better performance. Specifically, Triplet-based Accuracy reflects the model’s capability to enforce smaller distances for positive pairs compared to negative ones. Red hatched bars highlight the best performing configurations. Conversely, blue hatched bars indicate the worst performing ones. 
+
+that generalizes across different domains without the need of any parameter update (training). As can be observed, 
+
+StateFactory achieves an average 𝐷 EPIC of 0.297 , not only superior to the best representation-free baseline (0.322) but also surpassing single-domain supervised models in generalization. Remarkably, this zero-shot performance approaches the fully supervised upper bound trained on the entire dataset (by combining data across all domains). 
+
+## 4.3 Ablation Studies of StateFactory 
+
+Importance of Abstraction . Transitioning from unstruc-tured observations to extracted textual states yields a sig-nificant distance reduction ( 0.57 → 0.43 ) in Figure 5(a). This confirms that raw observations contain excessive dis-tractors, whereas state extraction isolates task-relevant information. However, unstructured text remains suscep-tible to score dilution , where critical state changes are often overshadowed by the total sentence length. 
+
+Factorization Granularity. As shown in Figure 5(a), while object-centric states mitigate dilution by isolating objects ( 0.35 ), they hit a precision ceiling due to attribute entanglement . Merging distinct properties into a single em-bedding (e.g., “blue mug on the table”) creates interference, since the model cannot track the location change clearly because the color information acts as noise. StateFac-tory overcomes this by refining the granularity to explicit 
+
+object-attribute states. By decomposing observations into 
+
+minimal semantic units , our method eliminates semantic interference and achieves the best performance ( 0.30 ). 
+
+Goal Interpretation. To evaluate the fidelity of our dynamic goal interpretation, we compare it against an offline (oracle) baseline. We define an offline setting where final state of the expert trajectory serves as the ground truth goal state and compare it with our online setting where goals are interpreted dynamically from interaction history. As shown in Figure 5(b), the distance between real-time inference and the offline baseline is minimal. The average 𝐷 𝐸𝑃𝐼𝐶 increases by only 0.02 when transitioning from the offline ( 0.28 ) to the online setting ( 0.30 ). This stability suggests that our goal interpretation effectively recovers target requirements. 
+
+LLM Backbone. We investigate the impact of LLM back-bone capabilities on the state factorization, distinguishing between the inference ability (reasoning-enhanced modes) and the parametric scale. As shown in Figure 5(c), both dimensions closely correlate with alignment precision. First, enabling “thinking” modes yields significant gains: 
+
+gpt-oss-20b thinking medium improves from 0.36 to 0.30, and 
+
+qwen3-30B-thinking (0.41 ) substantially outperforms its standard counterpart ( 0.55 ), confirming that the extended inference capability aids in decomposing complex states. 7Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Second, we observe that performance generally improves with parameter count within the same model family, show-ing that reasoning ability is effectively grounded in model size. Consequently, StateFactory is positioned to scale continuously with future advancements in both model size and reasoning strategies. 
+
+Semantic Embeddings. One advantage of StateFactory 
+
+is that any text-embedding model can be applied on top of the hierarchical object-attribute structure to compute final reward scores. Here, we investigate the correlation be-tween the discriminative power of the embedding and the performance of StateFactory . This discriminative power is measured by the triplet-based accuracy [Dumpala et al., 2024], derived from triplets (details in Appx. C.5.3) com-prising a state description (anchor), a semantic paraphrase (positive), and a contradiction (negative). The metric is defined as the success rate where the embedding correctly assigns higher similarity to the positive pair than to the negative one. As shown in Fig. 5(d) and (e), high triplet accuracy strictly correlates with performance: discrim-inative models (e.g., all-MiniLM ) yield superior align-ment ( 𝐷 EPIC ≈ 0.30 ), whereas weaker embedding like 
+
+gemma-300m (acc = 0.67 ) fail ( 𝐷 EPIC = 0.45 ). This finding validates that the effectiveness of StateFactory is driven by the discriminative quality of the embedding space. 
+
+## 4.4 Utility for Agent Planning 
+
+Quantitative Analysis. We posit that the superior reward prediction capabilities of StateFactory translate directly into enhanced agent planning performance. To verify this, we evaluate the ReAct + StateFactory agent, which integrates our reward signals into the standard ReAct baseline. Unlike the vanilla ReAct agent that relies solely on internal reasoning, our method augments decision-making by explicitly ranking top-𝐾 action candidates. As summarized in Table 2, this approach yields robust and consistent gains across all distinct tested domains. Notably, the success rate in AlfWorld improves by 20+ percentage points ( 34 .33% → 55 .97% ), with similar steady climbs observed in BlocksWorld and ScienceWorld . Crucially, we find that explicit reward signals empower the agent to break out of reasoning “deadlocks”, thereby successfully overcoming the ambiguity of long-horizon planning where pure logic alone typically fails. 
+
+Qualitative Analysis. As exemplified by the prelimi-nary case study in Table 17, we further investigate whether accurate reward prediction facilitates complex planning within a system-2 framework. We implement this by in-tegrating LLM-based action proposals, a learned world model [Li et al., 2025], and StateFactory into Monte Carlo Tree Search (MCTS). In this setup, StateFactory acts as a structured heuristic, guiding exploration via a continuous reward signal. This formulation establishes a clear reward 
+
+Table 2. Success Rate on AlfWorld , BlocksWorld , and ScienceWorld .Results show that ReAct + StateFactory consistently improves perfor-mance in following domains.                
+
+> Domain Method Success Rate (%)
+> AlfWorld ReAct [Yao et al., 2022b] 34.33 ReAct + StateFactory 55.97
+> BlocksWorld ReAct [Yao et al., 2022b] 85.00 ReAct + StateFactory 93.00
+> ScienceWorld ReAct [Yao et al., 2022b] 22.63 ReAct + StateFactory 35.03
+
+signal, evidenced by consistent value increases as the agent approaches targets (e.g., the “CD”), enabling successful navigation even without sparse success signals. Crucially, this reward signal is underpinned by our dynamic goal interpretation and state extraction, which refine abstract in-tents into granular requirements and trigger instantaneous reward spikes upon object discovery, ensuring simulated trajectories remain grounded in physical evidence. 
+
+# 5 Related Works 
+
+Goal Conditioned Reinforcement Learning . Accurately measuring task advancement is essential for policy opti-mization [Yu et al., 2025]. Early approaches relying on manual engineering [Lillicrap et al., 2015, Singh et al., 2019, Andrychowicz et al., 2020] are labor-intensive and noto-riously susceptible to the reward hacking [Amodei et al., 2016, Kaufmann et al., 2024]. To alleviate these issues, recent methods leverage human feedback, including the demonstrations and preferences [Christiano et al., 2017, Ouyang et al., 2022, Hong et al., 2024, Xiao et al., 2025], or LLM-synthesized rewards [Ma et al., 2023b, Xie et al., 2023, Wang et al., 2025, Xue et al., 2025]. However, these methods struggle to generalize to novel domains due to their dependence on task-specific supervision [Wolf et al., 2025]. Consequently, the field has shifted towards un-supervised paradigms that extract dense signals directly from pre-trained representations. These approaches can be broadly categorized into two streams based on how they utilize the feature space. The first stream focuses on explicit reward modeling, where scalar signals are derived by quantifying task progress or goal probability. This includes methods such as vision-language alignment [Rocamonde et al., 2023, Sontakke et al., 2023, Alakuĳala et al., 2024], discriminative classification likelihood [Ser-manet et al., 2016, Warde-Farley et al., 2018] or temporal distances in passive videos [Sermanet et al., 2018, Liu et al., 2025]. The second stream employs latent world models for implicit reward prediction [Zhou et al., 2024, Terver et al., 2025, Sobal et al., 2025]. Instead of relying on explicit scorers, these methods derive signals by formulating the latent distance to the goal as an intrinsic cost, effectively 8Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+transforming predictive dynamics into a dense progress indicator for planning. 
+
+State Representation in World Models . The perfor-mance of language-based agent learning heavily relies on the fidelity of world representation [Valmeekam et al., 2023b, Wang et al., 2023b]. Existing approaches address this challenge with varying degrees of structural assump-tion. Initial works employ unstructured representations ,typically maintaining the state as raw observations [Yao et al., 2022b, Hao et al., 2023]. However, this lack of filtering retains excessive task-irrelevant noise. This information overload obscures critical state changes, making it difficult to track the status of objects consistently. [Valmeekam et al., 2023a]. To better organize these observations, recent object-centric frameworks decompose environments into discrete entities [Feng et al., 2025, Yoneda et al., 2024]. Yet, these approaches typically treat objects as simple units, failing to separate the object’s identity from its changing attributes. Consequently, it becomes difficult to track specific changes (e.g., the rising temperature of an ingredient). This lack of detail hinders the measurement of precise progress required for effective learning [Wang et al., 2024b]. To capture these fine-grained dynamics, recent studies have explored object-attribute representations, which factorize entities into structured attribute-value pairs to support more accurate state tracking [Zhu et al., 2023, Rozanov and Rei, 2025]. 
+
+Language-based Agent Learning . Similar to physical control, the scope of sequential decision-making extends to digital environments. Here, interactions such as web navigation [Zhou et al., 2023, Deng et al., 2023], operat-ing system control [Zhang et al., 2025a, Xie et al., 2024] and text-based games [Côté et al., 2018, Hausknecht et al., 2020] are formulated as control problems governed by comparable dynamics. Traditionally, agents operate as 
+
+model-free policies , mapping observations to actions via in-context reasoning [Wei et al., 2022, Yao et al., 2022b, Shinn et al., 2023, Park et al., 2023], yet often struggle with long-horizon consistency and generalization [Wang et al., 2024a, Madaan et al., 2023, Wang and Li, 2023]. To address this, recent work adopts the Model-based RL framework , val-idating LLMs as implicit world models that simulate text or code transitions [Zhuge et al., 2023, Li et al., 2025]. This predictive capability enables search-based planning (e.g., MCTS) in web agents, outperforming reactive prompting by simulating future states before execution [Gu et al., 2024, Hao et al., 2023, Yao et al., 2023]. Furthermore, CoSPlan [Grover et al., 2025] demonstrates that incorpo-rating incremental scene graph updates allows agents to explicitly track state transitions, enabling them to detect and rectify errors in complex visual sequences. Concur-rently, to mitigate exploration bottlenecks, the paradigm is shifting to offline reinforcement learning [Kumar et al., 2020, Levine et al., 2020]. Recent Approaches [Zhang et al., 2025b, Nakano et al., 2021] refine policies directly from sub-optimal offline data without extensive online inter-action. This leverages implicit value frameworks [Snell et al., 2022] to distill optimal behaviors from mediocre traces, a principle now extended to self-generated agent experiences [Chebotar et al., 2023]. 
+
+# 6 Conclusion 
+
+In this work, we demonstrate that structured text-based world state representations alone can enable accurate and generalizable reward prediction. We introduce the Re-wardPrediction benchmark and propose StateFactory , a zero-shot framework that achieves superior prediction ac-curacy by factorizing observations into hierarchical object-attribute structures. Our results show that StateFactory 
+
+exhibits clear advantages over supervised models and LLM-as-a-Judge baselines across diverse domains. Fur-thermore, our state-driven signals yield success rate im-provements of up to 21.64% for system-1 policies , while qualitative analysis validates the utility of StateFactory for system-2 agent planning by effectively guiding structured search grounded in physical evidence. 
+
+# References 
+
+Minttu Alakuĳala, Reginald McLean, Isaac Woungang, Na-riman Farsad, Samuel Kaski, Pekka Marttinen, and Kai Yuan. Video-language critic: Transferable reward func-tions for language-conditioned robotics. arXiv preprint arXiv:2405.19988 , 2024. Dario Amodei, Chris Olah, Jacob Steinhardt, Paul Chris-tiano, John Schulman, and Dan Mané. Concrete prob-lems in ai safety. arXiv preprint arXiv:1606.06565 , 2016. Marcin Andrychowicz, Filip Wolski, Alex Ray, Jonas Schneider, Rachel Fong, Peter Welinder, Bob Mc-Grew, Josh Tobin, OpenAI Pieter Abbeel, and Wojciech Zaremba. Hindsight experience replay. Advances in neural information processing systems , 30, 2017. OpenAI: Marcin Andrychowicz, Bowen Baker, Maciek Chociej, Rafal Jozefowicz, Bob McGrew, Jakub Pachocki, Arthur Petron, Matthias Plappert, Glenn Powell, Alex Ray, et al. Learning dexterous in-hand manipulation. 
+
+The International Journal of Robotics Research , 39(1):3–20, 2020. Yuji Cao, Huan Zhao, Yuheng Cheng, Ting Shu, Yue Chen, Guolong Liu, Gaoqi Liang, Junhua Zhao, Jinyue Yan, and Yun Li. Survey on large language model-enhanced reinforcement learning: Concept, taxonomy, and methods. IEEE Transactions on Neural Networks and Learning Systems , 2024. 9Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Stephen Casper, Xander Davies, Claudia Shi, Thomas Krendl Gilbert, Jérémy Scheurer, Javier Rando, Rachel Freedman, Tomasz Korbak, David Lindner, Pedro Freire, et al. Open problems and fundamental limitations of reinforcement learning from human feedback. arXiv preprint arXiv:2307.15217 , 2023. Yevgen Chebotar, Quan Vuong, Karol Hausman, Fei Xia, Yao Lu, Alex Irpan, Aviral Kumar, Tianhe Yu, Alexan-der Herzog, Karl Pertsch, et al. Q-transformer: Scal-able offline reinforcement learning via autoregressive q-functions. In Conference on Robot Learning , pages 3909– 3928. PMLR, 2023. Delong Chen, Theo Moutakanni, Willy Chung, Yejin Bang, Ziwei Ji, Allen Bolourchi, and Pascale Fung. Planning with reasoning using vision language world model. 
+
+arXiv preprint arXiv:2509.02722 , 2025. Paul F Christiano, Jan Leike, Tom Brown, Miljan Martic, Shane Legg, and Dario Amodei. Deep reinforcement learning from human preferences. Advances in neural information processing systems , 30, 2017. Marc-Alexandre Côté, Akos Kádár, Xingdi Yuan, Ben Kybartas, Tavian Barnes, Emery Fine, James Moore, Matthew Hausknecht, Layla El Asri, Mahmoud Adada, et al. Textworld: A learning environment for text-based games. In Workshop on Computer Games , pages 41–75. Springer, 2018. Xiang Deng, Yu Gu, Boyuan Zheng, Shĳie Chen, Sam Stevens, Boshi Wang, Huan Sun, and Yu Su. Mind2web: Towards a generalist agent for the web. Advances in Neural Information Processing Systems , 36:28091–28114, 2023. Lauro Langosco Di Langosco, Jack Koch, Lee D Sharkey, Ja-cob Pfau, and David Krueger. Goal misgeneralization in deep reinforcement learning. In International Conference on Machine Learning , pages 12004–12019. PMLR, 2022. Sri Harsha Dumpala, Aman Jaiswal, Chandramouli Shama Sastry, Evangelos Milios, Sageev Oore, and Has-san Sajjad. Sugarcrepe++ dataset: Vision-language model sensitivity to semantic and lexical alterations. 
+
+Advances in Neural Information Processing Systems , 37: 17972–18018, 2024. Fan Feng, Phillip Lippe, and Sara Magliacane. Learning interactive world model for object-centric reinforcement learning. arXiv preprint arXiv:2511.02225 , 2025. Evan Frick, Tianle Li, Connor Chen, Wei-Lin Chiang, Anastasios N Angelopoulos, Jiantao Jiao, Banghua Zhu, Joseph E Gonzalez, and Ion Stoica. How to evaluate reward models for rlhf. arXiv preprint arXiv:2410.14872 ,2024. Leo Gao, John Schulman, and Jacob Hilton. Scaling laws for reward model overoptimization. In International Con-ference on Machine Learning , pages 10835–10866. PMLR, 2023. Adam Gleave, Michael Dennis, Shane Legg, Stuart Rus-sell, and Jan Leike. Quantifying differences in reward functions. arXiv preprint arXiv:2006.13900 , 2020. Shresth Grover, Priyank Pathak, Akash Kumar, Vibhav Vineet, and Yogesh S Rawat. Cosplan: Corrective se-quential planning via scene graph incremental updates. 
+
+arXiv preprint arXiv:2512.10342 , 2025. Yu Gu, Kai Zhang, Yuting Ning, Boyuan Zheng, Boyu Gou, Tianci Xue, Cheng Chang, Sanjari Srivastava, Yanan Xie, Peng Qi, et al. Is your llm secretly a world model of the internet? model-based planning for web agents. arXiv preprint arXiv:2411.06559 , 2024. Anisha Gunjal, Anthony Wang, Elaine Lau, Vaskar Nath, Yunzhong He, Bing Liu, and Sean Hendryx. Rubrics as rewards: Reinforcement learning beyond verifiable domains. arXiv preprint arXiv:2507.17746 , 2025. Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. 
+
+arXiv preprint arXiv:2501.12948 , 2025a. Jiaxin Guo, Zewen Chi, Li Dong, Qingxiu Dong, Xun Wu, Shaohan Huang, and Furu Wei. Reward reasoning model. arXiv preprint arXiv:2505.14674 , 2025b. David Ha and Jürgen Schmidhuber. World models. arXiv preprint arXiv:1803.10122 , 2(3), 2018. Danĳar Hafner, Jurgis Pasukonis, Jimmy Ba, and Timothy Lillicrap. Mastering diverse domains through world models. arXiv preprint arXiv:2301.04104 , 2023. Nicklas Hansen, Hao Su, and Xiaolong Wang. Td-mpc2: Scalable, robust world models for continuous control. 
+
+arXiv preprint arXiv:2310.16828 , 2023. Shibo Hao, Yi Gu, Haodi Ma, Joshua Hong, Zhen Wang, Daisy Wang, and Zhiting Hu. Reasoning with language model is planning with world model. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 8154–8173, 2023. Matthew Hausknecht, Prithviraj Ammanabrolu, Marc-Alexandre Côté, and Xingdi Yuan. Interactive fiction 10 Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+games: A colossal adventure. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 34, pages 7903–7910, 2020. Jiwoo Hong, Noah Lee, and James Thorne. Orpo: Mono-lithic preference optimization without reference model. 
+
+arXiv preprint arXiv:2403.07691 , 2024. Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu Chen, et al. Lora: Low-rank adaptation of large language models. ICLR , 1(2):3, 2022. Binyuan Hui, Jian Yang, Zeyu Cui, Jiaxi Yang, Dayiheng Liu, Lei Zhang, Tianyu Liu, Jiajun Zhang, Bowen Yu, Keming Lu, et al. Qwen2. 5-coder technical report. arXiv preprint arXiv:2409.12186 , 2024. Leslie Pack Kaelbling, Michael L Littman, and Anthony R Cassandra. Planning and acting in partially observable stochastic domains. Artificial intelligence , 101(1-2):99–134, 1998. Timo Kaufmann, Paul Weng, Viktor Bengs, and Eyke Hüllermeier. A survey of reinforcement learning from human feedback. 2024. Aviral Kumar, Aurick Zhou, George Tucker, and Sergey Levine. Conservative q-learning for offline reinforce-ment learning. Advances in neural information processing systems , 33:1179–1191, 2020. Yann LeCun. A path towards autonomous machine intelli-gence version 0.9. 2, 2022-06-27. Open Review , 62(1):1–62, 2022. Sergey Levine, Aviral Kumar, George Tucker, and Justin Fu. Offline reinforcement learning: Tutorial, review, and perspectives on open problems. arXiv preprint arXiv:2005.01643 , 2020. Yixia Li, Hongru Wang, Jiahao Qiu, Zhenfei Yin, Dong-dong Zhang, Cheng Qian, Zeping Li, Pony Ma, Guanhua Chen, Heng Ji, et al. From word to world: Can large language models be implicit text-based world models? 
+
+arXiv preprint arXiv:2512.18832 , 2025. Timothy P Lillicrap, Jonathan J Hunt, Alexander Pritzel, Nicolas Heess, Tom Erez, Yuval Tassa, David Silver, and Daan Wierstra. Continuous control with deep reinforcement learning. arXiv preprint arXiv:1509.02971 ,2015. Minghuan Liu, Menghui Zhu, and Weinan Zhang. Goal-conditioned reinforcement learning: Problems and so-lutions. arXiv preprint arXiv:2201.08299 , 2022. Yuyang Liu, Chuan Wen, Yihang Hu, Dinesh Jayaraman, and Yang Gao. Timerewarder: Learning dense reward from passive videos via frame-wise temporal distance. 
+
+arXiv preprint arXiv:2509.26627 , 2025. Jelena Luketina, Nantas Nardelli, Gregory Farquhar, Jakob Foerster, Jacob Andreas, Edward Grefenstette, Shimon Whiteson, and Tim Rocktäschel. A survey of reinforce-ment learning informed by natural language. arXiv preprint arXiv:1906.03926 , 2019. Thomas M. Moerland, Joost Broekens, Aske Plaat, and Catholĳn M. Jonker. Model-based reinforcement learn-ing: A survey. Foundations and Trends in Machine Learning ,16(1):1–118, 2023. Yecheng Jason Ma, Vikash Kumar, Amy Zhang, Osbert Bastani, and Dinesh Jayaraman. Liv: Language-image representations and rewards for robotic control. In 
+
+International Conference on Machine Learning , pages 23301– 23320. PMLR, 2023a. Yecheng Jason Ma, William Liang, Guanzhi Wang, De-An Huang, Osbert Bastani, Dinesh Jayaraman, Yuke Zhu, Linxi Fan, and Anima Anandkumar. Eureka: Human-level reward design via coding large language models. 
+
+arXiv preprint arXiv:2310.12931 , 2023b. Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan, Luyu Gao, Sarah Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang, et al. Self-refine: Iterative refinement with self-feedback. Advances in Neural Information Processing Systems , 36:46534–46594, 2023. Parsa Mahmoudieh, Deepak Pathak, and Trevor Darrell. Zero-shot reward specification via grounded natural language. In International Conference on Machine Learning ,pages 14743–14752. PMLR, 2022. Abhishek Naik, Yi Wan, Manan Tomar, and Richard S Sut-ton. Reward centering. arXiv preprint arXiv:2405.09999 ,2024. Reiichiro Nakano, Jacob Hilton, Suchir Balaji, Jeff Wu, Long Ouyang, Christina Kim, Christopher Hesse, Shantanu Jain, Vineet Kosaraju, William Saunders, et al. Webgpt: Browser-assisted question-answering with human feed-back. arXiv preprint arXiv:2112.09332 , 2021. Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Car-roll Wainwright, Pamela Mishkin, Chong Zhang, Sand-hini Agarwal, Katarina Slama, Alex Ray, et al. Training language models to follow instructions with human feed-back. Advances in neural information processing systems ,35:27730–27744, 2022. 11 Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Joon Sung Park, Joseph O’Brien, Carrie Jun Cai, Mered-ith Ringel Morris, Percy Liang, and Michael S Bernstein. Generative agents: Interactive simulacra of human be-havior. In Proceedings of the 36th annual acm symposium on user interface software and technology , pages 1–22, 2023. Jonathan Richens, Tom Everitt, and David Abel. General agents need world models. In Forty-second International Conference on Machine Learning , 2025. Juan Rocamonde, Victoriano Montesinos, Elvis Nava, Ethan Perez, and David Lindner. Vision-language mod-els are zero-shot reward models for reinforcement learn-ing. arXiv preprint arXiv:2310.12921 , 2023. Nikolai Rozanov and Marek Rei. Stateact: Enhancing llm base agents via self-prompting and state-tracking. In Proceedings of the 1st Workshop for Research on Agent Language Models (REALM 2025) , pages 367–385, 2025. Tom Schaul, Daniel Horgan, Karol Gregor, and David Silver. Universal value function approximators. In 
+
+International conference on machine learning , pages 1312– 1320. PMLR, 2015. Pierre Sermanet, Kelvin Xu, and Sergey Levine. Unsuper-vised perceptual rewards for imitation learning. arXiv preprint arXiv:1612.06699 , 2016. Pierre Sermanet, Corey Lynch, Yevgen Chebotar, Jasmine Hsu, Eric Jang, Stefan Schaal, Sergey Levine, and Google Brain. Time-contrastive networks: Self-supervised learn-ing from video. In 2018 IEEE international conference on robotics and automation (ICRA) , pages 1134–1141. IEEE, 2018. Mrinank Sharma, Meg Tong, Tomasz Korbak, David Du-venaud, Amanda Askell, Samuel R Bowman, Newton Cheng, Esin Durmus, Zac Hatfield-Dodds, Scott R John-ston, et al. Towards understanding sycophancy in lan-guage models. arXiv preprint arXiv:2310.13548 , 2023. Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik Narasimhan, and Shunyu Yao. Reflexion: Language agents with verbal reinforcement learning. Advances in Neural Information Processing Systems , 36:8634–8652, 2023. Mohit Shridhar, Xingdi Yuan, Marc-Alexandre Côté, Yonatan Bisk, Adam Trischler, and Matthew Hausknecht. Alfworld: Aligning text and embodied environments for interactive learning. arXiv preprint arXiv:2010.03768 ,2020. Avi Singh, Larry Yang, Kristian Hartikainen, Chelsea Finn, and Sergey Levine. End-to-end robotic reinforcement learning without reward engineering. arXiv preprint arXiv:1904.07854 , 2019. Charlie Snell, Ilya Kostrikov, Yi Su, Mengjiao Yang, and Sergey Levine. Offline rl for natural language genera-tion with implicit language q learning. arXiv preprint arXiv:2206.11871 , 2022. Vlad Sobal, Wancong Zhang, Kyunghyun Cho, Randall Balestriero, Tim GJ Rudner, and Yann LeCun. Learning from reward-free offline data: A case for planning with latent dynamics models. arXiv preprint arXiv:2502.14819 ,2025. Sumedh Sontakke, Jesse Zhang, Séb Arnold, Karl Pertsch, Erdem Bıyık, Dorsa Sadigh, Chelsea Finn, and Laurent Itti. Roboclip: One demonstration is enough to learn robot policies. Advances in Neural Information Processing Systems , 36:55681–55693, 2023. Richard S Sutton. Between mdps and semi-mdps: Learn-ing, planning, and representing knowledge at multiple temporal scales. 1998. Basile Terver, Tsung-Yen Yang, Jean Ponce, Adrien Bardes, and Yann LeCun. What drives success in physical plan-ning with joint-embedding predictive world models? 
+
+arXiv preprint arXiv:2512.24497 , 2025. Alexander Trott, Stephan Zheng, Caiming Xiong, and Richard Socher. Keeping your distance: Solving sparse reward tasks using self-balancing shaped rewards. Ad-vances in Neural Information Processing Systems , 32, 2019. Karthik Valmeekam, Matthew Marquez, Alberto Olmo, Sarath Sreedharan, and Subbarao Kambhampati. Plan-bench: An extensible benchmark for evaluating large lan-guage models on planning and reasoning about change. 
+
+Advances in Neural Information Processing Systems , 36: 38975–38987, 2023a. Karthik Valmeekam, Sarath Sreedharan, Matthew Mar-quez, Alberto Olmo, and Subbarao Kambhampati. On the planning abilities of large language models (a crit-ical investigation with a proposed benchmark). arXiv preprint arXiv:2302.06706 , 2023b. Danqing Wang and Lei Li. Learning from mistakes via cooperative study assistant for large language models. 
+
+arXiv preprint arXiv:2305.13829 , 2023. Kangrui Wang, Pingyue Zhang, Zihan Wang, Yaning Gao, Linjie Li, Qineng Wang, Hanyang Chen, Chi Wan, Yiping Lu, Zhengyuan Yang, et al. Vagen: Reinforcing world model reasoning for multi-turn vlm agents. arXiv preprint arXiv:2510.16907 , 2025. Lei Wang, Chen Ma, Xueyang Feng, Zeyu Zhang, Hao Yang, Jingsen Zhang, Zhiyuan Chen, Jiakai Tang, Xu Chen, Yankai Lin, et al. A survey on large language model 12 Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+based autonomous agents. Frontiers of Computer Science ,18(6):186345, 2024a. Ruoyao Wang, Peter Jansen, Marc-Alexandre Côté, and Prithviraj Ammanabrolu. Scienceworld: Is your agent smarter than a 5th grader? arXiv preprint arXiv:2203.07540 , 2022. Ruoyao Wang, Graham Todd, Ziang Xiao, Xingdi Yuan, Marc-Alexandre Côté, Peter Clark, and Peter Jansen. Can language models serve as text-based world simulators? 
+
+arXiv preprint arXiv:2406.06485 , 2024b. Tongzhou Wang, Antonio Torralba, Phillip Isola, and Amy Zhang. Optimal goal-reaching reinforcement learning via quasimetric learning. In International Conference on Machine Learning , pages 36411–36430. PMLR, 2023a. Zihao Wang, Shaofei Cai, Guanzhou Chen, Anji Liu, Xiao-jian Ma, and Yitao Liang. Describe, explain, plan and select: Interactive planning with large language models enables open-world multi-task agents. arXiv preprint arXiv:2302.01560 , 2023b. David Warde-Farley, Tom Van de Wiele, Tejas Kulkarni, Catalin Ionescu, Steven Hansen, and Volodymyr Mnih. Unsupervised control through non-parametric discrimi-native rewards. arXiv preprint arXiv:1811.11359 , 2018. Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-thought prompting elicits reasoning in large language models. Advances in neural information process-ing systems , 35:24824–24837, 2022. Chenxi Whitehouse, Tianlu Wang, Ping Yu, Xian Li, Jason Weston, Ilia Kulikov, and Swarnadeep Saha. J1: Incen-tivizing thinking in llm-as-a-judge via reinforcement learning. arXiv preprint arXiv:2505.10320 , 2025. Lorenz Wolf, Robert Kirk, and Mirco Musolesi. Reward model overoptimisation in iterated rlhf. arXiv preprint arXiv:2505.18126 , 2025. Yifan Wu, George Tucker, and Ofir Nachum. The laplacian in rl: Learning representations with efficient approxi-mations. arXiv preprint arXiv:1810.04586 , 2018. Teng Xiao, Yige Yuan, Mingxiao Li, Zhengyu Chen, and Vasant G Honavar. On a connection between imitation learning and rlhf. arXiv preprint arXiv:2503.05079 , 2025. Tianbao Xie, Siheng Zhao, Chen Henry Wu, Yitao Liu, Qian Luo, Victor Zhong, Yanchao Yang, and Tao Yu. Text2reward: Reward shaping with language models for reinforcement learning. arXiv preprint arXiv:2309.11489 ,2023. Tianbao Xie, Danyang Zhang, Jixuan Chen, Xiaochuan Li, Siheng Zhao, Ruisheng Cao, Toh J Hua, Zhoujun Cheng, Dongchan Shin, Fangyu Lei, et al. Osworld: Benchmarking multimodal agents for open-ended tasks in real computer environments. Advances in Neural Information Processing Systems , 37:52040–52094, 2024. Tianci Xue, Weĳian Qi, Tianneng Shi, Chan Hee Song, Boyu Gou, Dawn Song, Huan Sun, and Yu Su. An illusion of progress? assessing the current state of web agents. arXiv preprint arXiv:2504.01382 , 2025. Daniel Yang, Davin Tjia, Jacob Berg, Dima Damen, Pulkit Agrawal, and Abhishek Gupta. Rank2reward: Learning shaped reward functions from passive video. In 2024 IEEE International Conference on Robotics and Automation (ICRA) , pages 2806–2813. IEEE, 2024. Shunyu Yao, Howard Chen, John Yang, and Karthik Narasimhan. Webshop: Towards scalable real-world web interaction with grounded language agents. Ad-vances in Neural Information Processing Systems , 35:20744– 20757, 2022a. Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik R Narasimhan, and Yuan Cao. React: Synergiz-ing reasoning and acting in language models. In The eleventh international conference on learning representations ,2022b. Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths, Yuan Cao, and Karthik Narasimhan. Tree of thoughts: Deliberate problem solving with large lan-guage models. Advances in neural information processing systems , 36:11809–11822, 2023. Takuma Yoneda, Jiading Fang, Peng Li, Huanyu Zhang, Tianchong Jiang, Shengjie Lin, Ben Picker, David Yunis, Hongyuan Mei, and Matthew R Walter. Statler: State-maintaining language models for embodied reasoning. In 2024 IEEE International Conference on Robotics and Automation (ICRA) , pages 15083–15091. IEEE, 2024. Rui Yu, Shenghua Wan, Yucen Wang, Chen-Xiao Gao, Le Gan, Zongzhang Zhang, and De-Chuan Zhan. Re-ward models in deep reinforcement learning: A survey. 
+
+arXiv preprint arXiv:2506.15421 , 2025. Chi Zhang, Zhao Yang, Jiaxuan Liu, Yanda Li, Yucheng Han, Xin Chen, Zebiao Huang, Bin Fu, and Gang Yu. Appagent: Multimodal agents as smartphone users. In 
+
+Proceedings of the 2025 CHI Conference on Human Factors in Computing Systems , pages 1–20, 2025a. Kai Zhang, Xiangchao Chen, Bo Liu, Tianci Xue, Zeyi Liao, Zhihan Liu, Xiyao Wang, Yuting Ning, Zhaorun Chen, 13 Reward Prediction with Factorized World States   
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Xiaohan Fu, et al. Agent learning via early experience. 
+
+arXiv preprint arXiv:2510.08558 , 2025b. Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuo-han Li, Dacheng Li, Eric Xing, et al. Judging llm-as-a-judge with mt-bench and chatbot arena. Advances in neural information processing systems , 36:46595–46623, 2023. Gaoyue Zhou, Hengkai Pan, Yann LeCun, and Lerrel Pinto. Dino-wm: World models on pre-trained vi-sual features enable zero-shot planning. arXiv preprint arXiv:2411.04983 , 2024. Shuyan Zhou, Frank F Xu, Hao Zhu, Xuhui Zhou, Robert Lo, Abishek Sridhar, Xianyi Cheng, Tianyue Ou, Yonatan Bisk, Daniel Fried, et al. Webarena: A realistic web environment for building autonomous agents. arXiv preprint arXiv:2307.13854 , 2023. Xizhou Zhu, Yuntao Chen, Hao Tian, Chenxin Tao, Wei-jie Su, Chenyu Yang, Gao Huang, Bin Li, Lewei Lu, Xiaogang Wang, et al. Ghost in the minecraft: Gener-ally capable agents for open-world environments via large language models with text-based knowledge and memory. arXiv preprint arXiv:2305.17144 , 2023. Mingchen Zhuge, Haozhe Liu, Francesco Faccio, Dylan R Ashley, Róbert Csordás, Anand Gopalakrishnan, Abdul-lah Hamdi, Hasan Abed Al Kader Hammoud, Vincent Herrmann, Kazuki Irie, et al. Mindstorms in natu-ral language-based societies of mind. arXiv preprint arXiv:2305.17066 , 2023. Christos Ziakas and Alessandra Russo. Test-time adapta-tion for generalizable task progress estimation. arXiv preprint arXiv:2506.10085 , 2025. 14 Reward Prediction with Factorized World States  
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+# Appendix 
+
+# A. Benchmark Details and Data Construction 
+
+– A.1 Four-Stage Data Generation Pipeline 
+
+Details the rigorous four-stage pipeline for generating positive/negative trajectories and assigning hybrid ground-truth rewards. 
+
+– A.2 Evaluation Task Environments 
+
+Introduces the five evaluation environments, detailing their core mechanics and respective reasoning challenges. 
+
+– A.3 Domain-Specific Sourcing and Preprocessing 
+
+Explains the tailored sampling, filtering, and procedural generation strategies across the five evaluated task domains. 
+
+– A.4 Dataset Statistics 
+
+Provides a comprehensive statistical summary of trajectory pairs and native reward types included in the benchmark. 
+
+– A.5 Data Sample Visualization 
+
+Presents detailed timestep-wise trajectory tables visualizing representative positive and negative interaction samples to clearly illustrate the mechanics of our hybrid reward labeling protocol. 
+
+# B. Hierarchical Routing 
+
+Details the global semantic alignment process, including dynamic key alignment, attribute satisfaction scoring, and joint object selection for dense reward derivation. 
+
+# C. Experimental Implementation Details 
+
+– C.1 Monotonic Baseline (Rule-based Heuristic) 
+
+Describes the non-parametric, rule-based reference baseline that models task progress via naive temporal linear interpolation. 
+
+– C.2 Supervised Reward Model 
+
+Details the preference dataset curation, model architecture, LoRA configuration, and training hyperparameters. 
+
+– C.3 LLM-as-a-Judge 
+
+Outlines the direct full-history trajectory evaluation protocol, detailed prompt-level reasoning ablations (CoT vs. Zero-Shot), and specific test-time compute scaling strategies designed for robust reward estimation. 
+
+– C.4 StateFactory 
+
+Provides hyperparameters, semantic embedding model selections, and comprehensive prompt templates for the inference pipeline. 
+
+– C.5 Ablation 
+
+Presents detailed ablation studies on state representation granularity, goal interpretation modalities, semantic embeddings, and LLM backbones to validate each core component’s contribution. 
+
+– C.6 Utility for Agent Planning 
+
+Details the implementation of the System-1 ReAct policy, its dense-reward enhancement via the StateFactory engine, and System-2 MCTS planning with World Models, including a detailed trajectory trace. 
+
+# D. RewardPrediction Examples 
+
+Provides extended visual case studies of positive and negative evaluation trajectories across multiple simulated environments. 
+
+15 Reward Prediction with Factorized World States  
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+# A Benchmark Details and Data Construction 
+
+## A.1 Four-Stage Data Generation Pipeline 
+
+To ensure high-quality supervision for reward modeling and to mitigate the sparsity of environmental feedback, we constructed the RewardPrediction benchmark using a rigorous four-stage data generation pipeline derived strictly from native environment feedback. 
+
+• Positive Trajectory Synthesis with Random Augmentation. Positive trajectories are primarily grounded in absolute expert demonstrations provided by native environments or human experts. To enhance the diversity of the dataset and introduce temporal robustness, we implement a Random Padding mechanism: expert sequences are padded with 
+
+𝑘 ∈ [ 0, 3] random interaction steps, which are stochastically distributed at both the initiation and termination of the trajectory. This augmentation simulates realistic scenarios where an agent might perform sub-optimal exploration before or after achieving the core task. 
+
+• Ground-Truth Reward Derivation via Hybrid Labeling. (i) Expert Segment Densification: The core expert segment is assigned dense rewards via linear interpolation, formulated as 𝑟 𝑡 = 𝑡 /𝑇 expert . This captures the monotonic progress and the increasing value of states as they approach the goal. (ii) Random Step Grounding: Conversely, the appended random steps strictly inherit their original environmental reward values (typically zero). This ensures the model learns a sharp contrast between the dense progress of expert actions and the random exploration. 
+
+• Negative Sample Generation & Strict Filtering Protocol. Negative trajectories are generated via a stochastic random policy to represent non-attainment of goals. While random exploration predominantly yields no progress, we enforce a Strict Filtering Protocol to eliminate label noise: any random trajectory that inadvertently overlaps with, or matches any sub-segment of, an expert demonstration is immediately discarded. By mitigating the risk of "accidental successes" being labeled as failures, we justify a strict ground truth of 𝑟 𝑡 ≠ 1 for all steps in the negative set, establishing a robust, flat non-successful baseline. 
+
+• Native Observation, Action Space and Reward. To ensure the maximal fidelity and empirical rigor of the 
+
+RewardPrediction benchmark, we strictly adhere to a principle of minimal intervention across all data modalities. All observations are extracted directly from the native environment without any form of manual modification. Similarly, we maintain the absolute completeness of the action space by requiring the model to operate within the full, unaltered set of admissible candidate actions provided by the environment at each discrete time step, rather than relying on simplified or heuristic-based action subsets. Furthermore, all foundational reward signals utilized in our labeling pipeline are sourced entirely from the environment’s intrinsic feedback logic. This preservation of unedited signals ensures that our benchmark reflects the authentic complexity of the original task domain. 
+
+## A.2 Evaluation Task Environments 
+
+To evaluate our method across a diverse set of challenges, ranging from household navigation to scientific reasoning, we incorporated five distinct interactive environments: 
+
+• AlfWorld : AlfWorld is an embodied text-based environment covering tasks like cleaning, heating, and cooling objects , challenging agents to ground high-level language instructions into sequential navigation and manipulation actions within simulated domestic scenes. 
+
+• ScienceWorld : ScienceWorld simulates scientific experiments across interconnected rooms, demanding a deep understanding of physics, scientific causality, and multi-step logical reasoning to interact with diverse objects. 
+
+• WebShop : WebShop is a massive simulated e-commerce environment built on real-world Amazon data, testing the agent’s ability to process noisy web text, match complex multi-attribute user intents, and perform long-horizon navigation to successfully complete purchases. 
+
+• TextWorld : TextWorld is a procedural text-adventure framework with partially observable environments, requiring agents to utilize memory and map abstract textual clues to sequential puzzle-solving strategies. 
+
+• BlocksWorld : BlocksWorld is a fundamental planning environment where the agent must logically unstack and restack colored blocks on a table to reach a specific target configuration, testing basic spatial and sequential reasoning under strict physical constraints. 16 Reward Prediction with Factorized World States  
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+## A.3 Domain-Specific Sourcing and Preprocessing 
+
+We tailored the sampling and filtering strategy for each domain to ensure dataset quality and balance: 
+
+• AlfWorld (Uniform Sampling): We randomly sampled 336 tasks from the training set, representing approximately 10% of the total data. To prevent task bias, we ensured a uniform distribution across the six distinct task types, resulting in exactly 56 positive-negative trajectory pairs per task type. 
+
+• ScienceWorld (Validity Filtering): We selected 191 trajectories from the test set. During selection, we explicitly filtered out specific tasks (e.g., task-4-grow-fruit and task-4-grow-plant ) where the native oracle could not reliably reach a task progress of 1.0 due to environmental limitations. Additionally, we clipped terminal failure scores (e.g., -100) to 0 to maintain reward boundedness. 
+
+• WebShop (Human Demonstrations): We leveraged human demonstrations as the expert policy. From a total pool of 711 successful human trajectories, we randomly subsampled 300 high-quality instances to serve as positive samples, ensuring a diverse coverage of e-commerce navigation behaviors. 
+
+• TextWorld (Procedural Generation): We utilized the native engine to procedurally generate 150 unique text-adventure instances, focusing on cooking and treasure-hunting quests that require multi-step reasoning. 
+
+• BlocksWorld (Subsampling & PDDL): Sourced from the BlocksWorld suite, we randomly subsampled 250 
+
+instances from the official 500-instance dataset. We utilized the authorized PDDL-to-text translator to convert symbolic states (e.g., on(a, b) ) into natural language descriptions, ensuring consistency with other environments. 
+
+## A.4 Dataset Statistics 
+
+Table 3. Statistics of the RewardPrediction Benchmark. We report the total number of positive and negative trajectory pairs, the type of native reward signal provided by the environment, and the nature of tasks across different domains.                   
+
+> Domain Pairs (Pos / Neg) Native Reward Type Task Description
+> AlfWorld 336 / 336 Sparse (Binary) Embodied household instruction following
+> ScienceWorld 191 / 191 Dense (0-100 Score) Interactive scientific experiments
+> WebShop 300 / 300 Dense (Attribute Match) E-commerce navigation (Subsampled human demos)
+> BlocksWorld 250 / 250 Sparse (Binary) Classical planning with spatial reasoning
+> TextWorld 150 / 150 Sparse (Binary) Text-adventure games via native engine
+
+## A.5 Data Sample Visualization 
+
+To provide a granular view of our hybrid data construction and labeling strategy, we transform raw environment interactions into structured, timestep-wise trajectory tables. Table 4 and Table 5 visualize a representative positive-negative trajectory pair from the AlfWorld domain, illustrating how our pipeline converts sparse environmental feedback into a dense, semantically-rich supervision signal. 
+
+Case Analysis: Positive Trajectory. Table 4 visualizes a positive trajectory consisting of agent actions ( 𝑎 𝑡 ), environment observations ( 𝑜 𝑡 ), and derived ground-truth rewards ( 𝑅 ∗ 
+
+> 𝑡
+
+). This sample exemplifies our hybrid supervision approach: 
+
+• Expert Segments ( 𝑡 = 0 to 5): The core sequence follows an optimal expert policy. As per our methodology, these steps are assigned monotonically increasing dense rewards (from 0.17 to 1.00 ) via linear interpolation, providing a granular gradient that captures task progress. 
+
+• Random Augmentation ( 𝑡 = 6): The final step is an appended random action ( random_post ). Crucially, this step strictly inherits the native environment success signal ( 𝑅 = 1.0), ensuring the model learns to maintain the success state even amidst non-expert exploration. 
+
+Case Analysis: Negative Trajectory. In contrast, Table 5 displays a negative trajectory generated via a stochastic random policy. Despite the agent’s active interaction with the environment (e.g., opening drawers), the actions fail to advance the task state toward the goal. Following our Strict Filtering Protocol , these steps are uniformly assigned a flat ground truth of 0, establishing a robust non-progressing baseline that represents a clean failure case. 17 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Table 4. Visualized Positive Sample ( AlfWorld ). Task: "put a hot potato in diningtable." The expert segment ( 𝑡 = 0-5) receives interpolated dense rewards, while the final random augmentation ( 𝑡 = 6) inherits the native success signal. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 go to countertop 3 You arrive at countertop 3. On the countertop 3, you see a bread 1... a potato 1... 0.17 1 take potato 1... You pick up the potato 1 from the countertop 3. 0.33 2 go to microwave 1 You arrive at microwave 1. The microwave 1 is closed. 0.50 3 heat potato 1... You heat the potato 1 using the microwave 1. 0.67 4 go to diningtable 1 You arrive at diningtable 1. On the diningtable 1, you see a bowl 3... 0.83 5 move potato 1... You move the potato 1 to the diningtable 1. 1.00 
+
+6 go to toaster 1 You arrive at toaster 1. On the toaster 1, you see nothing. 1.00 
+
+Table 5. Visualized Negative Sample ( AlfWorld ). Task: "put a hot potato in diningtable." A completely random trajectory where actions fail to advance the task state, resulting in a consistent zero reward. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 go to stoveburner 1 You arrive at stoveburner 1. On the stoveburner 1, you see a pot 1. 0.00 1 go to cabinet 7 You arrive at cabinet 7. The cabinet 7 is closed. 0.00 2 go to drawer 6 You arrive at drawer 6. The drawer 6 is closed. 0.00 3 open drawer 6 You open the drawer 6. The drawer 6 is open. In it, you see nothing. 0.00 4 go to cabinet 8 You arrive at cabinet 8. The cabinet 8 is closed. 0.00 5 open cabinet 8 You open the cabinet 8. The cabinet 8 is open. In it, you see nothing. 0.00 6 go to toaster 1 You arrive at toaster 1. On the toaster 1, you see nothing. 0.00 
+
+# B Hierarchical Routing 
+
+As conceptualized in Section 3.2.3, the dense reward ˆ𝑟 𝑡 is derived through a global semantic alignment process. We search for the physical instantiation that maximizes a composite Identity-Attribute score. This process is detailed below. 
+
+Semantic Key Alignment (The Inner Loop). To address potential linguistic discrepancies between the goal description and environment observations, we do not assume fixed key correspondences. For a required attribute pair (𝜶 𝑘 , v𝑘 )
+
+in goal entity 𝑒 𝑘 , and a candidate state entity 𝑒 𝑖 , we dynamically identify the most relevant key 𝜶 ∗ in 𝑒 𝑖 via hard-max alignment: 
+
+𝜶 ∗ = arg max  
+
+> 𝜶 ′∈keys (𝑒 𝑖 )
+
+sim (𝜶 𝑘 , 𝜶 ′). (10) The value v∗ 
+
+> 𝑖
+
+referenced in Eq. 8 is strictly defined as the value associated with this optimal key 𝜶 ∗. This ensures we compare semantically equivalent properties regardless of naming conventions. 
+
+Attribute Satisfaction Scoring. With the keys aligned, we compute the attribute satisfaction 𝜓 attr (𝑒 𝑘 , 𝑒 𝑖 ) by averaging the semantic similarity between the goal values and the aligned state values: 
+
+𝜓 attr (𝑒 𝑘 , 𝑒 𝑖 ) = 1
+
+|𝐴 𝑘 |
+
+Õ  
+
+> (𝜶 𝑘 ,v𝑘 )∈ 𝐴 𝑘
+
+sim (v𝑘 , v∗ 
+
+> 𝑖
+
+). (11) 
+
+Joint Object Selection. To determine the local fulfillment ˆ𝑟 𝑘,𝑡 , we evaluate every candidate entity 𝑒 𝑖 in the current state ˆ𝑠 𝑡 . We define a composite alignment score Φ(𝑒 𝑘 , 𝑒 𝑖 ) that couples identity matching with state: 
+
+Φ(𝑒 𝑘 , 𝑒 𝑖 ) = sim (d𝑘 , d𝑖 )
+
+| {z }
+
+> Identity
+
+· 𝜓 attr (𝑒 𝑘 , 𝑒 𝑖 )
+
+| {z }
+
+> Attribute
+
+. (12) This multiplicative interaction acts as a soft logic gate: 
+
+• If the object is wrong (Low Identity), the total score is suppressed even if attributes match by chance. 
+
+• If the object is correct but the state is wrong (Low Attribute), the total score remains low. The system selects the single candidate that maximizes this joint probability: ˆ𝑟 𝑘,𝑡 = max 𝑒 𝑖 Φ(𝑒 𝑘 , 𝑒 𝑖 ).18 Reward Prediction with Factorized World States  
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Global Aggregation. Finally, the total reward ˆ𝑟 𝑡 is the mean of these maximized local scores across all 𝐾 goal entities, as defined in Eq. 9. 
+
+# C Experimental Implementation Details 
+
+## C.1 Monotonic Baseline (Rule-based Heuristic) 
+
+The Monotonic Baseline serves as a non-parametric, rule-based reference to evaluate the necessity of semantic reward modeling. In this configuration, we bypass environmental feedback and instead apply a naive temporal heuristic to both positive and negative trajectories. Specifically, for any trajectory of length 𝑇 , the reward at each time step 𝑡 is assigned via linear interpolation: 𝑟 𝑡 = 𝑡 /𝑇 . By enforcing this strictly increasing progress signal regardless of the actual state-action semantics, this baseline tests whether a simple "time-equals-progress" assumption can suffice for the task. It provides a lower bound for our evaluation, highlighting the limitations of ignoring the distinction between expert goal-oriented actions and aimless exploration. 
+
+## C.2 Supervised Reward Model 
+
+In this section, we detail the dataset curation, model architecture, and training protocols employed for the reward model (RM) baselines. 
+
+C.2.1 Dataset Construction and Input Format 
+
+We curated preference datasets across five distinct interactive environments: AlfWorld , TextWorld , ScienceWorld ,
+
+Blocks World , and WebShop . We collected 35,000 preference pairs for each environment, yielding a cumulative dataset of 175,000 pairs. Each sample comprises a raw text trajectory containing a high-level goal, a sequence of actions, and corresponding state observations. Deviating from standard instruction-tuning formats, we eschew separate system prompts; instead, the input is fed as a flattened interaction history. The input format is structured as follows: 
+
+> <GOAL> [Task Description] </GOAL> — <ACTION> [Action 1] </ACTION> <STATE> [Observation 1] </STATE> ...
+
+We trained six distinct reward models: five task-specific models (35k pairs each) and one comprehensive model (“All-Combined”) trained on the union of all datasets (175k pairs). 
+
+C.2.2 Model Architecture and LoRA Configuration 
+
+We employ Qwen2.5-1.5B [Hui et al., 2024] as the backbone architecture. To manage computational costs efficiently and mitigate potential catastrophic forgetting, we utilize Low-Rank Adaptation (LoRA) [Hu et al., 2022] in lieu of full-parameter fine-tuning. The reward model is implemented by appending a scalar classification head to the base model. LoRA adapters are applied to all linear layers with a rank of 𝑟 = 16 and an alpha scaling factor of 𝛼 = 32 . The training objective minimizes the negative log-likelihood of the preferred trajectory rankings: 
+
+ℒ( 𝜃 ) = −E(𝑦 𝑤 ,𝑦 𝑙 )∼𝒟 
+
+log 𝜎  𝑟 𝜃 (𝑦 𝑤 ) − 𝑟 𝜃 (𝑦 𝑙 ) (13) where 𝑦 𝑤 and 𝑦 𝑙 denote the chosen and rejected trajectories, respectively. 
+
+C.2.3 Training Setup and Hyperparameters 
+
+All models were implemented using the Hugging Face trl library. To accommodate the extensive context requirements of agent interaction histories, we set the maximum sequence length to 8192 tokens and utilized mixed-precision training (BF16) with gradient checkpointing to optimize memory efficiency. As detailed in Table 7, the hardware infrastructure varied due to resource availability, ranging from dual NVIDIA RTX A6000 configurations to clusters of NVIDIA A100 GPUs. Consequently, while the effective batch size and training duration varied by task, the core optimization hyperparameters (Table 6) were kept constant to ensure fair comparison. Models were generally trained for 3 epochs, with the exception of WebShop and the Combined model, which were trained for 2 epochs. 19 Reward Prediction with Factorized World States  
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Table 6 outlines the shared configuration, while Table 7 provides the specific hardware setup, batch sizes, and training duration for each task. 
+
+Table 6. Common Hyperparameters. These settings were fixed across all experiments. 
+
+Parameter Value 
+
+Base Model Qwen2.5-1.5B 
+
+Method LoRA ( SEQ_CLS )Precision BF16 
+
+Max Length 8192 
+
+LoRA Configuration 
+
+Rank ( 𝑟 ) / Alpha ( 𝛼 ) 16 / 32 Target Modules All Linear Layers 
+
+Optimization 
+
+Optimizer AdamW 
+
+Learning Rate 1 × 10 −5
+
+LR Scheduler Cosine Batch Size 16 / 8 / 2 
+
+Table 7. Task-Specific Training Details. Comparison of dataset scale, compute resources, and training duration across tasks. Global batch size (BS) scales with GPU count. 
+
+Task Data Config Compute Setup Cost Size Ep. GPUs (Mem) BS Hours 
+
+AlfWorld 35k 3 2×A6000 (80G) 16 ∼4h 
+
+TextWorld 35k 3 2×A6000 (48G) 4 ∼4.5h 
+
+ScienceWorld 35k 3 2×A100 (80G) 16 ∼6h 
+
+BlocksWorld 35k 3 2×A100 (80G) 32 ∼7h 
+
+WebShop 35k 2 2×A100 (80G) 16 ∼10h 
+
+Combined 175k 2 4×A100 (80G) 32 ∼20h 
+
+## C.3 LLM-as-a-Judge 
+
+To ensure the maximal fidelity and empirical rigor of the evaluation, we implement a direct trajectory evaluation protocol where the Reward Evaluator is provided with the full, uncompressed interaction history. All evaluating models are configured with a context window of 8,192 tokens to accommodate long-horizon trajectories without information loss. Furthermore, we set the sampling temperature to 0.01 across all variants to enforce near-deterministic outputs, thereby ensuring the high stability and reproducibility of our reward signals. To systematically investigate the impact of reasoning on reward judgment, we employ two distinct control mechanisms: 
+
+1. Prompt-Level Reasoning Ablation (e.g., Qwen-2.5-14B). 
+
+For general-purpose LLMs, we modulate reasoning capabilities through explicit system-level instructions, allowing us to isolate the effects of internal Chain-of-Thought (CoT) processes. Table 8 provides the detailed prompt templates used for these variants: 
+
+• Intuitive Mode (No-Thinking): The system prompt imposes strict negative constraints, forcing the model to provide an immediate judgment based on "first-order intuition" without intermediate analysis (e.g., "Directly output the score. Do NOT analyze, reason, or explain" ). 
+
+• Analytical Mode (CoT): All negative constraints are removed, and the model is explicitly instructed to perform a comprehensive review of the trajectory history and justify its scoring logic through step-by-step reasoning before arriving at a final value. 20 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+2. Test-Time Compute Scaling (Reasoning Effort Control). For models with native reasoning-specialized archi-tectures (e.g., GPT-OSS-20B), we modulate the depth of internal verification and search processes by adjusting the 
+
+reasoning_effort parameter. This mechanism allows for the scaling of the test-time compute budget independently of the input prompt structure. In our experiments, we compare a Baseline (Low reasoning effort) against an Enhanced 
+
+(Medium reasoning effort) configuration. Notably, as these models generate reasoning within a native “reasoning content” accessible via metadata, we can evaluate the logical derivation without requiring explicit “analysis” fields in the final text response. This allows us to maintain a clean, standardized output format—consisting solely of the reward score—across all models while still capturing the full depth of latent reasoning. By systematically varying the “reasoning effort” parameter, we can observe how increased latent search steps and self-correction cycles contribute to a more precise grounding of the reward signal, effectively decoupling the model’s evaluative accuracy from its prompt-based instructions. 
+
+Table 8. Detailed Baseline Prompt Templates. We strictly follow the provided prompt structures for both variants under the Full-History Protocol .The CoT variant (Part I) uses a standard helper system prompt, while the Zero-Shot variant (Part II) explicitly injects a [Without Thinking] constraint in the system prompt to suppress reasoning. 
+
+Detailed Prompt Templates for Baseline Implementation 
+
+PART I: Chain-of-Thought (CoT) Variant (Reasoning Mode)        
+
+> System Prompt: You are a helpful assistant. Please output the final answer in JSON format.
+> User Prompt: You are an expert in task progress evaluation. Please judge the agent’s progress (0-100) based on the full interaction history.
+> [Task Description]
+> {task_description}
+> [Interaction History]
+> The following is the chronological log of the agent’s past actions and observations:
+> {history_log}
+> [Evaluation Requirements]
+> 1. Analysis: Review the History to evaluate the progress strictly. 2. Scoring: Provide an integer score (0-100).
+> Output strictly in JSON:
+> {"reward": 50}
+
+PART II: Zero-Shot (No-Thinking) Variant (Direct Output)       
+
+> System Prompt: You are a helpful assistant. Please output the final answer in JSON format.
+> [Without Thinking] User Prompt: You are an expert in task progress evaluation. Judge the agent’s progress (0-100) based on the full interaction history provided below.
+> [Task Description]
+> {task_description}
+> [Full Interaction History (From Start to Present)]
+> The following is the chronological log of all agent actions and observations up to the current moment:
+> {history_log}
+> [Evaluation Requirements]
+> •Determine the progress score (0-100) based on the final state in the history.
+> •Do NOT analyze, reason, or explain.
+> •Rely on your intuition to give a score immediately.
+> [Output Format]
+> Output strictly in JSON format:
+> {"reward": 50}
+
+## C.4 StateFactory 
+
+Hyperparameters. To ensure experimental reproducibility and minimize stochastic variance, we utilize gpt-oss-20b as the primary reasoning backbone for all evaluative tasks. The model is deployed via the vLLM inference engine, with the sampling temperature fixed at a near-deterministic 𝑇 = 0.01 . We maintain a consistent context window of 8,192 tokens. 
+
+Embedding Model. Semantic similarity measures within StateFactory are computed using all-MiniLM-L6-v2 . This specific encoder was selected based on our systematic ablation study (see Figure 5), where it demonstrated superior alignment fidelity for environment-specific state representations. Despite its compact 384-dimensional vector space, it outperformed larger alternatives in capturing the underlying semantic distance. 21 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+C.4.1 StateFactory Inference Pipeline 
+
+Our proposed method transforms raw observations into structured states via a multi-stage pipeline. Table 9 details the 
+
+Semantic State Factorization process (Modules A & B). Table 10 details the Dynamic Goal Interpretation (Module C). 
+
+Table 9. Semantic State Factorization Templates. This pipeline constitutes the first half of the StateFactory method. Module A grounds raw observations into structured states, while Module B filters and refines these states to maintain a coherent, task-relevant history. 
+
+StateFactory Pipeline Part I: Semantic State Factorization 
+
+MODULE A: World State Extraction Template (Perception & Grounding) System Instruction: {system_instruction} 
+
+Role: You are a state extraction assistant. Your goal is to extract the current state of the agent based on the provided information, following the rules below: 
+
+Rules: 
+
+1. Output Format: Output a SINGLE JSON object. It must contain two keys: " thinking " and " current_state ". 
+
+– "thinking ": "For each object, cite the exact phrase from ’Observation’ that justifies its state. Verify that the object actually exists in ’Observation’ or ’Previous States’. EXPLICITLY REJECT any information that appears ONLY in ’Previous Goal State’." 
+
+– "current_state ": {output_format_des} 
+
+2. Relevance: Only extract objects that are present in the Observation, or Previous States, and that are directly relevant to the Task Description. Include only those objects that actively contribute to task progress or are essential for understanding the current task state. Do not extract from Task Description or Previous Goal State. 3. Previous Goal State: This is provided ONLY for context verification. IT IS A FORBIDDEN SOURCE. You must NOT copy, infer, or hallucinate any object or state from ’Previous Goal State’ into ’current_state’. If an object is in the goal but hasn’t been observed yet, ignore it. 4. Action Observation: The immediate feedback observed by the agent after performing an action. This may be None if no observable outcome occurs. 5. Previous States: Represents the accumulated task-relevant states from previous steps. Use it to maintain continuity in the agent’s world model: - If an object from Previous States appears in the current Observation, update its state with the most recent information. - If an object from Previous States does not appear in the current Observation, retain its previous state in Current State, assuming it remains unchanged. - Only include objects in Current State if they are either (a) newly observed and task-relevant, or (b) carried over from Previous States. - Do not include objects that are neither present in the current Observation nor in Previous States. 
+
+Input: Task Description: {task_description} , Previous Goal State: {prev_goal_state} , Action: {last_action} , Observation: 
+
+{observation} , Previous States: {prev_states} 
+
+Output Example: {output_format} {output_format_des} 
+
+MODULE B: Task-Relevant World State Extraction Template (Filtering & Refinement) System Instruction: {system_instruction} 
+
+Role: You are a task-relevant state extraction assistant. Given the historical task-related states (Previous States), the current step’s new states (Current State), the actions taken (Action History), and the Task Description, extract and update the relevant world states according to the following rules: 
+
+Rules: 
+
+1. Extract task-relevant states from the Current State. Exclude non-factual statements. Do not extract from Task Description. A state is considered strongly relevant only if it directly or clearly indirectly affects whether the task can be completed. If uncertain about a state’s relevance, exclude it. 2. Combine the results from Rule 1 with the previous historical states (Previous States) to form an updated set of task-relevant historical states. Note that Previous States may be None, in which case the output should be based exclusively on the results from Rule 1. 3. Refine the combined state set by preserving all states that are relevant to the current task, even if they are intermediate or partially superseded. Only remove or update a state if it represents an outdated or incorrect version of the same information about a specific object. In such cases, retain the most accurate and up-to-date state while discarding its obsolete counterparts. Avoid eliminating states merely because more specific or complete information has emerged, as long as the original states contribute to the task context or support traceability of reasoning. 4. Output Format: Only output the JSON content—no additional text, explanation, or formatting. Follow the specified JSON format below exactly: {output_format} {output_format_des} 
+
+Input: Task Description: {task_description} , Previous States: {prev_states} , Current State: {current_state} , Action History: 
+
+{action_history} 
+
+22 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Table 10. Dynamic Goal Interpretation Template. As the second stage of the StateFactory method, this component maintains a persistent yet evolving definition of success, strictly distinguishing between the agent’s “plans” and the task’s “goals”. 
+
+StateFactory Pipeline Part II: Dynamic Goal Interpretation 
+
+MODULE C: Dynamic Goal Interpretation Template (Goal State Management) System Instruction: {system_instruction} 
+
+Role: You are an expert in task goal state extraction. Your mission is to generate an Evolving Goal State: a minimal, accurate JSON specification that defines only the FINAL, STATIC BLUEPRINT FOR TASK SUCCESS, derived exclusively from the Task Description. 
+
+Core Principle: Goal vs. Plan (CRITICAL) 
+
+• Goal (Legal): A concrete, factual state that must be objectively true at the moment of success AND is explicitly or implicitly required by the Task Description. This includes all explicit milestones in a multi-step task (e.g., "First do A, then do B"). 
+
+• Plan / Blocker (Illegal): An intermediate step, prerequisite, enabling action, or blocker that YOU (the LLM) deduce is necessary, but is NOT one of the final goals listed in the Task Description. 
+
+• Constraint: Your Goal State MUST ONLY contain Goals. It MUST NEVER contain Plans or Blockers. 
+
+Rules & Instructions: 
+
+1. Output Format: You must output only the JSON content. Do not include any additional text, explanations, comments, or markdown formatting. Adhere strictly to this JSON structure: 
+
+– Output a SINGLE JSON object containing two keys: 
+
+– "thinking ": A step-by-step analysis string. First, analyze the ’Task Description’ to identify the ultimate success conditions. Second, verify that every goal attribute comes from the Task, NOT just because it exists in ’Current State’. REJECT any state that appears solely because it is currently true in ’Current State’. 
+
+– "goal_state ": {output_format_des} 
+
+– Example of desired output structure: {output_format} {output_format_des} 
+
+2. Core Logic: Blueprint Creation (Step 0) – a. Step 0: Complete Task Translation: 
+
+- At Step 0, you MUST translate ALL final goal verbs and required milestones from the Task Description into their final physical states. - If a task has multiple required parts (e.g., "First do A, then do B"), ALL parts must be translated into final states and included in the blueprint from the beginning. - This blueprint is the COMPLETE and FINAL definition of success. 
+
+– b. State-Change Filter: Use this only at Step 0 to exclude "trivial truths". 3. Core Logic: Blueprint Evolution (Step ≥ 1) – a. GOAL PERSISTENCE: 
+
+- The Goal State created at Step 0 is the static blueprint for success. - Once a goal is added at Step 0, it MUST REMAIN for the entire episode. - DO NOT remove goals just because they are achieved in the Current State. 
+
+– b. STRICT IMMUTABILITY: 
+
+- You are STRICTLY FORBIDDEN from adding new goals after Step 0. - The blueprint from Step 0 is considered complete. Do not add goals for plans, prerequisites, or blockers that you deduce. 
+
+– c. LEGAL EVOLUTION: The ONLY two legal modifications to the Goal State after Step 0 are: 1. Task Milestone Addition: 
+
+· Condition: The Task Description contains a multi-step requirement (e.g., "First do A, then do B"), and the Observation confirms that step A is now complete. 
+
+· Action: You are now allowed to add the goal for step B to the Goal State. This is legal because the goal for B originates from the task description. 2. Refinement / Anchoring: 
+
+· Condition: A goal in the Goal State is generic, and the Observation first identifies its specific instance. 
+
+· Action: You MUST update the Goal State to "anchor" the generic goal to the specific, observed object. WARNING: Do not copy irrelevant attributes from Current State unless the Task specifically requires them. 4. Sources of Truth (Inputs) 
+
+· Task Description: Sole source of ultimate intent. 
+
+· Observation: Used only to ground generics or reveal implicit preconditions. 
+
+· Previous Goal State: The baseline to refine—never discard or contradict it without task-level justification. 
+
+· Current State & Action History: REFERENCE ONLY. Provide contextual world facts and recent action history that may inform phrasing, object references, or state granularity, but they must not introduce new goal requirements. 
+
+Input: Task Description: {task_description} , Current State: {current_state} , Observation: {observation} , Action History: 
+
+{action_history} , Previous Goal State: {prev_goal_state} 
+
+Command: Now generate the updated GoalState based on the above rules. 
+
+## C.5 Ablation 
+
+C.5.1 Representation 
+
+To rigorously evaluate the impact of state representation, we implemented a Representation-Controlled Ablation .We established a baseline using the raw environment output and compared it against three levels of LLM-processed 23 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+abstractions. Crucially, strictly controlling the representation format allows us to decouple the benefits of denoising from 
+
+structuring .The four levels of granularity are defined as follows: 
+
+• Level 1: Unstructured Observations (Raw Input). This baseline utilizes the raw, noisy output from the environment directly as the state representation. It serves as the control group for "zero processing." 
+
+• Level 2: Textual States (Flat Denoising). The model outputs a list of independent sentences. Critically, this level maintains the same unstructured format as Level 1 (flat natural language) but applies the “relevance filtering“ constraint. Comparing Level 1 and Level 2 isolates the performance gain attributed solely to semantic denoising 
+
+without the introduction of hierarchical structure. 
+
+• Level 3: Object-Centric States (Nested List). The model groups sentences under specific object keys. This introduces entity awareness and tests the value of hierarchical grouping, but retains the “entangled attributes“ limitation within the descriptions. 
+
+• Level 4: Object-Attribute States (Full Factorization). The model strictly separates descriptions into atomic Key-Value pairs. This is the standard StateFactory configuration, which tests the value of complete attribute disentanglement .Table 11 presents the specific representation schemas used to enforce these constraints for Levels 1, 2, 3, and 4. 
+
+Table 11. Prompt Variations for representation Structural Granularity. We utilized the same backbone and input context across all levels, varying only the Output Schema and Description Constraints to isolate the effect of structural depth. 
+
+Ablation Study: Output Representation Schemas   
+
+> Level 1&2: Unstructured Observations (Raw Input) & Textual States (Flat Denoising) (Denoising only, no hierarchy)
+> Description Constraint: Every element must be a grammatically complete English sentence that states only observable, factual, and specific information—no speculation or abstraction. Each sentence must explicitly name its subject to ensure clarity and self-containment.
+> Output Schema:
+
+"〈world_state_description 〉"   
+
+> Level 2: Object-Centric States (Nested List) (Entity grouping, entangled attributes)
+> Object Definition: Refers to specific or abstract entities identified in the observations. Objects must be directly grounded in the observed input.
+> Description Constraint: A list of distinct attributes or facts associated with the identified object. Each item must be a standalone, grammatically complete English sentence that includes its own subject.
+> Output Schema:
+
+[{ "object": { "〈obj_desc 〉": [ "〈world_state_desc 〉", ... ] } } ,
+
+{ "object": { "〈obj_desc 〉": [ "〈world_state_desc 〉" ] } } ]        
+
+> Level 3: Object-Attribute States (Full Factorization) (Ours: StateFactory )
+> Object Definition: Refers to specific or abstract entities identified in the observations. Only entities that are explicitly present or clearly implied should be included.
+> Description Constraint: Use key-value pairs to describe object attributes. The "value" (〈world_state_desc 〉) must NOT assume the key is part of the sentence. It must be a complete sentence with subject and verb. The "key" (〈state_name 〉) must be short and summative.
+> Output Schema:
+
+[{ "object": { "〈obj_desc 〉": [{ "〈state_key 〉": " 〈world_state_desc 〉" },
+
+{ "〈state_key 〉": " 〈world_state_desc 〉" }] } }]
+
+24 Reward Prediction with Factorized World States  
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+C.5.2 LLM Backbone 
+
+To isolate the contribution of the underlying LLM’s capabilities, we conducted an ablation study by swapping the core backbone of the StateFactory pipeline while keeping all other distinct modules (e.g., prompt constraints, extraction protocols) constant. We evaluated distinct configurations varying in two dimensions: parametric scale (e.g., 14B vs. 30B) and inference strategy (Standard Instruct vs. Reasoning-Enhanced/Thinking modes). As shown in Table 16, both dimensions strongly correlate with alignment precision (measured by EPIC Distance ↓). 
+
+• Impact of Reasoning: Enabling “thinking” modes yields significant gains. For instance, shifting from GPT-OSS-20B (Low) to (Medium) improves the average EPIC distance from 0.36 to 0.30. Similarly, Qwen3-30B-Thinking (0.41 )substantially outperforms its standard instruction-tuned counterpart ( 0.55 ), confirming that extended inference capability is crucial for decomposing complex environmental states into structured factors. 
+
+• Impact of Scale: Performance generally improves with parameter count within the same model family. Comparing 
+
+Qwen3-14B (0.58 ) to Qwen3-30B (0.55 ), we observe a natural improvement grounded in model size. Consequently, StateFactory is positioned to scale continuously with future advancements in both model size and reasoning strategies. 
+
+C.5.3 Semantic Embedding 
+
+As discussed in the main text, the reliability of StateFactory hinges on the embedding model’s ability to maintain Semantic Discriminability —the capacity to cluster semantically equivalent states while segregating distinct or contradictory ones. To quantify this, we utilize the Triplet-based Accuracy metric. 
+
+Probing Dataset Construction. We derived a synthetic probing dataset, 𝒟 𝑝𝑟𝑜𝑏𝑒 , from StateFactory ’s intermediate outputs. For each unique state 𝑠 𝑎𝑛𝑐 (Anchor), we generated a triplet (𝑠 𝑎𝑛𝑐 , 𝑠 𝑝𝑜𝑠 , 𝑠 𝑛𝑒 𝑔 ):
+
+• Anchor ( 𝑠 𝑎𝑛𝑐 ): A raw factorized state description (e.g., "The apple is sliced" ). 
+
+• Positive ( 𝑠 𝑝𝑜𝑠 ): A semantically equivalent but syntactically distinct paraphrase generated via an LLM. We explicitly instruct the model to vary vocabulary and structure while strictly preserving the truth value (e.g., "Slices of apple are present" ). 
+
+• Negative ( 𝑠 𝑛𝑒 𝑔 ): A state sampled from the same episode’s history describing a different object or a contradictory attribute (e.g., "The apple is whole" or "The table is dirty" ). This serves as a distractor to test discriminative power. 
+
+Metric Definition: Triplet-based Accuracy. Let 𝒟 denote the set of collected triplets, where each triplet 𝑡 =
+
+(𝑠 𝑎𝑛𝑐 , 𝑠 𝑝𝑜𝑠 , 𝑠 𝑛𝑒 𝑔 ) consists of an anchor, a positive paraphrase, and a negative distractor. Let 𝑑 (·) be the embedding function and sim (· , ·) denote cosine similarity. The accuracy is defined as: Accuracy = 1
+
+|𝒟| 
+
+Õ
+
+> 𝑡 ∈𝒟
+
+Isim (𝑑 (𝑠 𝑎𝑛𝑐 ), 𝑑 (𝑠 𝑝𝑜𝑠 )) 
+
+> sim (𝑑 (𝑠 𝑎𝑛𝑐 ), 𝑑 (𝑠 𝑛𝑒 𝑔 ))  (14) where I[·] is the indicator function. 
+
+Qualitative Case Studies: Decision Boundaries. 
+
+To provide deeper insight into performance disparities, we analyze three representative cases from our probing dataset (Table 12). These examples illustrate the operational boundaries of different embedding architectures, focusing on the binary Success criterion ( 𝑠𝑖𝑚 (𝑎𝑛𝑐, 𝑝𝑜𝑠 ) > 𝑠𝑖𝑚 (𝑎𝑛𝑐, 𝑛𝑒 𝑔 )) versus Failure .
+
+Geometric vs. Co-occurrence (Case 1). In spatial tasks, the negative sample often shares high lexical overlap with the anchor (e.g., “blue block” and “orange block” appear in both). Discriminative models trained on NLI data robustly identify the contradiction between “on” and “standing over”. Models like embeddinggemma-300m also pass this test, though they struggle to establish a confident separation compared to discriminative baselines. 
+
+Topic Clustering vs. Truth Value (Case 2). Case 2 illustrates a critical divergence. The negative sample describes the same object (“tissuebox”) but in a contradictory location (“on sidetable”). Embeddings like embeddinggemma-300m fail 25 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+here, likely because they cluster sentences based on shared topics rather than truth conditions. In contrast, discriminative models successfully reject the distractor, strictly adhering to the semantic state. 
+
+Table 12. Polarity Decision Boundaries. We evaluate whether the embedding models correctly rank the semantic paraphrase higher than the distractor. While most models robustly handle spatial contradictions (Case 1), failures in Topic Distraction (Case 2) reveal that some architectures prioritize lexical co-occurrence over factual truth conditions. 
+
+Qualitative Analysis: Success vs. Failure on Challenging Triplets 
+
+Category Triplet (Anchor / Positive / Negative) Polarity Check ( 𝑆𝑖𝑚 𝑝𝑜𝑠 > 𝑆𝑖𝑚 𝑛𝑒 𝑔 ?) Case 1: Spatial Rela-tions 
+
+(BlocksWorld )
+
+Anc: “The blue block is on the orange block.” 
+
+Pos: “The blue block is positioned on top of...” 
+
+Neg: “The agent is clutching the blue block while standing over the orange block.” 
+
+✓ Success all-MiniLM-L6-v2 , all-mpnet-base-v2 , nli-distilroberta-base-v2 
+
+✓ Success embeddinggemma-300m 
+
+Case 2: Topic Distrac-tion 
+
+(ALFWorld) 
+
+Anc: “The tissuebox 1 is examined...” 
+
+Pos: “...holding the tissuebox under the lamp” 
+
+Neg: “The tissuebox 1 is on sidetable 1” 
+
+✓ Success all-MiniLM-L6-v2 , all-mpnet-base-v2 
+
+✗ Failure embeddinggemma-300m (Confused by topic overlap) 
+
+C.5.4 Comprehensive Ablation Study Ablation Results 
+
+Table 13. Ablation Study I: Representation. We compare varying state representation granularity across five domains. The results demonstrate that structured representations significantly outperform unstructured text, with our Object-Attribute approach achieving the lowest EPIC Distance ( ↓). 
+
+State Representation EPIC Distance (↓)
+
+AlfWorld ScienceWorld WebShop BlocksWorld TextWorld Overall 
+
+Unstructured Observations (Raw) 0.49 0.45 0.52 0.88 0.50 0.57 Textual States (Flat Denoising) 0.31 0.35 0.42 0.72 0.37 0.43 Object-Centric States (Nested) 0.33 0.33 0.40 0.45 0.26 0.35 
+
+Object-Attribute States (Ours) 0.28 0.29 0.29 0.43 0.20 0.30 
+
+Table 14. Ablation Study II: Goal Interpretation. Comparison between Offline (Oracle) settings using ground-truth goal states and Online (Dynamic) setting using inferred ones. The minimal gap indicates our Dynamic Goal Interpretation is robust without requiring privileged information. 
+
+Goal Source Setting EPIC Distance (↓)
+
+AlfWorld ScienceWorld WebShop BlocksWorld TextWorld Overall 
+
+Offline (Oracle Goal State) 0.26 0.27 0.26 0.40 0.22 0.28 
+
+Online (Dynamic Goal State) 0.28 0.29 0.29 0.43 0.20 0.30 
+
+Table 15. Ablation Study III: Semantic Embeddings. We evaluate StateFactory using five different embedding backbones. We report the EPIC Distance (↓) on downstream tasks and the Triplet Accuracy (↑) on our synthetic probing dataset. Results show a strong correlation: models with higher Triplet Accuracy (better semantic discriminability) consistently yield lower EPIC distances. 
+
+Embedding Backbone Probing Metric Downstream Performance (EPIC ↓)Triplet Acc. (↑) AlfWorld ScienceWorld WebShop Blocks TextWorld Overall 
+
+nli-distilroberta-base-v2 0.83 0.28 0.29 0.29 0.47 0.20 0.31 all-mpnet-base-v2 0.76 0.28 0.29 0.29 0.54 0.20 0.32 all-MiniLM-L6-v2 0.81 0.28 0.29 0.29 0.43 0.20 0.30 
+
+bge-base-en-v1.5 0.78 0.32 0.34 0.31 0.41 0.25 0.33 embedding-gemma-300m 0.67 0.45 0.47 0.42 0.52 0.38 0.45 
+
+26 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Table 16. Ablation Study IV: LLM Backbone. We compare different LLM backbones driving the StateFactory pipeline. Lower EPIC distance ( ↓)indicates better alignment with ground-truth progress. The results highlight that “Thinking” variants (Reasoning-Enhanced) and larger parameter scales consistently improve reward precision. 
+
+Backbone Model EPIC Distance (↓)
+
+AlfWorld ScienceWorld WebShop Blocks TextWorld Overall 
+
+Qwen Family (Impact of Scale & Thinking) 
+
+Qwen3-14B 0.53 0.57 0.59 0.68 0.53 0.58 Qwen3-30B-A3B-Instruct-2507 0.53 0.59 0.58 0.53 0.52 0.55 Qwen3-30B-A3B-Thinking-2507 0.36 0.46 0.40 0.52 0.31 0.41 
+
+GPT-OSS Family (Impact of Reasoning Effort) 
+
+GPT-OSS-20B (Low) 0.37 0.35 0.34 0.47 0.26 0.36 GPT-OSS-20B (Medium) 0.28 0.29 0.29 0.43 0.20 0.30 
+
+## C.6 Utility for Agent Planning 
+
+C.6.1 System-1 Policy Implementation Details 
+
+To rigorously evaluate the efficacy of StateFactory , we implemented a standard ReAct (Reasoning + Acting) agent as the primary baseline and the foundational System-1 component of our framework. The implementation follows the standard interleaving of thought generation and action execution, adapted for the specific constraints of AlfWorld , BlocksWorld ,and ScienceWorld .
+
+Action Parsing and Error Recovery. The Language Model is queried to generate a response in a strict format: Thought: <reasoning> \n Action: <action> . We employ a robust regular expression parser to extract the command: 
+
+• Syntactic Error Feedback: If the output format is malformed (e.g., missing the “Action:” prefix), the system intercepts the error and returns a synthetic observation: “Observation: Invalid Format. Please strictly follow the format Thought:... Action:...” .
+
+• Semantic Error Feedback: If the action is syntactically correct but physically impossible (e.g., trying to pick up a table), the environment’s native error message is fed back to the agent, allowing for semantic self-correction. 
+
+Action Space Exploration. To facilitate efficient exploration, we explicitly provide the agent with the list of currently valid actions (e.g., info[’admissible_commands’] ) at each step. 
+
+ReAct Baseline Prompt: AlfWorld (Household Tasks) 
+
+Interact with a household to solve a task. Imagine you are an intelligent agent in a household environment and your target is to perform actions to complete the task goal. At the beginning of your interactions, you will be given the detailed description of the current environment and your goal to accomplish and Task Knowledge to guide you to finish the task. For each of your turns, you will be given the observation of the last turn and the valid actions you can take right now (Valid Actions). You should first think about the current condition and plan for your future actions, then output your action in this turn. Your output must strictly follow this format: "Thought: your thoughts.\nAction: your next action" Your response should use the following format: Thought: <your thoughts> Action: <your next action> Here is an example: You are in the middle of a room. Looking quickly around you, you see a bathtubbasin 1, a cabinet 2, a cabinet 1, a countertop 1, a garbagecan 1, a handtowelholder 1, a sinkbasin 1, a toilet 1, a toiletpaperhanger 1, and a towelholder 1. Your task is to: put a toiletpaper in toiletpaperhanger. Thought: I need to place a toilet paper roll on the toilet paper hanger. First, I should check if there’s already a roll on the hanger or if it’s empty. Action: go to toiletpaperhanger 1 Observation: On the toiletpaperhanger 1, you see nothing. Thought: The toilet paper hanger is empty, so I need to find a new roll of toilet paper to put on it. Action: go to toilet 1 Observation: On the toilet 1, you see a soapbottle 1, and a toiletpaper 1. Thought: I’ve found a toilet paper roll on the toilet. I should pick it up so I can place it on the hanger. Action: take toiletpaper 1 from toilet 1 Observation: You pick up the toiletpaper 1 from the toilet 1. Thought: Now that I have the toilet paper roll, I need to return to the toilet paper hanger to install it. 
+
+27 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Action: go to toiletpaperhanger 1 Observation: On the toiletpaperhanger 1, you see nothing. Thought: I’m back at the toilet paper hanger with the roll in hand. It’s time to put the toilet paper on the hanger. Action: put toiletpaper 1 in/on toiletpaperhanger 1 —————————————————————-Now, the real task begins. 
+
+ReAct Baseline Prompt: BlocksWorld (Spatial Logic) 
+
+Interact with a blocks world to solve a stacking task. Imagine you are an intelligent planning agent in a blocks world environment and your target is to perform actions to complete the task goal. At the beginning of your interactions, you will be given the detailed description of the current block configuration and your goal to accomplish. For each of your turns, you will be given the observation of the last turn and the valid actions you can take right now (Valid Actions). Each valid action is shown as: <ACTION_ID> -> <human-readable explanation> You should: 1. Use the explanation to understand what each action does. 2. Output ONLY the <ACTION_ID> (the part before "->") in your "Action:" line. Your response should use the following format: Thought: <your thoughts> Action: <ACTION_ID> Here is an example: Task: the green block is on top of the red block Observation: the green block is clear, the red block is on the table, the hand is empty Valid Actions: UNSTACK_A_B -> unstack the green block from on top of the red block PICK-UP_C -> pick up the blue block Thought: I need to remove the green block from the red block. The action UNSTACK_A_B does exactly that. Action: UNSTACK_A_B —————————————————————-Now, the real task begins. 
+
+ReAct Baseline Prompt: ScienceWorld (Scientific Discovery) 
+
+You are an intelligent agent conducting a scientific experiment in a simulated environment. Your goal is to complete the given task by performing a sequence of valid actions. The environment contains several rooms: kitchen, foundry, workshop, bathroom, outside, living room, bedroom, greenhouse, art studio, and hallway. For each of your turns, you will be given the observation of the last turn and the valid actions you can take right now (Valid Actions). You should first think about the current condition and plan for your future actions, then output your action in this turn. Your response should use the following format: Thought: <your thoughts> Action: <your next action> Example: Observation: You are in the kitchen. On the counter, you see a beaker 1 and a note 1. Valid Actions: [’look around’, ’examine beaker 1’, ’read note 1’, ’teleport to greenhouse’, ’pick up beaker 1’] Thought: I should read the note first—it might contain instructions for the experiment. Action: read note 1 —————————————————————-Now, the real task begins. 
+
+C.6.2 System-1 Policy Enhancement via StateFactory 
+
+To overcome the ambiguity of sparse environmental signals in the standard ReAct baseline, we augment the System-1 policy with a dense state-aware reward mechanism . Unlike the original ReAct loop which relies solely on textual observations, our framework explicitly quantifies the “progress” of each step via StateFactory . This allows the agent to evaluate the potential utility of candidate actions before finalizing its decision. The streamlined process operates as follows: 28 Reward Prediction with Factorized World States  
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+
+Candidate Evaluation & State Abstraction. At each time step 𝑡 , rather than blindly selecting an action, the agent first identifies a set of candidate actions. For each candidate, we leverage the StateFactory engine to project the potential outcome into a structured semantic state 𝑠 𝑡 +1. By using Dynamic Goal Interpretation prompts, we filter out environmental noise and focus on task-relevant state changes. 
+
+Differential Reward Calculation. For each candidate transition, we compute an immediate, dense reward 𝑟 𝑡 that reflects its contribution to the final goal 𝑔 . The reward is defined by the gain in semantic proximity: 
+
+𝑟 𝑡 = Score (𝑠 𝑡 +1 , 𝑔 ) − Score (𝑠 𝑡 , 𝑔 ) − 𝜆 · I(Repetition ) (15) This differential score captures the Relative Gain , positively rewarding actions that satisfy critical sub-goals (e.g., locating a required tool) while penalizing redundant or cyclical behavior. 
+
+Reward-Guided Decision Making. The calculated rewards {𝑟 𝑡 } are injected back into the ReAct context. The prompt is thus augmented from a standard observation to a (Candidate Action, Predicted Reward) assessment. This explicit feedback signal empowers the LLM to perform “informed” selection—prioritizing actions with high relative gain and pivoting away from unproductive strategies (low or negative reward) without requiring expensive lookahead simulations. We provide the prompts used to filter and propose the Top-𝐾 candidate actions in the subsequent sections. These prompts assist the ReAct policy in identifying logical next steps before simulation. Specifically, to balance exploration and efficiency, we set 𝐾 = 3 for AlfWorld and BlocksWorld , and 𝐾 = 5 for ScienceWorld due to its significantly larger and more complex action space.                 
+
+> Action Selection Prompt: AlfWorld (Household Tasks)
+> You are an expert agent playing a text-based adventure game. Your goal is to complete the following Task: {task}
+> Current Observation:
+> {obs}
+> Interaction History (Actions & Results):
+> {history}
+> Admissible Actions (Candidates):
+> {candidates_with_ids}
+> Your task is to identify the top {k} actions that are most likely to advance the game state.
+> Selection Rules:
+> 1. Analyze History : Check "Interaction History". Avoid actions that resulted in "Nothing happens" or revealed empty containers. Avoid loops. 2. Logical Continuity : Select actions that logically follow the observation (e.g., see target →take it). 3. Exploration : If blocked, prioritize navigating to new areas. 4. Index Only : Return the ID numbers (e.g., 0, 1) only.
+> Return JSON Format:
+> {"reasoning": "...", "selected_ids": [id1, id2, ...] }
+> Action Selection Prompt: ScienceWorld (Scientific Discovery)
+> You are a strategic planner for a scientific agent.
+> CONTEXT
+> - Goal: {task}
+> - Current Observation: {obs}
+> - Recent History: {history}
+> CANDIDATE ACTIONS
+
+29 Reward Prediction with Factorized World States                       
+
+> Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx
+> {candidates_with_ids}
+> SELECTION STRATEGY
+> 1. Analyze History : Do not repeat failed actions. If not in target room, prioritize navigation. 2. STRICT FOCUS PROTOCOL :- RISK: Focus on wrong object triggers -100 penalty. - SEQUENCE: Follow "First X, then Y" logic. Do not focus on Y if X is not done. 3. Filter Noise : Ignore objects not mentioned in current goal step.
+> OUTPUT FORMAT
+> {"reasoning": "Explain sequence logic...", "selected_ids": [id1, id2, ...] }
+> Action Selection Prompt: BlocksWorld (Spatial Logic)
+> You are an expert agent solving a Blocks World planning task. Your goal is to complete the following Task: {task}
+> Context:
+> - Observation: {obs}
+> - History: {history}
+> - Candidates: {candidates_with_ids}
+> Format: [ID]: [ACTION_COMMAND] →[description]
+> Your Task:
+> Select top {k} IDs based on: 1. Feasibility : Respect stacking rules. 2. Relevance : Move blocks toward target. 3. Repetition : Avoid failed actions. 4. Strategy : Free blocked blocks first.
+> Return JSON Format:
+> {"reasoning": "...", "selected_ids": [id1, id2, ...] }
+
+C.6.3 System-2 Planning via MCTS and World Models 
+
+While the dense reward mechanism enhances the local policy, complex tasks often require counterfactual reason-ing—simulating "what if" scenarios without committing to irreversible actions in the real environment. To achieve this, we implement a System-2 planner using Monte Carlo Tree Search (MCTS), grounded by a pre-trained World Model [Li et al., 2025]. 
+
+Generative Action Proposal (Top-𝐾 ). Unlike traditional RL environments where the action space is discrete and known, text-based environments feature an unbounded action space. During the expansion phase of MCTS, the World Model cannot list valid moves. Therefore, we utilize the Agent LLM as a Generator . It analyzes the current observation and proposes the Top-𝐾 (typically 𝐾 = 3) most logical actions. As shown in the prompt below, we enforce a “Mental Scratchpad“ step, requiring the agent to explicitly verify inventory status and object visibility before generating commands, thereby reducing hallucinated actions. 
+
+Simulation via World Model. Selected actions are executed in a virtual environment simulated by a LLaMA-based World Model [Li et al., 2025]. This model predicts the next textual observation 𝑜 𝑡 +1 given the history 𝐻 𝑡 and action 𝑎 𝑡 .
+
+Truncated Rollout & Evaluation. A major challenge in text simulation is "hallucination drift," where errors accumulate over long horizons. To mitigate this, we adopt a conservative Single-Step Rollout strategy ( 𝑑 = 1). We prioritize accurate, immediate state evaluation over uncertain long-term planning. The simulated outcome is immediately scored by the 30 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+StateFactory engine, which calculates the reward based on the semantic state change. This score backpropagates to guide the root action selection. 
+
+StateFactory as a Semantic Value Function. The efficacy of our truncated planning ( 𝑑 = 1) heavily relies on the density of the evaluation signal. In traditional sparse-reward settings, a single-step lookahead is typically insufficient to capture value, as the terminal goal remains distant. However, StateFactory bridges this gap by converting semantic state transitions into immediate scalar feedback, serving as a robust heuristic for MCTS. 
+
+System-2 Action Generation: AlfWorld 
+
+You are an expert agent playing AlfWorld, a text-based simulation game. Your goal is to analyze the current state and generate {k} valid, logical next actions to complete the task. 
+
+Contextual Information: Task: {task} 
+
+Recent History: {history} 
+
+Current Observation: {obs} 
+
+Mental Scratchpad (MANDATORY STEP): 
+
+You must analyze the situation step-by-step before generating actions: 1. Inventory Status : What are you holding right now? 2. Current Location : Where are you? 3. Visible Objects : List VALID interactable objects/receptacles. 4. Immediate Sub-goal : Decide next logical step (Explore/Interact/Process). 
+
+Strict Action Rules: 
+
+1. Object IDs : ALWAYS use specific numbers (e.g., mug 1 ). 2. Interaction : Actions ONLY work on visible or inventory objects. 3. Navigation : You can go to any standard furniture in the room. 
+
+Allowed Templates: 
+
+• go to [receptacle X] 
+
+• take [object X] from [receptacle X] 
+
+• put [object X] in/on [receptacle X] 
+
+• open [receptacle X] / close [receptacle X] 
+
+• toggle [object X] [receptacle X] 
+
+• clean [object X] with [receptacle X] 
+
+• heat [object X] with [receptacle X] 
+
+• cool [object X] with [receptacle X] 
+
+• use [object X] / look 
+
+Output Format: 
+
+Return a JSON object containing your analysis and top {k} actions. 
+
+> {"analysis": { "inventory": "Nothing", "current_location": "countertop 1", "visible_objects": ["apple 1", "knife 1", "cabinet 1"], "sub_goal": "Need to wash the apple, but first I need to take it." }, "generated_actions": ["take apple 1 from countertop 1", "go to sinkbasin 1"] } Now, generate the response for the current situation.
+
+World Model: State-Aware Simulator (Internal Representation) 
+
+[System: Ground Truth State] 
+
+You act as a deterministic physics engine for AlfWorld. Your goal is to update the environment state based on user actions. 
+
+Hidden Environment Details: 
+
+• Receptacles: On bed 1: book 1, laptop 1; On desk 2: alarmclock 1, mug 1; Drawer 1 (closed): creditcard 1. 
+
+• Toggles: desklamp 1 is currently OFF. 
+
+• Task Goal: examine the alarmclock with the desklamp. 
+
+[Interaction History] Initial Observation: You are in a room. You see a bed 1, desk 1, desk 2... 
+
+31 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+User Action: go to desk 2 
+
+Observation: On the desk 2, you see a alarmclock 1 and a mug 1. 
+
+User Action: use desklamp 1 
+
+Next Observation (Prediction): 
+
+C.6.4 Case Study of System-2 Planning 
+
+Table 17. Trajectory Trace of Case Study 1: “Task: Look at CD under the desklamp.” This case demonstrates the internal logic of the StateFactory 
+
+engine, specifically how it facilitates dynamic goal interpretation by anchoring abstract instructions to crystallized physical entities ( 𝑔 𝑡 ). By extracting structured states ( 𝑠 𝑡 ) from observations, the engine generates continuous reward gradients (Relative Gain) that guide the MCTS search. Note the significant reward spikes upon environmental constraint satisfaction (Step 7) and the identification of the target entity (Step 8), which effectively steers the agent away from redundant exploration towards a successful execution path. 
+
+Step Action Simplified Obs & State Extraction ( 𝑠 𝑡 ) Goal Interpretation ( 𝑔 𝑡 ) Reward / Gain 
+
+1 go to desk 2 Obs: See cd 1 on desk 2. 
+
+State: {cd 1: [on desk 2]} 
+
+Entity Discovery: 
+
+CD → cd 1 
+
++0.29 ↑
+
+. . . Steps 2–5: Initial Exploration of the Environment 
+
+6 go to desk 1 Obs: See desklamp 1 on desk 1. 
+
+State: {desklamp 1: [on desk 1]} 
+
+Constraint Identification: 
+
+Lamp → lamp 1 
+
++0.02 ↑
+
+7 use desklamp 1 Obs: Lamp 1 is turned ON. 
+
+State: {lamp 1: [ is turned on ]} 
+
+Condition Met: 
+
+cd 1 under desklamp 1 +0.22 ↑
+
+8 go to desk 2 Obs: Navigate back to retrieve cd 1 with satisfied environment constraints. 
+
+(Unchanged) +0.31 ↑
+
+. . . Steps 9–11: Redundant Exploration & State Verification 
+
+12 take cd 1 from desk 2 Obs: Pick up cd 1 from desk 2. 
+
+State: {cd 1: [in hand] }
+
+(Unchanged) +0.12 ↑
+
+13 go to desk 1 Obs: Arrive at desk 1 with cd 1. 
+
+State: {cd 1: [under lamp 1]} 
+
+Goal Satisfied. 1.00 ↑
+
+# D RewardPrediction Examples 
+
+Table 18. Visualized Positive Sample (ScienceWorld). Task: "find a(n) living thing... move it to the yellow box." The agent successfully navigates to the outside, identifies the target (baby wolf), and transports it to the goal location. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 look around This room is called the foundry. In it, you see: the agent... a blast furnace... 0.00 1 open door to outside The door is now open. 0.08 2 go to outside You move to the outside. 0.17 3 look around This outside location is called the outside. Here you see: ... a baby wolf... 0.17 4 focus on baby baby wolf You focus on the baby wolf. 0.67 5 pick up baby baby wolf You move the wolf to the inventory. 0.75 6 open door to kitchen The door is now open. 0.75 7 go to kitchen You move to the kitchen. 0.75 8 open door to hallway The door is now open. 0.75 9 go to hallway You move to the hallway. 0.75 10 open door to living room The door is now open. 0.75 11 go to living room You move to the living room. 0.83 
+
+12 move baby... to yellow box You move the wolf to the yellow box. 1.00 
+
+32 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Table 19. Visualized Negative Sample (ScienceWorld). Task: "find a(n) living thing... move it to the yellow box." The agent performs irrelevant interactions (connecting air, mixing door) that fail to advance the specific task objective. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 look at door ERROR: SHOULD USE OVERRIDE FOR PORTAL. 0.00 1 connect orange to outside terminal 1 on orange is now connected to terminal 1 on outside 0.00 2 connect air to foundry terminal 1 on air is now connected to terminal 1 on foundry 0.00 3 connect air to steel table terminal 2 on air is now connected to terminal 1 on table 0.00 4 open door The door is now open. 0.08 5 disconnect orange orange has been disconnected 0.08 6 connect drain to foundry terminal 1 on drain is now connected to terminal 2 on foundry 0.08 7 connect agent to inventory terminal 1 on agent is now connected to terminal 1 on inventory 0.08 8 connect sink... terminal 1 on sink is now connected to terminal 1 on blast furnace 0.08 9 look at outside This outside location is called the outside. Here you see: ... 0.08 10 mix door That container is empty, so there are no items to mix. 0.08 11 look in steel table Inside the table is: nothing 0.08 12 mix agent There is only one thing (inventory) 0.08 
+
+Table 20. Visualized Positive Sample ( AlfWorld ). Task: "put some cd on safe." The agent identifies the target object (CD 2) on the dresser, navigates to the safe, opens it, and deposits the item. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 go to dresser 1 You arrive at dresser 1. On the dresser 1, you see a bowl 1... a cd 2... 0.20 1 take cd 2 from dresser 1 You pick up the cd 2 from the dresser 1. 0.40 2 go to safe 1 You arrive at safe 1. The safe 1 is closed. 0.60 3 open safe 1 You open the safe 1. The safe 1 is open. In it, you see nothing. 0.80 
+
+4 move cd 2 to safe 1 You move the cd 2 to the safe 1. 1.00 
+
+Table 21. Visualized Negative Sample ( AlfWorld ). Task: "put some cd on safe." The agent wanders to irrelevant locations (laundry hamper, bed, drawers) and fails to interact with the target objects. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 go to laundryhamper 1 You arrive at laundryhamper 1. On the laundryhamper 1, you see nothing. 0.00 1 go to bed 1 You arrive at bed 1. On the bed 1, you see a cellphone 2... 0.00 2 go to drawer 11 You arrive at drawer 11. The drawer 11 is closed. 0.00 3 look You are facing the drawer 11. Next to it, you see nothing. 0.00 4 go to drawer 6 You arrive at drawer 6. The drawer 6 is closed. 0.00 
+
+Table 22. Visualized Positive Sample ( BlocksWorld ). Task: "the red block is on top of the orange block." The agent unstack the obstructing orange block to clear the red block, then stacks red onto orange. Rewards are linearly interpolated. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 unstack the orange block... ...hand is currently holding orange block, the red block is on the table... 0.25 1 put down the orange block ...hand is empty, the red block is on the table... orange block is on the table... 0.50 2 pick up the red block ...hand is currently holding red block, the blue block is on the table... 0.75 
+
+3 stack the red block... ...hand is empty, the red block is on top of the orange block... 1.00 
+
+Table 23. Visualized Negative Sample ( BlocksWorld ). Task: "the red block is on top of the orange block." The agent engages in a repetitive loop with an irrelevant blue block, failing to change the state of the target blocks. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 pick up the blue block ...hand is currently holding blue block, the orange block is on top of the red block... 0.00 1 put down the blue block ...hand is empty, the orange block is on top of the red block... 0.00 2 pick up the blue block ...hand is currently holding blue block, the orange block is on top of the red block... 0.00 3 put down the blue block ...hand is empty, the orange block is on top of the red block... 0.00 
+
+33 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Table 24. Visualized Positive Sample ( BlocksWorld ). Task: "red on blue, blue on orange." The agent dismantles the initial wrong pile (Red on Orange on Blue) and reconstructs it in the correct order. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 unstack red from orange ...hand is holding red block, the orange block is on top of the blue block... 0.13 1 put down red ...hand is empty, orange block is on top of blue block, red is on table... 0.25 2 unstack orange from blue ...hand is holding orange block, the blue block is on the table... 0.38 3 put down orange ...hand is empty... blue block is on table... orange block is on table... 0.50 4 pick up blue ...hand is holding blue block, the orange block is on the table... 0.63 5 stack blue on orange ...hand is empty, the blue block is on top of the orange block... 0.75 6 pick up red ...hand is holding red block, blue block is on top of orange block... 0.88 
+
+7 stack red on blue ...red block is on top of the blue block... blue on top of orange... 1.00 
+
+Table 25. Visualized Negative Sample ( BlocksWorld ). Task: "red on blue, blue on orange." The agent falls into a reversible loop, repeatedly unstacking and restacking the top block without changing the base structure. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 unstack red from orange ...hand is holding red block, the orange block is on top of the blue block... 0.00 1 stack red on orange ...hand is empty, the red block is on top of the orange block... 0.00 2 unstack red from orange ...hand is holding red block, the orange block is on top of the blue block... 0.00 3 stack red on orange ...hand is empty, the red block is on top of the orange block... 0.00 4 unstack red from orange ...hand is holding red block, the orange block is on top of the blue block... 0.00 
+
+Table 26. Visualized Positive Sample ( WebShop ). Task: "i want a gluten free packaged meal, and price lower than 50.00 dollars." The agent correctly filters search results, verifies the item description, and purchases a product ($24.99) meeting the price constraint. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 search[gluten free...] ...Banza Chickpea Mac and Cheese... $35.3 ... Banza Chickpea Pasta Shells... $24.99 ... 0.20 1 click[item - banza...] ...Banza Chickpea Pasta Shells... Price: $24.99 ... [button] Description ... [button] Buy Now 0.40 2 click[description] ...high protein, lower carb, gluten free alternative to traditional mac... 0.60 3 click[< prev] ...Banza Chickpea Pasta Shells... Price: $24.99 ... [button] Buy Now 0.80 
+
+4 click[buy now] You have successfully purchased the product. 1.00 
+
+Table 27. Visualized Negative Sample ( WebShop ). Task: "i want a gluten free packaged meal, and price lower than 50.00 dollars." The agent selects an item priced at $100.0 (violating the <$50 constraint) and fails to complete a purchase. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 search[i want a gluten...] ...Amy’s Vegan... Burrito... $100.0 ... Annie’s Shell Pasta... $39.48 ... 0.00 1 click[item - B01FW...] ...Amy’s Vegan, Gluten Free Beans & Rice Burrito... Price: $100.0 ... 0.00 2 click[Features] One 5.5 oz. Amy’s Bean & Rice... Gluten Free... 0.00 3 click[Back to Search] [button] Search [button_] 0.00 4 click[Search] [button] Search [button_] 0.00 
+
+Table 28. Visualized Positive Sample ( WebShop ). Task: "women ankle strap sandal, black, < 80.00 dollars." The agent navigates through multiple search pages, identifies a compliant item (Gibobby Sandals, $1.87-$3.37), selects the required ’black’ attribute, and completes the purchase. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 search[sandal ankle...] ...Wedge Sandals... $8.13 ... Gibobby Summer Sandals... $14.71 ... 0.14 1 click[next >] [button] Back to Search ... Page 2 (Total results: 50) ... 0.29 2 click[next >] [button] Back to Search ... Page 3 (Total results: 50) ... 0.43 3 click[next >] [button] Back to Search ... Page 4 ... Gibobby Summer Sandals... $1.87 ... 0.57 4 click[item - gibobby...] ...Gibobby Summer Sandals... Price: $1.87 to $3.37 ... [button] Buy Now 0.71 5 click[black] ...color [clicked button] black... size... 0.86 
+
+6 click[buy now] You have successfully purchased the product. 1.00 
+
+34 Reward Prediction with Factorized World States 
+
+Sec 1: Intro | Sec 2: Benchmark | Sec 3: Method | Sec 4: Experiments | Sec 5: Related Works | Sec 6: Conclusion | Sec 7: Appx 
+
+Table 29. Visualized Negative Sample ( WebShop ). Task: "women ankle strap sandal, black, < 80.00 dollars." The agent performs a completely irrelevant search ("plant based") and interacts with food items (Jerky) instead of footwear, failing the task constraints entirely. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 search[plant based] ...Plant-Based Bolognese... $62.99 ... Plant-Based Jerky... $4.98 ... 0.00 1 click[item - B085...] ...Gardein Ultimate Plant-Based Jerky... Price: $6.29 ... 0.00 2 click[teriyaki] ...flavor name... [clicked button] teriyaki... 0.00 3 click[original] ...flavor name... [clicked button] original... 0.00 4 click[Features] ...Contains one 2.25-ounce package of Gardein... 0.00 5 click[< Prev] ...[clicked button] original... [clicked button] teriyaki... 0.00 6 click[hot & spicy] ...[clicked button] hot & spicy... 0.00 
+
+Table 30. Visualized Positive Sample ( TextWorld ). Task: "lift the cuboid keycard... take the knife... place the knife on the board." After an initial inspection, the agent executes a perfect sequence: getting the key, unlocking the chest, retrieving the knife, and placing it on the target. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 examine type T box The type T box looks strong, and impossible to destroy... 0.00 1 take cuboid keycard You pick up the cuboid keycard from the ground. 0.20 2 unlock cuboid chest... You unlock the cuboid chest. 0.40 3 open cuboid chest You open the cuboid chest, revealing a potato and a knife. 0.60 4 take knife... You take the knife from the cuboid chest. 0.80 
+
+5 put knife on board You put the knife on the board... The End 1.00 
+
+Table 31. Visualized Negative Sample ( TextWorld ). Task: "lift the cuboid keycard... take the knife... place the knife on the board." The agent interacts with irrelevant objects (mop, fridge) and picks up the wrong keycard (Type T instead of Cuboid), failing to progress. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 inventory You are carrying: a mop. 0.00 1 put mop on board You put the mop on the board. 0.00 2 close fridge You close the fridge. 0.00 3 examine mop The mop would seem to be out of place here 0.00 4 take type T keycard You pick up the type T keycard from the ground. 0.00 5 examine board The board is stable. On the board is a mop. 0.00 
+
+Table 32. Visualized Positive Sample ( TextWorld ). Task: "retrieve key... unlock safe... insert spoon." The agent successfully identifies the key, unlocks the container, and retrieves the target tool to complete the puzzle. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 take key You pick up the key from the ground. 0.20 1 unlock safe with key (the safe with the key) You unlock the safe. 0.40 2 open safe (the safe) You open the safe, revealing a spoon. 0.60 3 take spoon from safe (the safe) You take the spoon from the safe. 0.80 
+
+4 insert spoon... You put the spoon into the spherical safe... The End 1.00 
+
+Table 33. Visualized Negative Sample ( TextWorld ). Task: "retrieve key... unlock safe... insert spoon." The agent gets distracted by irrelevant objects (saucepan, coffee cup) and consumes food instead of solving the lock puzzle. 
+
+Step Action ( 𝑎 𝑡 ) Observation ( 𝑜 𝑡 ) GT ( 𝑅 𝑡 )
+
+0 examine saucepan The saucepan is stable. 0.00 1 examine coffee cup The coffee cup is cheap looking. 0.00 2 examine spherical latchkey The spherical latchkey is cold to the touch 0.00 3 eat legume You eat the legume. Not bad. 0.00 4 examine saucepan The saucepan is stable. 0.00 
+
+35

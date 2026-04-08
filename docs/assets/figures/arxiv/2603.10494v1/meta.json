@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10494v1/fig-001.webp",
+      "caption": "Figure 1. Overview of VERI-DPO. (A) Verifier training: a compact retrieval-augmented verifier predicts single-token labels A/B/C for each (evidence, claim) pair: A=Supported, B=Not Supported (error/hallucination), and C=Not Addressed (omission / not in retrieved evidence). (B) Verifier-driven preference mining: for each sampled BHC candidate, we decompose it into sentence-level claims, retrieve per-claim evidence, and score claims with the verifier; we aggregate claim-level signals into a utility𝑈 (𝑦) that penalizes contradictions (NS/HCNS) while discouraging degeneration-by-omission, and select (𝑦+, 𝑦−) under utility and",
+      "page": 2,
+      "index": 1,
+      "width": 786,
+      "height": 394
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10494v1/fig-002.webp",
+      "caption": "Table 5. Top-10 DPO sweep settings on Development-set (relaxed validity), ranked by lowest NS-rate, lowest 𝑛𝐵, and highest 𝑛𝐴.",
+      "page": 8,
+      "index": 2,
+      "width": 627,
+      "height": 276
+    }
+  ]
+}

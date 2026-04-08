@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-001.webp",
+      "caption": "Figure 1: GSM8K accuracy across model scales. Dashed gray: base model. Error bars: ±1σ where multi-seed data is available. The V-shaped trajectories from 3B to 7B visualize the scale-driven ranking inversion; DPO’s error bar at 3B reflects genuine seed variance (σ = 2.01 pp). At 1.5B, SGRPO achieves the highest accuracy (58.0%). Note: 0.5B–3B use full FT; 7B uses LoRA.",
+      "page": 6,
+      "index": 1,
+      "width": 650,
+      "height": 485
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-002.webp",
+      "caption": "Table 11: Compute budget breakdown on H100 80GB GPUs.",
+      "page": 15,
+      "index": 2,
+      "width": 664,
+      "height": 344
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-003.webp",
+      "caption": "Table 9: Strict-match vs. flexible-extract accuracy on GSM8K. 3B full FT values are from original single runs (pre-seed-fix). At 7B, SimPO has the best format compliance (+4.9 pp) while SFT has the worst (−3.9 pp).",
+      "page": 15,
+      "index": 3,
+      "width": 532,
+      "height": 392
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-004.webp",
+      "caption": "Table 10: General-domain evaluation at 7B (LoRA): ARC-Challenge (acc_norm), HellaSwag (acc_norm), WinoGrande (acc). Despite a 9.4 pp GSM8K spread at 7B, the general-domain spread is just 0.71 pp. Rankings bear no resemblance to GSM8K rankings.",
+      "page": 15,
+      "index": 4,
+      "width": 702,
+      "height": 231
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-005.webp",
+      "caption": "Table 3: GSM8K exact-match accuracy (%) across scales. 1.5B values are seed-fix means with ±σ across 3 seeds (Appendix G). 3B uses full FT with seed-fixed reruns; DPO reports mean ±σ over 2 seeds, ‡single seed available. LoRA results at 3B appear in Table 2. Best per scale in bold. †Epoch-1 checkpoint. ∗Pathological failure. §62.9% with flexible extraction but 10.69% strict-match, indicating format non-compliance. CISPO = Clipped Importance-Sampled Policy Optimization, a sentence-level GRPO variant with per-token ratio clipping.",
+      "page": 7,
+      "index": 5,
+      "width": 740,
+      "height": 290
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-006.webp",
+      "caption": "Figure 4: Training determinism at 0.5B: per-seed GSM8K accuracy for each algorithm across 3 seeds. Five of six algorithms produce identical accuracy (σ = 0). Only IPO shows variance (σ = 0.27).",
+      "page": 14,
+      "index": 6,
+      "width": 608,
+      "height": 373
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-007.webp",
+      "caption": "Figure 3: Training dynamics comparison at 0.5B scale. Left: training loss over steps (smoothed). Right: validation loss over epochs. DPO converges to lower loss; SimPO maintains higher, noisier loss with flat validation loss.",
+      "page": 14,
+      "index": 7,
+      "width": 814,
+      "height": 268
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-008.webp",
+      "caption": "Table 7: Shared training configuration across all experiments.",
+      "page": 13,
+      "index": 8,
+      "width": 477,
+      "height": 254
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-009.webp",
+      "caption": "Table 8: Algorithm-specific hyperparameters.",
+      "page": 13,
+      "index": 9,
+      "width": 614,
+      "height": 231
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-010.webp",
+      "caption": "Table 5: General-domain evaluation at 1.5B: ARC-Challenge (acc_norm), HellaSwag (acc_norm), WinoGrande (acc). All models trained on GSM8K. The 19.3 pp GSM8K spread collapses to 0.47 pp on general reasoning (41× compression). No method meaningfully deviates from the base model.",
+      "page": 8,
+      "index": 10,
+      "width": 702,
+      "height": 252
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-011.webp",
+      "caption": "Figure 2: GSM8K accuracy across 5 seeds for 20 DPO variants at 1.5B (100 runs total). Dashed line: vanilla DPO mean (49.76%). Error bars: ±1 std. †SimPO is the only variant significantly different from DPO (p < 0.0026 after Bonferroni correction)—and it is worse.",
+      "page": 8,
+      "index": 11,
+      "width": 814,
+      "height": 431
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-012.webp",
+      "caption": "Table 1: Taxonomy of 20 DPO variants evaluated in this study, organized by primary modification to the DPO objective (Eq. 1). All evaluated at 1.5B on GSM8K with 5 seeds.",
+      "page": 4,
+      "index": 12,
+      "width": 448,
+      "height": 506
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-013.webp",
+      "caption": "Table 6: Full DPO variant results at 1.5B scale on GSM8K (5 seeds). ∆ is the accuracy difference from vanilla DPO. † indicates statistical significance after Bonferroni correction (p < 0.0026). Cohen’s d measures practical effect size.",
+      "page": 12,
+      "index": 13,
+      "width": 686,
+      "height": 506
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19335v1/fig-014.webp",
+      "caption": "Table 13: Compute-performance Pareto frontier. GPU-h/pp = GPU-hours per percentage point gained over base. At 1.5B, SGRPO achieves highest accuracy at 10× SFT’s cost per point.",
+      "page": 16,
+      "index": 14,
+      "width": 614,
+      "height": 277
+    }
+  ]
+}

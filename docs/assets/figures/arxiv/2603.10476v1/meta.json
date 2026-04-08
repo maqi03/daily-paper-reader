@@ -1,0 +1,102 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-001.webp",
+      "caption": "Table 2: Win rate of the left model in pairwise comparisons judged for CA alignment under greedy and sampling decoding. Results report mean ± SD over three runs. Bold indicates win rates >50%.",
+      "page": 6,
+      "index": 1,
+      "width": 437,
+      "height": 306
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-002.webp",
+      "caption": "Figure 2: Evaluation-set training dynamics over 1,900 gradient steps (50-step running averages). (a) CA scores showing group-wise min (dashed), mean (solid), and max (dash-dotted). (b) Negotiation agreement rate. (c) Average rounds to agreement. Training-set curves are provided in Figure 5.",
+      "page": 6,
+      "index": 2,
+      "width": 814,
+      "height": 241
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-003.webp",
+      "caption": "Figure 1: Overview of the multi-agent negotiation-based alignment framework.",
+      "page": 2,
+      "index": 3,
+      "width": 947,
+      "height": 465
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-004.webp",
+      "caption": "Table 3: Win rate of the left model in pairwise comparisons judged for conflict-resolution quality under greedy and sampling decoding. Results report mean ± SD over three runs. Bold indicates win rates >50%. We also report the average number of negotiation rounds.",
+      "page": 7,
+      "index": 4,
+      "width": 723,
+      "height": 182
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-005.webp",
+      "caption": "Table 6: Complete library of 25 adversarial persona pairs.",
+      "page": 14,
+      "index": 5,
+      "width": 944,
+      "height": 1062
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-006.webp",
+      "caption": "Table 1: Curriculum composition with representative examples from each category.",
+      "page": 3,
+      "index": 6,
+      "width": 462,
+      "height": 436
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-007.webp",
+      "caption": "Figure 5: Training-set dynamics over 1,900 gradient steps (50-step running averages). (a) CA scores showing group-wise min (dashed), mean (solid), and max (dash-dotted). (b) Negotiation agreement rate. (c) Average rounds to agreement.",
+      "page": 18,
+      "index": 7,
+      "width": 930,
+      "height": 277
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-008.webp",
+      "caption": "Table 5: Qualitative comparison of outputs across models for a value-conflict scenario. Full texts and a dialogue output are provided in Appendix E.",
+      "page": 8,
+      "index": 8,
+      "width": 927,
+      "height": 659
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-009.webp",
+      "caption": "Table 9: Full outputs across models and pair-wise judge results for a value-conflict scenario.",
+      "page": 19,
+      "index": 9,
+      "width": 927,
+      "height": 1248
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-010.webp",
+      "caption": "Table 8: Example of open-ended questions used as curriculum for training the single-agent aligned model",
+      "page": 17,
+      "index": 10,
+      "width": 904,
+      "height": 493
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-011.webp",
+      "caption": "Table 10: Example negotiation dialogue between two self-play agents with opposing personas from the multi-agent aligned model. The input is the same as Table 9. Through iterative proposals, the agents deliberate to synthesize a solution that balances confidentiality and justice.",
+      "page": 20,
+      "index": 11,
+      "width": 961,
+      "height": 697
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10476v1/fig-012.webp",
+      "caption": "Figure 3: Cross-judge score correspondence on 100 balanced evaluation dialogues. (a) Jittered scatter plot with mean GPT-5.2 score per GPT-4o-mini level (orange line); the monotonically increasing trend confirms ordinal consistency despite differing absolute calibration. (b) Confusion heatmap with cell counts; GPT-5.2 uses a wider score range (1–4) than GPT-4o-mini (2–5), but higher training-judge scores consistently correspond to higher evaluation-judge scores.",
+      "page": 16,
+      "index": 12,
+      "width": 692,
+      "height": 317
+    }
+  ]
+}

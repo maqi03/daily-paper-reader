@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.25145v1/fig-001.webp",
+      "caption": "Fig. 1: Existing models struggle to differentiate between visual details in long-form and detailed captions. We propose caption ranking to capture fine-grained differences for video-language alignment.",
+      "page": 2,
+      "index": 1,
+      "width": 722,
+      "height": 835
+    },
+    {
+      "url": "assets/figures/arxiv/2603.25145v1/fig-002.webp",
+      "caption": "Table 1: Comparison of our proposed Caption Degradation method to other on- and off-policy DPO data generation methods with the PLM model. Captions are evaluated by LLM-as-a-Judge along Relevance (Rel.), Descriptiveness (Descr.), Temporal Consistency (Temp C.), and Fluency (Flu.) on PE-Video.",
+      "page": 7,
+      "index": 2,
+      "width": 690,
+      "height": 406
+    },
+    {
+      "url": "assets/figures/arxiv/2603.25145v1/fig-003.webp",
+      "caption": "Fig. 3: Examples from our Long-Form Multiple Choice Question Answering benchmark. Green represents the correct answer.",
+      "page": 29,
+      "index": 3,
+      "width": 508,
+      "height": 271
+    },
+    {
+      "url": "assets/figures/arxiv/2603.25145v1/fig-004.webp",
+      "caption": "Fig. 5: Qualitative comparison of our Ranking model vs. an SFT baseline. Green highlights video-grounded descriptions. The Ranking model captures finer details better than SFT. See Appendix for more in-depth comparison and examples.",
+      "page": 14,
+      "index": 4,
+      "width": 654,
+      "height": 308
+    },
+    {
+      "url": "assets/figures/arxiv/2603.25145v1/fig-005.webp",
+      "caption": "Fig. 2: Our proposed framework. Given a set of high-quality video captions, an LLM generates a totally ordered caption chain by repeatedly introducing visually-grounded errors into the previous caption. These caption chains are then used to train VLMs by having them rank the generated captions using ranking-based DPO. The captions’ similarity forces the models to pay attention to fine, visually-grounded details.",
+      "page": 3,
+      "index": 5,
+      "width": 678,
+      "height": 940
+    },
+    {
+      "url": "assets/figures/arxiv/2603.25145v1/fig-006.webp",
+      "caption": "Fig. 4: Performance of Qwen2.5-VL and PLM w.r.t number of captions utilized in the chain. Model performance generally increases with chain length.",
+      "page": 13,
+      "index": 6,
+      "width": 508,
+      "height": 294
+    }
+  ]
+}

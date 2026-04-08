@@ -1,0 +1,110 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-001.webp",
+      "caption": "Table 1: Comparison on pointwise constraint of our reward system against multiple baselines. Metric reported is Accuracy.",
+      "page": 6,
+      "index": 1,
+      "width": 798,
+      "height": 260
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-002.webp",
+      "caption": "Table 2: Comparison on pairwise preference of our reward system against multiple baselines. Metric reported is AUC.",
+      "page": 6,
+      "index": 2,
+      "width": 798,
+      "height": 238
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-003.webp",
+      "caption": "Figure 1: User interaction snapshots of open-ended generative search in RedNote. The bottom-right panel summarizes failure attribution from online user feedback.",
+      "page": 2,
+      "index": 3,
+      "width": 496,
+      "height": 374
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-004.webp",
+      "caption": "Table 4: Comparison of different optimization methods across all reward dimensions.",
+      "page": 7,
+      "index": 4,
+      "width": 627,
+      "height": 200
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-005.webp",
+      "caption": "Table 5: Detailed Definitions of Multi-Dimensional Reward Criteria.",
+      "page": 14,
+      "index": 5,
+      "width": 1056,
+      "height": 469
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-006.webp",
+      "caption": "Figure 10: Supplementary training dynamics showing the evolution of the remaining reward dimensions.",
+      "page": 14,
+      "index": 6,
+      "width": 1016,
+      "height": 672
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-007.webp",
+      "caption": "Figure 2: Overview of the alignment framework for open-ended generative search. The pipeline incorporates a multidimensional reward system that explicitly decouples non-negotiable bottom-line constraints (Layer I) from behavioral optimization objectives (Layer II). A hybrid evaluation stack, consisting of deterministic rules and human-calibrated LLM judges, computes fine-grained scores across multiple dimensions. These signals are synthesized via a gated aggregation mechanism to stabilize the learning signal for Group Relative Policy Optimization (GRPO).",
+      "page": 3,
+      "index": 7,
+      "width": 1019,
+      "height": 639
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-008.webp",
+      "caption": "Figure 8: Case Study 3 showcasing reduction of logical inconsistencies and redundancy in complex tasks",
+      "page": 13,
+      "index": 8,
+      "width": 1056,
+      "height": 545
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-009.webp",
+      "caption": "Figure 9: Screenshot of the human annotation interface. The workbench presents the query, user intent analysis, and reference notes. Annotators provide dual-granularity feedback: fine-grained scores on specific dimensions and holistic pairwise rankings.",
+      "page": 13,
+      "index": 9,
+      "width": 1056,
+      "height": 504
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-010.webp",
+      "caption": "Figure 4: Training dynamics under different reward aggregation strategies. The curves illustrate the evolution of scores across distinct reward dimensions during training, comparing the Gated Aggregation strategy against the Linear baseline.",
+      "page": 8,
+      "index": 10,
+      "width": 1016,
+      "height": 499
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-011.webp",
+      "caption": "Figure 5: Results of the online A/B test on the RedNote platform conducted in 2026. The chart displays the relative changes in key user engagement metrics for our deployed model compared to the production baseline (SFT).",
+      "page": 8,
+      "index": 11,
+      "width": 489,
+      "height": 325
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-012.webp",
+      "caption": "Figure 6: Case Study 1 highlighting improved temporal awareness for time sensitive queries",
+      "page": 12,
+      "index": 12,
+      "width": 1056,
+      "height": 497
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10473v1/fig-013.webp",
+      "caption": "Figure 7: Case Study 2 demonstrating the correction of factual hallucinations in domain specific queries",
+      "page": 12,
+      "index": 13,
+      "width": 1056,
+      "height": 568
+    }
+  ]
+}

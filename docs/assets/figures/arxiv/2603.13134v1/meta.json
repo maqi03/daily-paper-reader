@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.13134v1/fig-001.webp",
+      "caption": "Table 6. Evaluation benchmarks and sampling configuration.",
+      "page": 15,
+      "index": 1,
+      "width": 750,
+      "height": 185
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13134v1/fig-002.webp",
+      "caption": "Table 2. Main results on mathematical reasoning benchmarks. We report the average Pass@1 accuracy (%) over 32 independent runs using Qwen3-4B and Phi-4-mini. BICC denotes our Bilateral Conditioning extension applied to various GRPO-based baselines.",
+      "page": 7,
+      "index": 2,
+      "width": 1016,
+      "height": 673
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13134v1/fig-003.webp",
+      "caption": "Table 5. Variant-specific hyperparameters.",
+      "page": 14,
+      "index": 3,
+      "width": 591,
+      "height": 249
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13134v1/fig-004.webp",
+      "caption": "Figure 4. Evolution of δ distributions during training. The separation between R = 0 and R = 1 partitions widens as training progresses, reflecting the model’s increasing ability to assign higher probability to correct outputs.",
+      "page": 8,
+      "index": 4,
+      "width": 481,
+      "height": 320
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13134v1/fig-005.webp",
+      "caption": "Figure 1. Overview of the proposed methods. The standard GRPO pipeline processes query q through the policy model to generate G outputs, which are scored by reward model and normalized to compute advantages for policy gradient update. BICC partitions outputs by reward and conditions each sample on opposite-partition outputs, enabling cross-partition information flow where right and wrong attempts inform each other. RCC computes covariance between rewards and log-probability shifts to correct the advantage estimation.",
+      "page": 4,
+      "index": 5,
+      "width": 1006,
+      "height": 412
+    },
+    {
+      "url": "assets/figures/arxiv/2603.13134v1/fig-006.webp",
+      "caption": "Figure 2. Reward-confidence correlation analysis. Cov(R, δ) increases throughout training for both models. Distribution of δ at training steps 2.5k–3k shows clear separation by reward, with mean separation ∆µ = 0.27 for Qwen3-4B and 0.56 for Phi-4mini.",
+      "page": 5,
+      "index": 6,
+      "width": 480,
+      "height": 354
+    }
+  ]
+}

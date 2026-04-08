@@ -1,0 +1,142 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-001.webp",
+      "caption": "Table 4 | Rubric Transferability Results on VL-Reward-Bench, Multimodal Reward Bench, MM-RLHF-Reward Bench.",
+      "page": 11,
+      "index": 1,
+      "width": 975,
+      "height": 494
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-002.webp",
+      "caption": "Figure 10 | Qualitative comparison of rubrics generated under different proxy agent configurations (game-state reasoning example). Given the same multimodal input and a pairwise preference signal (r1 is preferred), we compare four variants: RL (no proxy) generates a rubric with an ordering/structure issue and a redundant criterion (repeated Contextual Awareness), which weakens the evaluation and leads to an incorrect preference decision; RL+Qwen2.5-VL-3B inherits the same redundancy and fails to emphasize game-state grounding, again producing a wrong verdict; RL+Qwen2.5-VL-32B improves task alignment by focusing on Accuracy of Game State Interpretation and Avoidance of Misinformation, making the rubric more discriminative and correctly preferring r1 over r2’s incorrect “middle cell” suggestion; RL+Proxy-SFT yields the most balanced and informative rubric, refining instruction quality and explicitly penalizing misleading moves, and thus outputs the correct prediction. Overall, stronger proxy agents steer the policy toward more game-aware, non-redundant rubrics that better detect incorrect strategic advice.",
+      "page": 25,
+      "index": 2,
+      "width": 983,
+      "height": 599
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-003.webp",
+      "caption": "Figure 7 | Left. With Proxy-SFT, Unified-Reward-SFT, Qwen2.5-VL-7B-Instruct, or Qwen2.5-VL-32B-Instruct as the sole proxy model, early 𝑟𝑝𝑟𝑜𝑥 𝑦 optimization shows high variance and occasional oscillations across updates. This suggests rubric-quality feedback is proxy-sensitive at the start of RL, and the proxy signal can be noisy or poorly calibrated before the policy produces consistently interpretable rubrics. Right. We evaluate ProxyGRM-RL with different proxy-model combinations across three benchmarks. Contrary to the expectation that ensembling improves verification, performance consistently degrades when combining multiple proxy reward models. This implies heterogeneous proxies may be misaligned; aggregating them can introduce conflicting gradients and hinder learning, making a single well-matched proxy preferable.",
+      "page": 21,
+      "index": 3,
+      "width": 983,
+      "height": 233
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-004.webp",
+      "caption": "Figure 1 | Overview of rubric-quality reward modeling via a proxy. Top-left: Traditional GRM training uses reward only from the final answer; rubric quality is implicit/latent, making the supervision a black box and allowing the model to guess correct answers without reliable guidance. Top-right: Our framework explicitly generates a transferable rubric alongside the final answer and optimizes the GRM with a rubric-quality reward computed by a proxy model that predicts preference given the question and generated rubric; correct proxy predictions provide strong guidance to improve rubric quality. Bottom: Data-efficiency comparison on VL-RewardBench, MultiModal Reward Bench and MM-RLHF-Reward Bench shows our method (1× data) outperforming baselines trained with ≥4× more data.",
+      "page": 2,
+      "index": 4,
+      "width": 983,
+      "height": 571
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-005.webp",
+      "caption": "Table 1 | Combined Results on VL-RewardBench, Multimodal Reward Bench, and MM-RLHF-Reward Bench. Best results are marked with a green background and second best with a yellow background.",
+      "page": 7,
+      "index": 5,
+      "width": 983,
+      "height": 479
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-006.webp",
+      "caption": "Figure 4 | Comparison of average scores across different Proxy Reward Feedback on three benchmarks. Each subplot reports the mean score for each variant, with numeric annotations above bars. Triangular markers indicate the best and worst performing variants within each benchmark. Overall, the base model achieves the highest scores on VL-RewardBench and Instructability, while performance on MM-RLHF-RewardBench remains consistently high with smaller variation across variants.",
+      "page": 10,
+      "index": 6,
+      "width": 983,
+      "height": 298
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-007.webp",
+      "caption": "Figure 8 | Qualitative comparison of rubrics generated with different proxy configurations. Given the same multimodal input and a pairwise preference signal (r1 is preferred), we compare four variants: RL (no proxy) produces a rubric with duplicated criteria (e.g., repeated Accuracy of Identification), yielding a weakly discriminative evaluation and an incorrect verdict; RL+Qwen2.5-VL-3B still fails to remove repetition, introduces an irrelevant criterion (e.g., Contextual Awareness), and misallocates weights, also leading to an incorrect prediction; RL+Qwen2.5-VL-32B replaces redundant/irrelevant items with a more task-aligned and informative criterion (Descriptive Precision), improving discriminability and producing the correct verdict; RL+Proxy-SFT generates the most discriminative, non-redundant rubric with better-balanced weights and a correct prediction. Overall, stronger proxy agents guide the policy toward more specific, task-relevant, and non-redundant rubrics.",
+      "page": 23,
+      "index": 7,
+      "width": 983,
+      "height": 600
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-008.webp",
+      "caption": "Figure 3 | Qualitative comparison of rubrics generated under different proxy agent configurations. Given the same multimodal input with a pairwise preference (r1 is preferred), we compare four variants: RL (no proxy) produces rubrics with redundant criteria and an incorrect verdict; RL+Qwen2.5-VL-3B fails to correct repetition and distorts weight allocation, also yielding an incorrect answer; RL+Qwen2.5-VL-32B introduces a more informative criterion (Contextual Awareness) and arrives at the correct verdict; RL+Proxy-SFT generates the most discriminative rubric with Contextual Relevance, balanced weights, and a correct prediction. Stronger proxy agents guide the policy toward more specific and non-redundant rubrics.",
+      "page": 8,
+      "index": 8,
+      "width": 983,
+      "height": 598
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-009.webp",
+      "caption": "Figure 2 | Training pipeline for Proxy-GRM with transferable rubrics. (A) Data & distillation. We merge multiple VLM preference datasets and apply automated filters to obtain ∼60k samples. A teacher then separates the data into Correct and Hard subsets, which are allocated to train the proxy agent and to cold-start / RL-train Proxy-GRM. (B) Proxy agent training. Starting from Qwen2.5-VL-7B-Instruct, we train a proxy agent via Proxy-SFT followed by Proxy-RL, producing an evaluator that provides rubric-quality assessment signals. (C) Proxy-GRM training. We first cold-start the GRM policy with SFT. We then perform reinforcement learning with accuracy, proxy (rubric-quality), and format rewards, and optimize with GRPO updates. (D) Transferable rubric. A rubric is transferable if an independent agent can follow it to select the correct answer; otherwise, it is non-transferable and may lead to wrong decisions despite appearing plausible.",
+      "page": 4,
+      "index": 9,
+      "width": 983,
+      "height": 559
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-010.webp",
+      "caption": "Table 6 | Results on VL-RewardBench. Best results are marked with a green background and second best with a yellow background.",
+      "page": 19,
+      "index": 10,
+      "width": 975,
+      "height": 802
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-011.webp",
+      "caption": "Figure 9 | Qualitative comparison of rubrics generated under different proxy agent configurations (action understanding example). Given the same multimodal input and a pairwise preference signal (r1 is preferred), we compare four variants: RL (no proxy) produces a generic rubric that does not sufficiently penalize hallucinated actions, resulting in an incorrect preference judgment; RL+Qwen2.5-VL-3B over-emphasizes Contextual Awareness and shifts weights away from fabrication control, failing to correct the key error and still predicting the wrong winner; RL+Qwen2.5-VL-32B uses a more task-aligned rubric that prioritizes Avoidance of Fabrication alongside observation accuracy, correctly favoring r1 over r2’s invented “unloading/moving items” details; RL+Proxy-SFT yields the most robust and balanced rubric, explicitly discouraging invented actions and consistently producing the correct verdict. Overall, stronger proxy agents guide the policy toward more hallucination-sensitive and discriminative rubrics.",
+      "page": 24,
+      "index": 11,
+      "width": 983,
+      "height": 600
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-012.webp",
+      "caption": "Table 3 | Reward feedback configurations. Each row specifies the composite reward value for the four possible combinations of accuracy reward (𝑟𝑎𝑐𝑐) and proxy reward (𝑟𝑝𝑟𝑜𝑥 𝑦) outcomes. The rightmost column indicates whether 𝑟𝑝𝑟𝑜𝑥 𝑦 is ultimately zeroed out in the final reward.",
+      "page": 9,
+      "index": 12,
+      "width": 567,
+      "height": 235
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-013.webp",
+      "caption": "Table 2 | Proxy Agent Selection Results using Proxy-GRM-RL as the base model. Best results are marked with a green background.",
+      "page": 9,
+      "index": 13,
+      "width": 748,
+      "height": 248
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-014.webp",
+      "caption": "Table 7 | Results on Multimodal Reward Bench. Best results are marked with a green background and second best with a yellow background.",
+      "page": 20,
+      "index": 14,
+      "width": 975,
+      "height": 552
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-015.webp",
+      "caption": "Table 8 | Results on MM-RLHF-Reward Bench. Best results are marked with a green background and second best with a yellow background.",
+      "page": 20,
+      "index": 15,
+      "width": 983,
+      "height": 705
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-016.webp",
+      "caption": "Figure 5 | System Prompt for Distillation and RL.",
+      "page": 16,
+      "index": 16,
+      "width": 983,
+      "height": 512
+    },
+    {
+      "url": "assets/figures/arxiv/2603.16600v1/fig-017.webp",
+      "caption": "Figure 6 | System Prompt for Rubric Evaluation.",
+      "page": 16,
+      "index": 17,
+      "width": 739,
+      "height": 575
+    }
+  ]
+}

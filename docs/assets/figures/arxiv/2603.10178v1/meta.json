@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-001.webp",
+      "caption": "Fig. 2: Illustration of how we synthesize negative samples via adversarial instruction translation. We use GPT-5.2 as the Vision Language Model.",
+      "page": 6,
+      "index": 1,
+      "width": 721,
+      "height": 188
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-002.webp",
+      "caption": "Table 2: Detailed performance on Agent/Human trajectory evaluation on ExeVRBench. We report Accuracy (Acc), Precision (Prec), and Recall (Rec). Underline indicates the second-best result, and bold indicates the best result. ExeVRM 8B achieves the best overall balance, outperforming open-source baselines and matching or exceeding strong proprietary models on most settings.",
+      "page": 11,
+      "index": 2,
+      "width": 725,
+      "height": 245
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-003.webp",
+      "caption": "Fig. 11: Prompt of ZeroGUI [73]",
+      "page": 43,
+      "index": 3,
+      "width": 725,
+      "height": 358
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-004.webp",
+      "caption": "Fig. 8: User prompt of Simplified Judge [41]",
+      "page": 38,
+      "index": 4,
+      "width": 725,
+      "height": 342
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-005.webp",
+      "caption": "Fig. 9: System prompt of Simplified Judge [41]",
+      "page": 39,
+      "index": 5,
+      "width": 725,
+      "height": 800
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-006.webp",
+      "caption": "Fig. 4: Efficiency analysis. Left: memory usage. Right: runtime.",
+      "page": 14,
+      "index": 6,
+      "width": 719,
+      "height": 294
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-007.webp",
+      "caption": "Fig. 5: Comparison of STP and TTP",
+      "page": 35,
+      "index": 7,
+      "width": 725,
+      "height": 377
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-008.webp",
+      "caption": "Fig. 10: Prompt of SE-WSM [57]",
+      "page": 40,
+      "index": 8,
+      "width": 725,
+      "height": 912
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-009.webp",
+      "caption": "Table 3: Performance comparison across different evaluation strategies. Here Tail (T) means the last screenshot and Head (H) means the first screenshot. Compact denotes a compact list of action history, while Details denotes a structured action history. Oneshot means there is an example in the prompt as a reference.",
+      "page": 12,
+      "index": 9,
+      "width": 720,
+      "height": 249
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10178v1/fig-010.webp",
+      "caption": "Fig. 7: System prompt of AER [47]",
+      "page": 37,
+      "index": 10,
+      "width": 725,
+      "height": 977
+    }
+  ]
+}

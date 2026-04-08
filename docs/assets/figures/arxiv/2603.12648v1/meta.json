@@ -1,0 +1,174 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-001.webp",
+      "caption": "Fig. 3: Reward Ranking Varies with Conditions. Reward rankings of SDE samples across multiple semantically similar yet different conditions exhibit large variations, indicating that relying on a single condition for advantage estimation is inadequate.",
+      "page": 6,
+      "index": 1,
+      "width": 708,
+      "height": 268
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-002.webp",
+      "caption": "Table 1: Quantitative comparison of different methods. The best results are in bold, while the second-best result is underlined. UR-v2-A, UR-v2-C, and UR-v2-S denote the Alignment, Coherence, and Style dimensions of UnifiedReward-v2, respectively.",
+      "page": 11,
+      "index": 2,
+      "width": 714,
+      "height": 377
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-003.webp",
+      "caption": "Fig. 14: Additional Comparison Results on HPS-v3. (2/2)",
+      "page": 25,
+      "index": 3,
+      "width": 710,
+      "height": 702
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-004.webp",
+      "caption": "Fig. 15: Additional Comparison Results on UnifiedReward-v2. (1/2)",
+      "page": 26,
+      "index": 4,
+      "width": 717,
+      "height": 709
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-005.webp",
+      "caption": "Fig. 19: Additional Visual Samples of MV-GRPO. (3/4)",
+      "page": 30,
+      "index": 5,
+      "width": 723,
+      "height": 962
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-006.webp",
+      "caption": "Fig. 18: Additional Visual Samples of MV-GRPO. (2/4)",
+      "page": 29,
+      "index": 6,
+      "width": 723,
+      "height": 962
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-007.webp",
+      "caption": "Fig. 12: Illustration of Equivalent SDE Noise. (a) Standard flow SDE generates samples based on the transition mean anchored to a single condition c. (b) When substituting c with an augmented condition c′, the transition mean shifts accordingly. To reach the original samples, an equivalent noise term ϵSDE′ is implicitly required. The µθ and µ′ θ in the figure are shorthand for µθ(xt, c) and µθ(xt, c ′), respectively.",
+      "page": 22,
+      "index": 7,
+      "width": 579,
+      "height": 410
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-008.webp",
+      "caption": "Table 9: T2I prompts used in this paper (2/2). Prompts for each figure are listed sequentially, following the order from left to right and top to bottom.",
+      "page": 34,
+      "index": 8,
+      "width": 716,
+      "height": 1056
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-009.webp",
+      "caption": "Table 4: Ablation experiments on MV-GRPO components and hyperparameters.",
+      "page": 14,
+      "index": 9,
+      "width": 716,
+      "height": 194
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-010.webp",
+      "caption": "Fig. 9: Augmented Conditions. MV-GRPO generates diverse augmented conditions by leveraging variations among SDE samples and multi-view descriptive prompts.",
+      "page": 14,
+      "index": 10,
+      "width": 718,
+      "height": 184
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-011.webp",
+      "caption": "Fig. 2: Reward Evaluation in GRPO Training. (a) Standard flow-based GRPO methods evaluate generated samples under the single original condition, resulting in sparse reward mapping and insufficient inter-sample relationship exploration. (b) Our MV-GRPO leverages an augmented set of conditions to facilitate a dense multi-view mapping, fostering a comprehensive exploration of relationship among samples.",
+      "page": 3,
+      "index": 11,
+      "width": 721,
+      "height": 212
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-012.webp",
+      "caption": "Fig. 17: Additional Visual Samples of MV-GRPO. (1/4)",
+      "page": 28,
+      "index": 12,
+      "width": 723,
+      "height": 962
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-013.webp",
+      "caption": "Fig. 8: Qualitative Comparisons with Baselines on UnifiedReward-v2.",
+      "page": 13,
+      "index": 13,
+      "width": 644,
+      "height": 639
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-014.webp",
+      "caption": "Fig. 10: VLM Prompt Template. It integrates a descriptive instruction from PVLM, along with an image and its original text prompt, to construct a complete VLM prompt for querying the VLM Condition Enhancer to obtain augmented conditions.",
+      "page": 19,
+      "index": 14,
+      "width": 721,
+      "height": 679
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-015.webp",
+      "caption": "Fig. 22: Results using same prompts and different seeds. (UR-v2)",
+      "page": 32,
+      "index": 15,
+      "width": 639,
+      "height": 515
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-016.webp",
+      "caption": "Fig. 21: Results using same prompts and different seeds. (HPS-v3)",
+      "page": 32,
+      "index": 16,
+      "width": 639,
+      "height": 518
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-017.webp",
+      "caption": "Fig. 7: Qualitative Comparisons with Baselines on HPS-v3.",
+      "page": 12,
+      "index": 17,
+      "width": 636,
+      "height": 633
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-018.webp",
+      "caption": "Fig. 16: Additional Comparison Results on UnifiedReward-v2. (2/2)",
+      "page": 27,
+      "index": 18,
+      "width": 708,
+      "height": 698
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-019.webp",
+      "caption": "Fig. 13: Additional Comparison Results on HPS-v3. (1/2)",
+      "page": 24,
+      "index": 19,
+      "width": 710,
+      "height": 702
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-020.webp",
+      "caption": "Fig. 20: Additional Visual Samples of MV-GRPO. (4/4)",
+      "page": 31,
+      "index": 20,
+      "width": 723,
+      "height": 962
+    },
+    {
+      "url": "assets/figures/arxiv/2603.12648v1/fig-021.webp",
+      "caption": "Fig. 11: LLM Prompt Template. This template incorporates a specific operation from PLLM and a memory buffer of prior outputs, guiding the LLM Condition Enhancer to refine the original text prompt into diverse augmented conditions.",
+      "page": 20,
+      "index": 21,
+      "width": 723,
+      "height": 756
+    }
+  ]
+}

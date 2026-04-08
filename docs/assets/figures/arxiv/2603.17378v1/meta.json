@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.17378v1/fig-001.webp",
+      "caption": "Figure 1 | The plots are of performance, in terms of the win rate over a baseline policy, as functions of the amount of human feedback, in terms of the number of choices observed. Efficient exploration shifts the scaling law.",
+      "page": 2,
+      "index": 1,
+      "width": 674,
+      "height": 321
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17378v1/fig-002.webp",
+      "caption": "Figure 4(right) demonstrates the benefit.",
+      "page": 7,
+      "index": 2,
+      "width": 968,
+      "height": 245
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17378v1/fig-003.webp",
+      "caption": "Figure 8 | Win rate against the baseline policy as a function of the amount of feedback collected to adapt the language model.",
+      "page": 10,
+      "index": 3,
+      "width": 674,
+      "height": 312
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17378v1/fig-004.webp",
+      "caption": "Figure 9 | (a) Extrapolation of win rates attained by efficient exploration and offline RLHF. We fit a function of the form 𝑤(𝑛) = 1 − 0.5(𝑛/𝑎)−𝑏, with parameters 𝑎 and 𝑏. (b) Projected gain in data efficiency relative to offline RLHF. The projected gain is computed using extrapolations from (a). With 1M labels, the efficient exploration algorithm is predicted to attain a 1,000x gain in data efficiency.",
+      "page": 10,
+      "index": 4,
+      "width": 948,
+      "height": 317
+    }
+  ]
+}

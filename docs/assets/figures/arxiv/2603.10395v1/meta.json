@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-001.webp",
+      "caption": "Table 2. Experimental results on the protein docking task on ZINC250k (Irwin et al., 2012). Baseline results are taken from GDPO (Liu et al., 2024). We use the same benchmark evaluation protocol for a fair comparison. The best results are highlighted in bold.",
+      "page": 6,
+      "index": 1,
+      "width": 1013,
+      "height": 265
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-002.webp",
+      "caption": "Figure 8. Evolution of generated molecules across training epochs on the JNK3 task. We showcase samples obtained at different stages of training.",
+      "page": 15,
+      "index": 2,
+      "width": 1017,
+      "height": 427
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-003.webp",
+      "caption": "Figure 7. Visualization of predicted clean states ẑ1. We display the clean graphs predicted by the denoiser at different time steps. The model infers the global topology of the target molecule early in the denoising process.",
+      "page": 15,
+      "index": 3,
+      "width": 996,
+      "height": 188
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-004.webp",
+      "caption": "Table 3. Target property optimization results on the PMO benchmark (Gao et al., 2022) (AUC-top10). Baseline results are taken from InVirtuoGen (Kaech et al., 2025) and GenMol (Lee et al., 2025). Results are shown for both prescreening and cold-start settings, with best scores highlighted in bold.",
+      "page": 7,
+      "index": 4,
+      "width": 1013,
+      "height": 479
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-005.webp",
+      "caption": "Figure 6. Comparison of learned prior distributions between the pre-trained DeFoG backbone and Graph-GRPO on the DRD2 task. The histograms illustrate the (Left) Node Type, (Middle) Edge Type, and (Right) Node Count distributions. Graph-GRPO dynamically aligns these priors with the characteristics of high-reward candidates, resulting in significant distributional shifts and sharper concentrations compared to the static baseline.",
+      "page": 13,
+      "index": 5,
+      "width": 1003,
+      "height": 299
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-006.webp",
+      "caption": "Figure 4. Visualization of the sampling trajectory. From left to right, the graphs Gt move from a prior distribution (t = 0) to the data distribution (t = 1). Visualizations of the predicted clean state ẑ1 at the corresponding time steps are provided in Figure 7.",
+      "page": 8,
+      "index": 6,
+      "width": 1013,
+      "height": 202
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-007.webp",
+      "caption": "Figure 2. The overall framework of Graph-GRPO. (1) Rollout: given a noisy graph, the policy model samples K denoising trajectories and caches the graph state zt+∆t along with its transition probability pold t+∆t. In the meantime, we normalize the reward scores to calculate the advantage of each trajectory. (2) RL training: we select a graph Gt from the rollouts and use the new policy model to estimate the transition probabilities pt+∆t. Graph-GRPO maximizes the rewards by optimizing the advantage-weighted ratio in Eq. 14.",
+      "page": 4,
+      "index": 7,
+      "width": 1017,
+      "height": 452
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-008.webp",
+      "caption": "Table 7. Extended Graph Generation Performance on Synthetic Graphs. We report the detailed MMD metrics and validity statistics. We only report the performance of Graph-GRPO (Ours) based on our own experiments, averaged over 5 runs.",
+      "page": 17,
+      "index": 8,
+      "width": 1008,
+      "height": 705
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10395v1/fig-009.webp",
+      "caption": "Table 1. Graph generation performance on two synthetic datasets: Planar and Tree. Results are reported as mean± standard deviation over five sampling runs, each generating 40 graphs.",
+      "page": 5,
+      "index": 9,
+      "width": 488,
+      "height": 313
+    }
+  ]
+}

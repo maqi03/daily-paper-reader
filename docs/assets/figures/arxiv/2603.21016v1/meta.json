@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.21016v1/fig-001.webp",
+      "caption": "Table 4: Performance comparison of Direct vs. Chain-of-Thought (CoT) inference strategies. We report Accuracy, Consistency, and Consistent Accuracy for both the Base model and PA-GRPO across seven benchmarks. The best results are bolded.",
+      "page": 15,
+      "index": 1,
+      "width": 933,
+      "height": 192
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21016v1/fig-002.webp",
+      "caption": "Table 1: Main results on Llama-3.1-8B-Instruct, Qwen3-8B, and Qwen3-32B across 7 benchmarks. All scores are rounded to one decimal place. PA-GRPO results show the absolute score (top) and the gain/drop compared to the best baseline (bottom). Bold indicates the best result in each column.",
+      "page": 7,
+      "index": 2,
+      "width": 927,
+      "height": 532
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21016v1/fig-003.webp",
+      "caption": "Table 2: Ablation study on Llama-3.1-8B-Instruct across all 7 benchmarks. We group datasets into LLM-as-a-Judge tasks and MCQ tasks. The best results are bolded. Adding both components (APA and rcon) consistently yields the best robustness.",
+      "page": 7,
+      "index": 3,
+      "width": 925,
+      "height": 202
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21016v1/fig-004.webp",
+      "caption": "Table 3: Impact of the consistency reward coefficient (λ) on Llama-3.1-8B-Instruct. We group datasets into LLM-as-a-Judge tasks and MCQ tasks. λ = 1.0 achieves the best balance. The best results are bolded.",
+      "page": 8,
+      "index": 4,
+      "width": 933,
+      "height": 182
+    },
+    {
+      "url": "assets/figures/arxiv/2603.21016v1/fig-005.webp",
+      "caption": "Figure 2: Comparison between Standard GRPO (left) and the proposed PA-GRPO (right). Standard GRPO treats permuted prompts as independent samples, suffering from permutation blindness where inconsistency goes unpunished. In contrast, PA-GRPO organizes samples into Permutation Groups. It introduces (1) a CrossPermutation Advantage (using the permutation group mean as a baseline) and (2) a Consistency-Aware Reward to explicitly enforce semantic invariance across different permutations of the same instance.",
+      "page": 4,
+      "index": 5,
+      "width": 929,
+      "height": 474
+    }
+  ]
+}

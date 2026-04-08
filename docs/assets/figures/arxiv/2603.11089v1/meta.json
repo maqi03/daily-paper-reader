@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.11089v1/fig-001.webp",
+      "caption": "Fig. 1. Illustration of the proposed V2A-DPO framework, including (a) our proposed AudioScore to rate the generated audio with multidimensional scores; (b) omni-preference pair data generation combining the automatically generated preference pairs based on AudioScore with a small amount of human-annotated preference pairs; (c) curriculum learning-empowered DPO to optimize V2A models on the complex and simple pairs gradually, which are split according to complexity score scorec.",
+      "page": 3,
+      "index": 1,
+      "width": 964,
+      "height": 463
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11089v1/fig-002.webp",
+      "caption": "Table 2. Ablation study on the effect of the KL divergence constraint parameter β and preset threshold score∆ on the performance of optimized MMAudio using V2A-DPO.",
+      "page": 4,
+      "index": 2,
+      "width": 517,
+      "height": 252
+    }
+  ]
+}

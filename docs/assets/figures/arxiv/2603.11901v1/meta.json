@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-001.webp",
+      "caption": "Table 1. Performance on Maximizing Interest across KuaiRec and MovieLens-1M. FlexRec achieves superior single-need ranking performance compared with baselines.",
+      "page": 7,
+      "index": 1,
+      "width": 1012,
+      "height": 344
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-002.webp",
+      "caption": "Table 2. Need generalization results (train: Maximizing Interest, test: Explore New Topics) indicate that FlexRec transfers strong ranking abilities effectively across needs.",
+      "page": 7,
+      "index": 2,
+      "width": 1012,
+      "height": 384
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-003.webp",
+      "caption": "Table 7. Ablation of reward formulations for GRPO and PPO on the KuaiRec Maximizing Interest task under the dense-interaction setting.",
+      "page": 18,
+      "index": 3,
+      "width": 709,
+      "height": 181
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-004.webp",
+      "caption": "Table 9. Performance on the Maximizing Interest need on dense version of KuaiRec.",
+      "page": 18,
+      "index": 4,
+      "width": 659,
+      "height": 307
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-005.webp",
+      "caption": "Figure 4. Validation NDCG@5 and NDCG@10 during training under different reward signals (UA denotes uncertainty-aware update), showing that a learned critic with uncertainty-aware GRPO achieves the strongest and most stable learning.",
+      "page": 8,
+      "index": 5,
+      "width": 473,
+      "height": 310
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-006.webp",
+      "caption": "Table 3. Performance on Amazon Product Search (BERT4Rec not applicable to non-sequential setting), showing that FlexRec is effective not only for sequential recommendation but also for non-sequential ranking tasks such as product search.",
+      "page": 8,
+      "index": 6,
+      "width": 492,
+      "height": 290
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-007.webp",
+      "caption": "Figure 3. Validation NDCG@5 and NDCG@10 during training under different reward designs, showing that FlexRec’s swap-based item-level reward outperforms sequence-level GRPO.",
+      "page": 8,
+      "index": 7,
+      "width": 472,
+      "height": 302
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-008.webp",
+      "caption": "Figure 1. Overall framework of FlexRec. Given a candidate set and an explicit user need, an LLM recommender generates ranked rollouts. An item-level reward is computed by evaluating the marginal contribution of individual item placements via counterfactual swaps (top right). A critic predicts both the expected interaction reward and its uncertainty for unobserved interactions. These estimates are used to form uncertainty-aware advantages, down-weighting unreliable signals during optimization (bottom).",
+      "page": 4,
+      "index": 8,
+      "width": 917,
+      "height": 421
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11901v1/fig-009.webp",
+      "caption": "Table 6. Need generalization results (train: Maximizing Interest, test: Trend Promotion) indicate that FlexRec transfers strong ranking abilities effectively across needs.",
+      "page": 17,
+      "index": 9,
+      "width": 812,
+      "height": 306
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-001.webp",
+      "caption": "Table 1. Main Results: We compare StateFactory with baselines across RewardPrediction benchmark. StateFactory establishes a new SOTA among zero-shot methods and approaches supervised baselines. Bold and underline denote the best and second-best results.",
+      "page": 6,
+      "index": 1,
+      "width": 1076,
+      "height": 394
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-002.webp",
+      "caption": "Table 13. Ablation Study I: Representation. We compare varying state representation granularity across five domains. The results demonstrate that structured representations significantly outperform unstructured text, with our Object-Attribute approach achieving the lowest EPIC Distance (↓).",
+      "page": 26,
+      "index": 2,
+      "width": 1086,
+      "height": 188
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-003.webp",
+      "caption": "Table 15. Ablation Study III: Semantic Embeddings. We evaluate StateFactory using five different embedding backbones. We report the EPIC Distance (↓) on downstream tasks and the Triplet Accuracy (↑) on our synthetic probing dataset. Results show a strong correlation: models with higher Triplet Accuracy (better semantic discriminability) consistently yield lower EPIC distances.",
+      "page": 26,
+      "index": 3,
+      "width": 1086,
+      "height": 209
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-004.webp",
+      "caption": "Table 12. Polarity Decision Boundaries. We evaluate whether the embedding models correctly rank the semantic paraphrase higher than the distractor. While most models robustly handle spatial contradictions (Case 1), failures in Topic Distraction (Case 2) reveal that some architectures prioritize lexical co-occurrence over factual truth conditions.",
+      "page": 26,
+      "index": 4,
+      "width": 1086,
+      "height": 275
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-005.webp",
+      "caption": "Table 8. Detailed Baseline Prompt Templates. We strictly follow the provided prompt structures for both variants under the Full-History Protocol. The CoT variant (Part I) uses a standard helper system prompt, while the Zero-Shot variant (Part II) explicitly injects a [Without Thinking] constraint in the system prompt to suppress reasoning.",
+      "page": 21,
+      "index": 5,
+      "width": 1086,
+      "height": 727
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-006.webp",
+      "caption": "Figure 1. RewardPrediction benchmark Overview. Given a textual goal description, the model computes step-wise progress estimates [𝑟𝑡 ]𝑛𝑡=0 from sequences of action-observation pairs. The reward predictions are compared against ground-truth [𝑟𝑡 ]𝑛𝑡=0 using EPIC distance [Gleave et al., 2020] to quantify alignment.",
+      "page": 2,
+      "index": 6,
+      "width": 527,
+      "height": 342
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-007.webp",
+      "caption": "Figure 5. StateFactory ablation experiments. We report the EPIC distance (𝐷EPIC) across settings (a-d) and Triplet-based Accuracy for embedding models (e). For metrics, lower 𝐷EPIC and higher Accuracy indicate better performance. Specifically, Triplet-based Accuracy reflects the model’s capability to enforce smaller distances for positive pairs compared to negative ones. Red hatched bars highlight the best performing configurations. Conversely, blue hatched bars indicate the worst performing ones.",
+      "page": 7,
+      "index": 7,
+      "width": 1086,
+      "height": 585
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-008.webp",
+      "caption": "Table 9. Semantic State Factorization Templates. This pipeline constitutes the first half of the StateFactory method. Module A grounds raw observations into structured states, while Module B filters and refines these states to maintain a coherent, task-relevant history.",
+      "page": 22,
+      "index": 8,
+      "width": 1086,
+      "height": 1185
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-009.webp",
+      "caption": "Table 28. Visualized Positive Sample (WebShop). Task: \"women ankle strap sandal, black, < 80.00 dollars.\" The agent navigates through multiple search pages, identifies a compliant item (Gibobby Sandals, $1.87-$3.37), selects the required ’black’ attribute, and completes the purchase.",
+      "page": 34,
+      "index": 9,
+      "width": 1086,
+      "height": 217
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-010.webp",
+      "caption": "Table 24. Visualized Positive Sample (BlocksWorld). Task: \"red on blue, blue on orange.\" The agent dismantles the initial wrong pile (Red on Orange on Blue) and reconstructs it in the correct order.",
+      "page": 34,
+      "index": 10,
+      "width": 1086,
+      "height": 241
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-011.webp",
+      "caption": "Figure 2. RewardPrediction Benchmark Overview. Representative trajectories across five diverse domains. Each column displays a task instance with actions, observations, and the corresponding ground-truth task progress score (𝑅 ∈ [0, 1]) at key time steps.",
+      "page": 3,
+      "index": 11,
+      "width": 1086,
+      "height": 500
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-012.webp",
+      "caption": "Table 19. Visualized Negative Sample (ScienceWorld). Task: \"find a(n) living thing... move it to the yellow box.\" The agent performs irrelevant interactions (connecting air, mixing door) that fail to advance the specific task objective.",
+      "page": 33,
+      "index": 12,
+      "width": 1086,
+      "height": 345
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-013.webp",
+      "caption": "Table 31. Visualized Negative Sample (TextWorld). Task: \"lift the cuboid keycard... take the knife... place the knife on the board.\" The agent interacts with irrelevant objects (mop, fridge) and picks up the wrong keycard (Type T instead of Cuboid), failing to progress.",
+      "page": 35,
+      "index": 13,
+      "width": 1086,
+      "height": 186
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-014.webp",
+      "caption": "Table 29. Visualized Negative Sample (WebShop). Task: \"women ankle strap sandal, black, < 80.00 dollars.\" The agent performs a completely irrelevant search (\"plant based\") and interacts with food items (Jerky) instead of footwear, failing the task constraints entirely.",
+      "page": 35,
+      "index": 14,
+      "width": 1086,
+      "height": 208
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-015.webp",
+      "caption": "Table 30. Visualized Positive Sample (TextWorld). Task: \"lift the cuboid keycard... take the knife... place the knife on the board.\" After an initial inspection, the agent executes a perfect sequence: getting the key, unlocking the chest, retrieving the knife, and placing it on the target.",
+      "page": 35,
+      "index": 15,
+      "width": 1086,
+      "height": 196
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-016.webp",
+      "caption": "Table 4. Visualized Positive Sample (AlfWorld). Task: \"put a hot potato in diningtable.\" The expert segment (𝑡 = 0-5) receives interpolated dense rewards, while the final random augmentation (𝑡 = 6) inherits the native success signal.",
+      "page": 18,
+      "index": 16,
+      "width": 1072,
+      "height": 212
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-017.webp",
+      "caption": "Table 5. Visualized Negative Sample (AlfWorld). Task: \"put a hot potato in diningtable.\" A completely random trajectory where actions fail to advance the task state, resulting in a consistent zero reward.",
+      "page": 18,
+      "index": 17,
+      "width": 1072,
+      "height": 204
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-018.webp",
+      "caption": "Table 10. Dynamic Goal Interpretation Template. As the second stage of the StateFactory method, this component maintains a persistent yet evolving definition of success, strictly distinguishing between the agent’s “plans” and the task’s “goals”.",
+      "page": 23,
+      "index": 18,
+      "width": 1086,
+      "height": 1252
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-019.webp",
+      "caption": "Table 2. Success Rate on AlfWorld, BlocksWorld, and ScienceWorld. Results show that ReAct + StateFactory consistently improves performance in following domains.",
+      "page": 8,
+      "index": 19,
+      "width": 528,
+      "height": 1309
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-020.webp",
+      "caption": "Figure 3. Two paradigms of reward prediction. Unlike representationfree methods that regress rewards directly from raw inputs (top), representation-based frameworks derive progress signals by measuring the alignment between factorized state representations 𝑠𝑡 and goal interpretations 𝑔𝑡 (bottom).",
+      "page": 4,
+      "index": 20,
+      "width": 500,
+      "height": 398
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-021.webp",
+      "caption": "Table 3. Statistics of the RewardPrediction Benchmark. We report the total number of positive and negative trajectory pairs, the type of native reward signal provided by the environment, and the nature of tasks across different domains.",
+      "page": 17,
+      "index": 21,
+      "width": 1086,
+      "height": 186
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-022.webp",
+      "caption": "Table 18. Visualized Positive Sample (ScienceWorld). Task: \"find a(n) living thing... move it to the yellow box.\" The agent successfully navigates to the outside, identifies the target (baby wolf), and transports it to the goal location.",
+      "page": 32,
+      "index": 22,
+      "width": 1086,
+      "height": 356
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-023.webp",
+      "caption": "Table 17. Trajectory Trace of Case Study 1: “Task: Look at CD under the desklamp.” This case demonstrates the internal logic of the StateFactory engine, specifically how it facilitates dynamic goal interpretation by anchoring abstract instructions to crystallized physical entities (𝑔𝑡 ). By extracting structured states (𝑠𝑡 ) from observations, the engine generates continuous reward gradients (Relative Gain) that guide the MCTS search. Note the significant reward spikes upon environmental constraint satisfaction (Step 7) and the identification of the target entity (Step 8), which effectively steers the agent away from redundant exploration towards a successful execution path.",
+      "page": 32,
+      "index": 23,
+      "width": 1086,
+      "height": 440
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-024.webp",
+      "caption": "Table 16. Ablation Study IV: LLM Backbone. We compare different LLM backbones driving the StateFactory pipeline. Lower EPIC distance (↓) indicates better alignment with ground-truth progress. The results highlight that “Thinking” variants (Reasoning-Enhanced) and larger parameter scales consistently improve reward precision.",
+      "page": 27,
+      "index": 24,
+      "width": 1086,
+      "height": 251
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-025.webp",
+      "caption": "Table 11. Prompt Variations for representation Structural Granularity. We utilized the same backbone and input context across all levels, varying only the Output Schema and Description Constraints to isolate the effect of structural depth.",
+      "page": 24,
+      "index": 25,
+      "width": 1086,
+      "height": 775
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-026.webp",
+      "caption": "Table 7. Task-Specific Training Details. Comparison of dataset scale, compute resources, and training duration across tasks. Global batch size (BS) scales with GPU count.",
+      "page": 20,
+      "index": 26,
+      "width": 1110,
+      "height": 246
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-027.webp",
+      "caption": "Table 6. Common Hyperparameters. These settings were fixed across all experiments.",
+      "page": 20,
+      "index": 27,
+      "width": 402,
+      "height": 370
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09400v1/fig-028.webp",
+      "caption": "Figure 4. StateFactory Framework. State extraction and goal interpretation are coupled recurrent processes (left). Our approach factorizes states into explicit objects and attributes (right), deriving dense rewards from semantic similarity between 𝑠𝑡 and ?̂?𝑡 .",
+      "page": 5,
+      "index": 28,
+      "width": 1086,
+      "height": 252
+    }
+  ]
+}

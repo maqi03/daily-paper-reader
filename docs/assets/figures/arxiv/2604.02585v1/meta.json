@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-001.webp",
+      "caption": "Table 11: Effects of test-time bias mitigation strategies on representative frontier and openweight models. We report bias scores, and statistically significant differences (p < 0.05) based on Wilcoxon signed-rank tests are marked with *. The best performing model in each row is bolded.",
+      "page": 21,
+      "index": 1,
+      "width": 822,
+      "height": 316
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-002.webp",
+      "caption": "Table 10: Prediction accuracy of frontier models (Gemini 3.1-Flash-Lite, GPT5, and Claude Haiku 4.5) and open-weight (Llama- and Qwen-Instruct) models. We report the RMSE and Spearman’s rank correlation between model and human evaluations (with p-values less than < 0.05 noted with *). - indicates that the model outputs a constant value for all input transcripts. The best performing model in each row is bolded.",
+      "page": 21,
+      "index": 2,
+      "width": 818,
+      "height": 356
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-003.webp",
+      "caption": "Figure 1: Given a document input X and a query, the model outputs an evaluation of the quality of X but is undesirably swayed by spurious social context, such as the teacher’s level of certification. While a teacher’s certification may affect their instructional quality, given the same transcript, the model’s prediction should not change based on whether or not the teacher has a prestigious certification.",
+      "page": 2,
+      "index": 3,
+      "width": 826,
+      "height": 211
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-004.webp",
+      "caption": "Table 1: Evaluation of 7 frontier models (Gemini 3.1 Flash-Lite, GPT5, and Claude Haiku 4.5) and open-weight (Llama- and Qwen-Instruct) models. We report model sensitivity defined in Equation (1). Statistically significant differences (p < 0.05) based on Wilcoxon signed-rank tests are marked with *.",
+      "page": 7,
+      "index": 4,
+      "width": 818,
+      "height": 492
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-005.webp",
+      "caption": "Table 2: Prediction accuracy of varying-sized models. We report the prediction error and Spearman’s rank correlation between model and expert evaluations (with p-values less than < 0.05 denoted with *). Best performing model in each row is bolded.",
+      "page": 7,
+      "index": 5,
+      "width": 818,
+      "height": 196
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-006.webp",
+      "caption": "Table 12: Evaluation of frontier models (Gemini 3.1 Flash-Lite, GPT5, and Claude Haiku 4.5) and open-weight (Llama- and Qwen-Instruct) models against demographic contexts (e.g., intersectional gender and race identities, race, gender). We report bias scores△d c,m across teacher instructional quality criteria c, dimensions d, and models m. The least sensitive model in each row based on both statistical insignificance and the smallest value of |△d c,m| is bolded. Statistically significant differences (p < 0.05) based on Wilcoxon signed-rank tests are marked with *.",
+      "page": 22,
+      "index": 6,
+      "width": 822,
+      "height": 969
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-007.webp",
+      "caption": "Table 7: Spurious context attacks used for evaluation. For each factor, we create both a positive and a negative statement to evaluate whether the model’s prediction based on the context injection. The positive and negative contexts targeting the demographics are based on the majority and minority of teachers in U.S. public school data; we use the majority profile as the positive context and the minority profile as the negative context.",
+      "page": 18,
+      "index": 7,
+      "width": 832,
+      "height": 769
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-008.webp",
+      "caption": "Figure 3: Score distribution across the entire NCTE transcripts (including both training and test data points). Target label imbalance makes supervised learning difficult, and the ranking correlation between the predicted and true scores may remain low even when the RMSE is reduced via empirical risk minimization. Improving the prediction capabilities of the language models remains an important problem along with improving their robustness against spurious features.",
+      "page": 23,
+      "index": 8,
+      "width": 664,
+      "height": 333
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-009.webp",
+      "caption": "Table 4: Qualitative comparison of model-generated reasoning based on spurious contexts shows that even for the same transcript input, the model provides different rationales focusing on the teacher’s asset versus deficit.",
+      "page": 8,
+      "index": 9,
+      "width": 827,
+      "height": 306
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-010.webp",
+      "caption": "Table 8: Instructional quality evaluation criteria. For each dimension, we use the rubric from prior work (Wang & Demszky, 2023) to prompt the LLM with the prediction task.",
+      "page": 19,
+      "index": 10,
+      "width": 834,
+      "height": 1002
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-011.webp",
+      "caption": "Figure 4: Llama-8B-Instruct training curves. Left: Debiasing DPO (continues improving after 1 epoch on the same data; empirically we observe that training for 2 iterations using the same data helps). Right: DPO Counterfactual shows that learning plateaus around 80 steps.",
+      "page": 24,
+      "index": 11,
+      "width": 802,
+      "height": 221
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-012.webp",
+      "caption": "Table 5: Training effectiveness. We report the prediction error and Spearman rank correlation between model- and human-ranking consistency; statistically significant correlations with p < 0.05 are marked with *. ✓and ✗indicate that the model’s bias is statistically significant or insignificant, respectively. All models are trained using teacher experience as the spurious context category.",
+      "page": 9,
+      "index": 12,
+      "width": 831,
+      "height": 319
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-013.webp",
+      "caption": "Table 9: We report bias scores△d c,m across teacher instructional quality criteria c, dimensions d, and models m. The least sensitive model in each row is bolded with statistically significant differences marked with *. For demographic, we compare ‘White Woman’ versus ‘Black Man’. For other demographic identities, refer to Appendix 12.",
+      "page": 20,
+      "index": 13,
+      "width": 818,
+      "height": 1179
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02585v1/fig-014.webp",
+      "caption": "Figure 2: Both baseline implementations of DPO only focus on debiasing. In contrast, Debiasing-DPO uses the model’s reasoning traces R̂ to debias and combines DPO with SFT using expert labels to improve both robustness and predictive accuracy.",
+      "page": 5,
+      "index": 14,
+      "width": 826,
+      "height": 211
+    }
+  ]
+}

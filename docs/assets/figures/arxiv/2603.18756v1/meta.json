@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.18756v1/fig-001.webp",
+      "caption": "Figure 1: Training metrics (10-step running average).",
+      "page": 6,
+      "index": 1,
+      "width": 760,
+      "height": 1051
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18756v1/fig-002.webp",
+      "caption": "Table 4: Hyper-parameters used for training on GSM8K.",
+      "page": 21,
+      "index": 2,
+      "width": 475,
+      "height": 952
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18756v1/fig-003.webp",
+      "caption": "Table 1: Performance of trained models on English Math benchmarks. All models are trained using gsm8k Dataset.",
+      "page": 7,
+      "index": 3,
+      "width": 890,
+      "height": 559
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18756v1/fig-004.webp",
+      "caption": "Table 2: Performance of trained models on Chinese Math benchmarks. All models are trained using gsm8k Dataset.",
+      "page": 7,
+      "index": 4,
+      "width": 656,
+      "height": 538
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18756v1/fig-005.webp",
+      "caption": "Table 3: Performance of trained models on STEM benchmarks (English: MMLU, Chinese: Gaokao2024). All models are trained using gsm8k Dataset.",
+      "page": 8,
+      "index": 5,
+      "width": 830,
+      "height": 536
+    },
+    {
+      "url": "assets/figures/arxiv/2603.18756v1/fig-006.webp",
+      "caption": "Figure 2: Comparison of answers with and without reasoning traces.",
+      "page": 9,
+      "index": 6,
+      "width": 813,
+      "height": 212
+    }
+  ]
+}

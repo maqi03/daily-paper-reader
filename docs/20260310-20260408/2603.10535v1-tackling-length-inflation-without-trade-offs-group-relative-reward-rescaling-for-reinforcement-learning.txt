@@ -1,0 +1,1007 @@
+Title: Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning
+
+URL Source: https://arxiv.org/pdf/2603.10535v1
+
+Published Time: Thu, 12 Mar 2026 00:41:20 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Zichao Li 1 2 Jie Lou 3 Fangchen Dong 3 Zhiyuan Fan 3 Mengjie Ren 1 2 Hongyu Lin 1 Xianpei Han 1
+
+Debing Zhang 3 Le Sun 1 Yaojie Lu 1 Xing Yu 3
+
+## Abstract 
+
+Reinforcement learning significantly enhances LLM capabilities but suffers from a critical issue: 
+
+length inflation , where models adopt verbosity or inefficient reasoning to maximize rewards. Prior approaches struggle to address this challenge in a general and lossless manner, primarily because additive penalties introduce a compensatory effect that creates optimization shortcuts, while heuris-tic gating strategies lack generality beyond binary feedback. To bridge this gap, we present Group Relative Reward Rescaling (GR 3), which re-frames length control as a multiplicative rescaling paradigm, effectively establishing a generalized, continuous, and reward-dependent gating mech-anism. To further ensure lossless optimization, we incorporate group-relative regularization and advantage-aware calibration, which dynamically adapt length budgets to instance difficulty and preserve the advantage signal of high-quality tra-jectories. Empirically, across both RLHF and RLVR settings, GR 3 maintains training dynamics and downstream performance comparable to stan-dard GRPO while significantly mitigating length inflation, outperforming state-of-the-art length-regularized baselines. 
+
+## 1. Introduction 
+
+Reinforcement learning (RL) (Bai et al., 2022; Guo et al., 2025) has become the engine of post-training for Large Lan-guage Models (LLMs) (Achiam et al., 2023; Team et al., 2023). Yet this engine exhibits a persistent flaw, which we term length inflation : a tendency for RL-trained models to produce unnecessarily lengthy trajectories, inflating in-
+
+> 1
+
+Chinese Information Processing Laboratory, Institute of Software, Chinese Academy of Sciences 2University of Chi-nese Academy of Sciences 3Xiaohongshu Inc. Correspondence to: Jie Lou <loujie0822@gmail.com >, Yaojie Lu <luyao-jie@iscas.ac.cn >.
+
+Preprint. 4000 6000 8000 10000 12000 14000  
+
+> Tokens ( )
+> 36
+> 38
+> 40
+> 42
+> 44
+> 46
+> avg@32 (  )
+> GR³
+
+AIME-25: Score vs. Length (7B)  
+
+> R1-Distill
+> LCR1
+> Laser-DE
+> AdaptThink
+> DLER
+> GR 3breaks the performance length trade-off.
+
+Figure 1. Comparison of GR 3 with open-source efficient reasoning models, all trained on DeepSeek-R1-Distill-7B. GR 3 pioneers a new paradigm that sustains stable performance gains under RL while simultaneously mitigating the length inflation issue. 
+
+ference costs without proportional gains in quality. This phenomenon arises across major RL paradigms. In RL from human feedback (RLHF) (Ouyang et al., 2022), models exploit reward-model biases toward verbosity, leading to reward hacking (Gao et al., 2023). In RL with verifiable rewards (RLVR) (Shao et al., 2024), length inflation instead stems from reasoning inefficiency (Sui et al., 2025), where models generate unnecessarily long chains of thought to marginally improve the likelihood of a correct solution. Prior work has sought to mitigate length inflation. One line of research trains reward models that are invariant to response length (Chen et al., 2024a; Liu et al., 2024). While effective in RLHF, this strategy does not extend to RLVR, where rewards are derived from ground-truth verifiers rather than learned proxies that can be debiased. A more general direction instead introduces explicit length penalties into the reward (Luo et al., 2025a; Liu et al., 2025c; Yi et al., 2025). However, most existing methods rely on coarse regulariza-tion, which leads to suboptimal optimization dynamics. A common design adopts additive shaping (Yu et al., 2025; Team et al., 2025), modifying the objective with an explicit length term (e.g., R′ = R − λℓ ). This introduces decou-pled incentives, creating a length-driven component that 1
+
+> arXiv:2603.10535v1 [cs.LG] 11 Mar 2026
+
+Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 0.55                
+
+> 0.60
+> 0.65
+> Task reward
+> RLVR (Math)
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> RLVR (Code)
+> 0.4
+> 0.6
+> 0.8
+> RLHF (Chat)
+> 0200 400 600 800 1000
+> Training step
+> 5000
+> 6000
+> 7000
+> 8000
+> Response length
+> 0200 400 600 800
+> Training step
+> 4000
+> 6000
+> 0100 200 300 400
+> Training step
+> 1500
+> 2000
+> 2500
+> GR 3(Ours) GRPO
+
+Figure 2. Training dynamics of GR 3, which retains GRPO’s reward gains without loss while significantly reducing average tokens. The base models used for the two settings are DeepSeek-R1-Distill-1.5B and Qwen3-8B (without thinking mode), respectively. 
+
+makes extreme brevity an attractive shortcut independent of task success. To better align penalties with outcomes, some works propose heuristic gating (Cheng et al., 2025; Arora & Zanette, 2025), applying penalties only when R = 1 .However, such designs are inherently limited to binary feed-back and do not extend naturally to continuous-reward set-tings like RLHF. Moreover, many approaches rely on coarse control mechanisms, such as static truncation thresholds or uncalibrated penalty strengths (Liu et al., 2025b; Cheng et al., 2025), resulting in an inherent efficiency–performance trade-off, as illustrated in Figure 1. These observations lead to a central question: Can we tackle length inflation in a general manner without compromising the capability gains of RL? In this work, we present Group Relative Reward Rescaling (GR 3), a principled frame-work for lossless efficiency optimization. Rather than using additive penalties, GR 3 regularizes length through multi-plicative rescaling , which acts as a generalized gating mech-anism and removes the compensatory shortcuts inherent to additive schemes. To further ensure lossless optimization, we introduce two fine-grained mechanisms. Specifically, we employ group-relative regularization , which normalizes length against on-policy statistics rather than rigid thresh-olds, thereby dynamically adapting the length budget to the inherent difficulty of each prompt. Complementing this, we introduce advantage-aware calibration to explic-itly control the penalty strength. This ensures that length regularization does not overturn the advantage signal of rep-resentative high-quality trajectories, thereby safeguarding stable optimization toward capability improvements. Empirically, GR 3 resolves the efficiency–performance trade-off inherent in prior methods. As shown in Figure 1, our approach significantly reduces token usage (e.g., over 40% 
+
+on AIME-25) while simultaneously improving accuracy (e.g., +8 points), demonstrating that verbosity is not a pre-requisite for intelligence. Furthermore, in RLHF settings, GR 3 exhibits an adaptive length dynamic: it permits moder-ate growth when computation is beneficial but automatically curtails generation length as the policy matures (Figure 2). This mechanism effectively mitigates reward hacking via verbosity without sacrificing capability. We will release our code and model checkpoints to support future research. In summary, our contributions are threefold: • We propose GR 3, a framework for lossless length con-trol that substitutes additive penalties with multiplica-tive reward rescaling. This design eliminates compen-satory optimization shortcuts and provides a unified mechanism for both binary and continuous rewards. • We develop an optimization-preserving strategy that integrates group-relative regularization with advantage-aware calibration, adapting constraints to on-policy statistics while preserving learning signals. • Across mathematical reasoning, code generation, and RLHF alignment tasks, GR 3 yields concise gener-ations while matching standard GRPO performance, shifting the efficiency–performance Pareto frontier. 
+
+## 2. Preliminary 
+
+2.1. Group Relative Policy Optimization 
+
+LLM generation can be formulated as a token-level Markov Decision Process (Puterman, 1990). Given a prompt x ∼D, an autoregressive policy πθ generates a response y =(y1, . . . , y ℓ) of length ℓ := |y| by sampling tokens from 2Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+πθ (yt | x, y <t ). A scalar reward R(x, y ) is defined over complete responses, and reinforcement learning aims to maximize the expected reward: 
+
+max 
+
+> πθ
+
+Ex∼D , y ∼πθ (·| x)
+
+R(x, y ). (1) With the emergence of reasoning models such as DeepSeek-R1 (Guo et al., 2025), group-style RL has become prevalent for LLM post-training. Among them, Group Relative Policy Optimization (GRPO) (Shao et al., 2024) is widely adopted due to its scalability and its elimination of the need for a separate value model. For each prompt x, GRPO samples a group of G responses {y(i)}Gi=1 from an old policy πθold (· | 
+
+x) and evaluates each by R(x, y (i)). It then constructs a group-relative advantage via within-group normalization: 
+
+ˆA(i) = R(x, y (i)) − μR
+
+σR
+
+μR := 1
+
+G
+
+> G
+
+X
+
+> j=1
+
+R(x, y (j)), σ R := std 
+
+
+
+{R(x, y (j))}Gj=1 
+
+
+
+(2) The policy is optimized using a PPO-style clipped objective over the group-normalized advantages: 
+
+JGRPO (θ) = Ex∼D , {y(i)}Gi=1 
+
+"
+
+1
+
+G
+
+> G
+
+X
+
+> i=1
+> |y(i)|
+
+X
+
+> t=1
+
+
+
+min  ri,t (θ) ˆA(i), clip( ri,t (θ), 1 − ε, 1 + ε) ˆA(i)
+
+− βD KL (πθ ∥πref )
+
+#
+
+,
+
+(3) where the importance sampling ratio is defined as 
+
+ri,t (θ) = πθ (y(i) 
+
+> t
+
+| x, y (i)
+
+> <t
+
+)
+
+πθold (y(i) 
+
+> t
+
+| x, y (i)
+
+> <t
+
+) . (4) Notably, GRPO estimates advantages based on group-wise statistics. We exploit this structural property to construct a more on-policy length regularization scheme and to for-mulate advantage-aware calibration that better respect the underlying optimization signal, as detailed in Section 3. 
+
+2.2. Length-Regularized Reinforcement Learning 
+
+Despite the substantial performance gains brought by rein-forcement learning (RL), a critical failure mode has become increasingly apparent, which we refer to as length inflation .Long-CoT models are especially susceptible to overthinking (Chen et al., 2024b; Luo et al., 2025a). In parallel, reward hacking (Gao et al., 2023; Eisenstein et al., 2023) in RLHF can also lead to explosive growth in response length. 
+
+Table 1. Comparison of length-aware reward shaping methods (Liu et al., 2025c; Arora & Zanette, 2025; Aggarwal & Welleck, 2025; Team et al., 2025; Yu et al., 2025; Cheng et al., 2025). ℓ(i) is the response length of sample i. ℓmin , ℓmax , ¯ℓ, and σℓ are computed within each group. α, λ, ℓT and ℓC are fixed hyperparameters. 
+
+s(·) denotes the sigmoid function. 
+
+Method S (Length shaping term) Additive: ˆR(+) = R + λ · S
+
+L1-Exact −| ℓ(i) − ℓT |
+
+DAPO 
+
+
+
+0, ℓ(i) ≤ ℓT − ℓC ,ℓT − ℓC − ℓ(i)
+
+ℓC
+
+, ℓT − ℓC < ℓ (i) ≤ ℓT ,
+
+−1, ℓ(i) > ℓ T
+
+Kimi-k1.5 
+
+
+
+0.5 − ℓ(i) − ℓmin 
+
+ℓmax − ℓmin 
+
+, R = 1 ,
+
+min 
+
+
+
+0.5 − ℓ(i) − ℓmin 
+
+ℓmax − ℓmin 
+
+, 0
+
+
+
+, R = 0 
+
+Truncation −I(R = 1) · I(ℓ(i) > ℓ T )
+
+Efficiently −I(R = 1) · s
+
+
+
+(ℓ(i) − ¯ℓ)/σ ℓ
+
+
+
+LC-R1 I(R = 1) · (1 − ℓ(i)/ℓ max )
+
+Multiplicative: ˆR(×) = R · S
+
+GR 3 (Ours) 11 + α · ℓ(i)
+
+> ¯ℓ
+
+A common strategy for mitigating length inflation in rein-forcement learning is to explicitly regularize response length through reward shaping. From a unified perspective (Liu et al., 2025c), Most existing approaches can be instantiated as additive shaping :
+
+Additive: ˆR(+) = R + λ · S, λ > 0 (5) where R is the task reward, S is a length-dependent shaping signal, and λ controls the strength of length regularization. Here, ˆR(+) denotes the shaped reward used for efficient policy optimization. We present several representative ex-amples for illustration, as shown in Table 1. Under this formulation, existing approaches mainly differ in how the length regularizer S is instantiated. The most basic strategy typically relies on a fixed threshold (e.g., ℓT = 4 K): once the response length exceeds this limit, the model incurs either a constant penalty (Liu et al., 2025b) or a progres-sively increasing one (Aggarwal & Welleck, 2025). A more principled paradigm instead leverages group-level statistics (Team et al., 2025) to determine the strength of the penalty. In addition, some methods introduce gating mechanisms (e.g., I(R = 1) ) (Arora & Zanette, 2025), which activate length regularization only for successful trajectories, so as to prevent the model from over-optimizing for brevity. 3Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 0 50 100 150 200        
+
+> Training Step
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> (a) Task Reward
+> 050 100 150 200
+> Training Step
+> 0
+> 2000
+> 4000
+> 6000
+> 8000
+> (b) Response Length
+> Multiplicative vs. Additive Shaping
+> Standard GRPO
+> Multiplicative
+> Additive ( = 0.01)
+> Additive ( = 0.1)
+> Additive ( = 1.0)
+
+Figure 3. Additive length regularization consistently degrades task reward across different choices of λ, whereas the multiplicative scheme maintains stable reward improvement throughout training. 
+
+While these methods vary in their specific instantiations, they share a common objective: compressing response length during RL training. Empirically, however, such regu-larization often leads to performance degradation, motivat-ing a closer examination of reward shaping design. 
+
+## 3. Group Relative Reward Rescaling 
+
+In this section, we introduce Group Relative Reward Rescaling (GR 3), a principled framework designed to miti-gate length inflation without compromising capabilities. Formally, for a response y(i) with length ℓ(i) = |y(i)| within a group of G samples, GR 3 defines the rescaled reward as: 
+
+ˆR(x, y (i)) = R(x, y (i)) · 11 + α · ℓ(i)
+
+> ¯ℓ
+
+| {z }
+
+> S(i)
+
+(6) Here, S(i) represents the length scaling factor, and ¯ℓ denotes the average response length within the group. This formulation reflects a unified design along three di-mensions. We adopt multiplicative reward rescaling (Sec-tion 3.1) as a reward-dependent gate, mitigating the compen-sation effect while remaining applicable to general continu-ous reward distributions. We instantiate the scaling factor via group-relative regularization (Section 3.2), which uti-lizes the on-policy average ¯ℓ to dynamically adapt the length budget to the inherent difficulty of the prompt. To maintain stable optimization, advantage-aware calibration (Sec-tion 3.3) further controls penalty strength, preventing the undue suppression of high-advantage trajectories. 
+
+3.1. Multiplicative Reward Rescaling 
+
+3.1.1. M OTIVATION AND FORMULATION 
+
+The most naive length control methods rely on additive reward shaping as Eq. 5, where λ controls the strength of the length penalty. However, additive shaping introduces an inherent compensatory effect : the shaping term S forms an auxiliary optimization objective that can be exploited independently of task performance. Several works mitigate this issue via gating mechanisms, e.g., incorporating I(R =1) into S. Such designs, however, are restricted to binary rewards and do not extend to continuous reward settings. Departing from these additive formulations, we propose a more general multiplicative shaping paradigm: 
+
+Multiplicative: ˆR(×) = R · S, (7) which can be interpreted as a continuous extension of heuris-tic gating, eliminating the trade-off coefficient λ and nat-urally generalizing to arbitrary reward scales 1. Crucially, the multiplicative formulation removes the compensatory property of additive shaping, requiring the policy to jointly optimize task performance and length control. As shown in Figure 3, additive shaping exhibits a systematic failure mode: for any choice of λ, the optimization is dominated by rapid length reduction, resulting in severe performance degradation. Multiplicative shaping, by contrast, does not admit such a shortcut and therefore avoids this collapse. Intuitively, multiplicative shaping couples the influence of length control to the task reward through 
+
+∂ ˆR(×)
+
+∂S = R. (8) Thus, length regularization automatically strengthens with task success, making the shaping intrinsically reward-aware. 3.1.2. A NALYSIS UNDER GROUP -N ORMALIZED 
+
+ADVANTAGE 
+
+We further refine the above intuition under the group-normalized advantage adopted in GRPO (Eq. 2). Fix a prompt x, and consider the within-group distribution over random variables (R, S ) induced by sampling responses 
+
+y ∼ πθold (· | x), where R ∈ [0 , 1] denotes the task reward and S ∈ [0 , 1] denotes a length-related score (e.g., Eq. 6). We compare additive shaping ˆR(+) (Eq. 5) and multiplica-tive shaping ˆR(×) (Eq. 7). Let μ· and σ· denote within-group mean and standard deviation. Results are stated using popu-lation moments; empirical versions follow by substituting sample averages. 
+
+Proposition 3.1 (Additive shaping: linear injection of the length signal) . Let (R, S ) have finite second moments and define μR = E[R], μS = E[S], σ2 
+
+> R
+
+= Var( R), σ2 
+
+> S
+
+=Var( S), and σRS = Cov( R, S ). For ˆR(+) = R + λS with 
+
+> 1
+
+In Appendix A, we discuss the connection between heuristic gating and multiplicative rescaling, and show that heuristic gating fails in continuous-reward RLHF settings. 
+
+4Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+λ > 0,
+
+ˆR(+) − E[ ˆR(+) ] = ( R − μR) + λ(S − μS ), (9) 
+
+Var( ˆR(+) ) = σ2 
+
+> R
+
++ λ2σ2 
+
+> S
+
++ 2 λσ RS , (10) 
+
+and hence 
+
+A
+
+ ˆR(+) 
+
+= (R − μR) + λ(S − μS )
+
+pσ2 
+
+> R
+
++ λ2σ2 
+
+> S
+
++ 2 λσ RS 
+
+. (11) 
+
+Therefore, the length-related signal (S − μS ) is linearly 
+
+injected into the advantage with fixed weight λ, and can contribute even when R provides little discriminative signal within the group. Proof. E[ ˆR(+) ] = μR +λμ S gives Eq. (9) . Eq. (10) follows from Var( X +Y ) = Var( X)+Var( Y )+2Cov( X, Y ) with 
+
+X = R and Y = λS . Eq. (11) follows by applying Eq. (2) with R replaced by ˆR(+) .
+
+Proposition 3.2 (Multiplicative shaping: reward-weighted length signal) . Let (R, S ) have finite second moments and define μR = E[R], μS = E[S], σ2 
+
+> R
+
+= Var( R), σ2 
+
+> S
+
+=Var( S), and σRS = Cov( R, S ). For multiplicative shaping 
+
+ˆR(×) = RS ,
+
+E[ ˆR(×)] = E[RS ] = μRμS + σRS . (12) 
+
+Moreover, the centered shaped reward admits the decompo-sition 
+
+RS − E[RS ] = R(S − μS ) + μS (R − μR) − σRS . (13) 
+
+Consequently, the group-normalized advantage can be writ-ten as 
+
+A
+
+ ˆR(×)
+
+= R(S − μS ) + μS (R − μR) − σRS 
+
+pVar( RS ) . (14) 
+
+Proof. Eq. (12) follows from E[RS ] = E[R]E[S] + Cov( R, S ). For Eq. (13), rewrite 
+
+RS = Rμ S +R(S−μS ) = μRμS +μS (R−μR)+ R(S−μS ),
+
+and subtract E[RS ] = μRμS + σRS . Eq. (14) is Eq. (2) applied to ˆR(×).
+
+Remark 3.3 (Why multiplicative shaping is reward-aware under group normalization) . Under additive shaping, Propo-sition 3.1 shows that the length deviation (S−μS ) is injected into the centered shaped reward with a fixed coefficient λ.This creates a compensatory degree of freedom: the policy can improve the shaped reward by manipulating S even when R provides little learning signal. In contrast, Proposition 3.2 yields the decomposition 
+
+RS − E[RS ] = R(S − μS ) + μS (R − μR) − σRS ,                               
+
+> Table 2. Comparison of standard RLVR training, threshold-based truncation (Hou et al., 2025), and group-relative methods (Arora & Zanette, 2025). All methods are evaluated at the 800th step. Model AIME24 MATH500 Score ↑#Token ↓Score ↑#Token ↓
+> Standard
+> GRPO 41.0 12885 87.2 5788
+> Threshold-based
+> Truncation–4k 32.5 3419 86.5 1438 Truncation–8k 34.8 6684 87.6 2918
+> Group-relative
+> Efficiently-0.01 41.4 9544 76.0 1349 Efficiently-0.2 41.3 10412 60.5 1265 GR 3(ours) 44.0 8760 88.7 2405
+
+where the influence of length deviation is scaled by R itself. Consequently, length control is weak when rewards are low and strengthens as task performance improves, making multiplicative shaping inherently reward-aware. 
+
+3.2. Group Relative Length Regularization 
+
+Many prior works address length inflation by imposing ab-solute length thresholds (Yu et al., 2025; Liu et al., 2025c;b), penalizing trajectories that exceed a fixed budget. How-ever, such designs may suppress necessary reasoning on hard instances, making the policy insensitive to task dif-ficulty and degrading performance. More importantly, afixed threshold inevitably induces off-policy bias : the op-timal reasoning length varies across tasks and shifts during training, which a single global constant cannot capture. To overcome these limitations, we propose a group-relative length regularization strategy that adapts to on-policy behav-ior. Following Eq. 6, we define a bounded length-shaping term S(i) ∈ (0 , 1) using within-group statistics: 
+
+S(i) = 11 + α · ℓ(i)
+
+> ¯ℓ
+
+, α > 0. (15) where ℓ(i) is the response length and ¯ℓ is the group mean. This penalty decreases smoothly with length, while normal-izing against ¯ℓ avoids arbitrary global thresholds and adapts to the model’s current generation behavior. As shown in Table 2, we include the fixed-threshold trun-cation method (Hou et al., 2025) as a minimalist baseline. We find that threshold-based truncation imposes a uniform maximum response length even on difficult benchmarks, which degrades reasoning performance on challenging prob-lems. We also compare against other group-relative methods and find that certain shaping strategies (Arora & Zanette, 2025) introduce biases that favor shallow reasoning on easier benchmarks (see Appendix B for analysis). We additionally 5Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+evaluated another group-relative method, Kimi-k1.5 (Team et al., 2025), but it exhibited training collapse; therefore, we omit its results. We attribute this failure to the additive shap-ing paradigm without gating, as discussed in Section 3.1. 
+
+3.3. Advantage-Aware Calibration 
+
+Within the framework of group-relative policy optimization, the length penalty term S acts as a powerful shaper of the advantage landscape. The interaction between the penalty strength and group normalization is non-trivial: slight shifts in S can noticeably redirect the optimization trajectory .In practice, an unconstrained or overly strong penalty may penalize high-quality responses so heavily that it creates a contradictory signal where the model is discouraged from generating its best responses. A natural but overly strict objective is to require that all high-quality trajectories retain positive advantages. However, this becomes intractable under high reward density , where most responses in a group achieve the maximum reward Rmax 
+
+(e.g., 15 out of 16 are correct). Due to the zero-sum structure of group normalization, correct but above-average-length responses may inevitably receive negative advantages. We provide a formal analysis of this limitation in Appendix C.1. 
+
+Average-Case Advantage Preservation. Instead of pro-tecting the longest outlier trajectory, we aim to preserve the advantage of a representative high-quality response. Specif-ically, we consider a hypothetical response that achieves the group-wise maximum reward Rmax with the group-average length ¯ℓ, and require its advantage to remain non-negative. Let μ ˆR denote the mean regularized reward in the group. This yields the condition: 
+
+Rmax 
+
+1 + α · ¯ℓ
+
+> ¯ℓ
+
+≥ μ ˆR =⇒ Rmax 
+
+1 + α ≥ μ ˆR (16) This ensures that the penalty α does not overturn the ad-vantage of a typical high-quality response. In the limiting case where all trajectories in a group achieve Rmax , the average-case constraint can still fail to hold. We therefore filter out such groups online (see Appendix C.2). In practice, Eq. (16) is not enforced as a hard constraint at every update due to on-policy sampling stochasticity. In-stead, we treat it as a calibration criterion for selecting the penalty coefficient α. We run a short calibration phase at the beginning of GRPO training and measure the Constraint Satisfaction Rate (CSR) over candidate α values. We then select the largest α whose CSR remains consistently high (e.g., ≥ 99 .9% ), ensuring high-probability constraint satis-faction while maintaining strong length regularization. Empirically, the α selected by this protocol maintains a near-perfect CSR throughout training (see Figure 4). This point effectively marks a practical boundary: the reward 10 1 10 0    
+
+> (log scale)
+> 0.05
+> 0.04
+> 0.03
+> 0.02
+> 0.01
+> 0.00
+> 0.01
+> Reward Gap
+> =0.033
+> 100.0%
+> =0.1
+> 100.0% =0.2
+> 100.0%
+> =0.33
+> 99.9%
+> =0.5
+> 99.6%
+> =1
+> 97.6%
+> =1.5
+> 96.1%
+> Impact of on Reward Gap and CSR
+> 96% 98% 100%
+> Constraint Satisfaction Rate
+
+Figure 4. Sensitivity of α: reward gap relative to the standard GRPO baseline versus α (log scale). Marker color indicates the average CSR measured during actual training, while the triangle marker denotes the value of α selected during the calibration phase. 
+
+gap relative to the GRPO baseline is already positive, in-dicating preserved task capability. Further reducing the penalty strength (i.e., decreasing α) yields no consistent per-formance gains, and instead results in fluctuations consistent with training variance. 
+
+## 4. Experiments 
+
+4.1. Setup Efficient Reasoning for RLVR. Following prior work, we adopt DeepSeek-R1-Distill-1.5B and DeepSeek-R1-Distill-7B (Guo et al., 2025) as the base models. For mathematical reasoning, we use the DeepScaleR-Preview-Dataset (Luo et al., 2025b) as training data, and include open-sourced checkpoints of existing efficient-reasoning methods as baselines, including LC-R1 (Cheng et al., 2025), Laser (Liu et al., 2025c), AdaptThink (Zhang et al., 2025), and DLER (Liu et al., 2025b). To demonstrate the generality of our approach, we further extend to code generation, using the prompts from DeepDistill (Tian et al., 2025). 
+
+Mitigating Length Bias in RLHF. As for the RLHF set-ting, we use the non-reasoning versions of Qwen3-4B and Qwen3-8B (Yang et al., 2025) as base models. We construct RL prompts from arena-human-preference-140k 2, and em-ploy Skywork-Reward-V2-Llama-3.1-8B (Liu et al., 2025a) as the reward model. To improve training stability, we apply a reference-based sigmoid shaping (Fu et al., 2025) scheme: 
+
+R(x, y (i)) = s
+
+
+
+Rorigin (x, y (i)) − Rorigin (x, y ref )
+
+
+
+. (17) where Rorigin (·) denotes the raw reward model score. Detailed experimental settings are provided in Appendix D. 
+
+> 2
+
+https://huggingface.co/datasets/lmaren a-ai/arena-human-preference-140k 
+
+6Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Table 3. Mathematical reasoning performance for 7B models. Length-oriented methods reduce tokens but may sacrifice accuracy, while 
+
+GR 3 consistently achieves comparable accuracy with significantly fewer tokens, establishing a markedly better Pareto frontier. 
+
+AIME24 AIME25 AMC23 MATH500 Model Avg@32 ↑ #Token ↓ Avg@32 ↑ #Token ↓ Avg@16 ↑ #Token ↓ Avg@4 ↑ #Token ↓
+
+Initial model 
+
+DeepSeek–R1–Distill–7B 52.4 13213 39.4 14032 89.8 6385 92.1 3994 
+
+Length-oriented RL 
+
+LCR1–7B 47.9 7548 36.3 7960 85.8 2963 89.1 1546 Laser–DE–L4096–7B 51.7 4931 36.7 5048 88.1 2427 92.4 1580 AdaptThink–7B 51.5 11070 39.3 11678 88.1 4280 90.6 2011 DLER–R1–7B 49.5 3272 35.6 3288 91.4 2255 93.2 1650 
+
+Performance-oriented RL 
+
+GRPO 57.1 11079 44.7 12540 90.3 7256 92.1 5006 GR 3 (ours) 60.1 7923 46.9 8582 93.0 3090 94.0 1764 
+
+Table 4. Performance on code generation tasks. GR 3 achieves competitive scores with fewer tokens across model sizes. 
+
+LiveCodeBench v6 MultiPL-E Model Score ↑ #Token ↓ Score ↑ #Token ↓
+
+DeepSeek–R1–Distill–1.5B 
+
+Initial 17.7 12665 45.1 6181 GRPO 23.4 11830 51.5 6589 GR 3 (ours) 24.9 8538 52.2 2414 
+
+DeepSeek–R1–Distill–7B 
+
+Initial 37.7 11496 69.7 4121 GRPO 42.4 10956 71.1 4794 GR 3 (ours) 41.6 7504 70.9 2127 
+
+4.2. Main Results 
+
+4.2.1. E FFICIENT REASONING FOR RLVR The experimental results for the 7B model are presented in Table 3, while those for the 1.5B model are provided in Appendix E.1. Notably, GR 3 improves reasoning perfor-mance while reducing generation length, indicating a genuine efficiency gain rather than a trade-off. 
+
+Within the performance-oriented regime, compared with standard GRPO, GR 3 leads to substantially shorter gener-ations while maintaining or even improving performance. For instance, at the 7B scale on AIME24, GR 3 reduces the average length from 13,213 to 7,923 tokens while im-proving Avg@32 from 52.4 to 60.1, whereas GRPO only reaches 57.1. In contrast to existing length-oriented base-lines, GR 3 does not over-compress the reasoning length at the cost of accuracy; instead, it prioritizes preserving perfor-mance while removing redundant reasoning. For example, on AIME25 (7B), none of the length-oriented baselines sur-passes the initial checkpoint performance (39.4), whereas 
+
+Table 5. Performance on chat tasks. GRPO improves performance but incurs substantial length bias, while GR 3 achieves stronger alignment gains while preserving the length of the initial policy .Arena–Hard–Auto Alpaca–Eval Model Score ↑ #Token ↓ Score ↑ #Token ↓
+
+Qwen3–4B 
+
+Initial 66.6 1139 40.1 737 GRPO 85.8 2374 33.9 1993 GR 3 (ours) 85.9 1377 44.1 859 
+
+Qwen3–8B 
+
+Initial 77.2 1171 50.2 778 GRPO 90.6 2343 53.5 1670 GR 3 (ours) 92.8 1178 55.8 765 
+
+GR 3 improves it to 46.9 with much fewer tokens (14,032 →
+
+8,582). This suggests that GR 3 encourages more efficient reasoning trajectories rather than merely truncating rea-soning, yielding consistent gains across scales. 
+
+We further validate GR 3 on code generation benchmarks, as summarized in Table 4. Consistent with our findings in mathematical reasoning, GR 3 achieves substantial effi-ciency gains while preserving task performance. 4.2.2. M ITIGATING LENGTH BIAS IN RLHF Results on alignment benchmarks are shown in Table 5. Compared with the initial models, RLHF training yields substantial improvements in chat quality. However, we observe that standard GRPO suffers from severe reward hacking under length bias, where the model can artificially increase reward by generating unnecessarily long responses, resulting in explosive length inflation (e.g., on Qwen3-8B, the average response length on Arena–Hard–Auto increases from 1,171 to 2,343 tokens). In contrast, GR 3 attains com-
+
+7Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+parable or even stronger alignment gains while keeping response length almost unchanged, effectively decou-pling performance improvement from verbosity . For instance, on Qwen3-8B, GR 3 improves the Arena–Hard– Auto score from 77.2 to 92.8, while the token cost only increases marginally (1,171 → 1,178). We further visualize the training dynamics in the RLHF setting in Figure 2. Under GRPO, response length grows monotonically and uncontrollably throughout training. In contrast, GR 3 exhibits a clear “increase-then-decrease” pat-tern: the model initially expands its reasoning to secure alignment improvements, and subsequently compresses re-dundant generations once performance stabilizes. This dy-namic behavior aligns with our design intuition— GR 3 pri-oritizes achieving reliable alignment gains first, and then progressively improves response efficiency by suppress-ing length-based exploitation .
+
+4.3. Analysis and Discussion 
+
+4.3.1. A BLATION ON PENALTY STRENGTH α
+
+We study the effect of the penalty coefficient α by sweeping its value while keeping all other settings fixed. Detailed results and analysis are provided in Appendix E.2; here we summarize the key findings. When α is too large (e.g., 1.0), GR 3 degenerates toward a naive length regularizer: responses become much shorter, but performance gains over the base model are limited, as optimization is dominated by compression rather than capa-bility improvement. As α decreases, response length grows smoothly, while task performance first improves and then plateaus. This trend is consistent with the analysis in Section 3.3: once the advantage of representative high-quality trajectories is preserved, further reducing the penalty mainly relaxes length control without yielding stronger learning signals. The chosen value α = 0 .33 lies near this transition region, achieving substantial length reduction while retaining most performance gains. 4.3.2. W HY DOES GR 3 OUTPERFORM GRPO? We observe a counterintuitive phenomenon: in many set-tings, GR 3 not only shortens responses but also achieves stronger downstream performance than standard GRPO, while maintaining a positive reward gap relative to the GRPO baseline. We attribute this to a difference in how the optimization signal is structured. Under unconstrained RL such as GRPO, policies often drift toward over-extended reasoning trajectories. Although these trajectories may eventually reach correct answers, they tend to contain many low-contributing tokens. From an opti-mization perspective, this spreads the learning signal thinly across long responses, reducing the effective impact of re-ward on the most important reasoning steps. By discourag-ing unnecessary verbosity, GR 3 compresses reasoning traces while preserving decisive steps. This increases the signal density of reward with respect to tokens, allowing optimization to focus more strongly on causally important reasoning patterns rather than distributing gradients over verbose but weakly relevant tokens. Qualitative rollout ex-amples are provided in Appendix F. 
+
+## 5. Related Work 
+
+Despite remarkable progress, reinforcement learning (Kael-bling et al., 1996; Bai et al., 2022; Guo et al., 2025) suffers from high inference costs and growing generation lengths, a bottleneck we term length inflation. One line of work studies efficient reasoning (Feng et al., 2025; Sui et al., 2025), aiming to improve the accuracy–cost trade-off of long chain-of-thought models. Early approaches rely on prompting or supervised fine-tuning to encourage shorter reasoning traces (Ma et al., 2025a; Xia et al., 2025; Ma et al., 2025b). More recent methods apply RL to directly optimize efficiency via length-aware objectives (Arora & Zanette, 2025; Liu et al., 2025c;b; Yu et al., 2025). While effective at reducing token usage, such approaches can degrade performance or introduce brittle optimization dy-namics due to poorly calibrated penalties or shortcut solu-tions (Cheng et al., 2025). Another line of work attributes length inflation in RLHF to reward hacking and length bias (Skalse et al., 2022; Gao et al., 2023; Singhal et al., 2023). Because reward models may implicitly favor longer responses, verbosity can arise from exploiting reward artifacts rather than true capability gains (Shen et al., 2023). Prior efforts mitigate this by im-proving reward modeling and calibration (Chen et al., 2024a; Wang et al., 2025) or by applying post-hoc reward correc-tion (Huang et al., 2024), though many of these solutions are tailored to specific training settings. Our method is most closely related to RL-based efficient rea-soning, and remains effective under reward hacking driven by length bias. We propose GR 3, a general framework for length regularization that preserves performance while improving the performance–cost Pareto frontier. 
+
+## 6. Conclusion 
+
+In this work, we identify length inflation as a fundamen-tal inefficiency in RL-trained LLMs, where models tend toward unnecessary verbosity or overthinking. We pro-pose Group Relative Reward Rescaling (GR 3), a general framework for lossless length control that regulates rea-soning length through a multiplicative, group-relative for-mulation with advantage-aware calibration. Across both 8Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+RLVR and RLHF settings, GR 3 consistently shifts the per-formance–cost Pareto frontier outward, reducing token us-age while preserving or even improving model capability. These results show that verbosity is not a prerequisite for intelligence, and position GR 3 as a practical and general paradigm for training efficient, high-performing LLMs. 
+
+## Impact Statement 
+
+This paper presents a method to mitigate length inflation in Large Language Models trained via Reinforcement Learn-ing. The primary positive impact of this work lies in pro-moting computational efficiency and environmental sus-tainability (“Green AI”). By significantly reducing token generation, e.g., saving over 40% of tokens in reasoning tasks without compromising performance, GR 3 directly contributes to lowering the financial costs, inference latency, and energy consumption associated with deploying large-scale reasoning models. Furthermore, this work addresses the alignment challenge of reward hacking, where models exploit verbosity to maxi-mize rewards rather than improving genuine capability. By decoupling performance gains from unnecessary length, we facilitate the development of more concise, interpretable, and user-aligned AI systems. Nevertheless, practition-ers should monitor for potential over-truncation in safety-critical domains where exhaustive reasoning traces are es-sential for verification. 
+
+## References 
+
+Achiam, J., Adler, S., Agarwal, S., Ahmad, L., Akkaya, I., Aleman, F. L., Almeida, D., Altenschmidt, J., Altman, S., Anadkat, S., et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 , 2023. Aggarwal, P. and Welleck, S. L1: Controlling how long a reasoning model thinks with reinforcement learning. 
+
+arXiv preprint arXiv:2503.04697 , 2025. Amodei, D., Olah, C., Steinhardt, J., Christiano, P., Schul-man, J., and Man ´e, D. Concrete problems in ai safety, 2016. Arora, D. and Zanette, A. Training language models to rea-son efficiently. arXiv preprint arXiv:2502.04463 , 2025. Bai, Y., Jones, A., Ndousse, K., Askell, A., Chen, A., Das-Sarma, N., Drain, D., Fort, S., Ganguli, D., Henighan, T., et al. Training a helpful and harmless assistant with rein-forcement learning from human feedback. arXiv preprint arXiv:2204.05862 , 2022. Cassano, F., Gouwar, J., Nguyen, D., Nguyen, S., Phipps-Costin, L., Pinckney, D., Yee, M.-H., Zi, Y., Anderson, C. J., Feldman, M. Q., et al. Multipl-e: A scalable and extensible approach to benchmarking neural code genera-tion. arXiv preprint arXiv:2208.08227 , 2022. Chen, L., Zhu, C., Soselia, D., Chen, J., Zhou, T., Goldstein, T., Huang, H., Shoeybi, M., and Catanzaro, B. Odin: Disentangled reward mitigates hacking in rlhf. arXiv preprint arXiv:2402.07319 , 2024a. Chen, X., Xu, J., Liang, T., He, Z., Pang, J., Yu, D., Song, L., Liu, Q., Zhou, M., Zhang, Z., et al. Do not think that much for 2+ 3=? on the overthinking of o1-like llms. 
+
+arXiv preprint arXiv:2412.21187 , 2024b. Cheng, Z., Chen, D., Fu, M., and Zhou, T. Optimizing length compression in large reasoning models. arXiv preprint arXiv:2506.14755 , 2025. Dubois, Y., Galambosi, B., Liang, P., and Hashimoto, T. B. Length-controlled alpacaeval: A simple way to debias automatic evaluators. arXiv preprint arXiv:2404.04475 ,2024. Eisenstein, J., Nagpal, C., Agarwal, A., Beirami, A., D’Amour, A., Dvijotham, D., Fisch, A., Heller, K., Pfohl, S., Ramachandran, D., et al. Helping or herding? reward model ensembles mitigate but do not eliminate reward hacking. arXiv preprint arXiv:2312.09244 , 2023. Feng, S., Fang, G., Ma, X., and Wang, X. Efficient reasoning models: A survey. arXiv preprint arXiv:2504.10903 ,2025. Fu, J., Zhao, X., Yao, C., Wang, H., Han, Q., and Xiao, Y. Reward shaping to mitigate reward hacking in rlhf. arXiv preprint arXiv:2502.18770 , 2025. Gao, L., Schulman, J., and Hilton, J. Scaling laws for reward model overoptimization. In International Conference on Machine Learning , pp. 10835–10866. PMLR, 2023. Guo, D., Yang, D., Zhang, H., Song, J., Zhang, R., Xu, R., Zhu, Q., Ma, S., Wang, P., Bi, X., et al. Deepseek-r1: In-centivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 , 2025. Hou, B., Zhang, Y., Ji, J., Liu, Y., Qian, K., Andreas, J., and Chang, S. Thinkprune: Pruning long chain-of-thought of llms via reinforcement learning. arXiv preprint arXiv:2504.01296 , 2025. Huang, Z., Qiu, Z., Wang, Z., Ponti, E. M., and Titov, I. Post-hoc reward calibration: A case study on length bias. 
+
+arXiv preprint arXiv:2409.17407 , 2024. Jain, N., Han, K., Gu, A., Li, W.-D., Yan, F., Zhang, T., Wang, S., Solar-Lezama, A., Sen, K., and Stoica, I. Livecodebench: Holistic and contamination free eval-uation of large language models for code. arXiv preprint arXiv:2403.07974 , 2024. 9Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Kaelbling, L. P., Littman, M. L., and Moore, A. W. Re-inforcement learning: A survey. Journal of artificial intelligence research , 4:237–285, 1996. Li, T., Chiang, W.-L., Frick, E., Dunlap, L., Wu, T., Zhu, B., Gonzalez, J. E., and Stoica, I. From crowdsourced data to high-quality benchmarks: Arena-hard and benchbuilder pipeline. arXiv preprint arXiv:2406.11939 , 2024. Lightman, H., Kosaraju, V., Burda, Y., Edwards, H., Baker, B., Lee, T., Leike, J., Schulman, J., Sutskever, I., and Cobbe, K. Let’s verify step by step. arXiv preprint arXiv:2305.20050 , 2023. Liu, C. Y., Zeng, L., Xiao, Y., He, J., Liu, J., Wang, C., Yan, R., Shen, W., Zhang, F., Xu, J., Liu, Y., and Zhou, Y. Skywork-reward-v2: Scaling preference data curation via human-ai synergy. arXiv preprint arXiv:2507.01352 ,2025a. Liu, S.-Y., Dong, X., Lu, X., Diao, S., Liu, M., Chen, M.-H., Yin, H., Wang, Y.-C. F., Cheng, K.-T., Choi, Y., et al. Dler: Doing length penalty right-incentivizing more in-telligence per token via reinforcement learning. arXiv preprint arXiv:2510.15110 , 2025b. Liu, T., Xiong, W., Ren, J., Chen, L., Wu, J., Joshi, R., Gao, Y., Shen, J., Qin, Z., Yu, T., et al. Rrm: Robust reward model training mitigates reward hacking. arXiv preprint arXiv:2409.13156 , 2024. Liu, W., Zhou, R., Deng, Y., Huang, Y., Liu, J., Deng, Y., Zhang, Y., and He, J. Learn to reason efficiently with adaptive length-based reward shaping. arXiv preprint arXiv:2505.15612 , 2025c. Luo, H., Shen, L., He, H., Wang, Y., Liu, S., Li, W., Tan, N., Cao, X., and Tao, D. O1-pruner: Length-harmonizing fine-tuning for o1-like reasoning pruning. arXiv preprint arXiv:2501.12570 , 2025a. Luo, M., Tan, S., Wong, J., Shi, X., Tang, W., Roongta, M., Cai, C., Luo, J., Zhang, T., Li, E., Popa, R. A., and Stoica, I. Deepscaler: Surpassing o1-preview with a 1.5b model by scaling rl. https://pretty-radio-b75.n otion.site/DeepScaleR-Surpassing-O1-P review-with-a-1-5B-Model-by-Scaling -RL-19681902c1468005bed8ca303013a4e2 ,2025b. Notion Blog. Ma, W., He, J., Snell, C., Griggs, T., Min, S., and Zaharia, M. Reasoning models can be effective without thinking. 
+
+arXiv preprint arXiv:2504.09858 , 2025a. Ma, X., Wan, G., Yu, R., Fang, G., and Wang, X. Cot-valve: Length-compressible chain-of-thought tuning. arXiv preprint arXiv:2502.09601 , 2025b. MAA. American invitational mathematics examination -amc. In American Invitational Mathematics Examination - AMC 2023 , 2023. MAA. American invitational mathematics examination -aime. In American Invitational Mathematics Examination - AIME 2024 , 2024. MAA. American invitational mathematics examination -aime. In American Invitational Mathematics Examination - AIME 2025 , 2025. Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C., Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A., et al. Training language models to follow instructions with human feedback. Advances in neural information processing systems , 35:27730–27744, 2022. Puterman, M. L. Markov decision processes. Handbooks in operations research and management science , 2:331–434, 1990. Shao, Z., Wang, P., Zhu, Q., Xu, R., Song, J., Bi, X., Zhang, H., Zhang, M., Li, Y., Wu, Y., et al. Deepseekmath: Push-ing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300 , 2024. Shen, W., Zheng, R., Zhan, W., Zhao, J., Dou, S., Gui, T., Zhang, Q., and Huang, X.-J. Loose lips sink ships: Mitigating length bias in reinforcement learning from human feedback. In Findings of the Association for Com-putational Linguistics: EMNLP 2023 , pp. 2859–2873, 2023. Sheng, G., Zhang, C., Ye, Z., Wu, X., Zhang, W., Zhang, R., Peng, Y., Lin, H., and Wu, C. Hybridflow: A flexi-ble and efficient rlhf framework. arXiv preprint arXiv: 2409.19256 , 2024. Singhal, P., Goyal, T., Xu, J., and Durrett, G. A long way to go: Investigating length correlations in rlhf. arXiv preprint arXiv:2310.03716 , 2023. Skalse, J., Howe, N., Krasheninnikov, D., and Krueger, D. Defining and characterizing reward gaming. Advances in Neural Information Processing Systems , 35:9460–9471, 2022. Sui, Y., Chuang, Y.-N., Wang, G., Zhang, J., Zhang, T., Yuan, J., Liu, H., Wen, A., Zhong, S., Zou, N., et al. Stop overthinking: A survey on efficient reasoning for large language models. arXiv preprint arXiv:2503.16419 ,2025. Team, G., Anil, R., Borgeaud, S., Alayrac, J.-B., Yu, J., Sori-cut, R., Schalkwyk, J., Dai, A. M., Hauth, A., Millican, K., et al. Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805 , 2023. 10 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Team, K., Du, A., Gao, B., Xing, B., Jiang, C., Chen, C., Li, C., Xiao, C., Du, C., Liao, C., et al. Kimi k1. 5: Scaling reinforcement learning with llms. arXiv preprint arXiv:2501.12599 , 2025. Tian, X., Zhao, S., Wang, H., Chen, S., Peng, Y., Ji, Y., Zhao, H., and Li, X. Deepdistill: Enhancing llm reasoning capabilities via large-scale difficulty-graded data training. 
+
+arXiv preprint arXiv:2504.17565 , 2025. Wang, C., Zhao, Z., Jiang, Y., Chen, Z., Zhu, C., Chen, Y., Liu, J., Zhang, L., Fan, X., Ma, H., et al. Beyond reward hacking: Causal rewards for large language model alignment. arXiv preprint arXiv:2501.09620 , 2025. Xia, H., Leong, C. T., Wang, W., Li, Y., and Li, W. Token-skip: Controllable chain-of-thought compression in llms. 
+
+arXiv preprint arXiv:2502.12067 , 2025. Yang, A., Li, A., Yang, B., Zhang, B., Hui, B., Zheng, B., Yu, B., Gao, C., Huang, C., Lv, C., et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388 , 2025. Yi, J., Wang, J., and Li, S. Shorterbetter: Guiding reason-ing models to find optimal inference length for efficient reasoning. arXiv preprint arXiv:2504.21370 , 2025. Yu, Q., Zhang, Z., Zhu, R., Yuan, Y., Zuo, X., Yue, Y., Dai, W., Fan, T., Liu, G., Liu, L., et al. Dapo: An open-source llm reinforcement learning system at scale. arXiv preprint arXiv:2503.14476 , 2025. Zhang, J., Lin, N., Hou, L., Feng, L., and Li, J. Adaptthink: Reasoning models can learn when to think. arXiv preprint arXiv:2505.13417 , 2025. 11 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+## A. Connection to Heuristic Gating Mechanisms 
+
+In Section 3.1, we motivated multiplicative shaping primarily through the lens of removing the compensatory optimization shortcut inherent in additive shaping. In this section, we provide an alternative perspective by analyzing the relationship between our approach and heuristic gating mechanisms (Arora & Zanette, 2025; Cheng et al., 2025). We demonstrate that multiplicative shaping can be viewed as a principled generalization of heuristic gating: it mathematically reduces to gating in binary reward settings while providing a robust, “soft” gating mechanism in continuous reward landscapes where hard indicators fail. 
+
+Equivalence in Binary Reward Settings. Heuristic gating is a common enhancement to additive shaping in efficient reasoning (RLVR), which prevents models from optimizing length at the expense of accuracy. It typically employs an indicator function I(R = 1) to apply length penalties only when the response is correct. Let P denote a generic length-based penalty term (e.g., a negative function of length). Standard gated additive shaping 
+
+modifies the shaping term S in Eq. 5 to be conditional on task success: 
+
+Gated Additive: ˆR(+ ,g ) = R + λ · Sgate ,
+
+where Sgate = I(R = 1) · P. 
+
+Here, I(R = 1) acts as a hard gate, R ∈ { 0, 1} is the binary task outcome. Now, consider our multiplicative shaping defined in Eq. 7: 
+
+Multiplicative: ˆR(×) = R · Smult .
+
+To facilitate comparison, we can decompose the scaling factor Smult into a baseline and a deviation term. We rewrite 
+
+Smult = 1 + ( Smult − 1) , where the deviation corresponds to the implicit penalty applied by the scaling mechanism: 
+
+λP := Smult − 1 =⇒ Smult = 1 + λP. 
+
+We analyze the behavior in the two binary states: • Case R = 0 (Failure): 
+
+ˆR(+ ,g ) = 0 + λ · (0 · P ) = 0 ˆR(×) = 0 · (1 + λP ) = 0 
+
+Both methods deactivate the penalty, preventing premature termination on hard instances. • Case R = 1 (Success): 
+
+ˆR(+ ,g ) = 1 + λ · (1 · P ) = 1 + λP 
+
+ˆR(×) = 1 · (1 + λP ) = 1 + λP 
+
+Both methods apply the full penalty to incentivize efficiency among correct solutions. Thus, in the strict binary reward setting typical of RLVR, multiplicative shaping is mathematically equivalent to heuristic gating. It inherits the desirable property of protecting the policy from being penalized on incorrect reasoning paths. 
+
+Generalization to Continuous Rewards. The limitation of heuristic gating becomes apparent when transitioning to continuous reward settings, such as RLHF (where rewards are typically given by a reward model) or reasoning tasks with partial credit. In these scenarios, the hard indicator I(R = 1) is ill-defined. Naively replacing it with a threshold I(R > τ ) introduces hyperparameters and optimization discontinuities. Conversely, removing the gate entirely (reverting to pure additive shaping) reintroduces the trade-off discussed in Proposition 3.1, where the model can improve ˆR(+) by shortening length even if R
+
+degrades slightly. 12 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Multiplicative shaping solves this by acting as a soft gating mechanism. As derived in Proposition 3.2, the group-normalized advantage under multiplicative shaping contains the following term governing the length signal: 
+
+A( ˆR(×)) ∝ R · (S − μS ) + . . . 
+
+This decomposition demonstrates that the impact of length variation (S − μS ) on the advantage is explicitly scaled by the task reward R. This creates a dynamic reweighting of the learning signal: • Low Quality ( R ≈ 0): The length signal is suppressed ( R · (S − μS ) ≈ 0). The advantage is dominated by the need to improve task correctness, and the policy receives little to no signal regarding length. This mimics an inactive gate, preventing the model from collapsing to short but incorrect responses. • High Quality ( R ≈ 1): The length signal is fully active ( R · (S − μS ) ≈ S − μS ). The advantage significantly favors shorter trajectories within the successful group. This mimics an active gate, effectively prioritizing efficiency once capability is secured. This property effectively interpolates between “no penalty” and “full penalty” based on the response quality. Consequently, GR 3 allows us to apply strong length regularization in RLHF without the risk of the model collapsing to short, low-quality responses, as evidenced by the dynamics in Figure 2. 
+
+Empirical Observation. We further conduct an analytical experiment, illustrated in Figure 5. Specifically, we convert our multiplicative shaping term into a penalty form used in gated additive shaping by defining λP := Smult − 1. We then introduce different thresholds I(R > τ ) to extend gated additive shaping to continuous-reward RLHF settings. We observe that, due to optimization discontinuities, all choices of τ lead to performance that falls short of standard GRPO. At the same time, generation length is reduced more aggressively, dropping below the typical level of the base policy model. 0 100 200 300 400     
+
+> Training Step
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> (a) Task Reward
+> 0100 200 300 400
+> Training Step
+> 1000
+> 1500
+> 2000
+> 2500
+> (b) Response Length
+
+Multiplicative vs. Gated Additive Shaping    
+
+> Standard GRPO
+> Multiplicative
+> Gated Additive ( = 0.5)
+> Gated Additive ( = 0.75)
+> Gated Additive ( = 0.9)
+
+Figure 5. Comparison of multiplicative and gated additive shaping during RLHF training. Multiplicative shaping matches standard GRPO in task reward while achieving controlled length reduction. In contrast, gated additive variants with different reward thresholds underperform and produce overly short responses, reflecting optimization instability introduced by hard gating. 
+
+## B. Analysis of the Difficulty Over-Adaptation Phenomenon 
+
+In Section 3.2, we discussed how group-relative length regularization adapts the length budget to on-policy statistics. While this removes the rigidity of global thresholds, we observe an unintended side effect in certain shaping strategies (e.g., Efficiently (Arora & Zanette, 2025)): the policy can become over-adaptive to perceived task difficulty, a phenomenon we term difficulty over-adaptation . Concretely, the model tends to aggressively compress reasoning on easy prompts while failing to effectively restrain excessive length on hard ones, as reflected in Table 2 and illustrated by the examples in Table 6. In other words, the regularizer distorts how reasoning effort is allocated across difficulty levels. 13 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning       
+
+> Table 6. Example output from the Efficiently (Arora & Zanette, 2025) 1.5B baseline at step 800, showing excessive reasoning truncation and omission of critical intermediate steps, resulting in an incoherent chain of thought.
+> Prompt
+> A90 ◦rotation around the origin in the counter-clockwise direction is applied to 7 + 2 i. What is the resulting complex number? Let’s think step by step and output the final answer within \boxed{} .
+> <think>
+> 7cos90 -2i sin90=0-2i // Extremely short reasoning performed
+> </think>
+> −2i
+> // Fails to present the correct answer.
+
+To understand the mechanism behind this skew, we analyze the sensitivity of the reward function to changes in length. Consider the Efficiently (Arora & Zanette, 2025) formulation: 
+
+ˆR(x, y (i)) = R(x, y (i)) − λ · I(R(x, y (i)) = 1) · s
+
+ ℓ(i) − ¯ℓσℓ
+
+
+
+.
+
+In this formulation, the input to the sigmoid function s(·) is amplified by the factor 1/σ ℓ. This means that the marginal penalty associated with increasing the response length is inversely proportional to the statistical dispersion ( σℓ) of the group. This dependency creates instability across difficulty regimes. On easier prompts, the policy is typically confident and converges to consistent responses, causing the length standard deviation to collapse (i.e., σℓ → 0). Consequently, the scaling factor 1/σ ℓ becomes extremely large. In this low-variance regime, even a deviation of a single token is treated as a massive statistical outlier, triggering a severe drop in reward. This hypersensitivity forces the model to over-compress simple responses to avoid harsh penalties. Conversely, on harder prompts, the policy often explores diverse reasoning paths, resulting in a larger σℓ. This attenuates the penalty signal, allowing longer generations to persist with relatively little cost. In contrast, GR 3 normalizes the penalty based on the characteristic scale (mean length ¯ℓ) rather than dispersion: 
+
+ˆR(x, y (i)) = R(x, y (i)) · 11 + α · ℓ(i)
+
+> ¯ℓ
+
+.
+
+Here, the sensitivity of the penalty depends on the ratio relative to ¯ℓ. While the mean length ¯ℓ is naturally smaller for easier tasks (appropriately making the budget tighter), it represents the physical scale of the response and does not collapse to near-zero values as the model becomes confident. By normalizing based on scale rather than variance, GR 3 provides a stable regularization signal that remains robust to the model’s convergence state, effectively mitigating the imbalance in compression pressure across difficulty levels. 
+
+## C. The Dilemma of High Reward Density 
+
+In this section, we analyze a fundamental structural tension that arises when length regularization is combined with group-normalized advantages. We show that under high reward density , a seemingly desirable strict requirement—ensuring that all highest-reward trajectories retain positive advantage—is in general mathematically infeasible. We then show that even a relaxed average-case criterion can degenerate in the limiting case where all sampled trajectories achieve Rmax , as a consequence of the convexity of multiplicative length rescaling. These observations motivate the relaxed, calibration-based constraint and the online filtering strategy adopted in Section 3.3. 
+
+C.1. Impossibility of the Strict Advantage-Preservation Objective A Strict but Natural Objective. A natural objective for length-aware reinforcement learning is to preserve the optimization signal of the best solutions. Concretely, consider the following strict condition: all trajectories achieving the maximum task reward Rmax within a sampled group should receive positive advantages after length regularization. Intuitively, these 14 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+trajectories represent the highest-quality responses, and assigning them negative advantages risks discouraging correct reasoning behaviors. Under GRPO-style normalization, the strict objective is therefore equivalent to requiring 
+
+ˆR(x, y (j)) > μ ˆR, ∀j ∈ H ,
+
+where H := {j : R(x, y (j)) = Rmax } denotes the set of highest-reward trajectories, ˆR(x, y (j)) is the regularized reward and μ ˆR is the mean regularized reward within the group. 
+
+Impracticality Under High Reward Density. We now show that under high reward density, the strict objective of preserving positive advantages for all highest-reward trajectories is mathematically infeasible, regardless of how small the length penalty coefficient α is. Under GR 3, the regularized reward is 
+
+ˆR(x, y (j)) = R(x, y (j))1 + α · ℓ(j)
+
+> ¯ℓ
+
+.
+
+For all j ∈ H we have R(x, y (j)) = Rmax , so variation in ˆR depends only on length. Since the regularization term is monotonically decreasing in ℓ(j), the longest trajectory in H,
+
+ℓmax = max  
+
+> j∈H
+
+ℓ(j),
+
+attains the smallest regularized reward 
+
+ˆRmin = Rmax 
+
+1 + α · ℓmax 
+
+> ¯ℓ
+
+.
+
+When reward density is high, the group mean μ ˆR is dominated by trajectories in H and is therefore approximately their average. Since the minimum of a set cannot exceed its mean, we must have ˆRmin ≤ μ ˆR. Hence, at least one highest-reward trajectory receives a non-positive advantage. This shows that, under high reward density, it is impossible for all 
+
+highest-reward trajectories to maintain positive advantages after group normalization; the conflict is structural rather than a consequence of hyperparameter choice. This impossibility persists even in the limit α → 0. Using a first-order expansion, 
+
+ˆR(x, y (j)) ≈ Rmax ·
+
+
+
+1 − α · ℓ(j)
+
+¯ℓ
+
+
+
+,
+
+and denoting by 
+
+¯ℓH = 1
+
+k
+
+X
+
+> j∈H
+
+ℓ(j),
+
+the mean length among highest-reward trajectories, we obtain 
+
+ˆR(x, y (j)) − μ ˆR ≈ − Rmax · α · ℓ(j) − ¯ℓH
+
+¯ℓ .
+
+Hence 
+
+ˆA(j) ∝ −  ℓ(j) − ¯ℓH
+
+.
+
+so any highest-reward trajectory longer than the mean length of H must receive a negative advantage, no matter how small α
+
+is. Group normalization enforces a zero-mean constraint that inevitably induces sign flips among equally correct trajectories with different lengths. 15 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Empirical Observation. Figure 6 empirically illustrates this phenomenon. The horizontal axis shows the proportion of trajectories in a group achieving Rmax (reward density), and the vertical axis shows the fraction of highest-reward trajectories that satisfy the strict condition Ai > 0. Even with a very small penalty strength (Figure 6(a), α = 0 .05 ), the satisfaction rate declines as reward density increases. With a larger α (Figure 6(b), α = 5 .0), the decline becomes much more pronounced. These results confirm that violations of the strict condition arise from an inherent structural conflict rather than poor hyperparameter tuning. This impossibility result directly motivates the relaxed calibration strategy in Section 3.3. Instead of attempting to protect the longest highest-reward trajectory—which is generally infeasible—we adopt an average-case criterion that ensures a typical high-quality trajectory, whose length is near the group mean, remains above the group-average regularized reward. This leads naturally to the practical constraint in Eq. (16). 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9  
+
+> Rmax Score Ratio
+> 0.94
+> 0.96
+> 0.98
+> 1.00
+> 1.02
+> Naive Satisfaction Rate
+
+(a) α = 0 .05 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9   
+
+> Rmax Score Ratio
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Naive Satisfaction Rate
+
+(b) α = 5 .00 
+
+Figure 6. Effect of reward density on the strict advantage-preservation objective. As reward density increases, the strict constraint satisfaction rate decreases, even for a small penalty coefficient α = 0 .05 , and more noticeably for a larger penalty α = 5 .0.
+
+C.2. Degeneracy of the Average-Case Criterion in the All-Rmax Limit 
+
+Recall the average-case calibration criterion (Eq. (16)), which requires that a representative high-quality trajectory (reward 
+
+Rmax and average length ¯ℓ) retains non-negative advantage: 
+
+Rmax 
+
+1 + α ≥ μ ˆR,
+
+where μ ˆR denotes the within-group mean of the regularized rewards. As noted in Section 3.3, this constraint can fail in the limiting case where all trajectories in the group achieve Rmax , motivating online filtering. 
+
+All-Rmax case reduces the condition to a Jensen inequality. Assume a sampled group satisfies R(x, y (i)) = Rmax for all i ∈ { 1, . . . , G }. Under GR 3, the regularized reward is 
+
+ˆR(i) = Rmax · 11 + α · ℓ(i)
+
+> ¯ℓ
+
+.
+
+Define the normalized length ratio zi := ℓ(i)/¯ℓ, which obeys 1
+
+> G
+
+PGi=1 zi = 1 . Let 
+
+f (z) := 11 + αz , z ≥ 0.
+
+Then μ ˆR = Rmax · 1
+
+> G
+
+PGi=1 f (zi), and Eq. (16) becomes 
+
+f (1) ≥ 1
+
+G
+
+> G
+
+X
+
+> i=1
+
+f (zi).
+
+16 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Convexity flips the inequality. A direct calculation gives 
+
+f ′′ (z) = 2α2
+
+(1 + αz )3 > 0,
+
+so f is convex on [0 , ∞). By Jensen’s inequality, 
+
+f 1
+
+G
+
+> G
+
+X
+
+> i=1
+
+zi
+
+!
+
+≤ 1
+
+G
+
+> G
+
+X
+
+> i=1
+
+f (zi).
+
+Using 1
+
+> G
+
+P 
+
+> i
+
+zi = 1 , we obtain 
+
+f (1) ≤ 1
+
+G
+
+> G
+
+X
+
+> i=1
+
+f (zi),
+
+which is the reverse of the desired condition. Moreover, the inequality is strict whenever the lengths are not all identical (i.e., when zi is not constant). Therefore, in an all-Rmax group, the average-case constraint in Eq. (16) can only hold in the degenerate case ℓ(i) = · · · = ℓ(G); otherwise it must fail. This explains why we exclude such groups via online filtering in practice. 
+
+## D. Detailed Experimental Settings 
+
+We evaluate GR 3 in representative post-training regimes spanning RLVR and RLHF. In the RLVR setting, we study whether the model can reduce unnecessary long CoT reasoning while maintaining task performance improvement. As for the RLHF setting, we examine whether our method mitigates reward hacking (Amodei et al., 2016) and produces well-aligned responses with natural response lengths. In this section, we provide the detailed hyperparameters and configurations used in our experiments. All experiments are conducted using veRL (Sheng et al., 2024) as the training framework, based on a standard GRPO advantage estimator. The detailed implementation settings for the experiments are shown in Table 7. Moreover, we evaluate mathematical reasoning on AIME-24 (MAA, 2024), AIME-25 (MAA, 2025), AMC-23 (MAA, 2023), and MATH500 (Lightman et al., 2023); code generation on LiveCodeBench v6 (Jain et al., 2024) and MultiPL-E (Cassano et al., 2022); and conversational ability on Arena-Hard-Auto (Li et al., 2024) and AlpacaEval (Dubois et al., 2024). Following standard practice, we report the length-controlled (LC) win rate for AlpacaEval. For Arena-Hard-Auto, we do not apply length control and instead use scores derived directly from the original pairwise judge.  
+
+> Table 7. Hyper-parameters used in our experiments.
+
+Hyperparameter Math Code Chat 
+
+GR 3 Coefficient α 0.33 0.33 0.00133 KL Coefficient β 0.0 0.0 0.001 Batch Size 128 128 128 Mini Batch Size 128 128 128 Prompt Length 1024 1024 1024 Rollout Length 16384 16384 4096 Rollout Temperature 1.0 1.0 1.0 Rollout Group Size 16 8 8Optimizer AdamW AdamW AdamW Weight Decay 0.01 0.01 0.01 Learning Rate 2e-6 2e-6 1e-6 Scheduler Type Constant Constant Constant Training Step 1000 800 400 Evaluation Length 32768 32768 8192 Evaluation Temperature 0.6 0.6 0.0 17 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+## E. Additional Experimental Results 
+
+E.1. Mathematical Reasoning Results on 1.5B Models 
+
+This section presents experimental results on mathematical reasoning tasks, using DeepSeek–R1–Distill–1.5B as the base model. As shown in Table 8, the findings are consistent with the experiments of DeepSeek–R1–Distill–7B: GR 3 not only significantly enhances the model’s reasoning capabilities but also substantially reduces the length of the generated output in terms of tokens, demonstrating good performance across different scales.                                                                      
+
+> Table 8. Mathematical reasoning performance for 1.5B models. AIME24 AIME25 AMC23 MATH500 Model Avg@32 ↑#Token ↓Avg@32 ↑#Token ↓Avg@16 ↑#Token ↓Avg@4 ↑#Token ↓
+> Initial model
+> DeepSeek–R1–Distill–1.5B 30.0 16531 23.6 15799 70.8 9351 83.9 5399
+> Length-oriented RL
+> LCR1–1.5B 23.5 9071 20.6 8275 67.8 4170 81.9 2520 Laser–DE–L4096–1.5B 30.1 5770 24.1 5008 73.4 3110 84.6 1931 AdaptThink–1.5B 34.2 9204 24.7 9234 63.3 2859 80.9 1649 DLER–R1–1.5B 34.3 3839 27.8 3153 82.1 2419 87.2 1783
+> Performance-oriented RL
+> GRPO 39.6 13054 31.4 12985 81.9 9917 85.6 7138 GR 3(ours) 45.2 8381 32.8 8137 81.6 4153 89.3 2214
+
+E.2. Ablation Results on Penalty Strength α
+
+We analyze the sensitivity of GR 3 to the length penalty coefficient α by sweeping its value under identical training settings. Detailed results on 1.5B models are shown in Table 9. When α is large (e.g., α = 1 .0), the multiplicative rescaling term heavily penalizes long trajectories, largely independent of their reward level. In this regime, GR 3 behaves similarly to conventional length-penalized RL, where optimization is driven primarily by shortening responses rather than improving solution quality. Although token usage is significantly reduced, the performance gains over the initial model become noticeably smaller, indicating that overly aggressive regularization suppresses useful long-form reasoning. As α decreases, response length increases in a gradual and well-behaved manner, while task performance first improves and then saturates. In particular, moving from α = 0 .33 to smaller values (e.g., 0.2 and 0.1) yields longer generations but only marginal or inconsistent accuracy improvements. This empirical trend aligns closely with the analysis in Section 3.3. Once the penalty is weak enough that the advantage of representative high-quality trajectories is preserved, further reducing 
+
+α mainly relaxes the length constraint without introducing stronger optimization signals. In other words, the training has already crossed the advantage-preservation boundary, after which additional reasoning length no longer translates into meaningful performance gains. Overall, α controls distinct behavioral regimes, and GR 3 provides a principled way to select it near the advantage-preserving transition between length control and capability gains. 
+
+## F. Qualitative Analysis of Rollout Trajectories 
+
+To better understand the behavioral differences induced by the two training objectives, we present representative rollout examples from a GR 3-trained model and a GRPO-trained baseline on the same reasoning prompt. Tables 10 and 11 show the generation traces. 
+
+GR 3: concise reasoning with preserved structure. As illustrated in Table 10, the GR 3-trained model produces a reasoning trajectory that is both structured and economical. The solution follows a clear progression: (i) restating the task, (ii) identifying the periodicity of directions under full rotations, (iii) reducing the angle to a remainder modulo 360 ◦, and (iv) mapping the residual rotation to a compass direction. Each step contributes directly to advancing the solution, and 18 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning                                                                           
+
+> Table 9. Hyperparameter sweep of the length penalty coefficient αin GR 3on 1.5B models. AIME24 AIME25 AMC23 MATH500 Model Avg@32 ↑#Token ↓Avg@32 ↑#Token ↓Avg@16 ↑#Token ↓Avg@4 ↑#Token ↓
+> Initial model
+> DeepSeek–R1–Distill–1.5B 30.0 16531 23.6 15799 70.8 9351 83.9 5399
+> Our method: varying α
+> GR 3(α= 1 .00 )34.9 6316 27.4 5927 75.2 1754 83.0 848 GR 3(α= 0 .50 )40.5 7923 29.6 7399 82.3 3245 87.1 1705 GR 3(α= 0 .33 )45.2 8381 32.8 8137 81.6 4153 89.3 2214
+> GR 3(α= 0 .20 )45.1 10174 32.4 10250 83.0 4887 88.9 2838 GR 3(α= 0 .10 )43.2 10759 31.7 10701 83.0 6235 88.2 3419
+
+intermediate checks serve to confirm rather than re-derive earlier results. Importantly, the trajectory terminates decisively with a correctly formatted boxed answer. The reasoning chain is neither artificially shortened nor overly verbose; instead, redundant re-computation and self-doubt loops are largely absent. This reflects a policy that has learned to allocate tokens primarily to causally relevant steps. 
+
+GRPO: verbose loops and diluted signal. In contrast, the GRPO-trained baseline (Table 11) exhibits substantially different behavior. Although it repeatedly identifies correct intermediate facts—such as the 360 ◦ periodicity and the 
+
+2250 mod 360 = 90 ◦ reduction—it frequently re-derives them, questions previously established conclusions, and oscillates between equivalent formulations (e.g., full rotations vs. fractional rotations). The trajectory contains multiple self-corrections that do not introduce new information. This pattern results in long reasoning traces where many tokens are only weakly related to forward progress. From an optimization perspective, such trajectories distribute the reward signal across a large number of low-impact tokens, reducing the effective learning pressure on decisive reasoning steps. Moreover, despite eventually circling back to the correct direction, the model fails to present a clean final answer in the required boxed format, leaving the solution inconclusive. 
+
+Implications for optimization dynamics. These qualitative differences align with the mechanism discussed in Sec-tion 4.3.2. By down-weighting the advantages of unnecessarily long trajectories, GR 3 implicitly favors reasoning paths with higher informational density per token. This encourages the policy to preserve essential logical structure while avoiding non-robust reasoning patterns, such as repetitive or self-doubting loops. As a result, the reward signal becomes more concentrated on tokens that correspond to meaningful reasoning transitions, rather than being diluted across verbose yet low-contributing segments. 
+
+## G. Author Contributions 
+
+Zichao Li led the project. Jie Lou and Yaojie Lu supervised the project. Fangchen Dong contributed to the experimental implementation. Zhiyuan Fan contributed by first sketching the prototype of the method during early discussions. Mengjie Ren contributed to the experiments on code generation tasks. Hongyu Lin, Xianpei Han, Debing Zhang, Le Sun, and Xing Yu provided supervision and contributed to technical discussions throughout the project. 19 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Table 10. Example output from our GR 3-trained 1.5B model, demonstrating robust, clearly structured step-by-step reasoning and a correct final answer in boxed format. 
+
+Prompt 
+
+A figure skater is facing north when she begins to spin to her right. She spins 2250 degrees. Which direction (north, south, east or west) is she facing when she finishes her spin? Let’s think step by step and output the final answer within \boxed{} .
+
+Example Output from our GR 3-trained 1.5B Model 
+
+<think> 
+
+Okay, so I need to figure out which direction a figure skater is facing after spinning 2250 degrees to her right. She starts facing north. Hmm, let’s break this down step by step. // Restates the problem and sets up a step-by-step plan. First, I know that a full rotation is 360 degrees, so every time she spins 360 degrees, she’ll end up facing the same direction she started. So, to find out where she ends up after 2250 degrees, I should probably find the equivalent angle within a single rotation. // Recalls the key concept: directions repeat every 360°. Let me calculate how many full rotations 2250 degrees is. I’ll divide 2250 by 360. Let’s see, 2250 ÷ 360. Let me compute that: 360 × 6 is 2160, and 2250 - 2160 is 90. So, 2250 degrees is equivalent to 6 full rotations plus an additional 90 degrees. // Performs division to reduce the rotation to full turns plus a remainder. So, she spins 6 full circles, which brings her back to the starting direction, facing north. Then she spins an additional 90 degrees to her right. Now, I need to figure out where she ends up after spinning 90 degrees to the right from north. // Uses the result: full turns cancel out, leaving only the 90° remainder. Let’s recall the directions: when facing north, a right turn would be towards east. So, if she spins 90 degrees to the right, starting from north, she would face east. // Maps a 90° right turn from north to the compass direction east. Wait, let me double-check that. If she’s facing north and spins 90 degrees to the right, her new direction is east. Yeah, that makes sense. So after 2250 degrees, she ends up facing east. // Verifies the directional reasoning and confirms the conclusion. So the answer should be east. **Final Answer** 
+
+east 
+
+</think> 
+
+The figure skater starts facing north and spins 2250 degrees to her right. First, we determine the equivalent angle within a single rotation by dividing 2250 by 360. This gives us 6 full rotations plus an additional 90 degrees (since 2250 - 6*360 = 90). After completing 6 full rotations, the skater is back facing north. She then spins an additional 90 degrees to her right from north. When facing north and spinning 90 degrees to the right, the skater will face east. 
+
+east 
+
+// Formats the final answer as required. 
+
+20 Tackling Length Inflation Without Trade-offs: Group Relative Reward Rescaling for Reinforcement Learning 
+
+Table 11. Example output from the GRPO-trained 1.5B baseline, exhibiting redundant reasoning loops, repeated self-doubt, and failure to produce a conclusive final answer. 
+
+Prompt 
+
+A figure skater is facing north when she begins to spin to her right. She spins 2250 degrees. Which direction (north, south, east or west) is she facing when she finishes her spin? Let’s think step by step and output the final answer within \boxed{} .
+
+Example Output from the GRPO-trained 1.5B Model 
+
+<think> 
+
+Okay, so I have this problem here about a figure skater spinning. Let me try to figure it out step by step. Hmm, she’s facing north and starts spinning to her right. She spins 2250 degrees, and we need to find out which direction she’s facing after that. The options are north, south, east, or west. Alright, first, I know that when you spin, your direction changes based on how many degrees you turn. But since she’s starting facing north and spinning to her right, I need to figure out how that affects her direction after a certain number of degrees. Wait, hold on. When you spin to your right, does that mean you’re turning clockwise or counterclockwise? I think in the context of facing north, spinning to your right would be clockwise because if you’re facing north and turn right, you’re going towards east, then south, then west, and back to north. So, right is clockwise. But maybe I should clarify. If you’re facing north and you spin to your right, you’re turning clockwise. So, each 90-degree turn would change your direction. So, 90 degrees to the right from north would be east, another 90 degrees would be south, another 90 degrees would be west, and another 90 degrees back to north. That makes sense. // Repeatedly re-derives the meaning of “spin to her right”. Now, she spins 2250 degrees. Hmm, that’s a lot. Let me think about how to break this down. Since a full circle is 360 degrees, maybe I can find out how many full rotations she makes and then the remaining degrees. So, if I divide 2250 by 360, that will tell me how many full spins she does and what the remainder is. Let me do that: 2250 ÷ 360. Let me compute that. First, 360 times 6 is 2160, right? Because 360*6 = 2160. Then, 2250 - 2160 is 90. So, 2250 degrees is equal to 6 full rotations (which bring her back to the starting point) plus an additional 90 degrees. So, effectively, she only needs to consider the 90-degree turn after the full rotations. But wait, hold on. Wait, is it 6 full rotations or 6.25? Wait, no, 2250 divided by 360 is 6.25, because 360*6=2160, and 2250-2160=90, so it’s 6 and 90/360, which is 6.25 full rotations. So, 6.25 rotations is the same as 6 full rotations plus 0.25 of a rotation. But since a full rotation brings her back to the starting direction, the 6 full rotations don’t change her facing. So, the key is the 0.25 of a rotation, which is 90 degrees. But wait, hold on. She starts spinning to her right, which is clockwise. So, spinning 90 degrees clockwise from north would make her face east. So, after 2250 degrees, which is equivalent to 6 full rotations plus 90 degrees, she would have effectively turned 90 degrees clockwise from her starting direction. But wait, hold on. Wait, the problem says she starts spinning to her right. So, does that mean she is spinning clockwise? Because if she’s facing north and spins to her right, that’s a clockwise spin. So, each 90-degree turn clockwise would change her direction. So, if she spins 90 degrees clockwise, she would face east. 180 degrees clockwise would face her west, and 270 degrees clockwise would face her south. But in this case, she only spins 90 degrees, which is 2250 degrees, which is 6 full rotations plus 90 degrees. Wait, but 2250 degrees is a lot. Let me make sure I’m calculating this correctly. So, 2250 divided by 360 is equal to... let’s see, 360 times 6 is 2160, as I had before. 2250 minus 2160 is 90. So, 2250 degrees is 6 full circles plus 90 degrees. So, she’s effectively turned 90 degrees. // Unnecessarily re-checks the same arithmetic multiple times. But since she’s spinning to her right, which is clockwise, a 90-degree turn would make her face east. So, she starts facing north, spins 90 degrees clockwise, so she faces east. Is that right? Wait, no, hold on. Wait, maybe I’m mixing up the direction of rotation. If she’s spinning to her right, that’s a clockwise rotation, but in terms of her facing direction, starting north, spinning 90 degrees clockwise would make her face east. Wait, but let me think again. When you spin to your right, you’re turning clockwise. So, if you’re facing north, turning right (clockwise) 90 degrees would make you face east. So, 90 degrees clockwise from north is east. So, 2250 degrees is 6 full rotations plus 90 degrees. So, after the full rotations, she’s back to north, and then she turns 90 degrees clockwise, so she’s facing east. // Enters a self-doubt loop, questioning previously correct directional reasoning. . . . Wait, no, wait. If you add 2250 degrees, but since 360 is a full circle, 2250 degrees is equivalent to 90 degrees. So, starting from north (0 degrees), adding 90 degrees clockwise is east. So, yes, she’s facing east. But wait, hold on, is it 90 degrees or 270 degrees? Wait, no, because she’s spinning to her right, which is clockwise, so 90 degrees clockwise from north is east. Wait, maybe I should draw a diagram in my mind. . . . // Fails to present the final answer, leaving the solution inconclusive. 
+
+21

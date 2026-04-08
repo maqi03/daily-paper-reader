@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.17461v1/fig-001.webp",
+      "caption": "Fig. 3: The AR-CoPO training pipeline. (1) Rollout: The model autoregressively generates a shared context up to a randomly selected pivot chunk p. At chunk p, the base initial noise is perturbed into G neighbors; each neighbor is forked into an independent branch and autoregressively completed to produce a full video sequence. (2) Reward: Each completed sequence is decoded and scored by a reward model, yielding a sequence-level reward per branch. (3) Replay & Update: The saved pivotchunk trajectories are replayed through the current policy; distances between current and old x̂0 predictions induce surrogate policy ratios, which are used in a clipped GRPO update confined to the pivot chunk.",
+      "page": 6,
+      "index": 1,
+      "width": 708,
+      "height": 369
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17461v1/fig-002.webp",
+      "caption": "Fig. 5: Qualitative comparison between AR-CoPO (up) and Self-Forcing (down) on diverse text prompts. AR-CoPO produces videos with improved visual fidelity, motion quality, and better adherence to the text prompt.",
+      "page": 11,
+      "index": 2,
+      "width": 646,
+      "height": 394
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17461v1/fig-003.webp",
+      "caption": "Fig. 1: AR-CoPO is a reinforcement learning for human preference (RLHF) method, aligning few-step autoregressive (AR) video generative models to better sample quality.",
+      "page": 2,
+      "index": 3,
+      "width": 710,
+      "height": 302
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17461v1/fig-004.webp",
+      "caption": "Fig. 8: Comparison of generated samples under semi-on-policy (top for each) and onpolicy (bottom for each) training. On-policy training introduces visible temporal inconsistencies, whereas semi-on-policy training preserves generation quality.",
+      "page": 13,
+      "index": 4,
+      "width": 579,
+      "height": 258
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17461v1/fig-005.webp",
+      "caption": "Fig. 4: On-policy vs. semi-on-policy training under AR-CoPO. Left: On-policy training rolls out fresh candidates from the evolving policy πθ at each iteration, enabling active exploration of new generation modes guided by the reward signal. Right: Semion-policy training fixes all rollouts to a reference policy πref ; the contrastive objective upweights high-reward candidates and suppresses low-reward ones within a trust region maintained by ratio clipping, enhancing exploitation without sacrificing stability. Each paradigm trains an independent LoRA adapter; merging the two adapters yields the final aligned model that benefits from both exploration and exploitation.",
+      "page": 8,
+      "index": 5,
+      "width": 725,
+      "height": 273
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17461v1/fig-006.webp",
+      "caption": "Fig. 9: Qualitative comparison between Causal-Forcing (top row) and AR-CoPO at LoRA scale 0.5 (second row) and scale 0.8 (third row). The scale-0.5 configuration best balances visual quality and semantic fidelity, while scale 0.8 achieves slightly higher visual quality at the cost of minor semantic degradation.",
+      "page": 19,
+      "index": 6,
+      "width": 579,
+      "height": 1039
+    },
+    {
+      "url": "assets/figures/arxiv/2603.17461v1/fig-007.webp",
+      "caption": "Fig. 6: Analysis of entropy sources in Self-Forcing. Each sub-figure corresponds to forking at a different chunk position. Row 1: Reference sample with all noise frozen. Row 2: Only the initial noise of the forked chunk is replaced—the output changes substantially. Rows 3–5: Only the CM solver noise at a specific denoising timestep within the chunk is replaced—the output changes marginally. This confirms that sample diversity in Self-Forcing is governed almost entirely by the initial noise, making intermediate SDE-style noise injection ineffective as an exploration mechanism.",
+      "page": 12,
+      "index": 7,
+      "width": 566,
+      "height": 487
+    }
+  ]
+}

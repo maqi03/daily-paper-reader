@@ -1,0 +1,241 @@
+Title: V2A-DPO: Omni-Preference Optimization for Video-to-Audio Generation
+
+URL Source: https://arxiv.org/pdf/2603.11089v1
+
+Published Time: Fri, 13 Mar 2026 00:03:23 GMT
+
+Number of Pages: 5
+
+Markdown Content:
+# V2A-DPO: OMNI-PREFERENCE OPTIMIZATION FOR VIDEO-TO-AUDIO GENERATION 
+
+# Nolan Chan ∗,1, Timmy Gang ∗,2, Yongqian Wang 3, Yuzhe Liang 4, Dingdong Wang 11 The Chinese University of Hong Kong, Hong Kong SAR, China  
+
+> 2
+
+# National Research Council Canada, Canada  
+
+> 3
+
+# The University of Warwick, UK  
+
+> 4
+
+# Shanghai Jiao Tong University, China 
+
+ABSTRACT 
+
+This paper introduces V2A-DPO, a novel Direct Preference Opti-mization (DPO) framework tailored for flow-based video-to-audio generation (V2A) models, incorporating key adaptations to effec-tively align generated audio with human preferences. Our approach incorporates three core innovations: (1) AudioScore—a compre-hensive human preference-aligned scoring system for assessing semantic consistency, temporal alignment, and perceptual quality of synthesized audio; (2) an automated AudioScore-driven pipeline for generating large-scale preference pair data for DPO optimization; (3) a curriculum learning-empowered DPO optimization strategy specif-ically tailored for flow-based generative models. Experiments on benchmark VGGSound dataset demonstrate that human-preference aligned Frieren and MMAudio using V2A-DPO outperform their counterparts optimized using Denoising Diffusion Policy Optimiza-tion (DDPO) as well as pre-trained baselines. Furthermore, our DPO-optimized MMAudio achieves state-of-the-art performance across multiple metrics, surpassing published V2A models. Our demos are available at https://seujames23.github.io/V2A-DPO/. 
+
+Index Terms — Video-to-Audio, Direct Preference Optimiza-tion, Human Preference Alignment, Flow Matching, Curriculum Learning 
+
+1. INTRODUCTION 
+
+Video-to-Audio Generation (V2A) aims to synthesize well-aligned audio conditioned on video features with optional text prompt, which usually takes the semantic and temporal information into account. By matching silent videos with high-quality and semantically con-sistent audios, V2A models complement modern video generation systems, which predominantly concentrate on visual synthesis [1]. Recent years have witnessed significant progress in V2A mod-els. Early GAN-based models [2–4] utilize the generators for audio generation from visual features and the discriminators to distin-guish the generated audio from ground-truth. Recent breakthroughs in transformer-based autoregressive models offer powerful capa-bilities in V2A tasks [5–10]. Among them, ThinkSound [7] and DeepSound-V1 [10] harness Chain-of-Thought (CoT) reasoning to enable stepwise, interactive generation and editing for V2A. Addi-tionally, other cutting-edge approaches [1, 11–18] have introduced novel diffusion- or flow matching-based models to address this task and achieve notable performance. Despite of the rapid development, prior V2A models still exhibit several notable limitations. First, their style control is restricted to video-audio pairs used for training, limiting the flexibility and preci-sion of stylistic variations [1–18]. When given a scenario with sig- 
+
+> ∗Corresponding author: yjchen@se.cuhk.edu.hk
+
+nificant differences from the training data during test-time, existing models often generate audios with inappropriate styles. Second, the aesthetic quality of synthesized audio remains challenging to assess through explicit reward modeling—a critical aspect that most V2A approaches overlook [1–18]. However, even when a generated audio is semantically relevant and temporally aligned, it may still fail to provide a sense of immersion for the listener due to its lack of aes-thetic quality. Third, previous approaches typically employ isolated quantitative metrics to assess the semantic and temporal alignment or perceptual quality of generated audio in a separate manner [1–18]. However, the absence of a comprehensive scoring system that holis-tically integrates multiple metrics imposes significant limitations on accurately assessing the performance of V2A models. To address these shortcomings, this paper introduces V2A-DPO, a novel Direct Preference Optimization (DPO) [19] frame-work tailored for flow-based V2A generation models, incorporating key adaptations to effectively align generated audio with human preferences. Specifically, we first propose AudioScore, a com-prehensive human preference-aligned scoring system designed to simultaneously assess semantic consistency, temporal alignment, and perceptual quality of generated audio. By integrating a small set of human-annotated preference pairs with automatically gener-ated preference pairs through an AudioScore-driven pipeline, we then efficiently build a substantial dataset suitable for DPO opti-mization. By incorporating a curriculum learning [20] paradigm into the DPO optimization process, our human preference-aligned V2A models significantly enhance the perceptual quality, semantic consistency, temporal alignment, and even aesthetic appeal of the generated audio. Experiments on benchmark VGGSound dataset suggest that human-preference aligned Frieren [15] and MMAu-dio [18] using V2A-DPO outperform their counterparts optimized using Denoising Diffusion Policy Optimization (DDPO) [21] as well as pre-trained baselines, achieving significant improvements of up to 1.81 absolute (10.4% relative ) in IS and 0.86 absolute 
+
+(2.6% relative ) in IB-score, along with a reduction in DeSync of 
+
+0.09 absolute (20.5% relative ). Furthermore, our DPO-optimized MMAudio achieves state-of-the-art performance across multiple metrics, surpassing published V2A models. Our main contributions are summarized as follow: (a) We pioneer the adaptation of DPO to flow-based V2A mod-els, addressing the unique challenges of aligning audio generation outputs with human preferences. (b) We introduce several key adaptations to the DPO optimiza-tion framework, including: (1) AudioScore—a comprehensive hu-man preference-aligned scoring system for assessing semantic con-sistency, temporal alignment, and perceptual quality of generated audio; (2) an automated AudioScore-driven pipeline for generating 
+
+> arXiv:2603.11089v1 [cs.SD] 11 Mar 2026
+
+large-scale preference pair data for DPO optimization; (3) a cur-riculum learning-empowered DPO optimization strategy tailored for flow-based generative models. (c) To the best of our knowledge, we build the first high-quality video–text prompt–audio preference pair dataset designed for V2A models’ alignment with human preferences, simultaneously taking semantic consistency, temporal alignment, perceptual quality, and aesthetic appeal into account. (d) We validate the proposed V2A-DPO framework through ex-tensive experiments conducted on two open-source pre-trained V2A models. The results demonstrate the robustness and effectiveness of our approach across multiple metrics. 
+
+2. METHOD 
+
+Our proposed V2A-DPO (Omni-Preference Optimization for Video-to-Audio Generation) framework is illustrated in Fig. 1, including a comprehensive human preference-aligned scoring system, an au-tomated preference pair data generation pipeline and a curriculum learning-empowered DPO optimization strategy for V2A models. 
+
+2.1. AudioScore 
+
+The quality of generated audio is influenced by multiple factors, in-cluding: semantic consistency, temporal alignment, perceptual qual-ity and aesthetic appeal. Semantic consistency denotes the content consistency between the generated audio and the the video or text prompt. Temporal alignment, on the other hand, focuses on whether the generated video accurately follows the video. Third, perceptual quality includes the clarity and richness of generated audio. Finally, aesthetic appeal mainly focuses on whether generated audio creates an immersive experience for listeners, even when achieving high scores in the first three criteria. To start, we randomly sample 2K videos with text prompts from the VGGSound [22] training set and generate 10K audio samples through pre-trained V2A models that we aim to align. Subsequently, human annotators rate these gener-ated samples and classify them into three categories, i.e. “Good”, “Medium” and “Bad”, as illustrated in Fig. 1(a). To address the challenge of the high cost of human annotat-ing, we propose AudioScore, a comprehensive human preference-aligned scoring system, consisting of several frozen-weighted foun-dation models, MLP and Softmax modules. As shown in Fig. 1(a), AudioScore computes the average cosine similarity between the in-put visual and generated audio features extracted by ImageBind [23] as video-audio semantic consistency score (IB-score [5]; score 1). Similarly, AudioScore employs CLAP [24] to measure the semantic consistency score ( score 2) between the generated audio and the text prompt if available. Additionally, AudioScore uses the synchroniza-tion score (DeSync; score 3) proposed in [18], which is predicted by Synchformer [25] as the misalignment (in seconds) between au-dio and video. Furthermore, AudioScore assesses the generation quality using the PANNs-based Inception Score [26] ( score 4) fol-lowing [15], along with the objective metric perceptual evaluation of speech quality score (PESQ; score 5) to evaluate the audio quality with the category of human speech. After obtaining five-dimensional score vectors, AudioScore employs two Linear layers with a ReLU between them and a Softmax module to align the automated clas-sification results of the generated audio samples with the human-annotated results using cross entropy loss LCE .
+
+2.2. Omni-Preference Pair Data Generation 
+
+To construct the large-scale preference pair dataset, AudioScore is employed in combination with a “best vs. worst” selection strat-egy based on classification probabilities. As shown in Fig. 1(b), for each prompt, our system generates multiple samples using pre-trained V2A models that we aim to align and a preference pair is se-lected with the highest probability of “Good” as the winning sample while the highest probability of “Bad” as the losing one. We ran-domly sample 50K videos with text prompts from the VGGSound training set and then obtain about 46K omni-preference pairs after re-filtering. Given that aesthetic appeal is challenging to assess quan-titatively via AudioScore, we combine the automatically generated preference pairs with 2K human-annotated preference pairs, forming a DPO training dataset comprising approximately 48K pairs in total. 
+
+Audio generation and scoring. Given a video v with an optional text prompt c, we generate a set of N audios a1, a 2, ..., a N , using the pre-trained V2A model. For each generated audio ai, we apply AudioScore S( ·) to score its quality conditioned on the video v with optional text prompt c. This scoring system predicts the probability vector pi of preference for each audio: 
+
+pi =
+
+
+
+pi(Good |ai, v, c ), p i(Medium |ai, v, c ), p i(Bad |ai, v, c )
+
+
+
+= S( ai, v, c ), for i = 1 , 2, ..., N. 
+
+(1) where, pi(∗| ai, v, c ) refers to the predicted probability of the cor-responding category for the ith generated audio sample condition-ing on video v with optional text prompt c , where ∗ in {“Good”, “Medium”, “Bad” }.
+
+Preference pair selection. Among the N generated audios with the corresponding probability vectors p1, p2, ..., pN , we select the audio with the highest probability of “Good” as the winning sample 
+
+aw and the video with the highest probability of “Bad” as the losing sample al. This selection process is formalized as follows: 
+
+(aw ,a l) = ( ai, a j ), i = arg max p i(Good |ai, v, c ),j = arg max p j (Bad |aj , v, c ), for i, j = 1 , 2, ..., N. (2) 
+
+2.3. Curriculum Learning-Empowered DPO 
+
+Despite the promising results of DPO in the text-to-speech, text-to-image and text-to-video tasks [27–37], randomly sorting the available preference pairs without considering their difficulty during training has been proven suboptimal as minor differences between difficult pairs making it challenging for the models to effectively distinguish [32, 37]. To address this, we introduce a curriculum learning-empowered DPO optimization strategy for V2A models, dividing the training process into two distinct stages based on the complexity scores of the preference pairs. In the first stage, the model is aligned using preference pairs with clearly distinguishable differences, while the second stage utilizes pairs with subtler, more nuanced distinctions. Through curriculum learning, the model is guided to first learn more meaningful alignment cues from simpler preference pairs before progressing to more complex pairs in the subsequent stage. This structured approach enables more stable and gradual improvement of the model’s generative capabilities. 
+
+Probability-based complexity score. Considering a preference pair (aw , a l) with the input video v and optional text prompt c, the complexity score of this pair score c can be calculated as Eq. 3. As is shown in Fig. 1(c), when score c exceeds the preset threshold 
+
+score ∆, the preference pair data will be input into the first stage training; otherwise, the second stage. Note that the complexity scores of 2K human-annotated pairs are all set to zero as we hope that the optimized model will focus on the aesthetic appeal of the generated audio in the second stage. 
+
+score c = 12
+
+h 
+
+pw (Good |aw , v, c ) − pl(Good |al, v, c )
+
+
+
++
+
+
+
+pl(Bad |al, v, c ) − pw (Bad |aw , v, c )
+
+i (3) Fig. 1 . Illustration of the proposed V2A-DPO framework , including (a) our proposed AudioScore to rate the generated audio with multi-dimensional scores; (b) omni-preference pair data generation combining the automatically generated preference pairs based on AudioScore with a small amount of human-annotated preference pairs; (c) curriculum learning-empowered DPO to optimize V2A models on the complex and simple pairs gradually, which are split according to complexity score score c.where, pw (Good |aw , v, c ) and pl(Good |al, v, c ) denote the proba-bilities of “Good” for the winning and losing samples, respectively, while pw (Bad |aw , v, c ) and pl(Bad |al, v, c ) represent the probabil-ities of “Bad”. 
+
+Flow-DPO. Given a fixed dataset D = {(v, c, a w 
+
+> 0
+
+, a l
+
+> 0
+
+)} where each example contains a video v, an optional text prompt c and a pair of audios generated by a reference model qref , with aw 
+
+> 0
+
+preferred over 
+
+al
+
+> 0
+
+, the reward objective of DPO to optimize the policy model qθ can be illustrated as following: 
+
+LDP O (θ) = −E(v,c,a w 
+
+> 0,a l
+> 0)∼D
+
+h
+
+logσ 
+
+
+
+β log qθ (aw 
+
+> 0
+
+|v, c )
+
+qref (aw 
+
+> 0
+
+|v, c )
+
+−β log qθ (al
+
+> 0
+
+|v, c )
+
+qref (al
+
+> 0
+
+|v, c )
+
+i (4) where σ is the sigmoid function. a∗ 
+
+> 0
+
+refers to the target audio sam-pled from D in the rectified flow matching with the superscript ∗
+
+indicating either “ w” (for the winning sample) or “ l” (for the losing sample). In adapting DPO to flow-based models, [38] interprets align-ment as a classification problem, and optimizes a policy to satisfy human preferences by supervised training. For simplicity, we omit the conditioning video v and optional text prompt c in the following equations. The Flow-DPO objective LF D (θ) is given by: 
+
+−E
+
+h
+
+logσ 
+
+
+
+− βt
+
+2
+
+
+
+∥vw − uθ (awt , t )∥2 − ∥ vw − uref (awt , t )∥2
+
+−
+
+
+
+∥vl − uθ (alt, t )∥2 − ∥ vl − uref (alt, t )∥2i 
+
+(5) where a∗ 
+
+> t
+
+= (1 − t)a∗ 
+
+> 0
+
++ tϵ, ϵ ∼ N (0 , I ). And t ∼ U (0 , 1) is the timestep in rectified flow matching. uref and uθ refer to the predicted vector fields from the policy model qθ and the reference model qref , while vw and vl denote the target vector fields of the winning and losing samples, respectively. The parameter βt governs the strength of the KL divergence constraint and varies with t. In our experiments, we use a constant value β in place of βt, following the approach in [38], which has been shown to yield btter performance. Intuitively, minimizing LF D (θ) guides the predicted vector field uθ closer to the target vector vw of the “preferred” sample, while pushing it away from vl (the “less preferred” sample). The strength of this preference signal depends on the differences be-tween the predicted errors and the corresponding reference errors, 
+
+∥vw − uref (awt , t )∥2 and ∥vl − uref (alt, t )∥2.
+
+3. EXPERIMENTS 3.1. Experimental setup Datasets. As detailed in Sec. 2.2, all our experiments are per-formed on the constructed omni-preference pair data based on the VGGSound [22] dataset, which contains a class label (310 classes in total) for each video. For a fair comparison, we evaluate our models on the same test set of MMAudio [18] due to data contamination. 
+
+Generative models. We conduct our experiments by using two pre-trained V2A flow-based models: MMAudio-L-44.1kHz [18] and Frieren [15] with the parameters of 1.03B and 159M, respectively. 
+
+Baselines. We compare our optimized V2A models against five state-of-the-art models: diffusion-based Seeing&Hearing [39], Fo-leyCrafter [17], V2A-Mapper [16], and autoregression-based V-AURA [5], Thinksound [7]. Additionally, we compare DPO with another reinforcement learning method, namely DDPO [21], with the probability of “Good” predicted by AudioScore as the reward. 
+
+Evaluation metrics. We assess the generation quality using the same metrics in [18]. Specifically, we use Fr´ echet Distance with PaSST [40] ( FD PaSST ) as embedding models and Kullback–Leibler distance with PANNs ( KL PANNs ) and PaSST ( KL PaSST ) as clas-sifiers following [41] to assess the similarity in feature distribution between ground-truth audio and generated audio. Moreover, we use the Inception Score [26], IB-score [5], and DeSync [18] to assess perceptual quality, semantic consistency, and temporal alignment. 
+
+Implementation details. All settings of optimized models are identical to corresponding pre-trained models, i.e. MMAudio-L-44.1kHz and Frieren. We train V2A models for 12K steps with a global batch size of 8, using the AdamW optimizer with a learning rate of 5e-6 and linear warmup steps of 1K. For each prompt, the Table 1 . Video-to-audio results on the VGGSound test set. ⋄: the evaluation results in [18] as using the same test set. †: reproduced using official evaluation code. ⋆: does not use text prompt during testing. 
+
+Sys. Method Params Distribution matching Audio quality Semantic align. Temporal align. 
+
+FD PaSST ↓ KL PANNs ↓ KL PaSST ↓ IS ↑ IB-score ↑ DeSync ↓
+
+1 Seeing&Hearing ⋄ 415M 219.01 2.26 2.30 8.58 33.99 1.20 2 V-AURA ⋄ ⋆ 695M 218.50 2.42 2.07 10.08 27.64 0.65 3 FoleyCrafter ⋄ 1.22B 140.09 2.30 2.23 15.68 25.68 1.23 4 V2A-Mapper ⋄ ⋆ 229M 84.57 2.69 2.56 12.47 22.58 1.23 5 ThinkSound † 1.30B 54.92 1.32 1.52 16.03 34.13 0.46 6 Frieren ⋆ 159M 106.10 2.73 2.86 12.25 22.78 0.85 7 Frieren-DDPO ⋆ 159M 75.41 2.58 2.61 13.12 23.19 0.65 8 Frieren-DPO ⋆ 159M 69.98 2.55 2.63 13.98 24.11 0.62 9 MMAudio 1.03B 60.60 1.65 1.40 17.40 33.22 0.44 10 MMAudio-DDPO 1.03B 54.81 1.42 1.36 18.34 33.89 0.39 11 MMAudio-DPO 1.03B 51.38 1.38 1.34 19.21 34.08 0.35 Table 2 . Ablation study on the effect of the KL divergence constraint parameter β and preset threshold score ∆ on the performance of op-timized MMAudio using V2A-DPO. 
+
+Sys. β score ∆ FD PaSST ↓ IS ↑ IB-score ↑ DeSync ↓
+
+0 600 0.7(81%) 51.38 19.21 34.08 0.35 
+
+1 1000 0.7(81%) 82.36 11.15 24.88 0.43 2 800 64.85 17.33 29.91 0.38 3 400 53.46 19.46 33.92 0.35 4 200 55.81 18.79 33.93 0.36 5600 1.0(0%) 52.66 18.83 33.79 0.36 6 0.9(8%) 52.58 18.72 33.90 0.36 7 0.8(45%) 51.96 19.02 33.98 0.35 8 0.6(89%) 51.63 19.10 34.01 0.35 number of generated audios N is set to 5. Additionally, the KL divergence constraint parameter β and preset threshold score ∆ are set to 600 and 0.7, respectively. During inference, we assign the guidance scale γ in the classifier-free guidance (CFG) [42] to 4.5. All experiments are conducted on 8 NVIDIA A100 GPUs. 
+
+3.2. Experimental results Performance comparison between DPO-, DDPO-optimized and base models. As shown in Tab. 1, the human-preference aligned MMAudio using V2A-DPO (Sys.11) consistently outperforms the DDPO-optimized (Sys.10) and pre-trained (Sys.9) models in audio quality and semantic alignment, with significant increases in IS and IB-score by up to 1.81 and 0.86 absolute (10.4% and 2.6% relative; Sys.11 vs. Sys.9), respectively. Additionally, the temporal alignment performance of the optimized MMAudio has been significantly im-proved, with a decrease in DeSync reaching 0.09 absolute (20.5% relative; Sys.11 vs. Sys.9). As intuitively illustrated in Fig. 2, the DPO-optimized MMAudio can align with both the hand move-ments of “lightly strumming” (blue dotted lines) and “rapidly strum-ming repeatedly” (green dotted lines) in the demo, while the DDPO-optimized and pre-trained MMAudio models fail. The same trend can be found in Frieren optimization process (Sys.8 vs. Sys.6,7). 
+
+Performance comparison between the DPO-optimized and pub-lished state-of-the-art V2A models. The optimized MMAudio us-ing V2A-DPO obtains better performance accross multiple metrics than other models in Tab. 1 (Sys.11 vs. Sys.1-5,6,9), except for 
+
+KL PANNs and IB-score. We hypothesize that this discrepancy may 
+
+Fig. 2 . Illustration of generation performance of V2A models. be attributable to ThinkSound’s CoT to analyze visual cues and im-prove semantic alignment. More demos are available on our website. 
+
+Ablation study. Tab. 2 shows the impact of the KL divergence constraint parameter β and preset threshold score ∆ on the perfor-mance of DPO-optimized MMAudio. We observe that the optimized model can generate more semantically consistent and better tempo-rally aligned audios when β equals to 600. Furthermore, the perfor-mance of DPO-optimized models varies with score ∆, as different proportions of simple pairs used in the first stages. Note that the cur-riculum learning-empowered DPO degrades into a regular DPO with a significant decrease in model performance. 
+
+4. CONCLUSION 
+
+We introduce V2A-DPO, a novel DPO framework tailored for flow-based V2A models to effectively align generated audio with human preferences. Our approach incorporates three key adaptations: (1) AudioScore; (2) an automated preference pair data generation pipeline; (3) a curriculum learning-empowered DPO optimiza-tion strategy. Experiments on the VGGSound dataset demonstrate that optimized Frieren and MMAudio using V2A-DPO outperform DDPO-optimized and pre-trained baselines. Furthermore, our DPO-optimized MMAudio achieves state-of-the-art performance across multiple metrics, surpassing published V2A models. 5. REFERENCES 
+
+[1] Manjie Xu et al., “Video-to-audio generation with hidden alignment,” arXiv preprint arXiv:2407.07464 , 2024. [2] Peihao Chen et al., “Generating visually aligned sound from videos,” IEEE Trans. Image Process. , 2020. [3] Kun Su et al., “Audeo: Audio generation for a silent perfor-mance video,” NeurIPS , 2020. [4] Sanchita Ghose et al., “Foleygan: Visually guided genera-tive adversarial network-based synchronous sound generation in silent videos,” IEEE Trans. Multimedia , 2022. [5] Ilpo Viertola et al., “Temporally aligned audio for video with autoregression,” in ICASSP , 2025. [6] Chuang Gan et al., “Foley music: Learning to generate music from videos,” in ECCV , 2020. [7] Huadai Liu et al., “Thinksound: Chain-of-thought reasoning in multimodal large language models for audio generation and editing,” arXiv preprint arXiv:2506.21448 , 2025. [8] Roy Sheffer et al., “I hear your true colors: Image guided audio generation,” in ICASSP , 2023. [9] Xinhao Mei et al., “Foleygen: Visually-guided audio genera-tion,” in MLSP , 2024. [10] Yunming Liang et al., “Deepsound-v1: Start to think step-by-step in the audio generation from videos,” arXiv preprint arXiv:2503.22208 , 2025. [11] Ziyang Chen et al., “Video-guided foley sound generation with multimodal controls,” in CVPR , 2025. [12] Shentong Mo et al., “Foley-flow: Coordinated video-to-audio generation with masked audio-visual alignment and dynamic conditional flows,” in CVPR , 2025. [13] Simian Luo et al., “Diff-foley: Synchronized video-to-audio synthesis with latent diffusion models,” NeurIPS , 2023. [14] Changan Chen et al., “Action2sound: Ambient-aware genera-tion of action sounds from egocentric videos,” in ECCV , 2024. [15] Yongqi Wang et al., “Frieren: Efficient video-to-audio genera-tion with rectified flow matching,” NeurIPS , 2024. [16] Heng Wang et al., “V2a-mapper: A lightweight solution for vision-to-audio generation by connecting foundation models,” in AAAI , 2024. [17] Yiming Zhang et al., “Foleycrafter: Bring silent videos to life with lifelike and synchronized sounds,” arXiv preprint arXiv:2407.01494 , 2024. [18] Ho Kei Cheng et al., “Mmaudio: Taming multimodal joint training for high-quality video-to-audio synthesis,” in CVPR ,2025. [19] Rafailov Rafailov et al., “Direct preference optimization: Your language model is secretly a reward model,” NeurIPS , 2023. [20] Yoshua Bengio et al., “Curriculum learning,” in ICML , 2009. [21] Kevin Black et al., “Training diffusion models with reinforce-ment learning,” arXiv preprint arXiv:2305.13301 , 2023. [22] Honglie Chen et al., “Vggsound: A large-scale audio-visual dataset.,” in ICASSP , 2020. [23] Rohit Girdhar et al., “Imagebind: One embedding space to bind them all,” in CVPR , 2023. [24] Benjamin Elizalde et al., “Clap learning audio concepts from natural language supervision,” in ICASSP , 2023. [25] Vladimir Iashin et al., “Synchformer: Efficient synchroniza-tion from sparse cues,” in ICASSP , 2024. [26] Tim Salimans et al., “Improved techniques for training gans,” 
+
+NeurIPS , 2016. [27] Xiaoxue Gao et al., “Emo-dpo: Controllable emotional speech synthesis through direct preference optimization,” in ICASSP ,2025. [28] Dong Zhang et al., “Speechalign: Aligning speech generation to human preferences,” NeurIPS , 2024. [29] Jinchuan Tian et al., “Preference alignment improves language model-based tts,” in ICASSP , 2025. [30] Navonil Majumder et al., “Tango 2: Aligning diffusion-based text-to-audio generations through direct preference optimiza-tion,” in ACM MM , 2024. [31] Huakang Chen et al., “Diffrhythm+: Controllable and flexi-ble full-length song generation with preference optimization,” 
+
+arXiv preprint arXiv:2507.12890 , 2025. [32] R. Liu et al., “Videodpo: Omni-preference alignment for video diffusion generation,” in CVPR , 2025. [33] Bram Wallace et al., “Diffusion model alignment using direct preference optimization,” in CVPR , 2024. [34] Qihan Huang et al., “Patchdpo: Patch-level dpo for finetuning-free personalized image generation,” in CVPR , 2025. [35] Zhendong Wang et al., “Designdiffusion: High-quality text-to-design image generation with diffusion models,” in CVPR ,2025. [36] Sanghyeon Na et al., “Boost your human image generation model via direct preference optimization,” in CVPR , 2025. [37] Florinel-Alin Croitoru et al., “Curriculum direct preference optimization for diffusion and consistency models,” in CVPR ,2025. [38] Jie Liu et al., “Improving video generation with human feed-back,” arXiv preprint arXiv:2501.13918 , 2025. [39] Yazhou Xing et al., “Seeing and hearing: Open-domain visual-audio generation with diffusion latent aligners,” in CVPR ,2024. [40] Khaled Koutini et al., “Efficient training of audio transformers with patchout,” INTERSPEECH , 2022. [41] Haohe Liu et al., “Audioldm: Text-to-audio generation with latent diffusion models,” ICML , 2023. [42] Jonathan Ho et al., “Classifier-free diffusion guidance,” arXiv preprint arXiv:2207.12598 , 2022.

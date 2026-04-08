@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-001.webp",
+      "caption": "Table 1: Accuracy (avg@4, %) across six benchmarks and four model configurations. PAPO consistently improves over both GRPO and DAPO baselines: Qwen2.5-3B (+3.2), 7B (+3.1), 14B (+5.3), and Qwen3-4B on DAPO (+5.2). For Qwen3-4B-Base, PAPO is applied on top of DAPO. Bold indicates the better method.",
+      "page": 6,
+      "index": 1,
+      "width": 948,
+      "height": 440
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-002.webp",
+      "caption": "Figure 1: (a) ORM (blue) plateaus and declines after step 750 due to signal exhaustion; PRM (red, dashed) collapses via reward hacking; ORM×PRM (purple, dash-dotted) tracks ORM closely without exceeding it; PAPO (green) continues improving throughout training, reaching 51.3%. (b) Comparison across AIME 2024/2025, OlympiadBench, and their average. Naive multiplicative combination (ORM×PRM) barely improves over ORM, while PAPO’s decoupled normalization yields substantial gains on all benchmarks.",
+      "page": 2,
+      "index": 2,
+      "width": 940,
+      "height": 356
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-003.webp",
+      "caption": "Figure 4: Signal quality comparison on Qwen2.5-7B. (a) Zero-advantage ratio: ORM’s sparsity grows to 69% while PAPO maintains 44%. (b) Advantage standard deviation, reflecting gradient signal strength. (c) Positive-advantage ratio, reflecting reinforcement density.",
+      "page": 7,
+      "index": 3,
+      "width": 940,
+      "height": 222
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-004.webp",
+      "caption": "Table 6: Case study: response statistics on three math problems (Qwen2.5-7B). PRM reward hacking is severe on harder problems (top two), with 2–3× longer responses and characteristic topic drift. On easier problems, PRM remains comparable to baselines (omitted for brevity).",
+      "page": 14,
+      "index": 4,
+      "width": 461,
+      "height": 299
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-005.webp",
+      "caption": "Figure 9: PAPO advantage composition. (a) Signal strength (std) of Aout and Aproc: the outcome advantage provides the dominant gradient signal while the process advantage contributes a complementary quality signal. (b) Process signal active ratio: the fraction of groups where Aproc is non-zero (≥ 2 correct responses), growing from ∼30% to 70% as the model improves. (c) Mean advantage by correctness: correct responses receive positive advantage while wrong responses receive negative, confirming the outcome signal functions correctly despite the added process component.",
+      "page": 14,
+      "index": 5,
+      "width": 935,
+      "height": 256
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-006.webp",
+      "caption": "Figure 6: Ablation: correct-subset normalization (PAPO) vs. full normalization (Fullnorm) on OlympiadBench and MATH-500. Both methods improve over ORM, but PAPO’s correct-subset design maintains a consistent advantage over Fullnorm throughout training.",
+      "page": 13,
+      "index": 6,
+      "width": 940,
+      "height": 297
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-007.webp",
+      "caption": "Figure 7: Ablation: decoupled normalization (PAPO) vs. multiplicative reward (Mult) on OlympiadBench and MATH-500. Mult improves over ORM but falls substantially short of PAPO, confirming that decoupled normalization is superior to naive reward combination.",
+      "page": 13,
+      "index": 7,
+      "width": 940,
+      "height": 297
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-008.webp",
+      "caption": "Figure 2: Reward signal analysis. (a) Training reward: PRM reward climbs to 1.0 (perfect score gaming); ORM×PRM stays moderate. (b) Response length: PRM generates increasingly verbose responses; ORM×PRM shows moderate length increase (up to ∼1700 tokens). (c) OlympiadBench accuracy: PRM collapses after step 600; ORM×PRM tracks ORM but fails to exceed it, showing that naive signal combination does not resolve signal exhaustion.",
+      "page": 4,
+      "index": 8,
+      "width": 940,
+      "height": 257
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-009.webp",
+      "caption": "Figure 5: Training curves (avg@4) across two model scales and three benchmarks. Top row: Qwen2.5-3B; bottom row: Qwen2.5-7B. PAPO consistently outperforms ORM throughout training on both scales, with gains widening in later stages as ORM’s signal exhaustion worsens. The pattern is consistent across OlympiadBench (competition math), MATH-500 (standard math), and HumanEval (code generation). Qwen2.5-14B results are reported in Table 1.",
+      "page": 12,
+      "index": 9,
+      "width": 940,
+      "height": 519
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26535v2/fig-010.webp",
+      "caption": "Figure 3: Overview of PAPO. Given a prompt, the policy generates G responses. Each response is evaluated by two reward signals: an outcome reward (ORM, binary correctness) and a process reward (PRM, rubric-based quality, only for correct responses). The advantage is computed through decoupled normalization: Aout is normalized over all responses via standard GRPO, while Aproc is normalized exclusively among correct responses (correct-subset normalization). The combined advantage Atotal = Aout + Aproc provides both correctness direction and quality differentiation.",
+      "page": 5,
+      "index": 10,
+      "width": 910,
+      "height": 417
+    }
+  ]
+}

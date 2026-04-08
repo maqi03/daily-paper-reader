@@ -1,0 +1,700 @@
+Title: SteerRM: Debiasing Reward Models via Sparse Autoencoders
+
+URL Source: https://arxiv.org/pdf/2603.12795v1
+
+Published Time: Mon, 16 Mar 2026 00:54:19 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+# SteerRM: Debiasing Reward Models via Sparse Autoencoders 
+
+Mengyuan Sun *, Zhuohao Yu *, Weizheng Gu, Shikun Zhang, Wei Ye †
+
+National Engineering Research Center for Software Engineering, Peking University 
+
+{mengyuansun25, zyu}@stu.pku.edu.cn , wye@pku.edu.cn 
+
+Abstract 
+
+Reward models (RMs) are critical compo-nents of alignment pipelines, yet they ex-hibit biases toward superficial stylistic cues, preferring better-presented responses over se-mantically superior ones. Existing debias-ing methods typically require retraining or ar-chitectural modifications, while direct activa-tion suppression degrades performance due to representation entanglement. We propose SteerRM, the first training-free method for de-biasing reward models using Sparse Autoen-coder (SAE)-based interventions. SteerRM iso-lates stylistic effects using contrastive paired responses, identifies bias-related SAE features with a strength–stability criterion, and sup-presses them at inference time. Across six re-ward models on RM-Bench, SteerRM improves Hard-split accuracy by 7.3 points on average while preserving overall performance. Results on a Gemma-based reward model and a con-trolled non-format bias further suggest general-ization across RM architectures and bias types. We further find that format-related features are concentrated in shallow layers and transfer across models, revealing shared architecture-level bias encoding patterns. These results show that SAE-based interventions can miti-gate reward-model biases without retraining, providing a practical and interpretable solution for alignment pipelines. 1
+
+1 Introduction 
+
+Reward models (RMs) are a foundational com-ponent of modern alignment pipelines such as reinforcement learning from human feedback (RLHF) (Ouyang et al., 2022; Christiano et al., 2017; Stiennon et al., 2020; Ziegler et al., 2019). By serving as learned proxies for human prefer-ences, RMs guide policy optimization and implic-itly define what behaviors are reinforced during  
+
+> *Equal contribution.
+> †Corresponding author.
+> 1Our code is available at https://anonymous.4open. science/r/SteerRM
+
+training (Zhong et al., 2025; Yu et al., 2025a; Wang et al., 2024a). Despite their central role, recent evidence shows that RMs are not purely seman-tic evaluators: they exhibit systematic preferences for superficial attributes of responses, including length, verbosity, and formatting (Lambert et al., 2025; Malik et al., 2025; Liu et al., 2025b; Casper et al., 2023). Format bias refers to the phenomenon where RMs assign systematically different scores to responses that share identical semantic content 
+
+but differ only in surface formatting , such as Mark-down versus plain text (Liu et al., 2025b). This bias manifests when RMs assign higher scores to factu-ally incorrect but well-formatted responses than to correct but plainly formatted answers. Format bias distorts preference signals and incentivizes models to optimize presentation over correctness (Chen et al., 2024; Taylor et al., 2025). Existing approaches to mitigating RM bias pre-dominantly operate through training-time modifi-cations (Dubois et al., 2024; Bu et al., 2025), ar-chitectural changes (Shen et al., 2023), or post hoc score calibration (Huang et al., 2025; Park et al., 2024). While effective in some cases, these meth-ods treat the RM as a black box, often requiring retraining or additional supervision. Direct inter-nal interventions, like suppressing activation differ-ences, are challenging due to highly entangled rep-resentations. Sparse Autoencoders (SAEs) provide a promising alternative by decomposing representa-tions into sparse, interpretable features that enable targeted interventions without retraining (Bricken et al., 2023; Lieberum et al., 2024; Rajamanoharan et al., 2024). Prior work has applied SAE-based steering to large language models for behavior con-trol (Templeton et al., 2024; Chalnev et al., 2024; Shu et al., 2025; Bhalla et al., 2024), showing that SAE features capture semantically meaningful di-rections and enable precise behavior modification. However, the use of pretrained SAE dictionaries for mitigating non-semantic biases such as format-1
+
+> arXiv:2603.12795v1 [cs.CL] 13 Mar 2026
+
+ting or stylistic preferences in reward models has received little attention. In this work, we introduce SteerRM , a training-free method for mitigating format bias in reward models using SAE-based interventions. Our key insight is that format preferences are often con-centrated in a small subset of SAE features that respond reliably to systematic cues. This per-spective reframes reward model debiasing as a representation-editing problem: by identifying and selectively suppressing bias-related SAE features, we can directly steer the reward model’s prefer-ences away from undesirable directions while pre-serving its ability to evaluate semantic content, all without modifying model parameters or training objectives. While SteerRM is developed around Markdown formatting, an additional controlled study suggests that the same pipeline can extend to other stylistic confounders .SteerRM implements this through a systematic 
+
+three-stage pipeline . First, we synthesize format-controlled paired responses to isolate formatting effects. Second, we identify format-sensitive SAE features using a strength-stability criterion that se-lects features consistently activating on formatting cues. Third, we steer the reward model by suppress-ing these features during inference, effectively neu-tralizing format preference without updating model parameters. This work makes three key contributions. First ,we propose the first training-free method for debias-ing reward models using SAE-based interventions, overcoming the representation entanglement limi-tations of direct activation suppression that cause severe performance degradation. Second , through SAE-based analysis, we demonstrate that format-related SAE features are localized in shallow Trans-former layers and are transferable across different models, indicating they encode shared surface-level signals. Third , SteerRM improves RM-Bench Hard split accuracy by 7.3 points on average across six LLaMA-based reward models while maintain-ing overall stability, with additional tests on a Gemma-based model and a different stylistic con-founder supporting generalization across architec-tures and bias types. 
+
+2 Related Work 
+
+2.1 Reward Models 
+
+Reward models (RMs) serve as learned prox-ies for human preferences in modern align-ment pipelines (Ouyang et al., 2022; Stien-non et al., 2020), typically finetuned to assess prompt–response pairs via scalar reward heads (Liu et al., 2024; Dorka, 2024) or generative objec-tives (Wang et al., 2024b; Kim et al., 2023; Yu et al., 2025b). However, trained RMs are susceptible to spurious correlations from superficial attributes such as length, verbosity, politeness, and format-ting (Gao et al., 2023; Bai et al., 2022; Casper et al., 2023). RM-Bench (Liu et al., 2025b) shows that under style-controlled Hard settings, many RMs exhibit near-random accuracy, indicating reliance on stylistic cues rather than semantic quality. Prior work on mitigating superficial biases in re-ward models largely falls into two categories. One line of work addresses bias through training-time or architectural interventions, such as explicit length control (Dubois et al., 2024), mixture-of-experts designs to disentangle stylistic preferences from content quality (Shen et al., 2023), or dynamic weighting of length as a context-dependent fac-tor (Bu et al., 2025). A second line focuses on post hoc calibration, correcting reward scores after in-ference to reduce the influence of surface features. Key methods include statistical correction based on regression analysis (Huang et al., 2025) and lever-aging debiased datasets to tune evaluator weights as seen in OffsetBias (Park et al., 2024). However, these methods often rely on additional training or architectural changes, increasing com-putational cost and complexity. By comparison, representation-level interventions that directly ma-nipulate internal activations at inference time re-main underexplored. 
+
+2.2 Sparse Autoencoders 
+
+Sparse Autoencoders (SAEs) are pre-trained in-terpretability tools that decompose LLM acti-vations into sparse, human-understandable fea-tures (Bricken et al., 2023). An SAE processes hid-den states ht into sparse feature vectors ft through a training objective that combines reconstruction loss with L1 sparsity regularization: 
+
+L = ∥ht − Dec (ft)∥2
+
+| {z }
+
+> Lrec
+
++λ ∥ft∥1
+
+| {z } 
+
+> Lsparse
+
+, (1) where λ controls the sparsity trade-off. This training produces interpretable features (Bricken et al., 2023; Lieberum et al., 2024). Pretrained SAEs are now widely available (Lieberum et al., 2024; He et al., 2024) and generalize effectively 2Format -Controlled Pair Data Synthesis Format -Related SAE Feature Identification Inference -Time SAE -Based Steering               
+
+> User
+> Prompt
+> Markdown Response
+> Plain Text Response
+> ## Heading 1
+> -List item 1
+> -List item 2
+> ``` code block ```
+> ** Bold Text **
+> Heading 1
+> List item 1
+> List item 2
+> code block
+> Bold Text
+> Same content,
+> different surface format
+> SAE
+> Encoder
+> SAE
+> Encoder
+> Reward
+> Model
+> Hidden
+> States
+> Reward
+> Model
+> Hidden
+> States
+> Pretrained SAE
+> Paired Features
+> Paired Feature
+> Differences
+> Strength -
+> Stability Scoring
+> Top -K
+> Markdown -
+> Related SAE
+> Features
+> RM
+> Inference
+> Input
+> Reward
+> Model
+> SAE
+> Encoder
+> SAE
+> Decoder Reward
+> Model
+> Debiased
+> Reward
+> Score
+> Steered
+> Hidden
+> States
+> Original
+> Hidden
+> States
+> Targeted Feature Suppression
+
+Figure 1: Overview of SteerRM. Our training-free pipeline consists of three stages: (1) synthesizing paired responses with different surface formats or styles, (2) identifying format-related SAE features, and (3) suppressing these features at inference time. 
+
+to instruction-tuned models (Kissane et al., 2024; Templeton et al., 2024; He et al., 2024), enabling feature-level analysis without additional training. Several studies have explored leveraging SAE features to modify language model behavior, for example by steering along decoder directions (Tem-pleton et al., 2024), manipulating specific acti-vation patterns (Chalnev et al., 2024), or using correlation-based feature selection for generation-time steering (Cho et al., 2025). Extending SAEs to reward modeling, SARM (Zhang et al., 2025) and SparseRM (Liu et al., 2025a) leverage sparse features to build new reward models, but both re-quire retraining or architectural modifications and focus on model construction rather than debiasing existing reward models. Although pretrained SAE feature dictionaries are widely available, their use for mitigating biases such as formatting or stylistic preferences in reward models remains unexplored. 
+
+3 Methodology 
+
+3.1 Problem Setup and Overview 
+
+We consider a setting in which a reward model (RM) assigns different scores to responses that share the same semantic content but differ in for-matting. Let fθ(x, y ) ∈ R denote a fixed RM scor-ing a response y to a prompt x. For each prompt x,consider a format-controlled pair (ymd , y pl ) that is matched in content and differs only in surface form (Markdown versus plain text). The format-induced score gap is defined as 
+
+∆( x) = fθ(x, y md ) − fθ(x, y pl ), (2) and our objective is to reduce such gaps without updating the RM parameters θ.SteerRM is a training-free analysis-and-intervention pipeline that operates directly on the RM’s internal hidden representations using pretrained open-source SAE dictionaries. As il-lustrated in Figure 1, the framework consists of three stages: (1) data synthesis to generate content-matched response pairs, (2) feature identification to localize bias-relevant SAE features, and (3) feature intervention to suppress these signals during infer-ence. While this work focuses on Markdown bias, the pipeline is inherently generalizable and can be extended to mitigate other superficial artifacts such as verbosity, politeness, or specific stylistic cues by synthesizing appropriate paired data to isolate the corresponding SAE features. 
+
+3.2 Format-Controlled Pair Data Synthesis 
+
+To isolate formatting as the sole varying fac-tor, we synthesize a paired dataset D =
+
+{(xi, y md i , y pl i )}Ni=1 , where each triple consists of a user prompt xi, a Markdown-formatted response 
+
+ymd i , and a plain-text counterpart ypl i that preserves the lexical content of ymd i with Markdown markup removed. This design enables paired comparisons in which any change in RM behavior can be at-tributed to formatting rather than content variation. We generate paired responses using a large lan-guage model with prompts that explicitly enforce content matching. The model is instructed to first produce a Markdown response and then derive a plain-text version by removing only Markdown syntax, without paraphrasing or adding content. 3We synthesize data across multiple domains, in-cluding chat, reasoning, math, and code, to avoid domain-specific artifacts. Full prompt templates are provided in Appendix A.1. To ensure data quality and diversity, we first deduplicated prompts based on cosine similarity of their sentence embeddings 2, filtering out highly similar queries. We then applied strict regex valida-tion to verify that ymd i contained valid Markdown syntax while ypl i was completely free of formatting markers. Finally, a manual audit of 50 random pairs confirmed that the plain-text versions preserved the original information content without semantic drift. 
+
+3.3 Format-Related SAE Feature Identification 
+
+Given the paired dataset, we identify SAE features associated with Markdown formatting. We first extract hidden representations from the RM and en-code them into SAE latents. Let hℓ(x, y ) ∈ RT ×d
+
+denote the hidden activation sequence at Trans-former layer ℓ when scoring the concatenated prompt-response text (x, y ). We extract hℓ via for-ward hooks on the Transformer blocks. For each target layer ℓ, we load pretrained Sparse Autoencoders, each consisting of an encoder Eℓ
+
+and decoder Dℓ. Given token-wise hidden states, we compute token-wise SAE latents 
+
+zℓ(x, y ) = Eℓ(hℓ(x, y )) ∈ RT ×m. (3) These latents are aggregated into a single fea-ture vector by averaging over non-special tokens. Special tokens such as BOS, EOS, and PAD are excluded because they serve structural purposes rather than encoding content-related information, and their activations would introduce noise into format-related feature analysis. Let M ∈ { 0, 1}T
+
+denote a token mask where Mt = 1 for non-special tokens and Mt = 0 for special tokens: 
+
+¯zℓ(x, y ) = 1
+
+|T | 
+
+X
+
+> t∈T
+
+zℓ,t (x, y ) ∈ Rm, (4) where T = {t : Mt = 1 } denotes the set of non-special token positions. The vectors ¯zℓ are concate-nated across layers to obtain ¯z(x, y ).For each paired example (xi, y md i , y pl i ), we com-pute a paired difference for every SAE feature: 
+
+di,j = ¯ zj (xi, y md i ) − ¯zj (xi, y pl i ), (5)     
+
+> 2Using all-MiniLM-L6-v2 (Reimers and Gurevych, 2019)
+
+where j indexes SAE features. A positive di,j indi-cates stronger activation under Markdown format-ting for matched content. We score features using a strength-stability cri-terion. Strength is measured by the mean paired difference μj = Ei[di,j ], while stability is mea-sured by the variance σ2 
+
+> j
+
+= Var i[di,j ] across the dataset. We normalize these quantities globally across all layers to [0 , 1] using min-max normal-ization to preserve cross-layer comparability, and define the feature score as score j = ¯ μj · (¯ σj + ϵ)−1, (6) where ϵ is a small constant for numerical stability. A global top-K selection is then performed across all layers, retaining features with μj > 0, which are more strongly associated with Markdown for-matting. The resulting layer-wise feature sets {S ℓ}
+
+are used for downstream steering interventions. 
+
+3.4 Reward Model Steering via SAE 
+
+At inference time, SteerRM performs feature-level steering by ablating selected SAE latents and recon-structing the corresponding hidden representations. Selected features are zeroed in the latent space, and the modified latents are decoded to yield edited hid-den states. This reconstruction-based intervention keeps representations consistent with the SAE’s learned representation space, while selectively re-moving format-related signals. The selected fea-tures are the Markdown-formatting-related features identified in Section 3.3. Ablating these features steers RM representations toward the plain-text di-rection and reduces format bias in scoring. Steering is implemented via forward hooks reg-istered on Transformer blocks at selected layers ℓ.When a hidden sequence hℓ ∈ RT ×d is produced, the hook intercepts it and applies the intervention: SAE latents zℓ = Eℓ(hℓ) are computed, the iden-tified feature coordinates Sℓ are zeroed out, and the modified latents are decoded to yield an edited reconstruction ˜hℓ = Dℓ(z(0)  
+
+> ℓ
+
+), where 
+
+(z(0)  
+
+> ℓ
+
+)t,j =
+
+(
+
+0, j ∈ S ℓ
+
+(zℓ)t,j , otherwise. (7) The original hidden state is then replaced with this reconstruction: h′ 
+
+> ℓ
+
+= ˜hℓ. By reconstructing from modified latents, the edited representation remains within the SAE’s learned manifold, maintaining coherence while removing format-related feature contributions. 40 10 20 30               
+
+> Layer
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> 10 1
+> 10 2
+> Reconstruction MSE
+> Reconstruction MSE
+> Selected layers (0-9)
+> 010 20 30
+> Layer
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> Reward Delta (Absolute Mean)
+> Reward Delta
+> Selected layers (0-9)
+> 010 20 30
+> 900
+> 1000 L0 Sparsity
+> Selected layers (0-9)
+> 010 20 30
+> Layer
+> 0
+> 20
+> 40
+> 60
+> L0 Sparsity
+
+Figure 2: SAE reconstruction quality across layers. (Left) Reconstruction MSE. (Middle) Absolute reward difference between original and reconstructed scores. (Right) L0 sparsity measured as the mean number of active features per sample. Layers 0-9 are selected based on these metrics. 
+
+To maintain consistency with feature identifi-cation, the intervention is applied only on non-special-token positions using the same token mask 
+
+M ∈ { 0, 1}T as defined in Section 3.3: 
+
+h′ 
+
+> ℓ,t
+
+=
+
+(˜hℓ,t , Mt = 1 
+
+hℓ,t , Mt = 0 . (8) All interventions are training-free: RM parame-ters remain fixed, and SteerRM reuses pretrained SAE dictionaries for deterministic activation edit-ing at inference. 
+
+4 Experiments 
+
+Our experiments investigate: (1) Where are for-mat features localized in reward models? (2) Can SteerRM reduce format bias without compromising performance ? (3) Is SAE decomposition necessary 
+
+for effective debiasing? (4) Do format features 
+
+transfer across models? 
+
+Experimental Setup We evaluate SteerRM on six reward models: Skywork-Reward-Llama-3.1-8B (Liu et al., 2024), QRM-Llama3.1-8B-v2 (Dorka, 2024), URM-LLaMa-3.1-8B (Lou et al., 2024), Llama-3.1-8B-Base-RM-RB2 (Malik et al., 2025), Llama-3.1-8B-Instruct-RM-RB2 (Malik et al., 2025), and Llama-3.1-Tulu-3-8B-RM (Lam-bert et al., 2024). These RMs are based on either Llama-3.1-8B or Llama-3.1-8B-Instruct (Dubey et al., 2024), and all are sequence-classification models that output scalar scores for prompt-response pairs. For SAE-based steering, we use pretrained Lla-maScope Sparse Autoencoders (He et al., 2024) corresponding to the Llama-3.1-8B base architec-ture. These SAEs are trained on the base model’s activations and provide layer-wise feature dictio-naries for representation decomposition. Our main study centers on the Llama-3.1 fam-ily because open-source pretrained SAEs are read-ily available for this backbone and many recent open reward models are built on it. To test cross-architecture generalization, we additionally eval-uate SteerRM on a Gemma-based reward model using Gemma Scope (Lieberum et al., 2024); de-tails are in Appendix D.1. Following the pipeline described in Section 3, we first synthesize 500 format-controlled response response pairs using GPT-4.1 mini (OpenAI, 2025). Each pair contains a prompt with both Markdown and plain-text responses that preserve identical se-mantic content. This probing set is used to identify format-related SAE features. We apply the strength–stability scoring criterion and perform global top-K selection with K = 10 ,balancing feature coverage with intervention preci-sion. Robustness to probing set size, data source, and the choice of K is analyzed in Appendices D.4, D.5, and D.6. We evaluate all models on RM-Bench (Liu et al., 2025b), a benchmark designed to assess reward model sensitivity to subtle changes and robustness to style bias. RM-Bench includes four domains (Chat, Math, Code, Safety) and three difficulty lev-els (Easy, Normal, Hard). For each prompt, the benchmark provides chosen and rejected responses with varying styles, enabling evaluation of both preference accuracy and format bias. 
+
+4.1 Layer Selection and Feature Localization 
+
+Selecting appropriate Transformer layers is a key design choice in SteerRM. Because the SAEs are pretrained on Llama-3.1-8B, we evaluate their abil-50 1 2 3 4 5 6 7 8 9
+
+> Layer
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> Number of Features
+> Skywork-Reward-Llama-3.1-8B
+> QRM-Llama3.1-8B-v2
+
+Figure 3: Distribution of top-100 candidate format-related SAE features across layers. Format-related fea-tures are concentrated in early layers (1-3), revealing that formatting information is encoded at shallow layers of the Transformer. 
+
+ity to reconstruct reward model activations, which may differ from those of the base model. We assess SAE reconstruction quality by mea-suring three key metrics across all layers: recon-struction error (MSE), reward score preservation (reward delta), and L0 sparsity (the number of ac-tive SAE features). Our measurement settings for MSE and L0 sparsity align with established prac-tices in the SAE literature (He et al., 2024; Kissane et al., 2024). Detailed evaluation settings are pro-vided in Appendix B.2. Figure 2 summarizes these metrics across layers. Layers 0–9 consistently exhibit good reconstruc-tion quality: reconstruction MSE (log scale) ranges from 5.95 × 10 −5 to 4.09 × 10 −3, reward delta stays relatively stable between 0.65 and 1.14 , and L0 sparsity remains moderate at 34 .3 to 50 .1 active features per sample. In contrast, all three metrics degrade sharply beyond layer 9, with reconstruc-tion error increasing by orders of magnitude, re-ward delta becoming highly variable, and L0 spar-sity showing erratic spikes. These results suggest a clear representation-level distinction. Lower lay-ers (0–9) preserve token- and structure-level repre-sentations that are largely shared between the base model and the reward model, enabling reliable SAE reconstruction. In contrast, higher layers encode increasingly model-specific patterns that diverge from base model representations, likely reflecting the effects of reward-model fine-tuning. We therefore restrict feature identification to lay-ers 0-9. Within this range, we apply the feature identification procedure described in Section 3.3 and perform global top-K selection with K = 10 
+
+across all candidate layers. To understand the layer-wise distribution of format-related features, we an-alyze the top-100 candidate features across layers 0-9. Figure 3 shows this distribution for two mod-els, which exhibit consistent patterns across all evaluated models. The results reveal that format-related features are concentrated in the early lay-ers, with the majority of top-ranked candidates lo-cated in layers 1-3. This localization aligns with the hierarchical organization of Transformer rep-resentations (Jawahar et al., 2019; Tenney et al., 2019). Formatting cues, such as Markdown mark-ers, are surface-level signals typically encoded in early layers. While these initial layers focus on local syntactic patterns, higher layers progressively integrate them into abstract semantic representa-tions where format and content become increas-ingly intertwined. 
+
+Takeaway 1. Format-related features are primar-ily concentrated within the initial layers of the Transformer (Layers 1–3), revealing that format biases are encoded as surface-level signals in the shallow representation hierarchy. 
+
+4.2 Main Results 
+
+Table 1 presents the main results of SteerRM across six reward models on RM-Bench. SteerRM consistently improves Hard split accuracy across all models (gains of 3.4 to 10.3 points), where format-enhanced incorrect responses are paired with format-plain correct ones. This improvement demonstrates that suppressing format-related fea-tures eliminates format-based differences, allowing models to evaluate responses based solely on se-mantic content. Easy split accuracy drops by 5.1 points on aver-age, reflecting the removal of a format-based short-cut in which correct responses typically exhibit better formatting, leading to inflated baseline per-formance. In contrast, Normal split performance remains largely stable with an average change of 1.0 point. Because responses in this split share iden-tical formatting, it provides a format-fair evaluation that isolates content quality. The observed stability confirms that SteerRM suppresses format-related bias without degrading the reward model’s core content evaluation, indicating an effective disentan-glement of format and content signals. Across domains, Chat (+0.8), Math (+0.3), and Code (+1.3) show modest average gains. These domain scores represent averages across Easy, Nor-mal, and Hard splits, where substantial Hard im-provements are balanced by the overall perfor-mance distribution. Safety performance remains 6Table 1: Main results on RM-Bench. We compare baseline reward models, direct activation suppression (Activa-tion), and SAE-based feature intervention (SteerRM). SteerRM consistently improves performance on the Hard split while preserving Normal and Average accuracy, whereas Activation improves Hard performance at the cost of substantial degradation on other splits.                                                                                                                                                          
+
+> Model Method Chat Math Code Safety Easy Normal Hard Average Skywork 3
+> Baseline 69.8 60.6 54.5 96.5 88.9 74.9 47.3 70.3 Activation 58.0 50.3 50.0 50.1 20.8 54.0 81.5 52.1 SteerRM 72.5 62.5 56.0 95.0 83.9 74.1 56.5 71.5 QRM 4
+> Baseline 67.4 63.2 52.0 95.6 87.8 73.4 47.5 69.5 Activation 47.9 49.4 47.2 46.0 46.8 46.4 49.6 47.6 SteerRM 65.5 62.9 52.8 95.2 81.1 71.2 54.9 69.1 URM 5
+> Baseline 72.2 61.6 53.4 94.7 83.9 73.7 53.7 70.5 Activation 58.1 49.7 47.7 51.8 20.3 54.2 80.9 51.8 SteerRM 72.9 62.0 54.6 93.6 78.3 73.0 61.0 70.8 Base-RM 6
+> Baseline 71.0 59.6 58.3 90.8 85.5 73.3 51.0 69.9 Activation 44.4 49.4 47.8 55.3 43.1 48.7 55.7 49.2 SteerRM 71.3 59.3 56.5 89.6 81.3 71.8 54.4 69.2 Ins-RM 7
+> Baseline 66.8 65.0 57.0 91.6 90.7 75.8 43.8 70.1 Activation 55.8 51.5 46.2 84.7 65.1 60.9 52.6 59.5 SteerRM 67.1 65.1 59.9 91.1 87.1 75.1 50.1 70.8 Tulu 8
+> Baseline 64.8 60.2 57.7 83.5 91.9 73.8 33.9 66.5 Activation 52.5 50.1 49.1 44.3 53.9 48.6 44.4 49.0 SteerRM 67.7 60.4 60.8 83.4 86.4 73.6 44.2 68.1
+
+Table 2: Cross-architecture evaluation on aGemma-based reward model. We apply SteerRM to Ray2333/GRM-Gemma2-2B-sftreg using Gemma Scope SAEs. Delta denotes SteerRM minus Baseline.                 
+
+> Method Easy Normal Hard Average
+> Baseline 87.6 68.2 39.1 65.0 SteerRM 83.3 68.1 44.8 65.4
+> Delta -4.3 -0.1 +5.7 +0.4
+
+largely unaffected (0.8 point change), reflecting that safety judgments rely on strong content signals that naturally dominate format-related noise. 
+
+Generalization Across Architectures. Al-though our main study focuses on the Llama family, the method only requires a compatible pretrained SAE dictionary rather than architecture-specific retraining. We therefore apply SteerRM to Ray2333/GRM-Gemma2-2B-sftreg (Yang et al., 2024), a Gemma-based reward model, using Gemma Scope SAEs (Lieberum et al., 2024); full settings are given in Appendix D.1. Table 2 shows that SteerRM improves Hard accuracy from 39.1% to 44.8% while keeping Normal performance essentially unchanged and slightly improving the overall average, indicating that the method is not restricted to Llama-based reward models. 
+
+Table 3: Generalization to politeness bias on Sky-work. Politeness-Injected denotes the adversarial vari-ant with minor politeness markers added to rejected responses. Relative change is computed against the baseline accuracy on the original clean set.             
+
+> Method Test Set Accuracy Rel. Change
+> Baseline Original 65.5 –Baseline Politeness-Injected 61.0 -6.9% SteerRM Politeness-Injected 66.0 +0.8%
+
+Generalization Beyond Formatting. We ad-ditionally evaluate SteerRM on a controlled politeness-bias setting, with construction details deferred to Appendix D.2. As shown in Table 3, adding minor politeness markers to rejected re-sponses reduces Skywork accuracy from 65.5% to 61.0%, while SteerRM recovers it to 66.0%, suggesting that the same contrastive SAE interven-tion can mitigate controlled stylistic biases beyond Markdown formatting. 
+
+Takeaway 2. SteerRM reduces format bias while preserving the reward model’s general content eval-uation, and additional results on a Gemma-based       
+
+> 3Skywork = Skywork/Skywork-Reward-Llama-3.1-8B .
+> 4QRM = nicolinho/QRM-Llama3.1-8B-v2 .
+> 5URM = LxzGordon/URM-LLaMa-3.1-8B .
+> 6Base-RM = allenai/Llama-3.1-8B-Base-RM-RB2 .
+> 7Ins-RM = allenai/Llama-3.1-8B-Instruct-RM-RB2 .
+> 8Tulu = allenai/Llama-3.1-Tulu-3-8B-RM .
+
+7reward model and another controlled stylistic con-founder suggest that the framework generalizes across both model architectures and bias types. 
+
+4.3 Ablation: Necessity of SAE Decomposition 
+
+A natural alternative to SAE-based intervention is to directly suppress activation differences between biased and unbiased responses. This approach first computes a bias direction vector for each target layer by averaging the difference between mark-down and plain activations across the same paired format-controlled dataset used for SAE feature identification: dℓ = E[hmd ℓ − hpl ℓ ], where hmd ℓ and 
+
+hpl ℓ denote hidden states for markdown and plain responses respectively. During inference, this di-rection is subtracted from the hidden states at each layer: h′ 
+
+> ℓ
+
+= hℓ − dℓ. While conceptually straight-forward, this direct activation suppression suffers from fundamental limitations due to representation entanglement. Table 1 reveals a critical pattern: while activation suppression achieves substantial improvements on the Hard split, it simultaneously causes severe degradation on Normal and Easy splits, leading to overall average accuracy dropping to near-random levels (47.6% ∼59.5%) across all six models. This asymmetric performance pattern stems from the entangled nature of neural representations. The mean difference vector dℓ inevitably includes com-ponents correlated with both format and content quality, and subtracting this direction indiscrim-inately suppresses not only format bias but also semantic signals necessary for content evaluation. In contrast, SAE-based feature suppression uses sparse decomposition to disentangle representa-tions, enabling targeted intervention on format-related features while largely preserving semantic evaluation. Moreover, SAE features are inherently interpretable, with each feature corresponding to a distinct direction in representation space, allowing us to analyze their alignment with specific Mark-down syntax, as shown in the next section. 
+
+Takeaway 3. Sparse feature decomposition is a prerequisite for effective debiasing. Without it, direct activation suppression suffers from represen-tation entanglement, leading to catastrophic perfor-mance collapse and near-random accuracy. 
+
+4.4 Feature Transferability Analysis 
+
+We evaluate the transferability of format-related SAE features across reward models sharing the                                                    
+
+> Table 4: Feature transferability across models.
+> Format-related SAE features identified on Skywork 3
+> are applied to other reward models. We report Baseline and SteerRM accuracies on the Easy, Normal, and Hard splits, as well as the Average score. SteerRM consis-tently improves performance on the Hard split across target models, indicating effective cross-model transfer of format-related features.
+> Target Method Easy Normal Hard Average
+> QRM 4Baseline 87.8 73.4 47.5 69.5 SteerRM 75.9 70.0 56.1 67.3 URM 5Baseline 83.9 73.7 53.7 70.5 SteerRM 72.7 72.6 67.9 71.1 Base-RM 6Baseline 85.5 73.3 51.0 69.9 SteerRM 72.4 70.1 52.3 64.9 Ins-RM 7Baseline 90.7 75.8 43.8 70.1 SteerRM 75.9 75.7 52.0 67.9 Tulu 8Baseline 91.9 73.8 33.9 66.5 SteerRM 54.2 63.4 62.3 60.0
+
+same base architecture. Specifically, we iden-tify markdown-related SAE features on Skywork-Reward-Llama-3.1-8B and apply the same feature set to five other models during intervention. As shown in Table 4, features identified on Sky-work consistently transfer to all five target models, yielding substantial gains on the Hard split (e.g., +14.2% on URM 5 and +28.4% on Tulu 8). This cross-model effectiveness indicates that format bias arises from shared architecture-level representa-tions rather than model-specific training artifacts. Comparing Table 4 with Table 1, we observe a larger drop in Easy-split accuracy and the Average score under cross-model transfer. In both settings, Easy-split degradation is partly caused by remov-ing stylistic shortcuts. The stronger decline dur-ing transfer arises from differences in how reward models utilize these shared format features. Al-though markdown-related representations are com-mon across the Llama-3.1-8B family, their contri-butions to reward scoring vary by model. As a result, features identified on Skywork effectively suppress format bias on the Hard split but may also remove signals that target models such as Tulu use to assess clarity or structure, leading to larger drops on Easy and lower Average scores. To verify that the transferred features capture genuine formatting signals, we analyze their Neu-ronpedia (Lin, 2023) interpretations and find that 8top-ranked features consistently activate on mark-down syntax elements such as code block delim-iters, list markers, and heading indicators.  
+
+> Example: Feature 10175 (LLAMASCOPE-RES-131K Layer 3) – Markdown Bold Markers
+
+Semantic Interpretation from GPT-4o-mini: 
+
+sections highlighting key features or attributes of items or concepts 
+
+Top Activation Examples: 
+
+• “we’ll talk with two influential Cash App team members: ** Liang Shi ** on the Marketing team and ** Rebecca Cor-cillo ** ” • “Modern Home with great curb appeal and layout, with many recent upgrades! ** Fresh new paint throughout ** Up-dated dream kitchen with gas stove” • “bathrooms hardwood floors in bedrooms, new hardwood floors in living room, ** New Central Heat and Air ** , Large Detached two car garage!” 
+
+The consistent activation on ** markers across diverse contexts confirms this feature’s role in detecting markdown bold formatting. 
+
+Additional examples in Appendix D.7 further confirm that our criterion isolates format-related representations. 
+
+Takeaway 4. Format-related SAE features ex-hibit strong cross-model transfer, suggesting that formatting cues are encoded as stable early-layer representations shared across models. This allows reuse of a fixed feature set for bias mitigation, with remaining performance differences driven by model-specific reliance on these representations. 
+
+5 Conclusion 
+
+In this work, we study format bias in reward models from a representation-level perspective and show that it can be mitigated through training-free SAE interventions. We find that formatting cues are concentrated in shallow, transferable features, en-abling SteerRM to suppress them without modify-ing reward-model parameters or training objectives. Across the main Llama-based evaluation, SteerRM improves robustness on format-confounded com-parisons while preserving general content evalu-ation, and additional results on a Gemma-based reward model and a controlled stylistic confounder suggest broader generalization. The method di-rectly reuses open-source pretrained SAEs, pro-viding a practical and interpretable complement to retraining-based debiasing. 
+
+References 
+
+Yuntao Bai, Andy Jones, Kamal Ndousse, Amanda Askell, Anna Chen, Nova DasSarma, Dawn Drain, Stanislav Fort, Deep Ganguli, Tom Henighan, and 1 others. 2022. Training a helpful and harmless assis-tant with reinforcement learning from human feed-back. arXiv preprint arXiv:2204.05862 .Usha Bhalla, Suraj Srinivas, Asma Ghandeharioun, and Himabindu Lakkaraju. 2024. Towards unifying inter-pretability and control: Evaluation via intervention. 
+
+arXiv preprint arXiv:2411.04430 .Joseph Bloom, Curt Tigges, Anthony Duong, and David Chanin. 2024. Saelens. https://github.com/ decoderesearch/SAELens .Trenton Bricken, Adly Templeton, Joshua Batson, Brian Chen, Adam Jermyn, Tom Conerly, Nicholas L. Turner, Cem Anil, Carson Denison, Amanda Askell, Robert Lasenby, Yifan Wu, Shauna Kravec, Nicholas Schiefer, Tim Maxwell, Nicholas Joseph, Alex Tamkin, Karina Nguyen, Brayden McLean, and 5 others. 2023. Towards monosemantic-ity: Decomposing language models with dictionary learning. https://transformer-circuits.pub/ 2023/monosemantic-features . Published Octo-ber 4, 2023. Yuyan Bu, Liangyu Huo, Yi Jing, and Qing Yang. 2025. Beyond excess and deficiency: Adaptive length bias mitigation in reward models for rlhf. In Findings of the Association for Computational Linguistics: NAACL 2025 , pages 3091–3098. Stephen Casper, Xander Davies, Claudia Shi, Thomas Krendl Gilbert, Jérémy Scheurer, Javier Rando, Rachel Freedman, Tomek Korbak, David Lindner, Pedro Freire, Tony Tong Wang, Samuel Marks, Charbel-Raphael Segerie, Micah Carroll, Andi Peng, Phillip J.K. Christoffersen, Mehul Damani, Stewart Slocum, Usman Anwar, and 13 others. 2023. Open problems and fundamental limita-tions of reinforcement learning from human feedback. 
+
+Transactions on Machine Learning Research . Survey Certification, Featured Certification. Sviatoslav Chalnev, Matthew Siu, and Arthur Conmy. 2024. Improving steering vectors by target-ing sparse autoencoder features. arXiv preprint arXiv:2411.02193 .Lichang Chen, Chen Zhu, Davit Soselia, Jiuhai Chen, Tianyi Zhou, Tom Goldstein, Heng Huang, Moham-mad Shoeybi, and Bryan Catanzaro. 2024. Odin: 
+
+9Disentangled reward mitigates hacking in rlhf. arXiv preprint arXiv:2402.07319 .Seonglae Cho, Zekun Wu, and Adriano Koshiyama. 2025. Corrsteer: Generation-time llm steering via correlated sparse autoencoder features. arXiv preprint arXiv:2508.12535 .Paul F Christiano, Jan Leike, Tom Brown, Miljan Mar-tic, Shane Legg, and Dario Amodei. 2017. Deep reinforcement learning from human preferences. Ad-vances in neural information processing systems , 30. Nicolai Dorka. 2024. Quantile regression for dis-tributional reward models in rlhf. arXiv preprint arXiv:2409.10164 .Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, and 1 others. 2024. The llama 3 herd of models. 
+
+arXiv e-prints , pages arXiv–2407. Yann Dubois, Balázs Galambosi, Percy Liang, and Tat-sunori B Hashimoto. 2024. Length-controlled al-pacaeval: A simple way to debias automatic evalua-tors. arXiv preprint arXiv:2404.04475 .Leo Gao, John Schulman, and Jacob Hilton. 2023. Scal-ing laws for reward model overoptimization. In In-ternational Conference on Machine Learning , pages 10835–10866. PMLR. Seungju Han, Kavel Rao, Allyson Ettinger, Liwei Jiang, Bill Yuchen Lin, Nathan Lambert, Yejin Choi, and Nouha Dziri. 2024. Wildguard: Open one-stop mod-eration tools for safety risks, jailbreaks, and refusals of llms. Preprint , arXiv:2406.18495. Zhengfu He, Wentao Shu, Xuyang Ge, Lingjie Chen, Junxuan Wang, Yunhua Zhou, Frances Liu, Qipeng Guo, Xuanjing Huang, Zuxuan Wu, and 1 others. 2024. Llama scope: Extracting millions of features from llama-3.1-8b with sparse autoencoders. arXiv preprint arXiv:2410.20526 .Zeyu Huang, Zihan Qiu, Zili Wang, Edoardo Ponti, and Ivan Titov. 2025. Post-hoc reward calibration: A case study on length bias. In The Thirteenth International Conference on Learning Representations .Ganesh Jawahar, Benoît Sagot, and Djamé Seddah. 2019. What does bert learn about the structure of language? In ACL 2019-57th Annual Meeting of the Association for Computational Linguistics .Adam Karvonen, Can Rager, Johnny Lin, Curt Tigges, Joseph Isaac Bloom, David Chanin, Yeu-Tong Lau, Eoin Farrell, Callum Stuart McDougall, Kola Ay-onrinde, Demian Till, Matthew Wearden, Arthur Conmy, Samuel Marks, and Neel Nanda. 2025. SAEBench: A comprehensive benchmark for sparse autoencoders in language model interpretability. In 
+
+Forty-second International Conference on Machine Learning .Seungone Kim, Jamin Shin, Yejin Cho, Joel Jang, Shayne Longpre, Hwaran Lee, Sangdoo Yun, Seongjin Shin, Sungdong Kim, James Thorne, and 1 others. 2023. Prometheus: Inducing fine-grained evaluation capability in language models. In The Twelfth International Conference on Learning Repre-sentations .Connor Kissane, Robert Krzyzanowski, Arthur Conmy, and Neel Nanda. 2024. Saes (usually) transfer be-tween base and chat models. In Alignment Forum .Nathan Lambert, Jacob Morrison, Valentina Pyatkin, Shengyi Huang, Hamish Ivison, Faeze Brahman, Lester James V Miranda, Alisa Liu, Nouha Dziri, Shane Lyu, and 1 others. 2024. Tulu 3: Pushing fron-tiers in open language model post-training. arXiv preprint arXiv:2411.15124 .Nathan Lambert, Valentina Pyatkin, Jacob Morrison, Lester James Validad Miranda, Bill Yuchen Lin, Khy-athi Chandu, Nouha Dziri, Sachin Kumar, Tom Zick, Yejin Choi, and 1 others. 2025. Rewardbench: Eval-uating reward models for language modeling. In 
+
+Findings of the Association for Computational Lin-guistics: NAACL 2025 , pages 1755–1797. Tom Lieberum, Senthooran Rajamanoharan, Arthur Conmy, Lewis Smith, Nicolas Sonnerat, Vikrant Varma, János Kramár, Anca Dragan, Rohin Shah, and Neel Nanda. 2024. Gemma scope: Open sparse autoencoders everywhere all at once on gemma 2. 
+
+arXiv preprint arXiv:2408.05147 .Johnny Lin. 2023. Neuronpedia: Interactive reference and tooling for analyzing neural networks. Software available from neuronpedia.org. Chris Yuhao Liu, Liang Zeng, Jiacai Liu, Rui Yan, Ju-jie He, Chaojie Wang, Shuicheng Yan, Yang Liu, and Yahui Zhou. 2024. Skywork-reward: Bag of tricks for reward modeling in llms. arXiv preprint arXiv:2410.18451 .Dengcan Liu, Jiahao Li, Zheren Fu, Yi Tu, Jia-jun Li, Zhendong Mao, and Yongdong Zhang. 2025a. Sparserm: A lightweight preference mod-eling with sparse autoencoder. arXiv preprint arXiv:2511.07896 .Yantao Liu, Zijun Yao, Rui Min, Yixin Cao, Lei Hou, and Juanzi Li. 2025b. RM-bench: Benchmarking reward models of language models with subtlety and style. In The Thirteenth International Conference on Learning Representations .Xingzhou Lou, Dong Yan, Wei Shen, Yuzi Yan, Jian Xie, and Junge Zhang. 2024. Uncertainty-aware reward model: Teaching reward models to know what is unknown. arXiv preprint arXiv:2410.00847 .Saumya Malik, Valentina Pyatkin, Sander Land, Ja-cob Morrison, Noah A Smith, Hannaneh Hajishirzi, and Nathan Lambert. 2025. Rewardbench 2: Ad-vancing reward model evaluation. arXiv preprint arXiv:2506.01937 .
+
+10 OpenAI. 2025. Introducing gpt-4.1 in the api. https: //openai.com/index/gpt-4-1/ . Accessed: 2026-01-01. Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, and 1 others. 2022. Training language models to follow in-structions with human feedback. Advances in neural information processing systems , 35:27730–27744. Junsoo Park, Seungyeon Jwa, Ren Meiying, Daeyoung Kim, and Sanghyuk Choi. 2024. Offsetbias: Lever-aging debiased data for tuning evaluators. In Find-ings of the Association for Computational Linguistics: EMNLP 2024 , pages 1043–1067. Senthooran Rajamanoharan, Tom Lieberum, Nicolas Sonnerat, Arthur Conmy, Vikrant Varma, János Kramár, and Neel Nanda. 2024. Jumping ahead: Im-proving reconstruction fidelity with jumprelu sparse autoencoders. arXiv preprint arXiv:2407.14435 .Nils Reimers and Iryna Gurevych. 2019. Sentence-bert: Sentence embeddings using siamese bert-networks. 
+
+arXiv preprint arXiv:1908.10084 .Wei Shen, Rui Zheng, Wenyu Zhan, Jun Zhao, Shi-han Dou, Tao Gui, Qi Zhang, and Xuanjing Huang. 2023. Loose lips sink ships: Mitigating length bias in reinforcement learning from human feedback. In 
+
+Findings of the Association for Computational Lin-guistics: EMNLP 2023 , pages 2859–2873, Singapore. Association for Computational Linguistics. Dong Shu, Xuansheng Wu, Haiyan Zhao, Daking Rai, Ziyu Yao, Ninghao Liu, and Mengnan Du. 2025. A survey on sparse autoencoders: Interpreting the in-ternal mechanisms of large language models. arXiv preprint arXiv:2503.05613 .Nisan Stiennon, Long Ouyang, Jeffrey Wu, Daniel Ziegler, Ryan Lowe, Chelsea Voss, Alec Radford, Dario Amodei, and Paul F Christiano. 2020. Learn-ing to summarize with human feedback. Advances in neural information processing systems , 33:3008– 3021. Mia Taylor, James Chua, Jan Betley, Johannes Treutlein, and Owain Evans. 2025. School of reward hacks: Hacking harmless tasks generalizes to misaligned behavior in llms. arXiv preprint arXiv:2508.17511 .Adly Templeton, Tom Conerly, Jonathan Marcus, Jack Lindsey, Trenton Bricken, Brian Chen, Adam Pearce, Craig Citro, Emmanuel Ameisen, Andy Jones, Hoagy Cunningham, Nicholas L Turner, Callum McDougall, Monte MacDiarmid, C. Daniel Freeman, Theodore R. Sumers, Edward Rees, Joshua Batson, Adam Jermyn, and 3 others. 2024. Scaling monosemanticity: Ex-tracting interpretable features from claude 3 sonnet. 
+
+Transformer Circuits Thread .Ian Tenney, Dipanjan Das, and Ellie Pavlick. 2019. Bert rediscovers the classical nlp pipeline. In Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics . Association for Compu-tational Linguistics. Binghai Wang, Rui Zheng, Lu Chen, Yan Liu, Shihan Dou, Caishuang Huang, Wei Shen, Senjie Jin, Enyu Zhou, Chenyu Shi, and 1 others. 2024a. Secrets of rlhf in large language models part ii: Reward model-ing. arXiv preprint arXiv:2401.06080 .Yidong Wang, Zhuohao Yu, Wenjin Yao, Zhengran Zeng, Linyi Yang, Cunxiang Wang, Hao Chen, Chaoya Jiang, Rui Xie, Jindong Wang, Xing Xie, Wei Ye, Shikun Zhang, and Yue Zhang. 2024b. Pan-daLM: An automatic evaluation benchmark for LLM instruction tuning optimization. In The Twelfth Inter-national Conference on Learning Representations .Zhilin Wang, Alexander Bukharin, Olivier Delal-leau, Daniel Egert, Gerald Shen, Jiaqi Zeng, Olek-sii Kuchaiev, and Yi Dong. 2024c. Helpsteer2-preference: Complementing ratings with preferences. 
+
+Preprint , arXiv:2410.01257. Zhangchen Xu, Fengqing Jiang, Luyao Niu, Yun-tian Deng, Radha Poovendran, Yejin Choi, and Bill Yuchen Lin. 2024. Magpie: Alignment data synthesis from scratch by prompting aligned llms with nothing. arXiv preprint arXiv:2406.08464 .Rui Yang, Ruomeng Ding, Yong Lin, Huan Zhang, and Tong Zhang. 2024. Regularizing hidden states en-ables learning generalizable reward model for llms. 
+
+Advances in Neural Information Processing Systems ,37:62279–62309. Rui Yu, Shenghua Wan, Yucen Wang, Chen-Xiao Gao, Le Gan, Zongzhang Zhang, and De-Chuan Zhan. 2025a. Reward models in deep reinforcement learn-ing: A survey. arXiv preprint arXiv:2506.15421 .Zhuohao Yu, Jiali Zeng, Weizheng Gu, Yidong Wang, Jindong Wang, Fandong Meng, Jie Zhou, Yue Zhang, Shikun Zhang, and Wei Ye. 2025b. Rewardany-thing: Generalizable principle-following reward mod-els. arXiv preprint arXiv:2506.03637 .Shuyi Zhang, Wei Shi, Sihang Li, Jiayi Liao, Tao Liang, Hengxing Cai, and Xiang Wang. 2025. Interpretable reward model via sparse autoencoder. arXiv preprint arXiv:2508.08746 .Wenting Zhao, Xiang Ren, Jack Hessel, Claire Cardie, Yejin Choi, and Yuntian Deng. 2024. Wildchat: 1m chatgpt interaction logs in the wild. arXiv preprint arXiv:2405.01470 .Jialun Zhong, Wei Shen, Yanzeng Li, Songyang Gao, Hua Lu, Yicheng Chen, Yang Zhang, Wei Zhou, Jin-jie Gu, and Lei Zou. 2025. A comprehensive sur-vey of reward models: Taxonomy, applications, chal-lenges, and future. arXiv preprint arXiv:2504.12328 .Daniel M Ziegler, Nisan Stiennon, Jeffrey Wu, Tom B Brown, Alec Radford, Dario Amodei, Paul Chris-tiano, and Geoffrey Irving. 2019. Fine-tuning lan-guage models from human preferences. arXiv preprint arXiv:1909.08593 .
+
+11 A Data Synthesis 
+
+A.1 Prompt Templates 
+
+To construct the paired dataset, we employed a robust prompt design consisting of a system in-struction and domain-specific user prompts. We present the full prompts below. 
+
+System Prompt. The system prompt defines the task of generating paired Markdown and plain-text answers in JSON format. 
+
+You are a data synthesis assistant responsible for generating training data. Task (two steps): 1) Generate a unique question (prompt) and an answer written in Markdown (answer_markdown). 2) Remove Markdown formatting from answer_markdown to generate a plain-text version (answer_plain). Requirements: - Use Markdown naturally for readability. Start the answer with a normal sentence (do not begin with a heading); you may use headings later if helpful. - answer_plain must preserve the exact wording/content of answer_markdown. - Only remove Markdown syntax/markup tokens. Do NOT rewrite, paraphrase, add, or delete content. Output format as JSON: {"prompt": "...", "answer_markdown": "...", "answer_plain": "..." }
+
+Domain-Specific Instructions. To ensure diver-sity, we use specific instructions for four domains: 
+
+Code , Math , Reasoning , and Chat .• Code : Generate a unique programming-related question (such as algorithm implementation, code explanation, debugging, etc.). Be creative with the specific topic, programming language, and difficulty level. 
+
+• Math : Generate a unique mathematics question (such as geometry, algebra, calculus, etc.). Be creative with the specific topic and difficulty level. 
+
+• Reasoning : Generate a unique reasoning question (such as logical reasoning, causal analysis, etc.). Be creative with the specific topic. 
+
+• Chat : Generate a unique general conversation question (such as life advice, knowledge Q&A, etc.). Be creative with the specific topic. 
+
+User Prompt. The final user prompt combines the domain instruction with a reinforcement of the requirements. 
+
+[Domain-specific instruction] Generate ONE complete training sample. Requirements recap: - prompt: clear, specific, unambiguous. - answer_markdown: a natural assistant answer written in Markdown. - answer_plain: plain text version of answer_markdown with ALL Markdown removed; keep the exact same wording/content. - Do not add/omit content between the two. Output only JSON, no other content. 
+
+A.2 Dataset Statistics 
+
+Starting with an initial pool of 1,000 synthesized pairs (250 per domain), we applied the filtering pipeline detailed in Section 3.2. Since the number of valid samples varied slightly across domains after filtering, we downsampled each category to exactly 125 samples. This yielded a final balanced dataset of 500 pairs across the four domains (Code, Math, Reasoning, Chat). A representative example from the final dataset is shown below. 
+
+Example Synthesized Data Pair (JSON) 
+
+{"prompt": "I’m planning a surprise birthday party for my friend. What are some tips to ensure everything goes smoothly?", "answer_markdown": "That sounds like a fun event! Here are some tips: \n\n## Planning Tips \n\n- **Choose a date and time** that works for most guests. \n- **Send out invitations early**. \n- **Select asuitable venue** based on the number of guests. \n\nRemember to have fun and focus on creating a memorable experience!", "answer_plain": "That sounds like afun event! Here are some tips: \n\n Choose a date and time that works for most guests. \nSend out invitations early. \n Select asuitable venue based on the number of guests. \n\nRemember to have fun and focus on creating a memorable experience!" }
+
+12 B SAE Details and Generalization Analysis 
+
+B.1 Pretrained SAE Architecture 
+
+We utilize the pretrained Sparse Autoencoders pro-vided by Llama Scope (He et al., 2024), which are trained on the hidden representations of the Llama-3.1-8B-Base model. This suite consists of 256 SAEs employing an improved Top-K architecture, covering all 32 Transformer layers. For each layer, models are trained at multiple locations, including the Post-MLP Residual Stream and the Feed-Forward Network (MLP) . Furthermore, the suite offers two dictionary sizes for multi-scale analysis: an 8× expansion (32k features) and a 32 × expan-sion (131k features) relative to the model’s hidden dimension ( d = 4096 ). In this work, we adopt the 32 × expansion fac-tor (131,072 features) to ensure a high-resolution decomposition of the reward model’s internal rep-resentations. To determine the optimal training location, we evaluate between the Post-MLP Resid-ual Stream and the Feed-Forward Network (MLP). A generalization analysis in the following section assesses which SAE variant better preserves the re-ward model’s original behavior during reconstruc-tion. 
+
+B.2 SAE Generalization Evaluation Settings. To assess the generalization capability of the pretrained SAEs, we conduct a comparative evaluation on both the original Llama-3.1-8B-Base model and the Skywork-Reward model using real-world queries from the WildChat dataset (Zhao et al., 2024). This dual-evaluation setup allows us to disentangle the SAE’s intrinsic reconstruction quality from its transfer performance on the reward model. All SAE-related experiments are conducted using the SAE Lens (Bloom et al., 2024). • Base Model Evaluation : We first evaluate SAEs on the base model to establish a perfor-mance baseline. Metrics include Reconstruc-tion MSE (mean squared error between orig-inal and reconstructed hidden states) and L0 Sparsity (average number of active features per token) (Bricken et al., 2023; Karvonen et al., 2025). • Reward Model Evaluation : We then eval-uate the same SAEs on the reward model to measure transfer robustness. In addition to MSE and L0 sparsity, we compute the Re-ward Score Consistency (Reward Delta) ,defined as the absolute difference between the reward score derived from original representa-tions and that from SAE-reconstructed repre-sentations: ∆r = |f (h) − f (ˆh)|. This metric is crucial for ensuring that the SAE preserves the specific reward modeling function despite the distribution shift from the base model. 
+
+Results. First, we assess the transferability of the SAEs by directly comparing their performance on the base model versus the reward model. We ob-serve that for the Residual Stream (LXR) SAEs, the reconstruction MSE and L0 sparsity metrics on the reward model (Figure 2) closely match those on the base model (Figure 4, left panels). This strong alignment confirms that the features learned from the base model effectively generalize to the re-ward model, capturing the shared representational structure. Next, we compare the two SAE variants. While both LXR and LXM variants achieve low recon-struction error on the base model, the LXR SAEs demonstrate significantly better stability. On the base model, LXR variants maintain lower L0 spar-sity compared to LXM, indicating a more efficient decomposition. Crucially, when transferred to the reward model, the LXR SAEs exhibit minimal re-ward score deviation (Reward Delta), whereas the LXM SAEs (Figure 5) show higher instability and erratic sparsity patterns. Given the validated transferability and superior functional preservation, we select the Post-MLP Residual Stream SAEs (LXR, 32x expansion) for all subsequent analyses. 
+
+C Reward Model Details 
+
+Our main evaluation uses six reward models based on the Llama-3.1-8B architecture, with with an ad-ditional Gemma-based model included included for cross-architecture evaluation. Together, they cover both base- and instruction-initialized backbones and a second architecture family. The models are: • Skywork/Skywork-Reward-Llama-3.1-8B (Liu et al., 2024): A high-performance reward model initialized from the Instruct checkpoint. It is trained on the curated Skywork Reward Data Collection (containing 80k high-quality samples sourced from HelpSteer2 (Wang et al., 2024c), Magpie (Xu 13 0 10 20 30                  
+
+> Layer
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> 10 1
+> Reconstruction MSE
+> LXR (Residual) - MSE
+> 010 20 30
+> Layer
+> 40
+> 60
+> 80
+> 100
+> 120
+> 140
+> L0 Sparsity
+> LXR (Residual) - L0
+> 010 20 30
+> Layer
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> 10 1
+> Reconstruction MSE
+> LXM (MLP) - MSE
+> 010 20 30
+> Layer
+> 0
+> 2000
+> 4000
+> 6000
+> 8000
+> L0 Sparsity
+> LXM (MLP) - L0
+
+Figure 4: Comparison of SAE reconstruction metrics on the Base Model (Llama-3.1-8B-Base). While both variants achieve comparable MSE, the Residual Stream SAEs (LXR) demonstrate more stable and lower L0 sparsity compared to the MLP Output SAEs (LXM), indicating a more efficient sparse representation. 0 10 20 30           
+
+> Layer
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> 10 1
+> 10 2
+> Reconstruction MSE
+> (MLP Output SAE)
+> Reconstruction MSE
+> 010 20 30
+> Layer
+> 2
+> 3
+> 4
+> 5
+> 6
+> 7
+> 8
+> 9
+> Reward Delta (Absolute Mean)  (MLP Output SAE)
+> Reward Delta
+> 010 20 30
+> Layer
+> 0
+> 2000
+> 4000
+> 6000
+> 8000
+> L0 Sparsity
+> (MLP Output SAE)
+> L0 Sparsity
+
+Figure 5: Reconstruction quality for SAEs trained on the MLP output (LXM) when evaluated on the Reward Model . Compared to the Residual Stream SAEs (Figure 2), these models show higher instability in reward preservation (Reward Delta) and sparsity patterns across layers. 
+
+et al., 2024), and WildGuard (Han et al., 2024)), achieving top-tier performance on the RewardBench leaderboard. • nicolinho/QRM-Llama3.1-8B-v2 (Dorka, 2024): A distributional reward model based on Quantile Regression. It uses Skywork-Reward-Llama-3.1-8B-v0.2 (Liu et al., 2024) as its backbone and is trained to model reward distributions by aggregating attribute scores, offering a distributional perspective on reward modeling. • LxzGordon/URM-LLaMa-3.1-8B (Lou et al., 2024): An uncertainty-aware reward model fine-tuned from Skywork-Reward-Llama-3.1-8B. It employs a two-stage training process: first learning uncertainty-aware attribute distributions on HelpSteer2, and then optimizing a gating layer on the Skywork-Reward-Preference-80K (Liu et al., 2024) dataset to aggregate five specific attributes for the final score. • allenai/Llama-3.1-8B-Base-RM-RB2 (Ma-lik et al., 2025): A standard classifier reward model released with RewardBench 2 (Malik et al., 2025), trained on binary preference data directly on top of the Llama-3.1-8B-Base ar-chitecture. This model serves as a baseline for reward modeling without instruction-tuning priors, optimized for correlating with down-stream RLHF performance. • allenai/Llama-3.1-8B-Instruct-RM-RB2 (Malik et al., 2025): A reward model from the RewardBench 2 suite, trained on top of the instruction-tuned Llama-3.1-8B-Instruct. It leverages instruction-following priors to enhance reward modeling capa-bilities and serves as a counterpart to the base-initialized RM. • allenai/Llama-3.1-Tulu-3-8B-RM (Lambert et al., 2024): The reward model component of the open-source Tulu 3 (Lambert et al., 2024) alignment suite. It is fine-tuned from the Llama-3.1-Tulu-3-8B-SFT (Lambert et al., 2024) checkpoint using a mix of public, syn-thetic, and human-created preference datasets, representing a modern post-training pipeline. • Ray2333/GRM-Gemma2-2B-sftreg (Yang et al., 2024): A Gemma-based reward model 14 from the Generalizable Reward Model line, which improves reward-model generalization by regularizing hidden states during train-ing. This checkpoint is fine-tuned from 
+
+gemma-2-2b-it .The Llama-based suite ensures that our main findings on format feature localization are not ar-tifacts of a single training pipeline, while the ad-ditional Gemma-based model provides a comple-mentary cross-architecture check. 
+
+D Additional Experimental Results 
+
+D.1 Cross-Architecture Evaluation on Gemma 
+
+To assess whether SteerRM depends on the Llama-3.1 backbone used in the main study, we additionally evaluate it on 
+
+Ray2333/GRM-Gemma2-2B-sftreg (Yang et al., 2024), a reward model built on Gemma 2 2B, using the open-source Gemma Scope SAEs (Lieberum et al., 2024). This setting allows us to test the same intervention pipeline with a different architecture while still using a pretrained public SAE suite. We follow the same overall procedure as in the main experiments: synthesize 500 format-controlled pairs, rank SAE features with the strength–stability criterion, select a global top-K
+
+feature set with K = 10 , and intervene at inference time without updating model parameters. The sum-mary results are reported in Table 2 in Section 4.2. 
+
+D.2 Controlled Evaluation Beyond Formatting 
+
+To test whether SteerRM extends beyond Mark-down formatting, we construct a controlled politeness-bias evaluation on the Math and Code subsets of RM-Bench (Liu et al., 2025b), where re-sponse quality is anchored to objective correctness. We first filter these subsets to plain-text-only re-sponse pairs to remove formatting as a confounder. This yields 757 candidate instances, from which we randomly sample 200 for evaluation. We use Skywork-Reward-Llama-3.1-8B as the test model. To quantify politeness bias, we build an adversarial variant with GPT-4.1 mini (OpenAI, 2025), which inserts minor politeness markers such as “glad to help” into the rejected response while preserving its incorrect semantic content. These edits are intentionally lightweight so that the under-lying correctness of the pair remains unchanged. 0 1 2 3 4 5 6 7 8 9
+
+> Layer
+> 0
+> 5
+> 10
+> 15
+> 20
+> Number of Features
+> LxzGordon/URM-LLaMa-3.1-8B
+
+(a) URM-LLaMa-3.1-8B 0 1 2 3 4 5 6 7 8 9 
+
+> Layer
+> 0
+> 5
+> 10
+> 15
+> Number of Features
+> allenai/Llama-3.1-8B-Base-RM-RB2
+
+(b) Llama-3.1-8B-Base 0 1 2 3 4 5 6 7 8 9
+
+> Layer
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> Number of Features
+> allenai/Llama-3.1-8B-Instruct-RM-RB2
+
+(c) Llama-3.1-8B-Instruct 0 1 2 3 4 5 6 7 8 9 
+
+> Layer
+> 0
+> 5
+> 10
+> 15
+> 20
+> Number of Features
+> allenai/Llama-3.1-Tulu-3-8B-RM
+
+(d) Llama-3.1-Tulu-3-8B 
+
+Figure 6: Layer-wise distribution of selected format-related features across four additional models. 
+
+For intervention, we apply the same SteerRM pipeline under politeness control. We synthesize response pairs that differ only in politeness level, identify politeness-related SAE features with the same strength-stability criterion used in the main experiments, and suppress these features at infer-ence time. The corresponding results are reported in Table 3 in Section 4.2. 
+
+D.3 Distribution of Format-Related SAE Features 
+
+To further investigate whether the early-layer localization of format features is a general phenomenon, we extended our analysis to four additional models: LxzGordon/URM-LLaMa-3.1-8B, allenai/Llama-3.1-8B-Base-RM-RB2, allenai/Llama-3.1-8B-Instruct, and allenai/Llama-3.1-Tulu-3-8B. Following the same methodology as in the Section 4.1, we identified the top-100 format-related SAE features for each model based on their strength-stability scores. As illustrated in Figure 6, the layer-wise distribu-tion of these features exhibits a consistent pattern across all evaluated models. The vast majority of format-sensitive features are concentrated in the early layers, particularly layers 0-3. This ubiquity suggests that formatting information is processed and encoded at the very beginning of the trans-former computation, regardless of the initialization backbone used for reward modeling (e.g., whether initialized from a base or an instruct model). This finding reinforces our decision to focus interven-tions on these initial layers. 15 D.4 Sensitivity to the Number of Probing Pairs 
+
+The main experiments use N = 500 synthetic prob-ing pairs. To test robustness to probe set size, we vary the number of synthetic pairs used for fea-ture identification from 50 to 1000 on Skywork-Reward-Llama-3.1-8B. For each setting, we rerun the same strength-stability ranking, retain the top-10 features, and evaluate the resulting intervention on RM-Bench. We additionally report the overlap between each top-10 feature set and the default 
+
+N = 500 selection. The results are summarized in Table 5. The method is sensitive mainly in the extreme low-data regime. With only 50 probing pairs, fea-ture identification becomes noticeably less stable, but once at least 100 pairs are available, both the selected features and downstream performance be-come comparable to the default configuration. 
+
+D.5 Feature Identification from Existing Samples 
+
+Although synthetic pairs provide a clean probe of formatting sensitivity, they are not essen-tial to the method. We therefore repeat fea-ture identification on Skywork-Reward-Llama-3.1-8B (Liu et al., 2024) using 500 randomly sampled Markdown/plain-text pairs from RM-Bench (Liu et al., 2025b), matching the scale of the synthetic setup. The comparison between synthesized and existing-sample-derived features is shown in Ta-ble 6. The resulting features are highly consistent across data sources: 7 of the top-10 features iden-tified from synthetic pairs also appear in the top-10 derived from RM-Bench. Steering with these existing-sample-derived features yields comparable overall gains and even stronger Hard-split improve-ment, indicating that the mechanism is not tied to synthesized probe data. Appendix D.7 further shows that the identified features activate on nat-urally occurring Markdown structures rather than dataset-specific artifacts. 
+
+D.6 Top-K Selection Sensitivity Analysis 
+
+To understand the impact of the number of selected features on intervention effectiveness, we conduct a sensitivity analysis by varying the global top-K
+
+value from 5 to 50. We evaluate each configura-tion on the Skywork-Reward-Llama-3.1-8B model using RM-Bench, reporting performance across 5 10 20 30 50  
+
+> Number of Suppressed Features ( K)
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> Accuracy
+> Top-KSelection Sensitivity Analysis
+> Easy
+> Normal
+> Hard
+> Average
+
+Figure 7: Performance sensitivity to the number of sup-pressed features ( K). The plot shows accuracy across Easy, Normal, Hard difficulty levels and the overall av-erage on RM-Bench. 
+
+all difficulty levels (Easy, Normal, Hard) and the overall average score. 
+
+Experimental Setup. We apply the same feature identification procedure described in Section 3.3 but vary the global top-K selection parameter: 
+
+K ∈ { 5, 10 , 20 , 30 , 50 }. For each K value, we identify the top-K format-related features across layers 0-9, apply feature ablation interventions, and evaluate on RM-Bench. We report performance for each difficulty split (Easy, Normal, Hard) as well as the average score across all splits. 
+
+Results. Figure 7 shows the performance across different difficulty levels as a function of the num-ber of suppressed features. A key observation is that as K increases, the accuracy scores across Easy, Normal, and Hard difficulty levels converge toward each other, while Normal accuracy remains relatively stable (ranging from 0.740 to 0.749). This convergence pattern indicates that format-related feature suppression successfully eliminates format-based shortcuts in Easy tasks and format-induced challenges in Hard tasks, bringing all dif-ficulty levels closer to the format-fair comparison represented by Normal difficulty. The average ac-curacy peaks at K = 30 , reaching approximately 0.721, after which it slightly declines as K = 50 
+
+introduces less format-specific features. This convergence demonstrates that SteerRM successfully suppresses superficial format-related signals, enabling reward models to focus on se-mantic content rather than surface-level formatting cues. 
+
+D.7 Additional Format-Related SAE Features 
+
+In this section, we provide additional examples of format-related SAE features identified by our Strength-Stability criterion. These examples, span-16 Table 5: Sensitivity to the number of synthetic probing pairs. Overlap is measured against the top-10 features identified with the default N = 500 configuration. Numbers in parentheses show changes relative to the baseline model.                           
+
+> Synthetic Pairs ( N)Top-10 Overlap Easy Normal Hard Average
+> 50 30% 80.8 (-8.1) 70.3 (-4.6) 48.1 (+0.8) 66.4 (-3.9) 100 60% 88.0 (-0.9) 75.1 (+0.2) 48.7 (+1.4) 70.6 (+0.3) 500 (default) 100% 83.9 (-5.0) 74.1 (-0.8) 56.5 (+9.2) 71.5 (+1.2) 1000 90% 84.2 (-4.7) 74.0 (-0.9) 54.1 (+6.8) 70.8 (+0.5)
+
+Table 6: Feature identification from synthesized versus existing samples. Numbers in parentheses show changes relative to the baseline model.                     
+
+> Method Data Source Easy Normal Hard Average
+> Baseline –88.9 74.9 47.3 70.3 SteerRM (Synth) Synthesized Pairs 83.9 (-5.0) 74.1 (-0.8) 56.5 (+9.2) 71.5 (+1.2) SteerRM (Existing) Existing Samples 82.0 (-6.9) 74.4 (-0.5) 60.5 (+13.2) 72.3 (+2.0)
+
+ning different Markdown elements such as lists, headers, and code blocks, further validate the ef-fectiveness of our identification method. For each feature, we present its semantic interpretation (gen-erated by GPT-4o-mini via Neuronpedia) and rep-resentative top-activating text snippets. We present four representative features below.  
+
+> Example: Feature 49738 (LLAMASCOPE-RES-131K Layer 1) – Markdown headers and code blocks
+
+Semantic Interpretation from GPT-4o-mini: 
+
+terms related to software installation and usage instructions 
+
+Top Activation Examples: 
+
+• “ishing in30 seconds. Each test is run in a separate process. ``` $ export PARAL-LEL_SPLIT_TEST_PROCESSES=4$ parallel” • “http://...). ## Links ## * [Require-ments](http://...” • “ .com/...) base project. ## Installation ## See [installation on different plat-forms](http://...” 
+
+This feature activates strongly on structure-heavy segments typical of software documenta-tion, such as Markdown headers ( ## ) and code blocks ( ``` ), illustrating the entanglement of formatting syntax with specific coding content.  
+
+> Example: Feature 41935 (LLAMASCOPE-RES-131K Layer 3) – Markdown Emphasis Markers
+
+Semantic Interpretation from GPT-4o-mini: 
+
+references to data structures and functions used in programming, particularly in Python and related contexts 
+
+Top Activation Examples: 
+
+• “... reductions produce 1 row of output _ per group _ ” • “... makes a _ big _ difference when you’re mobile...” • “of user-defined functions for oper-ations on expressions targeting the pandas backend: ** element-wise ** , ** reduction ** , and ** analytic ** ...” 
+
+Although the semantic interpretation focuses on programming content, the activations re-veal a clear sensitivity to Markdown emphasis markers, including both underscores ( _) for italics and asterisks ( ** ) for bolding, often used to highlight technical terms.  
+
+> Example: Feature 46824 (LLAMASCOPE-RES-131K Layer 0) – Universal Double-Asterisk Detector
+
+Semantic Interpretation from GPT-4o-mini: 
+
+formatting elements or emphasis within the text 
+
+Top Activation Examples: 
+
+• “... charcuterie. ** Like pickles, mus-tard and sweet condiments...” 17 • “... search results. ** In fact, I have a ‘how to include history’...” • “person who invites those teachers out to teach workshops and then needs to pro-mote them ** :D I think a lot of dance teachers are reluctant to encourage their students” 
+
+This layer-0 feature acts as a low-level detector for the ** token sequence. It activates ubiqui-tously on double asterisks across diverse con-texts, including Markdown emphasis and para-graph separation. This behavior illustrates that very early layers encode raw surface pat-terns prior to any contextual disambiguation.  
+
+> Example: Feature 20985 (LLAMASCOPE-RES-131K Layer 3) – Code Comment Separators
+
+Semantic Interpretation from GPT-4o-mini: 
+
+programming or code syntax elements 
+
+Top Activation Examples: 
+
+• “ - Call heater manager * - Call in activ-ity manager * Call end stop manager * -Call LCD update */ void loop” • “R = delta radius * S = segments per second * A = Alpha ( Tower 1) diagonal rod trim * ” • “ * - The active serial input (usually USB) * - The SD card file being actively printed void get_available_commands () {” 
+
+This feature detects comment separators ( * and 
+
+-) within multi-line code comments, illustrating how format-related patterns are intertwined with domain-specific content (code documen-tation). 
+
+E Computational Cost Analysis 
+
+SteerRM is a training-free method, requiring no gradient updates or parameter optimization. The computational overhead primarily comes from SAE encoding/decoding during feature identifica-tion and inference-time interventions. 
+
+Feature Identification Phase. For each paired sample, we extract hidden representations and com-pute SAE latents across the selected layers (0-9). With 500 paired samples and 10 layers, this re-quires 5,000 forward passes through the SAE en-coders and decoders. On our experimental setup (4× NVIDIA A800 80GB GPUs), this phase com-pletes in a few minutes, with SAE models dis-tributed across GPUs for parallel processing. 
+
+Inference-Time Intervention. During reward scoring, SteerRM intercepts hidden states at the layers where format-related features were identi-fied, applies SAE encoding, ablates the selected features, and reconstructs the modified representa-tions. The intervention overhead depends on the number of active layers (typically 3-5 layers in our experiments) and adds approximately 10-15% computational cost compared to standard reward model inference, as SAE encoding and decoding are lightweight matrix operations. Overall, the training-free nature of SteerRM eliminates the need for expensive model retrain-ing or fine-tuning, while the inference-time over-head remains minimal. This makes it a practical and efficient approach for bias mitigation in reward models. 18

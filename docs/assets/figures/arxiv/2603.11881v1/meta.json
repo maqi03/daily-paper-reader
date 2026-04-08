@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-001.webp",
+      "caption": "Table 4: Performance Recovery Analysis: Student (7.35B) vs. Teacher (11.04B).",
+      "page": 11,
+      "index": 1,
+      "width": 682,
+      "height": 277
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-002.webp",
+      "caption": "Table 8: Polish Medical Leaderboard results (5-shot setting) showing model performance on Polish Board Certification Examinations.",
+      "page": 15,
+      "index": 2,
+      "width": 568,
+      "height": 691
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-003.webp",
+      "caption": "Table 2: Model pruning scenarios.",
+      "page": 7,
+      "index": 3,
+      "width": 764,
+      "height": 310
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-004.webp",
+      "caption": "Figure 1: Training convergence profiles of distillation loss. The legend indicates the three architectural variants evaluated during the search phase - EXP_006, EXP_009 and EXP_010.",
+      "page": 10,
+      "index": 4,
+      "width": 976,
+      "height": 352
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-005.webp",
+      "caption": "Table 7: Complex Polish Text Understanding Benchmark (CPTUB) results across different evaluation categories",
+      "page": 14,
+      "index": 5,
+      "width": 1052,
+      "height": 780
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-006.webp",
+      "caption": "Table 13: Open PL LLM benchmark results for Bielik-Minitron-7B-v3.0-Instruct across different quantization methods, compared to other models. Higher scores are better.",
+      "page": 18,
+      "index": 6,
+      "width": 632,
+      "height": 234
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-007.webp",
+      "caption": "Table 6: Polish EQ-Bench results for various models.",
+      "page": 13,
+      "index": 7,
+      "width": 514,
+      "height": 798
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-008.webp",
+      "caption": "Table 15: Berkeley Function-Calling Leaderboard (BFCL) results. Comparison of family of Bielik models against the student, Bielik-Minitron, 11B teacher Bielik-11B-v3 and industry baselines.",
+      "page": 19,
+      "index": 8,
+      "width": 932,
+      "height": 192
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-009.webp",
+      "caption": "Table 11: FLORES machine translation benchmark results showing translation performance across European languages (20 language pairs) measured by BLEU scores.",
+      "page": 17,
+      "index": 9,
+      "width": 686,
+      "height": 290
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-010.webp",
+      "caption": "Table 12: Detailed Knowledge Recovery Analysis: Bielik-Minitron-7B-v3.0-Instruct vs. Bielik-11B-v3.0-Instruct parent model across EuroEval categories.",
+      "page": 17,
+      "index": 10,
+      "width": 894,
+      "height": 393
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-011.webp",
+      "caption": "Table 5: Open PL LLM Leaderboard results for instruction-tuned models (5-shot evaluation)",
+      "page": 12,
+      "index": 11,
+      "width": 532,
+      "height": 982
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-012.webp",
+      "caption": "Table 1: Comparison of LLM pruning methods.",
+      "page": 5,
+      "index": 12,
+      "width": 1040,
+      "height": 208
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-013.webp",
+      "caption": "Table 9: INCLUDE-base-44 benchmark results showing average performance across European languages (20 language subset) and Polish-specific scores.",
+      "page": 16,
+      "index": 13,
+      "width": 544,
+      "height": 505
+    },
+    {
+      "url": "assets/figures/arxiv/2603.11881v1/fig-014.webp",
+      "caption": "Table 10: Belebele benchmark results showing model performance on reading comprehension across European languages (28 language subset).",
+      "page": 16,
+      "index": 14,
+      "width": 477,
+      "height": 277
+    }
+  ]
+}

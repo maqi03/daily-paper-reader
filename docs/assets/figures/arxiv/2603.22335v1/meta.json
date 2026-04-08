@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.22335v1/fig-001.webp",
+      "caption": "Table 9. Under two OOD distribution settings on two datasets, we compare the performance (%) of CAUSALDPO with different model sizes against strong baselines. The best results are highlighted in red, and the second-best results are highlighted in blue.",
+      "page": 21,
+      "index": 1,
+      "width": 863,
+      "height": 307
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22335v1/fig-002.webp",
+      "caption": "Figure 3. Evaluating the impact of model hyperparameter sets on recommendation performance.",
+      "page": 21,
+      "index": 2,
+      "width": 708,
+      "height": 192
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22335v1/fig-003.webp",
+      "caption": "Figure 1. Left: This figure presents the number of interactions (frequency) for DPO-based models across item popularity groups, with popularity decreasing from G1 (head) to G5 (tail). Middle: This figure illustrates how LLM-based recommendation models can learn and amplify spurious correlations during preference alignment, and how the DPO mechanism further reinforces these spurious correlations. Right: Using a Structural Causal Model (SCM), this figure analyzes how environmental confounders E affect the model and demonstrates how their influence can be mitigated via the backdoor adjustment criterion.",
+      "page": 2,
+      "index": 3,
+      "width": 1001,
+      "height": 182
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22335v1/fig-004.webp",
+      "caption": "Table 3. The performance (%) comparison between the baselines and CausalDPO on the two datasets with three IID distributions. We highlight the methods with the best and second-best performances.",
+      "page": 18,
+      "index": 4,
+      "width": 677,
+      "height": 338
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22335v1/fig-005.webp",
+      "caption": "Table 1. The performance (%) comparison between the baselines and CausalDPO on the three datasets with three OOD distributions. We highlight the methods with the best and second-best results.",
+      "page": 8,
+      "index": 5,
+      "width": 858,
+      "height": 311
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22335v1/fig-006.webp",
+      "caption": "Figure 2. Further study on performance under distribution shifts and clustering Visualization.",
+      "page": 8,
+      "index": 6,
+      "width": 946,
+      "height": 183
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22335v1/fig-007.webp",
+      "caption": "Table 5. Comparison of models with and without causal regularization on ML-10M and Book.",
+      "page": 19,
+      "index": 7,
+      "width": 791,
+      "height": 356
+    },
+    {
+      "url": "assets/figures/arxiv/2603.22335v1/fig-008.webp",
+      "caption": "Table 8. Ablation study results (%).",
+      "page": 20,
+      "index": 8,
+      "width": 641,
+      "height": 225
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.09203v2/fig-001.webp",
+      "caption": "Figure 3: Training curves and ablation overview. (a) Training curves of EVALACT with 3B/7B backbones. (b) Model ablation across training variants. (c) Method ablation on removing the evaluation loop or PCAR. (d) Sensitivity to PCAR rescaling intensity.",
+      "page": 8,
+      "index": 1,
+      "width": 919,
+      "height": 191
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09203v2/fig-002.webp",
+      "caption": "Table 1: Main results (EM, %) on seven open-domain QA benchmarks. Bold and underlined values indicate the best and second-best performance, respectively.",
+      "page": 6,
+      "index": 2,
+      "width": 944,
+      "height": 539
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09203v2/fig-003.webp",
+      "caption": "Figure 2: Effect of SFT on Format Alignment. The Base model exhibits high tool parsing failure rates.",
+      "page": 6,
+      "index": 3,
+      "width": 443,
+      "height": 310
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09203v2/fig-004.webp",
+      "caption": "Figure 1: Overview of EVALACT with PCAR. The agent follows a coupled Search→Evaluate protocol, producing segment-wise self-evaluation scores {zi,k} that PCAR uses to rescale GRPO advantages.",
+      "page": 4,
+      "index": 4,
+      "width": 935,
+      "height": 315
+    }
+  ]
+}

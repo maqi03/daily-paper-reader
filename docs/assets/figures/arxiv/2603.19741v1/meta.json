@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-001.webp",
+      "caption": "Table 4. Notation Table",
+      "page": 11,
+      "index": 1,
+      "width": 795,
+      "height": 1185
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-002.webp",
+      "caption": "Figure 9. Average accuracy (%) varies with bottleneck adapter dimension across five benchmark settings.",
+      "page": 21,
+      "index": 2,
+      "width": 595,
+      "height": 349
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-003.webp",
+      "caption": "Table 10. Per-client test accuracy (%) under intra-domain settings with 3 clients. Left: Reward-Margin Partition (IMDB). Right: Language-Based Partition (Code-Vulnerability-Security). Results are mean ± std over 5 runs.",
+      "page": 22,
+      "index": 3,
+      "width": 941,
+      "height": 438
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-004.webp",
+      "caption": "Table 1. Test accuracy (%) under intra-domain settings with 3, 10, or 11 clients and cross-domain settings with distinct datasets per client (3 clients). Code-V.: Code-Vulnerability-Security, UltraF.: UltraFeedback. Bold and underline denote the best and second-best results.",
+      "page": 8,
+      "index": 4,
+      "width": 1002,
+      "height": 385
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-005.webp",
+      "caption": "Table 2. Test accuracy (%) under cross-domain settings with TinyLlama-1.1B on distinct datasets per client (3 clients).",
+      "page": 8,
+      "index": 5,
+      "width": 477,
+      "height": 346
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-006.webp",
+      "caption": "Figure 2. Overview of FedPDPO. Each client fine-tunes and shares a LoRA adapter (A,B) on a frozen backbone W 0 while locally training personalized modules: a bottleneck adapter M , local LLM and reward heads (h1,h2) with an effective PDPO training strategy.",
+      "page": 4,
+      "index": 6,
+      "width": 914,
+      "height": 410
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-007.webp",
+      "caption": "Figure 5. An example preference triple from the IMDB dataset. The prompt is a movie review prefix, and the model must learn to prefer the chosen response (positive sentiment, blue) over the rejected response (negative sentiment, red).",
+      "page": 12,
+      "index": 7,
+      "width": 967,
+      "height": 598
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-008.webp",
+      "caption": "Figure 8. Average accuracy (%) varies with reward head dimension across five benchmark settings.",
+      "page": 20,
+      "index": 8,
+      "width": 598,
+      "height": 351
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-009.webp",
+      "caption": "Figure 7. Average accuracy (%) varies with LoRA rank across five benchmark settings.",
+      "page": 20,
+      "index": 9,
+      "width": 590,
+      "height": 352
+    },
+    {
+      "url": "assets/figures/arxiv/2603.19741v1/fig-010.webp",
+      "caption": "Figure 6. Distribution of reward margins across the IMDB dataset and their non-IID partition into three subsets (easy, medium, hard).",
+      "page": 16,
+      "index": 10,
+      "width": 699,
+      "height": 423
+    }
+  ]
+}

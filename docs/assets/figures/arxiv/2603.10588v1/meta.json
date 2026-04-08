@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.10588v1/fig-001.webp",
+      "caption": "Table 1: Performance on MoReBench (Public and Theory). Gains (%) are computed relative to the Base method within each benchmark, base model, and different pass number settings.",
+      "page": 5,
+      "index": 1,
+      "width": 823,
+      "height": 370
+    },
+    {
+      "url": "assets/figures/arxiv/2603.10588v1/fig-002.webp",
+      "caption": "Figure 1: The visualization for the high-reward response distribution in semantic space of six cases in MATH-500 (blue) and MoReBench-Public (red) benchmark.",
+      "page": 6,
+      "index": 2,
+      "width": 818,
+      "height": 423
+    }
+  ]
+}

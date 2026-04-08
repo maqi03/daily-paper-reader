@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-001.webp",
+      "caption": "Figure 7: The quantile parameter qt provides a tunable indicator of RM accuracy. Proxy RM accuracy vs. KL divergence for Dr.GRPO and SignCert-PO with varying qt on TL;DR (Pythia 1B). Thin lines show individual seeds and thick lines show the mean. Higher qt maintains RM accuracy.",
+      "page": 25,
+      "index": 1,
+      "width": 479,
+      "height": 299
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-002.webp",
+      "caption": "Table 10: Pythia-1B: win rate (%) after 2,000 steps across quantile thresholds and RM epochs.",
+      "page": 26,
+      "index": 2,
+      "width": 826,
+      "height": 232
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-003.webp",
+      "caption": "Table 12: Example output by a Pythia-1B model trained with different methods on the TL;DR task. SignCert-PO produces a coherent summary comparable to the reference. GR denotes gold reward.",
+      "page": 26,
+      "index": 3,
+      "width": 838,
+      "height": 669
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-004.webp",
+      "caption": "Figure 1: We argue that the reliability of the proxy RM’s estimates differs by completion. Certified sign-preservation radius ∆j provides this reliability measure. (a) Proxy and true advantages. Completions 7 and 8 have opposite signs, showing the proxy RM is unreliable there. (b) ∆j is the smallest perturbation of the RM parameters that flips a completion’s advantage sign. Dashed lines are decision boundaries for the j- and k-th completions. (c) Per-completion ∆j. Completions 7 and 8 exhibit low ∆, confirming ∆j identifies unreliable completions. SignCert-PO suppresses completions below ∆ = ϵ. (d) True (solid) and proxy (dashed) reward during RL. Using ∆j as a re-weighting mechanism, SignCert-PO prevents reward hacking and further improves the true reward. See Appendix F.1 for details.",
+      "page": 2,
+      "index": 4,
+      "width": 809,
+      "height": 412
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-005.webp",
+      "caption": "Table 1: Win rate (%) vs. human-generated reference response after training, as judged by the gold RM. For TL;DR experiments on Pythia 1B and Qwen2.5 1.5B, we run three different random seeds and report mean ± standard deviation. The other experiments use a single seed. We abbreviate Pythia as P and Qwen2.5 as Q. Best result per column is shown in bold.",
+      "page": 7,
+      "index": 5,
+      "width": 826,
+      "height": 323
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-006.webp",
+      "caption": "Table 4: SFT and preference data generation hyperparameters.",
+      "page": 22,
+      "index": 6,
+      "width": 781,
+      "height": 287
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-007.webp",
+      "caption": "Table 5: Proxy reward model training hyperparameters. The same base model architecture as the SFT policy is used with a randomly initialized scalar head.",
+      "page": 23,
+      "index": 7,
+      "width": 826,
+      "height": 351
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-008.webp",
+      "caption": "Table 6: Policy optimization hyperparameters (Dr.GRPO / SignCert-PO). For Pythia 1B and Qwen2.5 1.5B, the KL coefficient is selected via sweep over {0, 0.001, 0.005, 0.01, 0.1, 0.2} (c.f., Appendix F.3.3). For the RM epoch ablation (Appendix G.3), the KL coefficient is re-tuned per epoch.",
+      "page": 23,
+      "index": 8,
+      "width": 750,
+      "height": 317
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-009.webp",
+      "caption": "Figure 2: SignCert-PO keeps the policy in regions where the proxy RM remains reliable, preventing reward hacking. KL divergence trade-offs on TL;DR. Left: proxy RM accuracy vs. KL. SignCert-PO maintains higher RM accuracy at every KL budget. Right: gold reward (solid) and proxy reward (dashed) vs. KL. Baselines exhibit reward hacking, whereas SignCert-PO avoids this divergence. The reference policy is the SFT model πSFT.",
+      "page": 8,
+      "index": 9,
+      "width": 709,
+      "height": 259
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-010.webp",
+      "caption": "Table 3: Summary of uncertainty models and their certified radii.",
+      "page": 17,
+      "index": 10,
+      "width": 826,
+      "height": 219
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02986v1/fig-011.webp",
+      "caption": "Table 13: Example output by a Qwen2.5 1.5B model trained with different methods on the AlpacaFarm task. SignCert-PO produces a concise list comparable to the reference.",
+      "page": 27,
+      "index": 11,
+      "width": 838,
+      "height": 1078
+    }
+  ]
+}
