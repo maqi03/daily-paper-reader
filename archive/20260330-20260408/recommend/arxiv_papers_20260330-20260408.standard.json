@@ -1,0 +1,740 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-04-08T06:21:16.909249+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 13,
+    "deep_cap": 6,
+    "deep_selected": 8,
+    "quick_candidates": 15,
+    "quick_skim_target": 11,
+    "quick_selected": 11
+  },
+  "deep_dive": [
+    {
+      "id": "2604.04869v1",
+      "source": "arxiv",
+      "title": "Optimizing LLM Prompt Engineering with DSPy Based Declarative Learning",
+      "abstract": "Large Language Models (LLMs) have shown strong performance across a wide range of natural language processing tasks; however, their effectiveness is highly dependent on prompt design, structure, and embedded reasoning signals. Conventional prompt engineering methods largely rely on heuristic trial-and-error processes, which limits scalability, reproducibility, and generalization across tasks. DSPy, a declarative framework for optimizing text-processing pipelines, offers an alternative approach by enabling automated, modular, and learnable prompt construction for LLM-based systems.This paper presents a systematic study of DSPy-based declarative learning for prompt optimization, with emphasis on prompt synthesis, correction, calibration, and adaptive reasoning control. We introduce a unified DSPy LLM architecture that combines symbolic planning, gradient free optimization, and automated module rewriting to reduce hallucinations, improve factual grounding, and avoid unnecessary prompt complexity. Experimental evaluations conducted on reasoning tasks, retrieval-augmented generation, and multi-step chain-of-thought benchmarks demonstrate consistent gains in output reliability, efficiency, and generalization across models. The results show improvements of up to 30 to 45% in factual accuracy and a reduction of approximately 25% in hallucination rates. Finally, we outline key limitations and discuss future research directions for declarative prompt optimization frameworks.",
+      "authors": [
+        "Shiek Ruksana",
+        "Sailesh Kiran Kurra",
+        "Thipparthi Sanjay Baradwaj"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-06T17:17:57+00:00",
+      "link": "https://arxiv.org/pdf/2604.04869v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "automated, modular, and learnable prompt construction",
+      "llm_evidence_cn": "自动化、模块化且可学习的提示词构建",
+      "llm_evidence": "自动化、模块化且可学习的提示词构建",
+      "canonical_evidence": "自动化、模块化且可学习的提示词构建",
+      "llm_tldr_en": "Studies DSPy-based declarative learning for automated prompt synthesis, correction, and optimization.",
+      "llm_tldr_cn": "研究了基于DSPy的声明式学习，用于自动化的提示词合成、纠错和优化。",
+      "llm_tldr": "研究了基于DSPy的声明式学习，用于自动化的提示词合成、纠错和优化。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.28038v1",
+      "source": "arxiv",
+      "title": "Beyond the Answer: Decoding the Behavior of LLMs as Scientific Reasoners",
+      "abstract": "As Large Language Models (LLMs) achieve increasingly sophisticated performance on complex reasoning tasks, current architectures serve as critical proxies for the internal heuristics of frontier models. Characterizing emergent reasoning is vital for long-term interpretability and safety. Furthermore, understanding how prompting modulates these processes is essential, as natural language will likely be the primary interface for interacting with AGI systems. In this work, we use a custom variant of Genetic Pareto (GEPA) to systematically optimize prompts for scientific reasoning tasks, and analyze how prompting can affect reasoning behavior. We investigate the structural patterns and logical heuristics inherent in GEPA-optimized prompts, and evaluate their transferability and brittleness. Our findings reveal that gains in scientific reasoning often correspond to model-specific heuristics that fail to generalize across systems, which we call \"local\" logic. By framing prompt optimization as a tool for model interpretability, we argue that mapping these preferred reasoning structures for LLMs is an important prerequisite for effectively collaborating with superhuman intelligence.",
+      "authors": [
+        "Rohan Pandey",
+        "Eric Ye",
+        "Michael Li"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-03-30T05:01:07+00:00",
+      "link": "https://arxiv.org/pdf/2603.28038v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "systematically optimize prompts using Genetic Pareto variant",
+      "llm_evidence_cn": "使用遗传帕累托变体系统地优化提示词",
+      "llm_evidence": "使用遗传帕累托变体系统地优化提示词",
+      "canonical_evidence": "使用遗传帕累托变体系统地优化提示词",
+      "llm_tldr_en": "Optimizes prompts for scientific reasoning using genetic algorithms to analyze how prompting affects LLM behavior.",
+      "llm_tldr_cn": "使用遗传算法优化科学推理任务的提示词，并分析提示词如何影响模型行为。",
+      "llm_tldr": "使用遗传算法优化科学推理任务的提示词，并分析提示词如何影响模型行为。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.29953v1",
+      "source": "arxiv",
+      "title": "Structured Intent as a Protocol-Like Communication Layer: Cross-Model Robustness, Framework Comparison, and the Weak-Model Compensation Effect",
+      "abstract": "How reliably can structured intent representations preserve user goals across different AI models, languages, and prompting frameworks? Prior work showed that PPS (Prompt Protocol Specification), a 5W3H-based structured intent framework, improves goal alignment in Chinese and generalizes to English and Japanese. This paper extends that line of inquiry in three directions: cross-model robustness across Claude, GPT-4o, and Gemini 2.5 Pro; controlled comparison with CO-STAR and RISEN; and a user study (N=50) of AI-assisted intent expansion in ecologically valid settings. Across 3,240 model outputs (3 languages x 6 conditions x 3 models x 3 domains x 20 tasks), evaluated by an independent judge (DeepSeek-V3), we find that structured prompting substantially reduces cross-language score variance relative to unstructured baselines. The strongest structured conditions reduce cross-language sigma from 0.470 to about 0.020. We also observe a weak-model compensation pattern: the lowest-baseline model (Gemini) shows a much larger D-A gain (+1.006) than the strongest model (Claude, +0.217). Under the current evaluation resolution, 5W3H, CO-STAR, and RISEN achieve similarly high goal-alignment scores, suggesting that dimensional decomposition itself is an important active ingredient. In the user study, AI-expanded 5W3H prompts reduce interaction rounds by 60 percent and increase user satisfaction from 3.16 to 4.04. These findings support the practical value of structured intent representation as a robust, protocol-like communication layer for human-AI interaction.",
+      "authors": [
+        "Peng Gang"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.HC"
+      ],
+      "published": "2026-03-31T16:20:28+00:00",
+      "link": "https://arxiv.org/pdf/2603.29953v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "cross-model robustness and comparison of prompting frameworks",
+      "llm_evidence_cn": "跨模型鲁棒性及提示词框架对比",
+      "llm_evidence": "跨模型鲁棒性及提示词框架对比",
+      "canonical_evidence": "跨模型鲁棒性及提示词框架对比",
+      "llm_tldr_en": "Evaluates structured intent frameworks for cross-model robustness and goal alignment across multiple languages.",
+      "llm_tldr_cn": "评估了结构化意图框架在多语言环境下的跨模型鲁棒性和目标对齐效果。",
+      "llm_tldr": "评估了结构化意图框架在多语言环境下的跨模型鲁棒性和目标对齐效果。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "evaluating and improving prompt robustness in LLMs",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00901v1",
+      "source": "arxiv",
+      "title": "Experience as a Compass: Multi-agent RAG with Evolving Orchestration and Agent Prompts",
+      "abstract": "Multi-agent Retrieval-Augmented Generation (RAG), wherein each agent takes on a specific role, supports hard queries that require multiple steps and sources, or complex reasoning. Existing approaches, however, rely on static agent behaviors and fixed orchestration strategies, leading to brittle performance on diverse, multi-hop tasks. We identify two key limitations: the lack of continuously adaptive orchestration mechanisms and the absence of behavior-level learning for individual agents. To this end, we propose HERA, a hierarchical framework that jointly evolves multi-agent orchestration and role-specific agent prompts. At the global level, HERA optimizes query-specific agent topologies through reward-guided sampling and experience accumulation. At the local level, Role-Aware Prompt Evolution refines agent behaviors via credit assignment and dual-axes adaptation along operational and behavioral principles, enabling targeted, role-conditioned improvements. On six knowledge-intensive benchmarks, HERA achieves an average improvement of 38.69\\% over recent baselines while maintaining robust generalization and token efficiency. Topological analyses reveal emergent self-organization, where sparse exploration yields compact, high-utility multi-agent networks, demonstrating both efficient coordination and robust reasoning.",
+      "authors": [
+        "Sha Li",
+        "Naren Ramakrishnan"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-01T13:45:52+00:00",
+      "link": "https://arxiv.org/pdf/2604.00901v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "jointly evolves multi-agent orchestration and role-specific agent prompts",
+      "llm_evidence_cn": "联合演化多代理编排和特定角色的代理提示词",
+      "llm_evidence": "联合演化多代理编排和特定角色的代理提示词",
+      "canonical_evidence": "联合演化多代理编排和特定角色的代理提示词",
+      "llm_tldr_en": "HERA optimizes agent prompts and topologies through reward-guided sampling and experience accumulation.",
+      "llm_tldr_cn": "HERA 通过奖励引导的采样和经验积累来优化代理提示词和拓扑结构。",
+      "llm_tldr": "HERA 通过奖励引导的采样和经验积累来优化代理提示词和拓扑结构。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00901v2",
+      "source": "arxiv",
+      "title": "Experience as a Compass: Multi-agent RAG with Evolving Orchestration and Agent Prompts",
+      "abstract": "Multi-agent Retrieval-Augmented Generation (RAG), wherein each agent takes on a specific role, supports hard queries that require multiple steps and sources, or complex reasoning. Existing approaches, however, rely on static agent behaviors and fixed orchestration strategies, leading to brittle performance on diverse, multi-hop tasks. We identify two key limitations: the lack of continuously adaptive orchestration mechanisms and the absence of behavior-level learning for individual agents. To this end, we propose HERA, a hierarchical framework that jointly evolves multi-agent orchestration and role-specific agent prompts. At the global level, HERA optimizes query-specific agent topologies through reward-guided sampling and experience accumulation. At the local level, Role-Aware Prompt Evolution refines agent behaviors via credit assignment and dual-axes adaptation along operational and behavioral principles, enabling targeted, role-conditioned improvements. On six knowledge-intensive benchmarks, HERA achieves an average improvement of 38.69\\% over recent baselines while maintaining robust generalization and token efficiency. Topological analyses reveal emergent self-organization, where sparse exploration yields compact, high-utility multi-agent networks, demonstrating both efficient coordination and robust reasoning.",
+      "authors": [
+        "Sha Li",
+        "Naren Ramakrishnan"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-01T13:45:52+00:00",
+      "link": "https://arxiv.org/pdf/2604.00901v2",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "jointly evolves multi-agent orchestration and role-specific agent prompts",
+      "llm_evidence_cn": "联合演化多智能体编排与角色特定提示词",
+      "llm_evidence": "联合演化多智能体编排与角色特定提示词",
+      "canonical_evidence": "联合演化多智能体编排与角色特定提示词",
+      "llm_tldr_en": "Introduces HERA to optimize multi-agent RAG through reward-guided evolution of agent prompts and topologies.",
+      "llm_tldr_cn": "引入HERA，通过奖励引导的提示词和拓扑演化来优化多智能体RAG系统。",
+      "llm_tldr": "引入HERA，通过奖励引导的提示词和拓扑演化来优化多智能体RAG系统。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.04247v1",
+      "source": "arxiv",
+      "title": "Combee: Scaling Prompt Learning for Self-Improving Language Model Agents",
+      "abstract": "Recent advances in prompt learning allow large language model agents to acquire task-relevant knowledge from inference-time context without parameter changes. For example, existing methods (like ACE or GEPA) can learn system prompts to improve accuracy based on previous agent runs. However, these methods primarily focus on single-agent or low-parallelism settings. This fundamentally limits their ability to efficiently learn from a large set of collected agentic traces. It would be efficient and beneficial to run prompt learning in parallel to accommodate the growing trend of learning from many agentic traces or parallel agent executions. Yet without a principled strategy for scaling, current methods suffer from quality degradation with high parallelism. To improve both the efficiency and quality of prompt learning, we propose Combee, a novel framework to scale parallel prompt learning for self-improving agents. Combee speeds up learning and enables running many agents in parallel while learning from their aggregate traces without quality degradation. To achieve this, Combee leverages parallel scans and employs an augmented shuffle mechanism; Combee also introduces a dynamic batch size controller to balance quality and delay. Evaluations on AppWorld, Terminal-Bench, Formula, and FiNER demonstrate that Combee achieves up to 17x speedup over previous methods with comparable or better accuracy and equivalent cost.",
+      "authors": [
+        "Hanchen Li",
+        "Runyuan He",
+        "Qizheng Zhang",
+        "Changxiu Ji",
+        "Qiuyang Mang",
+        "Xiaokun Chen",
+        "Lakshya A Agrawal",
+        "Wei-Liang Liao",
+        "Eric Yang",
+        "Alvin Cheung",
+        "James Zou",
+        "Kunle Olukotun",
+        "Ion Stoica",
+        "Joseph E. Gonzalez"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-04-05T20:07:48+00:00",
+      "link": "https://arxiv.org/pdf/2604.04247v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "scaling prompt learning for self-improving agents",
+      "llm_evidence_cn": "为自我改进代理扩展提示词学习",
+      "llm_evidence": "为自我改进代理扩展提示词学习",
+      "canonical_evidence": "为自我改进代理扩展提示词学习",
+      "llm_tldr_en": "Combee scales prompt learning for agents to improve accuracy by learning from parallel agentic traces.",
+      "llm_tldr_cn": "Combee 通过从并行代理轨迹中学习来扩展提示词学习，从而提高代理的准确性。",
+      "llm_tldr": "Combee 通过从并行代理轨迹中学习来扩展提示词学习，从而提高代理的准确性。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05489v1",
+      "source": "arxiv",
+      "title": "SCMAPR: Self-Correcting Multi-Agent Prompt Refinement for Complex-Scenario Text-to-Video Generation",
+      "abstract": "Text-to-Video (T2V) generation has benefited from recent advances in diffusion models, yet current systems still struggle under complex scenarios, which are generally exacerbated by the ambiguity and underspecification of text prompts. In this work, we formulate complex-scenario prompt refinement as a stage-wise multi-agent refinement process and propose SCMAPR, i.e., a scenario-aware and Self-Correcting Multi-Agent Prompt Refinement framework for T2V prompting. SCMAPR coordinates specialized agents to (i) route each prompt to a taxonomy-grounded scenario for strategy selection, (ii) synthesize scenario-aware rewriting policies and perform policy-conditioned refinement, and (iii) conduct structured semantic verification that triggers conditional revision when violations are detected. To clarify what constitutes complex scenarios in T2V prompting, provide representative examples, and enable rigorous evaluation under such challenging conditions, we further introduce {T2V-Complexity}, which is a complex-scenario T2V benchmark consisting exclusively of complex-scenario prompts. Extensive experiments on 3 existing benchmarks and our T2V-Complexity benchmark demonstrate that SCMAPR consistently improves text-video alignment and overall generation quality under complex scenarios, achieving up to 2.67\\% and 3.28 gains in average score on VBench and EvalCrafter, and up to 0.028 improvement on T2V-CompBench over 3 State-Of-The-Art baselines.",
+      "authors": [
+        "Chengyi Yang",
+        "Pengzhen Li",
+        "Jiayin Qi",
+        "Aimin Zhou",
+        "Ji Wu",
+        "Ji Liu"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.MA"
+      ],
+      "published": "2026-04-07T06:33:01+00:00",
+      "link": "https://arxiv.org/pdf/2604.05489v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "self-correcting multi-agent prompt refinement framework",
+      "llm_evidence_cn": "自校正多智能体提示词优化框架",
+      "llm_evidence": "自校正多智能体提示词优化框架",
+      "canonical_evidence": "自校正多智能体提示词优化框架",
+      "llm_tldr_en": "Presents SCMAPR, a multi-agent framework for automated prompt refinement in complex text-to-video scenarios.",
+      "llm_tldr_cn": "提出SCMAPR，一种用于复杂文本生成视频场景的自动化提示词优化多智能体框架。",
+      "llm_tldr": "提出SCMAPR，一种用于复杂文本生成视频场景的自动化提示词优化多智能体框架。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.06061v1",
+      "source": "arxiv",
+      "title": "PromptEvolver: Prompt Inversion through Evolutionary Optimization in Natural-Language Space",
+      "abstract": "Text-to-image generation has progressed rapidly, but faithfully generating complex scenes requires extensive trial-and-error to find the exact prompt. In the prompt inversion task, the goal is to recover a textual prompt that can faithfully reconstruct a given target image. Currently, existing methods frequently yield suboptimal reconstructions and produce unnatural, hard-to-interpret prompts that hinder transparency and controllability. In this work, we present PromptEvolver, a prompt inversion approach that generates natural-language prompts while achieving high-fidelity reconstructions of the target image. Our method uses a genetic algorithm to optimize the prompt, leveraging a strong vision-language model to guide the evolution process. Importantly, it works on black-box generation models by requiring only image outputs. Finally, we evaluate PromptEvolver across multiple prompt inversion benchmarks and show that it consistently outperforms competing methods.",
+      "authors": [
+        "Asaf Buchnick",
+        "Aviv Shamsian",
+        "Aviv Navon",
+        "Ethan Fetaya"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-03T17:00:49+00:00",
+      "link": "https://arxiv.org/pdf/2604.06061v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "evolutionary optimization of natural-language prompts",
+      "llm_evidence_cn": "自然语言提示词的进化优化",
+      "llm_evidence": "自然语言提示词的进化优化",
+      "canonical_evidence": "自然语言提示词的进化优化",
+      "llm_tldr_en": "Uses genetic algorithms to automatically optimize natural-language prompts for high-fidelity image reconstruction.",
+      "llm_tldr_cn": "利用遗传算法自动优化自然语言提示词，以实现高保真图像重建。",
+      "llm_tldr": "利用遗传算法自动优化自然语言提示词，以实现高保真图像重建。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2603.28555v1",
+      "source": "arxiv",
+      "title": "Domain-Invariant Prompt Learning for Vision-Language Models",
+      "abstract": "Large pre-trained vision-language models like CLIP have transformed computer vision by aligning images and text in a shared feature space, enabling robust zero-shot transfer via prompting. Soft-prompting, such as Context Optimization (CoOp), effectively adapts these models for downstream recognition tasks by learning a set of context vectors. However, CoOp lacks explicit mechanisms for handling domain shifts across unseen distributions. To address this, we propose Domain-invariant Context Optimization (DiCoOp), an extension of CoOp optimized for domain generalization. By employing an adversarial training approach, DiCoOp forces the model to learn domain-invariant prompts while preserving discriminative power for classification. Experimental results show that DiCoOp consistently surpasses CoOp in domain generalization tasks across diverse visual domains.",
+      "authors": [
+        "Arsham Gholamzadeh Khoee",
+        "Yinan Yu",
+        "Robert Feldt"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-03-30T15:18:31+00:00",
+      "link": "https://arxiv.org/pdf/2603.28555v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "adversarial training for domain-invariant prompt learning",
+      "llm_evidence_cn": "用于领域不变提示词学习的对抗训练",
+      "llm_evidence": "用于领域不变提示词学习的对抗训练",
+      "canonical_evidence": "用于领域不变提示词学习的对抗训练",
+      "llm_tldr_en": "Develops DiCoOp to learn domain-invariant prompts for vision-language models using adversarial optimization.",
+      "llm_tldr_cn": "开发了DiCoOp，通过对抗优化为视觉语言模型学习领域不变的提示词。",
+      "llm_tldr": "开发了DiCoOp，通过对抗优化为视觉语言模型学习领域不变的提示词。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.29206v1",
+      "source": "arxiv",
+      "title": "Route-Induced Density and Stability (RIDE): Controlled Intervention and Mechanism Analysis of Routing-Style Meta Prompts on LLM Internal States",
+      "abstract": "Routing is widely used to scale large language models, from Mixture-of-Experts gating to multi-model/tool selection. A common belief is that routing to a task ``expert'' activates sparser internal computation and thus yields more certain and stable outputs (the Sparsity--Certainty Hypothesis). We test this belief by injecting routing-style meta prompts as a textual proxy for routing signals in front of frozen instruction-tuned LLMs. We quantify (C1) internal density via activation sparsity, (C2) domain-keyword attention, and (C3) output stability via predictive entropy and semantic variation. On a RouterEval subset with three instruction-tuned models (Qwen3-8B, Llama-3.1-8B-Instruct, and Mistral-7B-Instruct-v0.2), meta prompts consistently densify early/middle-layer representations rather than increasing sparsity; natural-language expert instructions are often stronger than structured tags. Attention responses are heterogeneous: Qwen/Llama reduce keyword attention, while Mistral reinforces it. Finally, the densification--stability link is weak and appears only in Qwen, with near-zero correlations in Llama and Mistral. We present RIDE as a diagnostic probe for calibrating routing design and uncertainty estimation.",
+      "authors": [
+        "Dianxing Zhang",
+        "Gang Li",
+        "Sheng Li"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-03-31T03:19:36+00:00",
+      "link": "https://arxiv.org/pdf/2603.29206v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "analyzes output stability and predictive entropy of meta prompts",
+      "llm_evidence_cn": "分析元提示词的输出稳定性和预测熵",
+      "llm_evidence": "分析元提示词的输出稳定性和预测熵",
+      "canonical_evidence": "分析元提示词的输出稳定性和预测熵",
+      "llm_tldr_en": "RIDE analyzes how routing-style meta prompts affect the internal states and output stability of LLMs.",
+      "llm_tldr_cn": "RIDE 分析了路由式元提示词如何影响大语言模型的内部状态和输出稳定性。",
+      "llm_tldr": "RIDE 分析了路由式元提示词如何影响大语言模型的内部状态和输出稳定性。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "evaluating and improving prompt robustness in LLMs",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.03657v1",
+      "source": "arxiv",
+      "title": "Love Me, Love My Label: Rethinking the Role of Labels in Prompt Retrieval for Visual In-Context Learning",
+      "abstract": "Visual in-context learning (VICL) enables visual foundation models to handle multiple tasks by steering them with demonstrative prompts. The choice of such prompts largely influences VICL performance, standing out as a key challenge. Prior work has made substantial progress on prompt retrieval and reranking strategies, but mainly focuses on prompt images while overlooking labels. We reveal these approaches sometimes get visually similar but label-inconsistent prompts, which potentially degrade VICL performance. On the other hand, higher label consistency between query and prompts preferably indicates stronger VICL results. Motivated by these findings, we develop a framework named LaPR (Label-aware Prompt Retrieval), which highlights the role of labels in prompt selection. Our framework first designs an image-label joint representation for prompts to incorporate label cues explicitly. Besides, to handle unavailable query labels at test time, we introduce a mixture-of-expert mechanism to the dual encoders with query-adaptive routing. Each expert is expected to capture a specific label mode, while the router infers query-adaptive mixture weights and helps to learn label-aware representation. We carefully design alternative optimization for experts and router, with a VICL performance-guided contrastive loss and a label-guided contrastive loss, respectively. Extensive experiments show promising and consistent improvement of LaPR on in-context segmentation, detection, and colorization tasks. Moreover, LaPR generalizes well across feature extractors and cross-fold scenarios, suggesting the importance of label utilization in prompt retrieval for VICL. Code is available at https://github.com/luotc-why/CVPR26-LaPR.",
+      "authors": [
+        "Tianci Luo",
+        "Haohao Pan",
+        "Jinpeng Wang",
+        "Niu Lian",
+        "Xinrui Chen",
+        "Bin Chen",
+        "Shu-Tao Xia",
+        "Chun Yuan"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.IR",
+        "cs.MM"
+      ],
+      "published": "2026-04-04T09:18:31+00:00",
+      "link": "https://arxiv.org/pdf/2604.03657v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "prompt retrieval and reranking strategies",
+      "llm_evidence_cn": "提示词检索与重排序策略",
+      "llm_evidence": "提示词检索与重排序策略",
+      "canonical_evidence": "提示词检索与重排序策略",
+      "llm_tldr_en": "Proposes LaPR, a label-aware prompt retrieval framework to improve visual in-context learning performance.",
+      "llm_tldr_cn": "提出LaPR，一种标签感知的提示词检索框架，旨在提升视觉上下文学习性能。",
+      "llm_tldr": "提出LaPR，一种标签感知的提示词检索框架，旨在提升视觉上下文学习性能。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "state of the art methods for automatic prompt generation",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.00280v1",
+      "source": "arxiv",
+      "title": "VeriAct: Beyond Verifiability -- Agentic Synthesis of Correct and Complete Formal Specifications",
+      "abstract": "Formal specifications play a central role in ensuring software reliability and correctness. However, automatically synthesizing high-quality formal specifications remains a challenging task, often requiring domain expertise. Recent work has applied large language models to generate specifications in Java Modeling Language (JML), reporting high verification pass rates. But does passing a verifier mean that the specification is actually correct and complete? In this work, we first conduct a comprehensive evaluation comparing classical and prompt-based approaches for automated JML specification synthesis. We then investigate whether prompt optimization can push synthesis quality further by evolving prompts through structured verification feedback. While optimization improves verifier pass rates, we find a clear performance ceiling. More critically, we propose Spec-Harness, an evaluation framework that measures specification correctness and completeness through symbolic verification, revealing that a large fraction of verifier-accepted specifications, including optimized ones, are in fact incorrect or incomplete, over- or under-constraining both inputs and outputs in ways invisible to the verifier. To push beyond this ceiling, we propose VeriAct, a verification-guided agentic framework that iteratively synthesizes and repairs specifications through a closed loop of LLM-driven planning, code execution, verification, and Spec-Harness feedback. Our experiments on two benchmark datasets show that VeriAct outperforms both prompt-based and prompt-optimized baselines, producing specifications that are not only verifiable but also correct and complete.",
+      "authors": [
+        "Md Rakib Hossain Misu",
+        "Iris Ma",
+        "Cristina V. Lopes"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.AI"
+      ],
+      "published": "2026-03-31T22:12:15+00:00",
+      "link": "https://arxiv.org/pdf/2604.00280v1",
+      "tags": [
+        "keyword:PR OPT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "investigates prompt optimization for evolving formal specification prompts",
+      "llm_evidence_cn": "研究用于演化形式化规范提示词的提示词优化",
+      "llm_evidence": "研究用于演化形式化规范提示词的提示词优化",
+      "canonical_evidence": "研究用于演化形式化规范提示词的提示词优化",
+      "llm_tldr_en": "VeriAct explores prompt optimization to improve the synthesis of correct and complete formal specifications.",
+      "llm_tldr_cn": "VeriAct 探索了提示词优化，以改进正确且完整的形式化规范的合成。",
+      "llm_tldr": "VeriAct 探索了提示词优化，以改进正确且完整的形式化规范的合成。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.01116v1",
+      "source": "arxiv",
+      "title": "ProTPS: Prototype-Guided Text Prompt Selection for Continual Learning",
+      "abstract": "For continual learning, text-prompt-based methods leverage text encoders and learnable prompts to encode semantic features for sequentially arrived classes over time. A common challenge encountered by existing works is how to learn unique text prompts, which implicitly carry semantic information of new classes, so that the semantic features of newly arrived classes do not overlap with those of trained classes, thereby mitigating the catastrophic forgetting problem. To address this challenge, we propose a novel approach Prototype-guided Text Prompt Selection (ProTPS)'' to intentionally increase the training flexibility thus encouraging the learning of unique text prompts. Specifically, our ProTPS learns class-specific vision prototypes and text prompts. Vision prototypes guide the selection and learning of text prompts for each class. We first evaluate our ProTPS in both class incremental (CI) setting and cross-datasets continual (CDC) learning setting. Because our ProTPS achieves performance close to the upper bounds, we further collect a real-world dataset with 112 marine species collected over a span of six years, named Marine112, to bring new challenges to the community. Marine112 is authentically suited for the class and domain incremental (CDI) learning setting and is under natural long-tail distribution. The results under three settings show that our ProTPS performs favorably against the recent state-of-the-art methods. The implementation code and Marine112 dataset will be released upon the acceptance of our paper.",
+      "authors": [
+        "Jie Mei",
+        "Li-Leng Peng",
+        "Keith Fuller",
+        "Jenq-Neng Hwang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-01T16:39:27+00:00",
+      "link": "https://arxiv.org/pdf/2604.01116v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "text-prompt-based methods for continual learning",
+      "llm_evidence_cn": "基于文本提示词的持续学习方法",
+      "llm_evidence": "基于文本提示词的持续学习方法",
+      "canonical_evidence": "基于文本提示词的持续学习方法",
+      "llm_tldr_en": "Proposes a prototype-guided prompt selection method to improve semantic feature encoding in continual learning.",
+      "llm_tldr_cn": "提出了一种原型引导的提示词选择方法，以改进持续学习中的语义特征编码。",
+      "llm_tldr": "提出了一种原型引导的提示词选择方法，以改进持续学习中的语义特征编码。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.03826v1",
+      "source": "arxiv",
+      "title": "Context Matters: Evaluating Context Strategies for Automated ADR Generation Using LLMs",
+      "abstract": "Architecture Decision Records (ADRs) play a critical role in preserving the rationale behind system design, yet their creation and maintenance are often neglected due to the associated authoring overhead. This paper investigates whether Large Language Models (LLMs) can mitigate this burden and, more importantly, how different strategies for presenting historical ADRs as context influence generation quality. We curate and validate a large corpus of sequential ADRs drawn from 750 open-source repositories and systematically evaluate five context selection strategies (no context, All-history, First-K, Last-K, and RAFG) across multiple model families. Our results show that context-aware prompting substantially improves ADR generation fidelity, with a small recency window (typically 3-5 prior records) providing the best balance between quality and efficiency. Retrieval-based context selection yields marginal gains primarily in non-sequential or cross-cutting decision scenarios, while offering no statistically significant advantage in typical linear ADR workflows. Overall, our findings demonstrate that context engineering, rather than model scale alone, is the dominant factor in effective ADR automation, and we outline practical defaults for tool builders along with targeted retrieval fallbacks for complex architectural settings.",
+      "authors": [
+        "Aviral Gupta",
+        "Rudra Dhar",
+        "Daniel Feitosa",
+        "Karthik Vaidhyanathan"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-04T18:41:18+00:00",
+      "link": "https://arxiv.org/pdf/2604.03826v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "evaluating context strategies for automated generation",
+      "llm_evidence_cn": "评估自动生成的上下文策略",
+      "llm_evidence": "评估自动生成的上下文策略",
+      "canonical_evidence": "评估自动生成的上下文策略",
+      "llm_tldr_en": "Investigates how different context selection strategies in prompting influence the quality of automated ADR generation.",
+      "llm_tldr_cn": "研究提示词中不同的上下文选择策略如何影响自动生成架构决策记录的质量。",
+      "llm_tldr": "研究提示词中不同的上下文选择策略如何影响自动生成架构决策记录的质量。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.00851v1",
+      "source": "arxiv",
+      "title": "Reliability of Large Language Models for Design Synthesis: An Empirical Study of Variance, Prompt Sensitivity, and Method Scaffolding",
+      "abstract": "Large Language Models (LLMs) are increasingly applied to automate software engineering tasks, including the generation of UML class diagrams from natural language descriptions. While prior work demonstrates that LLMs can produce syntactically valid diagrams, syntactic correctness alone does not guarantee meaningful design. This study investigates whether LLMs can move beyond diagram translation to perform design synthesis, and how reliably they maintain design-oriented reasoning under variation. We introduce a preference-based few-shot prompting approach that biases LLM outputs toward designs satisfying object-oriented principles and pattern-consistent structures. Two design-intent benchmarks, each with three domain-only, paraphrased prompts and 10 repeated runs, are used to evaluate three LLMs (ChatGPT 4o-mini, Claude 3.5 Sonnet, Gemini 2.5 Flash) across three modeling strategies: standard prompting, rule-injection prompting, and preference-based prompting, totaling 540 experiments (i.e. 2x3x10x3x3). Results indicate that while preference-based alignment improves adherence to design intent it does not eliminate non-determinism, and model-level behavior strongly influences design reliability. These findings highlight that achieving dependable LLM-assisted software design requires not only effective prompting but also careful consideration of model behavior and robustness.",
+      "authors": [
+        "Rabia Iftikhar",
+        "Andreas Rausch"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-01T13:05:09+00:00",
+      "link": "https://arxiv.org/pdf/2604.00851v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "empirical study of prompt sensitivity and reliability",
+      "llm_evidence_cn": "提示词敏感性与可靠性的实证研究",
+      "llm_evidence": "提示词敏感性与可靠性的实证研究",
+      "canonical_evidence": "提示词敏感性与可靠性的实证研究",
+      "llm_tldr_en": "Analyzes LLM reliability and prompt sensitivity in design synthesis, introducing a preference-based prompting approach.",
+      "llm_tldr_cn": "分析了设计合成中LLM的可靠性和提示词敏感性，并引入了基于偏好的提示方法。",
+      "llm_tldr": "分析了设计合成中LLM的可靠性和提示词敏感性，并引入了基于偏好的提示方法。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "evaluating and improving prompt robustness in LLMs",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.02761v1",
+      "source": "arxiv",
+      "title": "Sustainability Analysis of Prompt Strategies for SLM-based Automated Test Generation",
+      "abstract": "The growing adoption of prompt-based automation in software testing raises important issues regarding its computational and environmental sustainability. Existing sustainability studies in AI-driven testing primarily focus on large language models, leaving the impact of prompt engineering strategies largely unexplored - particularly in the context of Small Language Models (SLMs). This gap is critical, as prompt design directly influences inference behavior, execution cost, and resource utilization, even when model size is fixed. To the best of our knowledge, this paper presents the first systematic sustainability evaluation of prompt engineering strategies for automated test generation using SLMs. We analyze seven prompt strategies across three open-source SLMs under a controlled experimental setup. Our evaluation jointly considers execution time, token usage, energy consumption, carbon emissions, and coverage test quality, the latter assessed through coverage analysis of the generated test scripts. The results show that prompt strategies have a substantial and independent impact on sustainability outcomes, often outweighing the effect of model choice. Reasoning intensive strategies such as Chain of Thought and Self-Consistency achieve higher coverage but incur significantly higher execution time, energy consumption, and carbon emissions. In contrast, simpler strategies such as Zero-Shot and ReAct deliver competitive coverage test quality with markedly lower environmental cost, while Least-to-Most and Program of Thought offer balanced trade-offs.",
+      "authors": [
+        "Pragati Kumari",
+        "Novarun Deb"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-03T06:10:07+00:00",
+      "link": "https://arxiv.org/pdf/2604.02761v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "evaluation of prompt engineering strategies for automated test generation",
+      "llm_evidence_cn": "自动化测试生成中提示词工程策略的评估",
+      "llm_evidence": "自动化测试生成中提示词工程策略的评估",
+      "canonical_evidence": "自动化测试生成中提示词工程策略的评估",
+      "llm_tldr_en": "Analyzes the sustainability and efficiency of seven prompt strategies for small language models in software testing.",
+      "llm_tldr_cn": "分析了小语言模型在软件测试中七种提示词策略的可持续性和效率。",
+      "llm_tldr": "分析了小语言模型在软件测试中七种提示词策略的可持续性和效率。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.04838v1",
+      "source": "arxiv",
+      "title": "Less Detail, Better Answers: Degradation-Driven Prompting for VQA",
+      "abstract": "Recent advancements in Vision-Language Models (VLMs) have significantly pushed the boundaries of Visual Question Answering (VQA).However,high-resolution details can sometimes become noise that leads to hallucinations or reasoning errors. In this paper,we propose Degradation-Driven Prompting (DDP), a novel framework that improves VQA performance by strategically reducing image fidelity to force models to focus on essential structural information. We evaluate DDP across two distinct tasks. Physical attributes targets images prone to human misjudgment, where DDP employs a combination of 80p downsampling, structural visual aids (white background masks and orthometric lines), and In-Context Learning (ICL) to calibrate the model's focus. Perceptual phenomena addresses various machine-susceptible visual anomalies and illusions, including Visual Anomaly (VA), Color (CI), Motion(MI),Gestalt (GI), Geometric (GSI), and Visual Illusions (VI).For this task, DDP integrates a task-classification stage with specialized tools such as blur masks and contrast enhancement alongside downsampling. Our experimental results demonstrate that less is more: by intentionally degrading visual inputs and providing targeted structural prompts, DDP enables VLMs to bypass distracting textures and achieve superior reasoning accuracy on challenging visual benchmarks.",
+      "authors": [
+        "Haoxuan Han",
+        "Weijie Wang",
+        "Zeyu Zhang",
+        "Yefei He",
+        "Bohan Zhuang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-06T16:41:19+00:00",
+      "link": "https://arxiv.org/pdf/2604.04838v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "framework that improves performance by strategically reducing image fidelity",
+      "llm_evidence_cn": "通过策略性降低图像保真度来提高性能的框架",
+      "llm_evidence": "通过策略性降低图像保真度来提高性能的框架",
+      "canonical_evidence": "通过策略性降低图像保真度来提高性能的框架",
+      "llm_tldr_en": "Proposes Degradation-Driven Prompting to improve VQA by focusing on essential structural information.",
+      "llm_tldr_cn": "提出退化驱动提示法，通过关注核心结构信息来优化视觉问答性能。",
+      "llm_tldr": "提出退化驱动提示法，通过关注核心结构信息来优化视觉问答性能。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.03677v1",
+      "source": "arxiv",
+      "title": "Unlocking Prompt Infilling Capability for Diffusion Language Models",
+      "abstract": "Masked diffusion language models (dLMs) generate text through bidirectional denoising, yet this capability remains locked for infilling prompts. This limitation is an artifact of the current supervised finetuning (SFT) convention of applying response-only masking. To unlock this capability, we extend full-sequence masking during SFT, where both prompts and responses are masked jointly. Once unlocked, the model infills masked portions of a prompt template conditioned on few-shot examples. We show that such model-infilled prompts match or surpass manually designed templates, transfer effectively across models, and are complementary to existing prompt optimization methods. Our results suggest that training practices, not architectural limitations, are the primary bottleneck preventing masked diffusion language models from infilling effective prompts",
+      "authors": [
+        "Yoshinari Fujinuma",
+        "Keisuke Sakaguchi"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-04-04T10:26:36+00:00",
+      "link": "https://arxiv.org/pdf/2604.03677v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "model-infilled prompts match or surpass manually designed templates",
+      "llm_evidence_cn": "模型填充的提示词匹配或超过手动设计的模板",
+      "llm_evidence": "模型填充的提示词匹配或超过手动设计的模板",
+      "canonical_evidence": "模型填充的提示词匹配或超过手动设计的模板",
+      "llm_tldr_en": "Unlocks prompt infilling in diffusion LMs to automatically generate high-quality prompt templates.",
+      "llm_tldr_cn": "解锁扩散语言模型的提示词填充功能，以自动生成高质量的提示词模板。",
+      "llm_tldr": "解锁扩散语言模型的提示词填充功能，以自动生成高质量的提示词模板。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "state of the art methods for automatic prompt generation",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.02776v1",
+      "source": "arxiv",
+      "title": "Evaluating the Environmental Impact of using SLMs and Prompt Engineering for Code Generation",
+      "abstract": "The shift from cloud-hosted Large Language Models (LLMs) to locally deployed open-source Small Language Models (SLMs) has democratized AI-assisted coding; however, it has also decentralized the environmental footprint of AI. While prompting strategies - such as Chain-of-Thought and ReAct - serve as external mechanisms for optimizing code generation without modifying model parameters, their impact on energy consumption and carbon emissions remains largely invisible to developers. This paper presents the first systematic empirical study investigating how different prompt engineering strategies in SLM-based code generation impact code generation accuracy alongside sustainability factors. We evaluate six prominent prompting strategies across 11 open-source models (ranging from 1B to 34B parameters) using the HumanEval+ and MBPP+ benchmarks. By measuring Pass@1 accuracy alongside energy (kWh), carbon emissions (kgCO2eq), and inference latency, we reveal that sustainability often decouples from accuracy, allowing significant environmental optimizations without sacrificing performance. Our findings indicate that Chain-of-Thought, being a simpler prompting technique, can provide a near-optimal balance between reasoning capability and energy efficiency. Conversely, multi-sampling strategies often incur disproportionate costs for marginal gains. Finally, we identify grid carbon intensity as the dominant factor in deployment-time emissions, highlighting the need for practitioners to consider regional energy profiles. This work provides a quantitative foundation for \"green\" prompt engineering, enabling developers to align high-performance code generation with ecological responsibility.",
+      "authors": [
+        "Md Afif Al Mamun",
+        "Sayan Nath",
+        "Gias Uddin",
+        "Novarun Deb"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-03T06:37:51+00:00",
+      "link": "https://arxiv.org/pdf/2604.02776v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "evaluates prompt engineering strategies for accuracy and sustainability",
+      "llm_evidence_cn": "评估提示词工程策略的准确性和可持续性",
+      "llm_evidence": "评估提示词工程策略的准确性和可持续性",
+      "canonical_evidence": "评估提示词工程策略的准确性和可持续性",
+      "llm_tldr_en": "This study evaluates how different prompt engineering strategies impact code generation accuracy and energy use.",
+      "llm_tldr_cn": "本研究评估了不同的提示词工程策略如何影响代码生成的准确性和能源消耗。",
+      "llm_tldr": "本研究评估了不同的提示词工程策略如何影响代码生成的准确性和能源消耗。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

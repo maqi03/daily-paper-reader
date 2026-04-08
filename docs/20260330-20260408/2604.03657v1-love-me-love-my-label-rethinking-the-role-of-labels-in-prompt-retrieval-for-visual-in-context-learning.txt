@@ -1,0 +1,610 @@
+Title: Love Me, Love My Label: Rethinking the Role of Labels in Prompt Retrieval for Visual In-Context Learning
+
+URL Source: https://arxiv.org/pdf/2604.03657v1
+
+Published Time: Tue, 07 Apr 2026 00:29:18 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Love Me, Love My Label :Rethinking the Role of Labels in Prompt Retrieval for Visual In-Context Learning 
+
+## Tianci Luo 1*, Haohao Pan 3∗, Jinpeng Wang 2†, Niu Lian 2, Xinrui Chen 1,Bin Chen 2 , Shu-Tao Xia 1, Chun Yuan 1
+
+> 1
+
+Tsinghua Shenzhen International Graduate School, Tsinghua University 
+
+> 2
+
+Harbin Institute of Technology, Shenzhen 
+
+> 3
+
+School of Computer Science and Engineering, Northeastern University 
+
+ltc25@mails.tsinghua.edu.cn panhh@mails.neu.edu.cn wangjp26@gmail.com 
+
+## Abstract 
+
+Visual in-context learning (VICL) enables visual foun-dation models to handle multiple tasks by steering them with demonstrative prompts. The choice of such prompts largely influences VICL performance, standing out as a key challenge. Prior work has made substantial progress on prompt retrieval and reranking strategies, but mainly fo-cuses on prompt images while overlooking labels. We re-veal these approaches sometimes get visually similar but label-inconsistent prompts, which potentially degrade VICL performance. On the other hand, higher label consistency between query and prompts preferably indicates stronger VICL results. Motivated by these findings, we develop a framework named LaPR (Label-aware Prompt Retrieval), which highlights the role of labels in prompt selection. Our framework first designs an image–label joint representation for prompts to incorporate label cues explicitly. Besides, to handle unavailable query labels at test time, we introduce a mixture-of-expert mechanism to the dual encoders with query-adaptive routing. Each expert is expected to capture a specific label mode, while the router infers query-adaptive mixture weights and helps to learn label-aware representa-tion. We carefully design alternative optimization for experts and router, with a VICL performance-guided contrastive loss and a label-guided contrastive loss, respectively. Extensive experiments show promising and consistent improvement of 
+
+LaPR on in-context segmentation, detection, and coloriza-tion tasks. Moreover, LaPR generalizes well across feature extractors and cross-fold scenarios, suggesting the impor-tance of label utilization in prompt retrieval for VICL. Code is available at https://github.com/luotc-why/CVPR26-LaPR. 
+
+> *These authors contributed equally to this work.
+> †Corresponding author.
+
+Figure 1. We randomly sample  100  query-prompt training pairs constructed by SupPR [ 46 ]. We compute the label matching con-sistency and VICL performance to investigate their correlation. 
+
+## 1. Introduction 
+
+Large foundation models [ 1, 4, 30 ] are favoured in many user-centric applications for their strong in-context learn-ing (ICL) capacity, where different demonstrative prompts enable a model to handle various tasks. Following the emer-gence of a series of vision backbones [ 2, 3, 7, 36 , 38 ], Visual ICL (VICL) has also gained increasing attention from the computer vision community. A milestone is MAE-VQGAN [ 3], which typically formulates VICL as pixel inpainting. The input image is organized in a 2 × 2 grid: the top half contains the prompt image and its pixel-format label, the bottom-left cell holds the query image, and the lower-right cell is masked out. The model’s task is to reconstruct this masked region and yield the label prediction to the query. Existing studies [ 11 , 12 , 27 , 46 ] dive into effective fac-tors to improve ICL, where prompt selection plays a critical role. More recent works have focused on retrieving better prompts to enhance VICL performance. For instance, Zhang et al. [46] defined positive and negative prompt pairs based on their contribution to VICL inference performance and      
+
+> arXiv:2604.03657v1 [cs.CV] 4 Apr 2026 (a) Label-Agnostic Prompt Retrieval (b) Label-Aware Prompt Retrieval Figure 2. Prompt retrieval paradigms. (a) Label-agnostic pipelines rely on image similarity and may yield label-inconsistent prompts and disturb inference. (b) LaPR considers both image similarity and label consistency for prompt retrieval, retrieving more relevant prompts.
+
+introduced contrastive learning into retriever optimization, while Wu et al. [40] , Xu et al. [42] reformulated prompt selection as a reranking process and achieved notable im-provements through score-based prediction. However, at inference, only the query image is observable, and for in-put symmetry, the prompt side typically omits labels, which forfeits useful information. As shown in Figure 2(a), for a query whose subject is a cat, the system might retrieve a prompt image containing both a cat and a flower but anno-tated with the label “flower”, leading to erroneous in-context predictions. Interestingly, as illustrated in Figure 1, we ob-serve that among prompts with relevant images, the label consistency with the query is positively correlated to the VICL performance. It motivates us to make better use of label information in prompt retrieval for VICL. As shown in Figure 2(b), our goal is to enhance query-prompt label consistency in prompt retrieval, encouraging more accurate and reliable in-context predictions. To this end, we propose a new paradigm for prompt re-trieval called LaPR (Label-aware Prompt Retrieval). We design label-aware strategies for the prompt and query, re-spectively. For the prompt, we explicitly inject label infor-mation into the representation by fusing image and label features into joint representation. For the query, more chal-lengingly, to tackle the unavailable label at test time, we adopt mixture-of-expert designs for the dual encoders, aim-ing to perceive and adapt to the implicit ( i.e ., unknown) query label. Specifically, each expert in the prompt and the query encoder is designated to capture a distinct mode ( e.g .long tail, horn, sharp beak), and the query-dependent router infers soft mixture weights to entail the implicit query la-bel, obtaining adaptive query and prompt embeddings, as well as similarity scores adaptive to the implicit query la-bel. In particular, to decouple the roles of the experts and the router, we adopt alternating optimization with two suc-cessive updates per mini-batch. The expert step learns via a performance-guided contrastive objective to strengthen mode-specific encodings. The router step optimizes a label-guided objective to align query-adaptive modes and adds the load-balancing regularizer to avoid expert under-utilization. Extensive experiments substantiate the effectiveness of 
+
+LaPR framework. LaPR consistently achieves state-of-the-art performance across foreground segmentation, single-object detection, and colorization tasks. Furthermore, it exhibits robustness cross feature extractors generalization and remarkable transferability under cross-folder settings. These results underscore the pivotal role of label information in VICL prompt selection, and establish a new foundation for label-aware prompt retrieval in VICL. To Sum up, we make main contributions as follows: • We present the first label-aware prompt retrieval in VICL, explicitly addressing label inconsistency and offering new conceptual insights into prompt selection. • We inject prompt labels to create label-aware embeddings, and depict different modes with multiple experts on both sides. The query-specific router assigns mixture weights to experts, helping to yield an estimated query label and guide the extraction of query-relevant prompt information. • We decouple the roles of the experts and the router. The ex-perts are trained to strength mode-specific representations, while the router is trained to infer mixture proportions over modes that align with the ground truth query label. • LaPR attains state-of-the-art results on foreground seg-mentation, single-object detection, and colorization tasks, and shows robust cross-backbone generalization and trans-ferability under cross-folder scenario. 
+
+## 2. Related Works 
+
+2.1. In-Context Learning 
+
+In-context learning (ICL) empowers large language models to learn task patterns and acquire task completion abilities by providing a few examples within the input prompt. This approach has seen extensive development [ 1, 4] and appli-cation [ 16 , 47 ] in natural language processing (NLP) and multi-modal fields. Furthermore, the theoretical foundations of ICL have been rigorously validated [ 31 ]. Building upon its broad applicability and theoretical grounding, ICL has un-dergone significant advancements, particularly in improving example retrieval methods [8, 11, 20, 23, 41, 43]. The emergence of a series of vision backbones [ 2, 7,19 , 38 ] has further advanced the application of ICL in the visual domain, termed Visual In-Context Learning (VICL). MAE-VQGAN [ 3] and Painter [ 37 ] have demonstrated VICL across various tasks such as colorization and segmentation. Oorloff et al. [ 17 ] propose an in-place attention mechanism for ICL paradigm, achieving notable results. Building on these research, several improvements have been proposed. For example, InMeMo [ 45 ] improved VICL performance by introducing border noise, while Condenser [ 32 ] and PromptHub [ 13 ] explored multi-prompts fusion to facilitate input tokens limitation. Prompt-SelF [ 28 ] demonstrates that the arrangement of prompts affects VICL behavior and incor-porates a voting-based strategy to improve robustness. In the realm of prompt retrieval, SupPR [ 46 ] leverages contrastive learning to enhance the retriever, whereas Partial2Global [42 ] reformulates the retrieval process from a reranking per-spective. RH-Partial2Global [ 39 ] constructs stable candi-date sets based on a jackknife conformal prediction strategy, while employing a covering design–based sampling scheme to achieve comprehensive and uniform retrieval. Moreover, Wang et al. [34] investigated the role of label in information aggregation and prediction referencing within ICL. Although existing VICL retrievers focus on image part similarity, the prompt label information has been largely ignored. In this work, we make the first attempt to explicitly exploit prompt labels for a more effective retrieval. 
+
+2.2. Mixture of Experts 
+
+The underlying principle of Mixture of Experts (MoE) [ 14 , 26 ] is to employ a collection of expert networks, each specializing in handling specific tasks or subsets of the in-put space. MoE has been widely applied across various fields [ 5, 15 , 22 , 44 ]. For instance, in the area of informa-tion retrieval, SA-MoE [ 33 ] leverages the MoE mechanism to enhance semantic feature representation in unsupervised cross-domain image retrieval, while DESIRE-ME [ 10 ] em-ploys MoE to improve retrieval performance in cross-domain open-domain question answering. Moreover, ICL works as MOICL [ 9 ] and MoD [ 35 ] enhance performance by using MoE for expert-based prompt retrieval. In this work, we encode mode-specific embeddings via specialized experts, with a query-adaptive router determines the mixture weights across modes to help realize label-aware embeddings. 
+
+## 3. Methods 
+
+3.1. Problem Formulation and Overview of LaPR 
+
+Let B = {(Ipi , L pi )}Ni=1 be a database of candidate prompt, where Ipi is a prompt image and Lpi is its label (e.g., depth map, segmentation mask, or colorized images). At inference, a query image xq arrives with an unobserved label yq .VICL demonstrative prompt selection seeks the single best prompt  c⋆q ∈ B  for the query  xq . A formal objective is 
+
+c⋆q ∈ arg max   
+
+> (Ipi,L pi)∈B
+
+Stask 
+
+ Ψ xq , (Ipi , L pi ), y q
+
+. (1) Here  Ψ( xq ; ( Ipi , L pi ))  denotes the prediction,  Stask  is the task-specific metric,  c⋆q is the selected best prompt from  B.In practice we instantiate the selector by either prompt re-trieval or prompt rerank within one formulation. For prompt retrieval we encode prompts  zIi = f (Ipi ) ∈ Rd and the query 
+
+uq = f (xq ) ∈ Rd, compute similarity score  sret (q, i ) = 
+
+σ(uq , z Ii ), and select  i⋆ = arg max i∈[N ] sret (q, i ) with 
+
+c⋆q = ( Ipi⋆ , L pi⋆ ). For prompt rerank we are given a can-didate pool  ˜Cq = {(Ipim , L pim )}Mm=1 ⊂ B  and evaluate a query-conditioned listwise scorer to obtain score vector 
+
+sre (q, ˜Cq ) = g xq , {Ipim }Mm=1 
+
+ ∈ RM , then choose  m⋆ =arg max m∈[M ][sre (q, ˜Cq )] m and set  c⋆q = (Ipim⋆ , L pim⋆ ),where  f : X → Rd is an image encoder,  σ : Rd × Rd → R
+
+is a similarity function, and  g maps a query and an image list to a score vector in  RM .However, the prompt label part Lpi that naturally ac-companies each prompt is often discarded during selec-tion, which may lead to label inconsistency and degraded VICL performance. To exploit label cues, we propose LaPR ,which builds joint embeddings for prompts and introduces a mixture-of-expert mechanism to capture distinct mode-specific embeddings for both sides with a query-adaptive router. The router infers mixture weights, which are then used to aggregate the query-relevant prompt embeddings and form label-aware query embeddings by combining modes to estimate the query label. Then we compute the label-aware retrieval score. (see Figure 3). 
+
+3.2. Label-Aware Representation 
+
+We first encode the images with the feature extractor f ,obtaining the embeddings. Concretely, for each prompt pair 
+
+(Ipi , L pi ) we compute  zIi = f (Ipi ) ∈ Rd and  zLi = f (Lpi ) ∈
+
+Rd, and for the query we set  uq = f (xq ) ∈ Rd.
+
+Label-Aware Query Embeddings. 
+
+Drawing on the Mixture-of-Experts (MoE) paradigm, we use the features encoded by different expert Ek to represent the query xq under various distinct modes. 
+
+qk = Ek (uq ) , k = 1 , . . . , K.  (2) EK E2 E1 E2 EK ... R ... E1 
+
+(b1) Expert Step  
+
+> Positive Prompt
+> Query
+> Negative Prompt
+> Irrelevant Prompt
+> Selected by Performance
+> ×
+> ×
+> +×
+> ×
+> ×
+> +×
+> Expert2 ExpertK
+> Mixture of Experts
+> ... Expert1
+> Routing Weights
+> (Query1)
+> Routing Weights
+> (Query2)
+> Routing Weights
+> (QueryN)
+
++ + +... 
+
+> Normalization
+> Uniform
+> Distribution
+> Router
+> K
+> Query Image
+
+(a) Model Architecture    
+
+> Select which mode
+> to use based on
+> the query
+> EK E2 E1 ... RE2 ... E1 EK
+> Prompt Label Prompt Image
+
+ViT ViT  
+
+> ... ...
+> ...
+> ...
+> ...
+
+ViT  
+
+> Expert2 ExpertK
+> Mixture of Experts
+> ... Expert1
+> ...
+
+(b2) Router Step 
+
+> Positive Prompt
+> Query
+> Negative Prompt
+> Irrelevant Prompt
+> Selected by Label
+
+(b) Training Iteration Figure 3. Overview of LaPR . ( a) LaPR architecture. Prompt labels are injected to form joint embeddings. On both sides, experts produce mode specific features and a query conditioned router picks the matching mode and extracts its information, resulting in label-aware query embeddings and query-relevant prompt embeddings. ( b) Training framework. Each mini-batch alternates an expert step (performance-guided contrastive learning, router fixed) and a router step (label-guided contrastive learning with load balancing, experts frozen). 
+
+where  Ek : Rd → Rd′
+
+is the  k-th expert projection, and 
+
+qk ∈ Rd′
+
+is the mode-specific representation by expert  Ek.We employ a router  R to produce a probability distribu-tion over the  K modes for the current query  πq = R(uq ).
+
+πq ∈ ∆K ≡ π ∈ RK
+
+> ≥0
+
+PKk=1 πk = 1 . (3) Finally, we follow the mixture weights πq produced by the router R to extract the information most relevant to the selected modes, yielding the query-side label-aware embed-ding ˜uq = PKk=1 πq,k .
+
+Label-Aware Prompt Embeddings. 
+
+Then, we straightforward use the prompt label Lpi as an auxiliary cue and fuse it with the prompt image Ipi to obtain a joint image–label embedding zi = ( zIi + zLi ).We instantiate a set of experts ¯E on prompt side, sym-metric to query side with independent parameters, to depict corresponding mode-specific embeddings for each prompt. 
+
+pi,k = ¯Ek (zi) , k = 1 , . . . , K.  (4) 
+
+Notably, our method adopts retrieval-based prompt se-lection. The mode-specific embeddings of database prompts 
+
+pi,k can be preprocessed and cached. 
+
+Extracting Query-Relevant Prompt Embeddings. 
+
+We use the query-adaptive router’s output  πq as target weights and combine the mode-wise prompt representations 
+
+pi,k to extract the portion of query-relevant information ˜pi|q .
+
+˜pi|q =
+
+> K
+
+X
+
+> k=1
+
+πq,k pi,k , (5) 
+
+Calculating Similarity and Select Best Prompt. 
+
+We finally match query-relevant prompt embeddings ˜pi|q
+
+with label-aware query embedding ˜uq using cosine similarity 
+
+σ(˜ uq , ˜pi|q ) = ⟨˜uq , ˜pi|q ⟩/(∥˜uq ∥2 ∥˜pi|q ∥2). And we select 
+
+i⋆ = arg max i∈[N ] σ(˜ uq , ˜pi|q ) and then set c⋆q = ( Ipi⋆ , L pi⋆ )
+
+as the best prompt for VICL inference. 
+
+3.3. Optimization Process of LaPR 
+
+During optimization, we freeze the Vision Transformer fea-ture extractor  f throughout and train only the experts E, ¯E
+
+and the router  R. Considering the two components play dif-ferent roles, we adopt a decoupled two-step scheme in which each mini-batch undergoes two successive updates. In the first step, the experts E, ¯E are optimized with a VICL perfor-mance objective while the mixture proportions  πq = R(uq )
+
+are kept fixed, strengthening representations under different modes. In the second step, the experts are frozen and only the router  R is updated using a prompt–query label-matching signal improving the alignment of the inferred mode mixture with the ground-truth query label. Additionally, we intro-duce an MoE-specific load-balancing loss encourages every expert to promotes even expert usage across queries. 
+
+Optimizing Mode-Specific Experts. 
+
+Retrieval-based prompt selection is typically optimized with a contrastive objective, and the query serves as the an-chor. We first obtain label-agnostic features with the frozen encoder  f , namely  uq = f (xq ) and  zIi = f (Ipi ), then com-pute the similarity  sret (q, i ) = σ(uq , z Ii ) and keep the near-est neighbors to form a candidate pool: 
+
+˜Cq = Top50 i∈[N ] sret (q, i ). (6) We pair each candidate  (Ipi , L pi ) ∈ ˜Cq with the query  xq and run the MAE-VQGAN [ 3 ] to obtain task scores  Hvp (q, i ) = 
+
+Stask 
+
+ Ψ( xq ; ( Ipi , L pi )) , y q
+
+. We select the best and worst  5
+
+prompts as positives and negatives within  ˜Cq :
+
+Pvq = Top +5 { H vp (q, i ) : i ∈ ˜Cq }, (7) 
+
+N vq = Top − 
+
+> 5
+
+{ H vp (q, i ) : i ∈ ˜Cq }. (8) We encode a mini-batch of queries together with their random selected positive and negative prompts i+ 
+
+> q
+
+∈Pvq , i − 
+
+> q
+
+∈ N vq into the label-aware query embeddings  ˜uq =
+
+PKk=1 πq,k qk and the query-relevant prompt embeddings 
+
+˜pi|q = PKk=1 πq,k pi,k  as illustrated in Section 3.2. We use the cosine similarity  sCL (q, i ) = σ(˜ uq , ˜pi|q ) as similarity metric in contrastive objective. Let the current mini-batch of queries be  Qmb . For each 
+
+q ∈ Q mb  define the denominator index set 
+
+Dvq = [
+
+> q′∈Q mb
+
+{i+ 
+
+> q′
+
+, i − 
+
+> q′
+
+}. (9) The contrastive loss is computed as 
+
+LPG = − 1
+
+|Q mb |
+
+X
+
+> q∈Q mb
+
+log exp  sCL (q, i + 
+
+> q
+
+)P 
+
+> j∈D vq
+
+exp  sCL (q, j ) .
+
+(10) We finally optimize the mode-specific experts E, ¯E with the performance-guided contrastive loss LPG .
+
+Optimizing Expert Routing. 
+
+Given a query  xq , the router R outputs a probability vec-tor  πq = R(uq ) ∈ ∆K that we regard as mixture weights over specific modes to estimate the unknown query label. To supervise this estimate, prompts with higher label compati-bility are treated as positives. By pulling the query relevant embeddings of positives closer to the query, training cali-brates  πq = R(uq ) ∈ ∆K toward label consistent modes. We use the shortlist  ˜Cq and the prompt–query label match-ing score  Stask (Lpi , y q ) as the supervision signal. Positives and negatives are selected by  Stask (Lpi , y q )
+
+Plq = Top +5 { S task (Lpi , y q ) : i ∈ ˜Cq }, (11) 
+
+N lq = Top − 
+
+> 5
+
+{ S task (Lpi , y q ) : i ∈ ˜Cq }. (12) Subsequently we follow the same sampling protocol. For the current query  xq , we sample one positive  i+ 
+
+> q
+
+∈ P lq and one negative  i− 
+
+> q
+
+∈ N lq . Then we transform them into their corresponding label-aware embeddings. We define the batch-wise denominator index set 
+
+Dlq = [
+
+> q′∈Q mb
+
+{e+ 
+
+> q′
+
+, e − 
+
+> q′
+
+}. (13) The label-guided contrastive loss is computed as 
+
+LLG = − 1
+
+|Q mb |
+
+X
+
+> q∈Q mb
+
+log exp  sCL (q, e + 
+
+> q
+
+)P
+
+> j∈D lq
+
+exp  sCL (q, j ) .
+
+(14) We also add a load-balancing objective for the router  R
+
+to discourage expert under-utilization and encourage every mode to be selected. For a mini-batch  Qmb  of size  B, we aggregate mixture weights into a batch distribution  ¯π with components  ¯πk = 1
+
+> B
+
+P 
+
+> q∈Q mb
+
+πq,k  and use the uniform target  rk = 1 /K . The objective is expressed as 
+
+LLB = KL  ¯π ∥ r =
+
+> K
+
+X
+
+> k=1
+
+¯πk log 
+
+ ¯πk
+
+1/K 
+
+
+
+. (15) Finally, the router’s learning objective can be shown as 
+
+LR = LLG + LLB . (16) 
+
+## 4. Experiments 
+
+4.1. Downstream Tasks and Datasets 
+
+To enable a fair and comprehensive comparison with current state-of-the-art methods [ 28 , 39 , 42 , 46 , 48 ], we consider three widely adopted sub-tasks in visual in-context learning (VICL), each reflecting a fundamental visual ability: (i) fore-ground segmentation , which measures fine-grained image understanding; (ii) single-object detection , which evaluates spatial localization capability; and (iii) image colorization ,which assesses generative reconstruction. Corresponding benchmark datasets are used for each task. 
+
+Foreground Segmentation . We adopt the Pascal-5 i [ 25 ]dataset, which contains 20 categories in total. Each sample is a paired image and its corresponding segmentation mask. The dataset is partitioned into four folds, each consisting of five categories. The number of samples per fold ranges from 346 to 725. For training, we use 2286, 3425, 5583, and 2086 image–mask pairs for the four folds, respectively. Object Detection . We adopt the Pascal VOC 2012 dataset [ 6], which contains 20 object categories. Following standard practice, we use 612 image–annotation pairs for training. Each pair consists of an image and its corresponding bounding-box annotation for the target object. Colorization . For the col-orization task, we randomly sample 50k images from the 1.2M training set of ImageNet-1K ILSVRC2012 [ 24 ] to form the training split, and use the original validation set as the test split. Each pair consists of a grayscale input image and its corresponding colorized image. 
+
+4.2. Implementation Details 
+
+Model Architecture. The vision encoder from CLIP [ 21 ] is employed to extract visual representations, and the parame-ters of the CLIP encoder are kept frozen throughout training. The mode-specific experts are implemented as lightweight MLP-based [ 29 ] networks. The MAE-VQGAN [ 3 ] model is adopted as the VICL backbone, and we use the checkpoint-3400 version in all experiments. Number of mode-specific experts K is 10 in standard settings. 
+
+Training Details. The trainable parameters are updated using the SGD optimizer with a learning rate of 0.005 and a batch size of 64. All the tasks are trained under settings for 200 epochs on a single NVIDIA A100 GPU (40GB). Optimization alternates between expert and router steps, and each mini-batch performs two successive updates. 
+
+Metrics. For the segmentation and detection tasks, per-formance is evaluated using mean Intersection over Union (mIoU). For the image colorization task, Mean Squared Error (MSE) is adopted as the evaluation metric. 
+
+4.3. Comparison with State-of-the-arts 
+
+4.3.1 Baselines 
+
+We conduct a comprehensive comparison of diverse and competitive representative methods for prompt selection in VICL, including Random [ 3], UnsupPR [ 46 ], SupPR [ 46 ], Prompt - SelF [ 28 ], Partial2Global [ 42 ], Zhu et al. [48] and RH -Partial2Global [ 39 ], together with their corresponding voting variants described in Section 2.1. 
+
+4.3.2 Quantitative Results under Standard Protocols 
+
+The quantitative results of the main experiments are pre-sented in Table 1. We design two experimental settings, depending on whether the voting strategy is applied. With-out voting setting, our LaPR achieves the best performance across all three downstream tasks among retrieval-based methods. Even against the strongest prompt selection base-line, the rerank-based RH-Partial2Global, retrieval-based 
+
+LaPR delivers gains of 6.00% , 3.46% on segmentation and detection respectively. Under the voting configuration, 
+
+LaPR attains segmentation performance that is essentially on par with the rerank-based RH-Partial2Global, while still improving detection by 4.09% . Experimental results demon-strate that label information is a crucial auxiliary signal for prompt selection, leading to marked improvements. 
+
+4.3.3 Cross-Fold Transferability 
+
+Transferability across folds is a key criterion for prompt selection in VICL. We train LaPR , retrieval-based SupPR [ 46 ], and rerank-based Partial2Global [ 42 ] on each fold of the segmentation benchmark. The trained retriever is then applied to the remaining folds to score candidates or to produce embeddings for nearest-neighbor selection. Results in Table 2 show that LaPR attains the strongest cross-fold transfer, surpassing SupPR by 14 .8% and Partial2Global by 13 .9% . We attribute the substantial gains to distinct experts capturing modes that are finer grained than category information , and the router adaptively selects, for each query, the most critical components to extract. 
+
+4.4. Ablation Analyses 
+
+To comprehensively assess the contribution of each compo-nent, we construct a suite of ablated variants and assign a unique ID for clear reference. The results are summarized in Table 3, where Variant (0) denotes our default configuration. 
+
+4.4.1 Effectiveness of Label-Aware Embeddings 
+
+We separately assess the query side and the prompt side. 
+
+Variant (1) disables the router by replacing the mixture with a uniform distribution, which averages expert outputs irre-spective of the query. Variant (2) removes explicit prompt labels when forming joint encodings by replacing with the image-only representation. Results in Table 3 show clear drops on both segmentation and detection. These findings indicate that explicit label injection on the prompt side and query conditioning via an estimated implicit label are both necessary, working together to align label-aware prompt embeddings with the query and achieve label consistency. 
+
+4.4.2 Cross Different Feature Extractor 
+
+To assess generality across feature extractors, we introduce 
+
+Variant (3) , which replaces the encoder with DINOv2 [ 18 ]and reevaluates LaPR under the same protocol. Comparable experiments have been reported for SupPR [ 46 ] and Par-tial2Global [ 42 ]. LaPR remains the top performer across tasks and feature extractors, which confirms its effective-ness independent of the encoder. The results further show that DINOv2 features do not necessarily yield stronger re-trieval than CLIP features. We attribute this to a gap between generic visual representations used for retrieval and the sig-nals that best helps VICL prediction. Bridging this gap is a promising direction for VICL retrieval. 
+
+4.4.3 Effectiveness of Alternating Optimization 
+
+Instead of the decoupled two step scheme, we design Variant (4) that adopts joint training and updates the experts and the Table 1. Comparison of LaPR with existing methods across three VICL tasks, including foreground segmentation, single-object detection, and colorization. The best performance values are boldfaced , and the second-best ones are italicized for clarity. 
+
+Seg. (mIoU) ↑
+
+Prompt Selection Method Ref. Fold-0 Fold-1 Fold-2 Fold-3 AVG Det. (mIoU) ↑ Col. (MSE) ↓
+
+Random [3] NIPS 2022 28.66 30.21 27.81 23.55 27.56 25.45 0.67 UnsupPR [46] NIPS 2023 34.75 35.92 32.41 31.16 33.56 26.84 0.63 SupPR [46] NIPS 2023 37.08 38.43 34.40 32.32 35.56 28.22 0.63 Zhu et al. [48] AAAI 2025 36.86 42.22 37.11 30.84 36.76 28.25 0.62 Partial2Global [42] NIPS 2024 38.81 41.54 37.25 36.01 38.40 30.66 0.58 
+
+RH-Partial2Global [39] NIPS 2025 39.25 42.15 38.06 36.60 39.02 30.94 0.56 
+
+LaPR (Ours) CVPR 2026 41.92 46.27 39.63 37.63 41.36 32.01 0.60 UnsupPR w/ voting [46] NIPS 2023 41.07 41.32 38.14 36.44 39.24 — —Prompt-SelF [28] TIP 2025 42.48 43.34 39.76 38.50 41.02 29.83 —Partial2Global w/ voting [42] NIPS 2024 43.23 45.50 41.79 40.22 42.69 32.52 —RH-Partial2Global w/ voting [39] NIPS 2025 43.53 45.88 41.99 40.90 43.08 33.28 —
+
+LaPR w/ voting (Ours) CVPR 2026 42.81 47.44 40.52 38.30 42.27 34.64 —Prompt Label:                       
+
+> Person
+> IoU :40.84
+> Prompt Label:
+> Person
+> IoU :47 .03
+> Prompt Label:
+> Person
+> IoU : 0.00
+> Prompt Label:
+> Person
+> IoU :41. 47
+> Prompt Label:
+> Car
+> IoU :2.52
+> Prompt Label:
+> TVmonitor
+> IoU :0.00
+> Prompt Label:
+> Chair
+> IoU : 0.63
+> Prompt Label:
+> Pottedplant
+> IoU :13.63
+> SupPR
+> Prompt Label:
+> Dog
+> IoU :70.84
+> Prompt Label:
+> Dog
+> IoU :86.41
+> Prompt Label:
+> Diningtable
+> IoU :39.00
+> Prompt Label:
+> Diningtable
+> IoU :84.64
+> Prompt Label:
+> Bus
+> IoU :66.69
+> Prompt Label:
+> Sofa
+> IoU :42.27
+> Prompt Label:
+> Cat
+> IoU :41.72
+> Prompt Label:
+> TVmonitor
+> IoU :44.95
+> Ours
+> Query Label:
+> Dog
+> Query Label:
+> Dog
+> Query Label:
+> Diningtable
+> Query Label:
+> Diningtable
+> Query Label:
+> Bus
+> Query Label:
+> Sofa
+> Query Label:
+> Cat
+> Query Label:
+> TVmonitor
+> Grou nd
+> Truth
+
+Figure 4. Qualitative visualization comparing LaPR (label-aware prompt retrieval) with SupPR (label-agnostic prompt retrieval). LaPR 
+
+consistently retrieves label compatible prompts and yields visibly more accurate VICL predictions. Table 2. Transferability across folds for LaPR , SupPR, and Par-tial2Global on the segmentation benchmark. Each method is trained on one fold and evaluated on the remaining folds. 
+
+Target Method Source Fold-0 Fold-1 Fold-2 Fold-3 AVG 
+
+SupPR Fold-0 — 35.46 32.44 30.95 32.95 Fold-1 34.92 — 32.96 31.03 32.97 Fold-2 34.71 36.48 — 30.08 33.76 Fold-3 34.01 35.83 32.15 — 34.00 Partial2Global Fold-0 — 36.38 32.63 30.90 33.30 Fold-1 35.74 — 32.94 31.32 33.33 Fold-2 34.16 36.16 — 30.44 33.59 Fold-3 34.28 35.93 32.98 — 34.40 Fold-0 — 43.82 37.25 34.35 38.47 
+
+Fold-1 39.27 — 37.06 33.33 36.55 
+
+Fold-2 39.78 43.09 — 32.66 38.51 
+
+LaPR (Ours) 
+
+Fold-3 39.39 43.42 36.82 — 39.87 
+
+router simultaneously under a unified objective  LJ = LPG +
+
+LLG + LLB . Under identical settings, joint training yields lower accuracy on both segmentation and detection, and the loss shows larger fluctuations with slower convergence. These observations indicate that alternating optimization is more stable and effective , with experts updated by the performance-guided objective  LPG  and the router updated by the label-guided objective  LLG + LLB .
+
+4.4.4 Effectiveness of Learning Objectives 
+
+We ablate each learning objective in isolation. Variant (5) 
+
+replaces the expert step’s performance-guided objective  LPG 
+
+with the label-guided objective  LLG . Variant (6) replaces the router step’s label-guided objective  LLG  with the perfor-mance guided objective  LPG . Variant (7) removes the load balancing objective  LLB . Results show a large degradation when  LPG  is removed. The accuracy falls to just above the unsupervised UnsupPR [ 46 ] baseline and remains below SupPR [ 46 ]. This indicates  LPG  provides the primary su-pervision for learning an effective retriever. Removing  LLG 
+
+also yields a consistent drop, which confirms label guidance Table 3. Ablation study on segmentation and detection across different configurations.                                                                                                                     
+
+> Seg. (mIoU ↑)Type ID Method Fold-0 Fold-1 Fold-2 Fold-3 AVG Det. (mIoU ↑)Full Model (0) LaPR (Ours) 41.92 46.27 39.63 37.63 41.36 32.01 (1) w/o Router 38.27 43.31 36.23 34.99 38.20 29.69 Architectural Components (2) w/o Prompt Label 39.14 44.24 37.82 35.56 39.19 30.94 Feature Extractor Substitution (3) CLIP →DINOv2 41.51 46.08 39.93 38.05 41.39 32.06 Optimization Strategy (4) Single-Stage Training 40.16 44.70 38.34 36.22 39.86 31.21 (5) w/o LPG 36.15 37.47 33.91 32.68 35.05 27.30 (6) w/o LLG 40.26 44.53 38.10 35.77 39.67 30.14 Loss Function Ablation (7) w/o LLB 40.49 44.95 38.74 37.25 40.36 31.43 diningtable
+> dog
+> horse
+> motorbike
+> person
+> Expert 0
+> Expert 1
+> Expert 2
+> Expert 3
+> Expert 4
+> Expert 5
+> Expert 6
+> Expert 7
+> Expert 8
+> Expert 9
+> 0.05 0.07 0.08 0.05 0.09
+> 0.04 0.30 0.27 0.12 0.08
+> 0.07 0.10 0.18 0.37 0.06
+> 0.01 0.05 0.15 0.09 0.07
+> 0.01 0.04 0.04 0.12 0.09
+> 0.09 0.03 0.03 0.06 0.09
+> 0.04 0.10 0.08 0.12 0.09
+> 0.09 0.05 0.04 0.02 0.06
+> 0.03 0.10 0.04 0.02 0.11
+> 0.57 0.15 0.08 0.03 0.25
+> Proportion of Activated Experts per Class
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+
+Figure 5. Proportion of each mode-specific expert selected under each category, visualized as a heatmap. 
+
+is an important auxiliary signal for selecting soft implicit query label . Eliminating  LLB  leads to a lesser reduction, which we attribute to expert insufficient utilization among modes. These objectives are complementary and together deliver best performance of LaPR .
+
+4.5. More Analyses 
+
+4.5.1 Exploring the Role of Labels in Prompt Retrieval 
+
+As illustrated in Figure 4, we present several toy cases that ex-pose a typical failure of label-agnostic retrieval. SupPR often retrieves prompts whose images resemble the query while the labels disagree, sometimes even tagging categories absent from the query , which degrades VICL inference. LaPR in-corporates labels during retrieval and enforces image–label consistency , yielding prompts that align with the query and produce stronger predictions. This underscores the impor-tance of integrating labels into the retrieval pipeline. 
+
+4.5.2 Mode-Specific Experts Activation Proportions 
+
+To examine whether different experts have learned distinct modes and to verify that the router effectively selects label-aware information, we use the Pascal-5i [ 25 ] dataset with the “fold 2” split. On its validation set we measure, for five categories, the proportion with which each mode is activated, as shown in Figure 5. The activation ratios vary substantially across categories, and the modes emphasized by different categories are not the same, which aligns with our design goal. In addition, the classes “dog” and “horse” exhibit similar activation modes, indicating semantic affinity and suggesting that the learned modes capture structure that is finer grained than the category information. 
+
+## 5. Conclusions 
+
+In this paper, we presented LaPR , a label-aware prompt 
+
+retrieval framework for VICL that treats labels as an im-portant auxiliary signals. LaPR injects prompt labels to form joint representations. It employs a mixture of experts to model mode specific embeddings on both the query and prompt sides, and a query conditioned router sets the mixture weights to obtain label-aware embeddings that promote label consistency. Since the experts and the router play different roles, we optimize them with alternating training. Exten-sive experiments on foreground segmentation, single object detection, and colorization show consistent gains. LaPR 
+
+achieves generalizes across feature extractors, and transfers reliably under cross-fold. These results indicate that bringing labels into the prompt selection is an effective principle for VICL, which we hope can inspire further research. 
+
+Acknowledgments. We sincerely thank the anonymous reviewers and chairs for their efforts and constructive suggestions, which have greatly helped us improve the manuscript. This work is supported in part by the National Natural Science Foundation of China un-der grants 624B2088, 62576122, 62571298, 62301189. References 
+
+[1] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Mensch, Katherine Millican, Malcolm Reynolds, et al. Flamingo: a visual language model for few-shot learning. Advances in neural information processing systems , 35:23716–23736, 2022. 1, 2 [2] Yutong Bai, Xinyang Geng, Karttikeya Mangalam, Amir Bar, Alan L Yuille, Trevor Darrell, Jitendra Malik, and Alexei A Efros. Sequential modeling enables scalable learning for large vision models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 22861– 22872, 2024. 1, 3 [3] Amir Bar, Yossi Gandelsman, Trevor Darrell, Amir Glober-son, and Alexei Efros. Visual prompting via image inpaint-ing. Advances in Neural Information Processing Systems , 35: 25005–25017, 2022. 1, 3, 5, 6, 7 [4] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Sub-biah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are few-shot learners. Advances in neural information processing systems , 33:1877–1901, 2020. 1, 2 [5] Tianlong Chen, Xuxi Chen, Xianzhi Du, Abdullah Rashwan, Fan Yang, Huizhong Chen, Zhangyang Wang, and Yeqing Li. Adamv-moe: Adaptive multi-task vision mixture-of-experts. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , pages 17346–17357, 2023. 3 [6] Mark Everingham, SM Ali Eslami, Luc Van Gool, Christo-pher KI Williams, John Winn, and Andrew Zisserman. The pascal visual object classes challenge: A retrospective. In-ternational journal of computer vision , 111:98–136, 2015. 5[7] Zhongbin Fang, Xiangtai Li, Xia Li, Joachim M Buhmann, Chen Change Loy, and Mengyuan Liu. Explore in-context learning for 3d point cloud understanding. Advances in Neural Information Processing Systems , 36, 2024. 1, 3 [8] Qi Guo, Leiyu Wang, Yidong Wang, Wei Ye, and Shikun Zhang. What makes a good order of examples in in-context learning. In Findings of the Association for Computational Linguistics: ACL 2024 , pages 14892–14904, Bangkok, Thai-land, 2024. Association for Computational Linguistics. 3 [9] Giwon Hong, Emile van Krieken, Edoardo Ponti, Nikolay Malkin, and Pasquale Minervini. Mixtures of in-context learners, 2024. 3 [10] Pranav Kasela, Gabriella Pasi, Raffaele Perego, and Nicola Tonellotto. Desire-me: Domain-enhanced supervised infor-mation retrieval using mixture-of-experts. In Advances in Information Retrieval , pages 111–125, Cham, 2024. Springer Nature Switzerland. 3 [11] Jiachang Liu, Dinghan Shen, Yizhe Zhang, Bill Dolan, Lawrence Carin, and Weizhu Chen. What makes good in-context examples for gpt-3? arXiv preprint arXiv:2101.06804 , 2021. 1, 3 [12] Yao Lu, Max Bartolo, Alastair Moore, Sebastian Riedel, and Pontus Stenetorp. Fantastically ordered prompts and where to find them: Overcoming few-shot prompt order sensitivity. In 
+
+Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 8086–8098, Dublin, Ireland, 2022. Association for Computa-tional Linguistics. 1 [13] Tianci Luo, Jinpeng Wang, Shiyu Qin, Niu Lian, Yan Feng, Bin Chen, Chun Yuan, and Shu-Tao Xia. Prompthub: En-hancing multi-prompt visual in-context learning with locality-aware fusion, concentration and alignment. In The Fourteenth International Conference on Learning Representations , 2026. 3[14] Saeed Masoudnia and Reza Ebrahimpour. Mixture of experts: a literature survey. Artificial Intelligence Review , 42(2):275– 293, 2014. 3 [15] Hanzi Mei, Dongqi Cai, Ao Zhou, Shangguang Wang, and Mengwei Xu. Fedmoe: Personalized federated learning via heterogeneous mixture of experts, 2024. 3 [16] Sewon Min, Mike Lewis, Luke Zettlemoyer, and Hannaneh Hajishirzi. Metaicl: Learning to learn in context. arXiv preprint arXiv:2110.15943 , 2021. 3 [17] Trevine Oorloff, Vishwanath Sindagi, Wele Gedara Chaminda Bandara, Ali Shafahi, Amin Ghiasi, Charan Prakash, and Reza Ardekani. Stable diffusion models are secretly good at visual in-context learning. arXiv preprint arXiv:2508.09949 ,2025. 3 [18] Maxime Oquab, Timoth ´ee Darcet, Th ´eo Moutakanni, Huy Vo, Marc Szafraniec, Vasil Khalidov, Pierre Fernandez, Daniel Haziza, Francisco Massa, Alaaeldin El-Nouby, et al. Dinov2: Learning robust visual features without supervision. arXiv preprint arXiv:2304.07193 , 2023. 6 [19] Yatian Pang, Wenxiao Wang, Francis EH Tay, Wei Liu, Yonghong Tian, and Li Yuan. Masked autoencoders for point cloud self-supervised learning. In European conference on computer vision , pages 604–621. Springer, 2022. 3 [20] Keqin Peng, Liang Ding, Yancheng Yuan, Xuebo Liu, Min Zhang, Yuanxin Ouyang, and Dacheng Tao. Revisiting demonstration selection strategies in in-context learning, 2024. 3 [21] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervi-sion. In International conference on machine learning , pages 8748–8763. PmLR, 2021. 6 [22] Carlos Riquelme, Joan Puigcerver, Basil Mustafa, Maxim Neumann, Rodolphe Jenatton, Andr ´e Susano Pinto, Daniel Keysers, and Neil Houlsby. Scaling vision with sparse mix-ture of experts. In Proceedings of the 35th International Conference on Neural Information Processing Systems , Red Hook, NY, USA, 2021. Curran Associates Inc. 3 [23] Ohad Rubin, Jonathan Herzig, and Jonathan Berant. Learning to retrieve prompts for in-context learning. arXiv preprint arXiv:2112.08633 , 2021. 3 [24] Olga Russakovsky, Jia Deng, Hao Su, Jonathan Krause, San-jeev Satheesh, Sean Ma, Zhiheng Huang, Andrej Karpathy, Aditya Khosla, Michael Bernstein, et al. Imagenet large scale visual recognition challenge. International journal of computer vision , 115:211–252, 2015. 6 [25] Amirreza Shaban, Shray Bansal, Zhen Liu, Irfan Essa, and Byron Boots. One-shot learning for semantic segmentation. 
+
+arXiv preprint arXiv:1709.03410 , 2017. 5, 8 [26] Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc V. Le, Geoffrey E. Hinton, and Jeff Dean. Outra-geously large neural networks: The sparsely-gated mixture-of-experts layer. CoRR , abs/1701.06538, 2017. 3 [27] Yanpeng Sun, Qiang Chen, Jian Wang, Jingdong Wang, and Zechao Li. Exploring effective factors for improving visual in-context learning. IEEE Transactions on Image Processing ,34:2147–2160, 2025. 1 [28] Yanpeng Sun, Qiang Chen, Jian Wang, Jingdong Wang, and Zechao Li. Exploring effective factors for improving visual in-context learning. IEEE Transactions on Image Processing ,34:2147–2160, 2025. 3, 5, 6, 7 [29] Ilya O Tolstikhin, Neil Houlsby, Alexander Kolesnikov, Lu-cas Beyer, Xiaohua Zhai, Thomas Unterthiner, Jessica Yung, Andreas Steiner, Daniel Keysers, Jakob Uszkoreit, et al. Mlp-mixer: An all-mlp architecture for vision. Advances in neural information processing systems , 34:24261–24272, 2021. 6 [30] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Mar-tinet, Marie-Anne Lachaux, Timoth ´ee Lacroix, Baptiste Rozi `ere, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971 , 2023. 1 [31] Johannes Von Oswald, Eyvind Niklasson, Ettore Randazzo, Jo ˜ao Sacramento, Alexander Mordvintsev, Andrey Zhmogi-nov, and Max Vladymyrov. Transformers learn in-context by gradient descent. In International Conference on Machine Learning , pages 35151–35174. PMLR, 2023. 3 [32] Jinpeng Wang, Tianci Luo, Yaohua Zha, Yan Feng, Ruisheng Luo, Bin Chen, Tao Dai, Long Chen, Yaowei Wang, and Shu-Tao Xia. Embracing collaboration over competition: Con-densing multiple prompts for visual in-context learning. In 
+
+Proceedings of the Computer Vision and Pattern Recognition Conference , pages 25156–25165, 2025. 3 [33] Kai Wang, Jiayang Liu, Xing Xu, Jingkuan Song, Xin Liu, and Heng Tao Shen. Unsupervised cross-domain image re-trieval with semantic-attended mixture-of-experts. In Pro-ceedings of the 47th International ACM SIGIR Conference on Research and Development in Information Retrieval , page 197–207, New York, NY, USA, 2024. Association for Com-puting Machinery. 3 [34] Lean Wang, Lei Li, Damai Dai, Deli Chen, Hao Zhou, Fan-dong Meng, Jie Zhou, and Xu Sun. Label words are anchors: An information flow perspective for understanding in-context learning. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 9840–9855, Singapore, 2023. Association for Computational Linguistics. 3[35] Song Wang, Zihan Chen, Chengshuai Shi, Cong Shen, and Jundong Li. Mixture of demonstrations for in-context learn-ing. In The Thirty-eighth Annual Conference on Neural Infor-mation Processing Systems , 2024. 3 [36] Xinlong Wang, Wen Wang, Yue Cao, Chunhua Shen, and Tiejun Huang. Images speak in images: A generalist painter for in-context visual learning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 6830–6839, 2023. 1 [37] Xinlong Wang, Wen Wang, Yue Cao, Chunhua Shen, and Tiejun Huang. Images speak in images: A generalist painter for in-context visual learning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 6830–6839, 2023. 3 [38] Xinlong Wang, Xiaosong Zhang, Yue Cao, Wen Wang, Chun-hua Shen, and Tiejun Huang. Seggpt: Towards segmenting everything in context. In 2023 IEEE/CVF International Con-ference on Computer Vision (ICCV) , pages 1130–1140, 2023. 1, 3 [39] Wenxiao Wu, Jing-Hao Xue, Chengming Xu, Chen Liu, Xin-wei Sun, Changxin Gao, Nong Sang, and Yanwei Fu. Towards reliable and holistic visual in-context learning prompt selec-tion. arXiv preprint arXiv:2509.25989 , 2025. 3, 5, 6, 7 [40] Wenxiao Wu, Jing-Hao Xue, Chengming Xu, Chen Liu, Xin-wei Sun, Changxin Gao, Nong Sang, and Yanwei Fu. Towards reliable and holistic visual in-context learning prompt selec-tion. arXiv preprint arXiv:2509.25989 , 2025. 2 [41] Zhiyong Wu, Yaoxiang Wang, Jiacheng Ye, and Lingpeng Kong. Self-adaptive in-context learning: An information compression perspective for in-context example selection and ordering. arXiv preprint arXiv:2212.10375 , 2022. 3 [42] Chengming Xu, Chen Liu, Yikai Wang, and Yanwei Fu. To-wards global optimal visual in-context learning prompt se-lection. arXiv preprint arXiv:2405.15279 , 2024. 2, 3, 5, 6, 7[43] Shannan Yan, Leqi Zheng, Keyu Lv, Jingchen Ni, Hongyang Wei, Jiajun Zhang, Guangting Wang, Jing Lyu, Chun Yuan, and Fengyun Rao. Learning cross-view object correspon-dence via cycle-consistent mask prediction. arXiv preprint arXiv:2602.18996 , 2026. 3 [44] Jiazuo Yu, Yunzhi Zhuge, Lu Zhang, Ping Hu, Dong Wang, Huchuan Lu, and You He. Boosting continual learning of vision-language models via mixture-of-experts adapters. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition (CVPR) , pages 23219–23230, 2024. 3 [45] Jiahao Zhang, Bowen Wang, Liangzhi Li, Yuta Nakashima, and Hajime Nagahara. Instruct me more! random prompt-ing for visual in-context learning. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision , pages 2597–2606, 2024. 3 [46] Yuanhan Zhang, Kaiyang Zhou, and Ziwei Liu. What makes good examples for visual in-context learning? Advances in Neural Information Processing Systems , 36, 2023. 1, 3, 5, 6, 7[47] Yucheng Zhou, Xiang Li, Qianning Wang, and Jianbing Shen. Visual in-context learning for large vision-language models. 
+
+arXiv preprint arXiv:2402.11574 , 2024. 3 [48] Yan Zhu, Huan Ma, and Changqing Zhang. Exploring task-level optimal prompts for visual in-context learning. In Pro-ceedings of the AAAI Conference on Artificial Intelligence ,pages 11031–11039, 2025. 5, 6, 7

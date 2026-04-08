@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.04838v1/fig-001.webp",
+      "caption": "Figure 4. A case study demonstrating how DDP leverages external tools to solve visual perception bottlenecks. The pipeline iteratively classifies the task, invokes specific image-processing tools (blurring and contrast enhancement), and utilizes the resulting ”degraded” yet cleaner visual features to perform robust reasoning on perception-intensive tasks.",
+      "page": 6,
+      "index": 1,
+      "width": 979,
+      "height": 421
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04838v1/fig-002.webp",
+      "caption": "Figure 2. Overcoming visual reasoning bottlenecks via the DDP framework. Standard VLMs are easily deceived by optical illusions or occlusions (e.g., a dog seemingly split by a tree). Our DDP approach introduces a ”divide-and-conquer” strategy: the classifier categorizes the image type, the tool manager invokes specialized visual tools (e.g., draw rectangle and crop) to highlight suspicious regions, and the Critic synthesizes these visual cues. The Critic detects that the front and back portions mismatch the trunk width, thereby correcting the initial misconception and providing the right answer (Option C: 2).",
+      "page": 3,
+      "index": 2,
+      "width": 1029,
+      "height": 524
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04838v1/fig-003.webp",
+      "caption": "Table 2. Performance comparison on common public benchmarks. Accuracy (%) is reported for all metrics. GPT-4o results are cited from its official technical report.",
+      "page": 8,
+      "index": 3,
+      "width": 810,
+      "height": 211
+    },
+    {
+      "url": "assets/figures/arxiv/2604.04838v1/fig-004.webp",
+      "caption": "Figure 3. Overview of the DDP-based VLM enhancement framework. The workflow consists of three primary stages: (1) classifier: The input image and choice question are categorized into preset domains (e.g., motion illustration, colorblindness, or color attributes) to guide subsequent tool selection. (2) tool manager: After an initial noise-removal downsampling, a DDP agent performs iterative function calls to select specialized visual tools from magazines, such as Polar/Cartesian auxiliary lines, crops, and masks, to highlight key features. (3) target prompting: Despite the extreme downsampling (structural bottleneck < 80p), the processed image is fed into the Critic module. By leveraging task-specific prompts and auxiliary tips based on the ClassID, the system generates a structured Chain-of-Thought (CoT) reasoning process to produce the final option.",
+      "page": 4,
+      "index": 4,
+      "width": 1027,
+      "height": 627
+    }
+  ]
+}

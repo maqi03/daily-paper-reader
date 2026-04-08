@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.02776v1/fig-001.webp",
+      "caption": "Figure 2: Comparison of Pass@1 accuracy and CO2 emissions on MBPP+ and HumanEval+ across models.",
+      "page": 6,
+      "index": 1,
+      "width": 485,
+      "height": 266
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02776v1/fig-002.webp",
+      "caption": "Table 2: Comparison of prompting strategies in terms of Pass@1 accuracy, energy consumption, and CO2 emissions on HumanEval+ and MBPP+.",
+      "page": 7,
+      "index": 2,
+      "width": 498,
+      "height": 358
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02776v1/fig-003.webp",
+      "caption": "Figure 7: Comparison of parsing errors in different models.",
+      "page": 10,
+      "index": 3,
+      "width": 489,
+      "height": 302
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02776v1/fig-004.webp",
+      "caption": "Figure 5: Relationship between different sustainability factors across different prompting strategies.",
+      "page": 9,
+      "index": 4,
+      "width": 988,
+      "height": 210
+    }
+  ]
+}

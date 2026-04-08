@@ -1,0 +1,535 @@
+Title: ProTPS: Prototype-Guided Text Prompt Selection for Continual Learning
+
+URL Source: https://arxiv.org/pdf/2604.01116v1
+
+Published Time: Thu, 02 Apr 2026 01:28:16 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+# ProTPS: Prototype-Guided Text Prompt Selection for Continual Learning 
+
+# Jie Mei 1 Li-Leng Peng 1 Keith Fuller 2 Jenq-Neng Hwang 11University of Washington, Seattle, WA, USA 
+
+> 2
+
+# Alaska Pacific University, Anchorage, Alaska, USA    
+
+> {jiemei, uwalisha, hwang }@uw.edu, emsharkproject@gmail.com
+
+# Abstract 
+
+For continual learning, text-prompt-based methods lever-age text encoders and learnable prompts to encode seman-tic features for sequentially arrived classes over time. Acommon challenge encountered by existing works is how to learn unique text prompts, which implicitly carry seman-tic information of new classes, so that the semantic fea-tures of newly arrived classes do not overlap with those of trained classes, thereby mitigating the catastrophic for-getting problem. To address this challenge, we propose a novel approach “ Pro totype-guided Text Prompt Selection (ProTPS)” to intentionally increase the training flexibil-ity thus encouraging the learning of unique text prompts. Specifically, our ProTPS learns class-specific vision proto-types and text prompts. Vision prototypes guide the selec-tion and learning of text prompts for each class. We first evaluate our ProTPS in both class incremental (CI) setting and cross-datasets continual (CDC) learning setting. Be-cause our ProTPS achieves performance close to the upper bounds, we further collect a real-world dataset with 112 marine species collected over a span of six years, named Marine112, to bring new challenges to the community. Ma-rine112 is authentically suited for the class and domain in-cremental (CDI) learning setting and is under natural long-tail distribution. The results under three settings show that our ProTPS performs favorably against the recent state-of-the-art methods. The implementation code and Marine112 dataset will be released upon the acceptance of our paper. 
+
+# 1. Introduction 
+
+The dynamic nature of real-world data, with its constant evolution and shifting paradigms, such as the incremental addition of new classes, poses significant challenges. When a model’s access to historical training data is constrained, due to privacy considerations, data storage and transfer lim-itations, or energy efficiency concerns, it can only be pri-marily updated with new data. This scenario leads to a deep learning model’s “catastrophic forgetting” of previ-ously learned knowledge, a critical problem documented in seminal works [12, 16, 20, 30, 36, 50, 54, 57] in the area of continual learning. To mitigate the catastrophic forgetting problem, recent text-prompt-based methods [43, 50, 52, 65] leverage frozen Contrastive Language-Image Pre-training (CLIP) [35]. In these methods, text prompts are concatenated with class names as input to the frozen pre-trained CLIP [35] text en-coder to get semantic features of each class, which then serve as weights of the linear classifier as proposed in the original CLIP [35]. These methods use learnable or prede-fined prompt to encode semantic features for sequentially arrived classes over time. However, a common challenge 
+
+encountered by existing works is how to learn text prompts encoded with unique semantic features of different classes so that the semantic features of newly arrived classes do not overlap with those of trained classes. To address this challenge, we propose a novel approach Prototype-guided Text Prompt Selection (ProTPS). Our 
+
+motivation is to intentionally increase the training flexi-bility thus encouraging the text prompts to encode unique semantic features of each class. For the toy example in Fig. 2, given an input image of the golden retriever in train-ing, the text prompt belonging to “golden retriever”, i.e., P3,can only interact with “golden retriever” in the prior work, while our ProTPS selects P3 to concatenate with all class names, increasing the training flexibility. By doing so, our prompts “ P3-labrador retriever” and “ P3-golden retriever” are closer in the feature space at the beginning of training, compared with “ P1-labrador retriever” and “ P3-golden re-triever” in the prior work. Then using semantic features of our prompts as the linear classifier weights results in a big-ger training loss. By minimizing the loss, our P3 is encour-aged to capture the unique semantic features of “golden re-triever”. After training, our class-specific text prompts can be more distinct in the feature space as illustrated in Fig. 2. 
+
+Why use vision prototypes as guidance? Different from existing text-prompts-based works which have a sin-gle classifier derived from the text encoder as proposed in the CLIP [35], our ProTPS has an additional linear classifier 1
+
+> arXiv:2604.01116v1 [cs.CV] 1 Apr 2026
+
+CLIP 
+
+Img 
+
+Ours       
+
+> Figure 1. Visualization of learned text prompts via Grad-CAM [38]. Highlighted image areas are the attended regions of the learned text prompt of each class. Each pair of adjacent columns, moving from left to right, represents the same class: “african hunting dog”, “chihuahua”, “borzoi”, “little blue heron”, “american coot”.
+> Figure 2. Prior work [65] proposes learnable prompts to replace predefined prompt templates. Our work introduces a novel text prompt selection approach that enables semantic prompts of each class to interact with all other class names. Note that three big gray circles in the feature space represent all possible semantic features for each class.
+
+whose weights are initialized with visual features, i.e., pro-totypes, of each class, computed from the pre-trained image encoder. At the beginning of training, this linear classifier can provide a reasonable initial prediction. Our motivation 
+
+for using prototypes as guidance for text prompt selection stems from the hypothesis that vision prototypes and text prompts can be complementary features, i.e., vision proto-types can be good at globally distinct categories, such as cows and birds; on the other hand, text prompts can be trained to capture unique semantic features corresponding to regional image details such as face, body, tail, etc. The experimental configurations for existing continual learning methods are idealistic, typically partitioning a sin-gle dataset into multiple non-overlapped and data-balanced tasks, i.e., class incremental (CI) learning, or combin-ing two datasets into a long-sequence domain-shift task, i.e., cross-datasets continual (CDC) learning. To handle a more realistic scenario, we collect a real-world challeng-ing dataset, named Marine112, covering 112 marine species across 6 years. We believe Marine112 is of great importance to the continual learning community, for the following rea-sons: (1) it features overlapped unique classes among dif-ferent tasks with varied imaging qualities, i.e., domain shift; (2) it reflects the longtail [22] (imbalanced) distribution ob-served in nature; and (3) it is naturally suited for the class and domain incremental (CDI) learning. Our contributions are summarized as follows: • We propose a novel approach ProTPS to continually learn 
+
+unique text prompts so that the semantic features of newly arrived classes do not overlap with those of trained classes, thereby mitigating “catastrophic forgetting”. • Our novel ProTPS learns global image-level vision proto-types to guide the selection and learning of text prompts that attend to region-level image details. • In class incremental learning setup, ProTPS attains +1.9% and +10 .6% gains on CIFAR100 and Ima-2geNet100 respectively over the current state-of-the-art methods. In cross-datasets continual learning setup, ProTPS secures +2.1% and +7.3% on “Ima-geNet2CIFAR” and “ImageNet+CIFAR” respectively. • We collect a real-world Marine112 dataset, with long-tail distribution and authentically well-suited for the class and domain incremental (CDI) learning task. It brings new challenges to the continual learning community. 
+
+# 2. Related Work 
+
+Classic methods. Rehearsal-based continual learning [1, 5, 10, 36, 37] is highly effective by keeping a fixed amount of previously trained data as a memory. Yet, with potential pri-vacy issues [40], they also tend to underperform as the size or quality of the rehearsal memory decreases. Dynamic ar-chitectures [6, 7, 11, 18, 39, 56, 61] expand classification heads and/or backbones for new training tasks. Unfortu-nately, at inference time, some dynamic architectures need complex pruning [7] as post-processing or require an im-practical task identifier [6, 11, 39]. 
+
+Text-prompt-based methods. Continual-CLIP [43] di-rectly applies the pre-trained frozen CLIP [35] to the con-tinual learning scenario by concatenating class names with a single text prompt template, e.g ., “a bad photo of a { } ”, to derive the classifier. Thus, without new parameters, its per-formance is capped by the pre-trained CLIP [35]. To replace predefined templates, CoOP [65], built upon CLIP [35], proposes learnable class-specific prompts but its prompts cannot interact among different classes. AttriCLIP [50] boosts the performance with an attribute word bank which is shared for all classes, and is continually trained on newly ar-rived classes. Inevitably its word bank may overfit attributes of newly arrived classes. In contrast, our novel ProTPS con-tinually encourages text prompts to capture class-specific 
+
+unique features so that the semantic features of newly ar-rived classes do not overlap with those of trained classes. 
+
+Visual-prompt-based methods. Recent visual prompt tuning works [19, 41, 42, 49, 53, 54], built upon a pre-trained image encoder, employ a dynamic query mechanism based on key-value pairs to learn instance-specific prompts tailored to the context. The L2P framework [54] pioneers the amalgamation of visual prompts with continual learn-ing by advocating for a universal prompt repository to fa-cilitate task adaptation. DualPrompt [53] further innovates by affixing task-invariant and task-specific visual prompts to the pre-trained image encoder. CODA-P [41] introduces decomposed and expanded visual prompts that can be op-timized in an end-to-end fashion. HiDe-Prompt [49] ex-plicitly optimizes three hierarchical components for visual prompt tuning. However, unlike text-prompt-based meth-ods, these methods only benefit from pre-trained image en-coders. 
+
+Prototype learning. Prototype learning aims to learn prototype vectors to represent each class. Classic contin-ual learning methods like iCaRL [36], LUCIR [10], POD-net [4] and DER [59] rely on the nearest-prototype classi-fier [33, 55]. Recent methods [45, 66, 67] use prototypes to generate synthetic samples of trained classes or use syn-thetic samples to calculate prototypes [48]. In contrast, we hypothesize that prototypes derived from the image encoder are mainly global image-level representations. Thus, we propose to jointly learn unique text prompts capturing ex-clusive semantic features of each class. 
+
+Contrastive learning. Recently, the contrastive learning field has shown notable progress within self-supervised rep-resentation learning [8, 9, 34, 44, 58]. SupCon [13] extends the self-supervised batch contrastive approach to the super-vised setting, allowing the model to leverage label informa-tion to construct many positives per anchor in addition to many negatives. CLIP [35] applies supervised contrastive learning between images and text pairs to align them to a common feature space. These methods are designed to en-hance the feature extraction ability of encoders. 
+
+# 3. Methodology 
+
+Continual learning formulation. We define a sequence of T training tasks, denoted by D = {D1, ..., D T }, with each task Dt = {(xti, y ti )}nt 
+
+> i=1
+
+comprising nt images xti and their respective labels yti . Training on task Dt occurs with-out access to data from prior tasks {D1, ..., D t−1}. In the conventional class incremental learning scenario, each task contains non-overlapped classes. 
+
+## 3.1. Framework of ProTPS 
+
+Our proposed novel Prototype-guided Text Prompt Selec-tion (ProTPS) is built upon frozen CLIP [35]. In con-trast to existing text-prompt-based methods [43, 50, 52, 65], our ProTPS continually encourages text prompts to capture class-specific unique semantic features. 
+
+Refinement of vision prototypes. We use the prototype 
+
+Ii of class i to initialize the weights of the classif ier 1 at the beginning of Task-1 as shown in Fig. 3, which is referred to as ProTPS’s “vision classifier”. We can see vision proto-types as global image-level representations of each class. Throughout the training of Task-1, we finetune these vi-sion prototypes for refinement. As new tasks commence, while the “vision classifier” is expanded with prototypes of new classes, we ensure previously learned prototypes re-main frozen to conserve the integrity of earlier learned rep-resentations, as illustrated in Fig. 3. 
+
+Prototypes-guided text prompts selection. Each class prototype Ii is paired with a learnable text prompt Pi. For a single image, ProTPS selects the text prompt that corre-sponds to the highest cosine similarity score λi as indicated by vision prototypes. Recognizing that the “vision classi-fier” may not always yield accurate prediction, we scale the 3Figure 3. ProTPS framework. In Task-1, we use the prototype Ii of class i to initialize the weights of the linear classif ier 1, which is referred to as ProTPS’s “vision classifier”. We finetune these vision prototypes for refinement. Each class prototype Ii is paired with a learnable text prompt Pi. For a single input image, we select a text prompt to concatenate with all class names in Task-1 to create      
+
+> classif ier 2, which is referred to as the “text classifier” of ProTPS. In Task-2, prototypes and paired prompts are expanded. We freeze prototypes I1, ..., I nand prompts P1, ..., P ntrained in the previous task. We propose a sampling method to create sampled classif ier 2
+> to help new text prompts capture exclusive unique features for new classes. For the later tasks, the expansion rule is the same as Task-2.
+
+selected text prompt by λi as shown in Fig. 3 and concate-nate it at the embedding level with all class names in Task-1. These combined textual inputs are processed through the text encoder to derive classif ier 2, which is referred to as ProTPS’s “text classifier” and can be seen as unique seman-tic features of each class. When new tasks start, we expand text prompts for new classes and ensure previously learned prompts remain frozen to conserve the integrity of earlier learned unique semantic features, as depicted in Fig. 3. Besides new class names, we randomly sample a fixed number of class names from previous classes before concatenating with the selected text prompt in the new task, yielding sampled classif ier 2 in Fig. 3. This sampling strategy allows the newly expanded text prompts to interact with previous class names to help new text prompts learn unique semantic fea-tures for new classes while keeping a constant GPU mem-ory usage. 
+
+One aggregated classifier. During inference, we also keep the proposed prompt selection and ProTPS gener-ates predictions by calculating the average cosine similar-ity score of each class from its “vision classifier” and “text classifier”. 
+
+## 3.2. Optimization Objectives of ProTPS 
+
+Classification losses. Given one single image input of class 
+
+i, we first compute two cross-entropy losses respectively for dual classifiers of ProTPS based on the image feature z:
+
+Loss c1 = − log e⟨z, Ii⟩/τ 
+
+Pk1 
+
+> k=k0
+
+e⟨z, Ik ⟩/τ , (1) 
+
+Loss c2 = − log e⟨z, Ti⟩/τ 
+
+Pk′
+
+> 1
+> k=k′
+> 0
+
+e⟨z, Tk ⟩/τ , (2) where τ is the temperature parameter learned by CLIP [35], 
+
+⟨· , ·⟩ denotes the cosine similarity, k0 and k1 respectively represent the start and end indices of newly expanded proto-types by default unless otherwise specified in experiments, 
+
+e.g ., k0 = n + 1 and k1 = m in Task-2 as depicted in Fig. 3. This is to ensure that one of the newly expanded text prompts can be selected and optimized to learn unique fea-tures of new classes. k′ 
+
+> 0
+
+and k′ 
+
+> 1
+
+respectively represent the start and end indices of weights vectors in the “text classi-fier”, e.g ., k′ 
+
+> 0
+
+= 1 and k′ 
+
+> 1
+
+= n in Task-1 and k′ 
+
+> 0
+
+= w and 
+
+k′ 
+
+> 1
+
+= q in Task-2 as depicted in Fig. 3. 
+
+Prompt-prototype contrastive loss. Although vision prototypes and text prompts represent respectively global image-level representations and unique semantic features of each class, we propose a “prompt-prototype contrastive loss”, Loss pp , to align and enhance text prompts and vi-sion prototypes, which further boosts the performance. It is different from the well-studied contrastive loss, such as SupCon [13], in two aspects: (1) it refocuses the goal from improving encoders to refining text prompts and vision pro-totypes, and (2) it is formulated using just a single input im-age. Given one single image input of class i, the proposed 4“prompt-prototype contrastive loss”, depicted in Fig. 3, is as follows: 
+
+Loss pp = (1 − ⟨ Ti, Ii⟩) + 1
+
+N
+
+> N
+
+X    
+
+> j̸=ior k̸=i
+
+⟨Tj , Ik⟩, (3) where ⟨· , ·⟩ denotes the cosine similarity. The first term is the cosine distance of the positive pair (yellow colored grids in Fig. 3) between prototypes and weights of “text classi-fier”, given the single input image of class i; the second term is the mean cosine similarity of negative pairs (uncolored grids in Fig. 3) between prototypes and weights of “text classifier”. N is the total number of negative pairs. With 
+
+λpp as the balance factor, the whole optimization objective is: 
+
+Loss = Loss c1 + Loss c2 + λpp · Loss pp , (4) 
+
+# 4. Experiments 
+
+In this section, we first detail the implementation. We then compare the proposed ProTPS with other popular methods in the class-incremental (CI) setting and the cross-datasets continual (CDC) learning setting. We also introduce a new real-world dataset, Marine112, for class and domain incre-mental (CDI) learning setting. Finally, we present ablation studies to evaluate ProTPS’s individual components. 
+
+Datasets. Our experiments are conducted on Ima-geNet100, CIFAR100 [24], and Marine112. ImageNet100 is a subset of ImageNet-1K [2], containing images sized 224x224 from 100 classes. We use the same 100 classes as AttriCLIP [50], with about 1,300 training and 50 testing images per class. Details are provided in the Appendix A. CIFAR100 has 100 classes with 500 training and 100 test-ing images per class. Both CIFAR100 and ImageNet100 are split into 10 tasks with 10 classes in each task. Besides, we collect a real-world Marine112 dataset, which is naturally suited for the class and domain incremental (CDI) learning and reflects the long-tail distribution [22] observed in na-ture. Its data covers 112 marine species in total across 6 different years. 
+
+Metric. After learning each task T − i, the accuracy is evaluated on exposed classes of all trained tasks (i.e., T −
+
+1, 2, ..., i ) [50], as detailed in Appendix C.2. 
+
+Baselines. We compare the proposed ProTPS with (1) visual-prompt-based methods (L2P [54], Dual-Prompt [53], CODA-P [41], and HiDe-Prompt [49]), and (2) text-prompt-based methods (CoOp [65], the only compared method with 1000 memory buffer, Continual-CLIP [43], Zero-Shot CLIP [35], and AttriCLIP [50]). Compared with AttriCLIP [50], our ProTPS introduces a negligible memory increase of 105 KB, i.e., 0.006% of 1.71 GB full model size. The upper-bound method is the Linear Probe CLIP from [35] by using all tasks’ training data at the same time to optimize a linear classifier. We use the original CLIP pre-trained ViT-L/14 [3] as the image encoder for the upper-bound method, our ProTPS and all baselines (expla-nation and training details are in Appendix C.1). 
+
+## 4.1. Class-Incremental Learning 
+
+ImageNet100. In Tab. 1, our ProTPS outperforms the pre-vious SOTA AttriCLIP [50] by +10.6% on ImageNet100. The accuracy of ProTPS is only 1.6% distance to the upper bound. We further report the accuracy of different classi-fiers in Fig. 4. We can see that ProTPS’s “vision classifier” and “text classifier” are well aligned. And the aggregated classifier achieves the best performance. Besides, the per-formance of ProTPS’s “text classifier” is not capped by its “vision classifier” although text prompts selection is guided by prototypes. 
+
+> Figure 4. Accuracy evolution of ProTPS’s different classifiers on ImageNet100 [2] under CI setting.
+
+CIFAR100. The results are reported in Tab. 2, where 
+
+text ∗ denotes the selection and learning of our text prompts are guided by our vision prototypes in ProTPS. Our ProTPS achieves the state-of-the-art (SOTA) accuracy. Specifically, ProTPS without any data buffer outperforms CoOP [65] by +15.7% and beats the previous best model AttriCLIP [50] by +1.9%. ProTPS is only 3.4% distance from the up-per bound, indicating the effectiveness of mitigating catas-trophic forgetting. 
+
+## 4.2. Cross-Datasets Continual Learning 
+
+AttriCLIP [50] proposes another continual learning sce-nario, i.e., combining two datasets into a long-sequence domain-shift task, where continually training a model across two datasets is used to evaluate the ability of knowl-edge transfer from the previous dataset to the new one. 
+
+ProTPS’s text prompts are transferable to a new dataset. In Tab. 3, the models are continually finetuned on 10 tasks of CIFAR100 after being trained on 10 tasks of ImageNet100, and finally evaluated on CIFAR100. This performance is denoted as “I2C”. “FT” (forward trans-fer) is defined as the accuracy of “I2C” minus the accu-racy of training on CIFAR100 only. When finetuning our 5Prompt Method T-1 T-2 T-3 T-4 T-5 T-6 T-7 T-8 T-9 T-10 
+
+visual 
+
+L2P [54] 60.9 53.5 49.8 48.6 47.2 48.1 49.5 49.7 48.1 48.3 DualPrompt [53] 72.5 60.8 55.7 54.3 53.2 53.6 53.8 53.3 52.8 52.6 CODA-P [41] 91.1 86.5 82.9 80.3 79.8 78.2 77.1 77.2 75.6 75.2 HiDe-Prompt [49] 92.3 90.1 89.8 87.5 85.5 85.9 84.5 85.9 83.5 82.9 
+
+text 
+
+CoOp [65] (1000) 89.2 83.2 76.7 79.8 79.9 82.3 79.7 80.1 80.3 79.3 Continual-CLIP [43] 93.3 87.6 83.1 81.7 80.5 80.2 79.3 78.5 76.9 75.4 Zero-Shot CLIP [35] 91.8 89.2 89.3 91.1 92.2 92.6 90.9 79.3 78.5 75.1 AttriCLIP [50] 95.4 89.4 84.5 86.7 84.4 86.6 85.9 85.6 86.9 83.3 
+
+text ∗ ProTPS (ours) 95.5 93.4 93.7 94.0 94.7 95.3 94.7 94.2 93.8 93.9 (+10.6) Upper bound - - - - - - - - - 95.5 
+
+> Table 1. Accuracy of different continual learning methods on ImageNet100 [2] under CI setting. Second-best results are underlined. T-i denotes Task-i.
+
+Prompt Method T-1 T-2 T-3 T-4 T-5 T-6 T-7 T-8 T-9 T-10 
+
+visual 
+
+L2P [54] 60.1 47.8 45.9 47.1 48.9 48.9 49.4 49.0 50.0 49.4 DualPrompt [53] 73.9 60.2 56.4 55.3 54.5 53.3 53.4 53.1 53.5 54.0 CODA-P [41] 94.3 87.3 83.7 82.7 81.3 78.2 76.7 74.0 74.1 72.3 HiDe-Prompt [49] 95.4 93.6 90.7 89.5 87.9 85.5 84.0 82.0 82.2 81.0 
+
+text 
+
+CoOp [65] (1000) 95.8 90.7 85.2 83.4 80.8 75.8 74.7 71.7 71.3 67.6 Continual-CLIP [43] 95.3 92.3 82.1 79.2 78.5 77.9 75.7 75.2 74.8 73.4 Zero-Shot CLIP [35] 95.7 92.9 85.2 82.9 82.3 82.1 79.6 79.6 79.2 78.3 AttriCLIP [50] 97.8 93.7 91.0 87.5 84.7 82.5 82.3 81.9 81.7 81.4 
+
+text ∗ ProTPS (ours) 97.8 94.5 91.6 90.6 89.1 87.3 85.5 84.3 84.2 83.3 (+1.9) Upper bound - - - - - - - - - 86.7 
+
+> Table 2. Accuracy of different continual learning methods on CIFAR100 [17] under CI setting. Second-best results are underlined. T-i denotes Task-i.
+
+Prompt Method I2C FT ↑
+
+visual 
+
+L2P-1 [54] 45.7 -3.7 DualPrompt-1 [53] 49.5 -4.5 CODA-P-1 [41] 66.9 -5.4 HiDe-Prompt-1 [49] 77.2 -3.8 
+
+text 
+
+CoOp-1 [65] (1000) 61.1 -6.5 Continual-CLIP [43] 73.4 0Zero-Shot CLIP [35] 78.3 0AttriCLIP [50] 82.3 +0.9 
+
+text ∗ ProTPS (ours) 84.4 (+2.1) +1.1 
+
+> Table 3. Last accuracy of different methods on CIFAR100 under CDC setting. The models are continually fine-tuned on CIFAR100 after being trained on ImageNet100 (I2C).
+
+ProTPS on CIFAR100, each class’s text prompt is initial-ized from the prompts learned from ImageNet100 based on the highest cosine similarity between their paired pro-totypes. “{Method }-1” and “ {Method }-2” are schemes defined by AttriCLIP [50] on how to expand the classi-fier for a new dataset (please refer to AttriCLIP [50] for more details). In Tab. 3, our ProTPS outperforms the pre-vious SOTA AttriCLIP [50] by +2.1% in the context of “I2C” and has the highest “FT” score. This indicates that ProTPS learns transferable semantic features encoded in text prompts that can help it to generalize better to a new dataset. 
+
+ProTPS is suitable for cross-datasets continual learn-ing. In Tab. 4, models are evaluated on both datasets. For ProTPS, when start fine-tuning on CIFAR100, we expand our classif ier 1 for CIFAR100 classes, and each class’s text prompt is still initialized from the prompts learned from Im-ageNet100 based on the same rule. ProTPS beats visual-prompt-based and text-prompt-based methods, outperform-ing the AttriCLIP [50] by +7.3%. 6Prompt Method I+C 
+
+visual 
+
+L2P-2 [54] 41.6 DualPrompt-2 [53] 45.8 CODA-P-2 [41] 62.7 HiDe-Prompt-2 [49] 75.3 
+
+text 
+
+CoOp-2 [65] (1000) 55.4 Continual-CLIP [43] 65.9 Zero-Shot CLIP [35] 68.7 AttriCLIP [50] 78.3 
+
+text ∗ ProTPS (ours) 85.6 (+7.3)    
+
+> Table 4. Last accuracy of different methods when continually trained on ImageNet100 and CIFAR100 (I+C) in sequence under CDC setting.
+> Figure 5. Marine112 captures both ecological dynamics (incre-mental domains and classes) and natural longtail distribution.
+
+## 4.3. Class-and-Domain Incremental Learning 
+
+Marine112 consists of 112 marine species collected over a span of six years . Each year, fishing ships equipped with cameras were deployed to specific oceanic regions to cap-ture images of marine species, aiming to analyze changes in the marine ecosystem. Over time, the dataset reflects the emergence of new species, such as crabs and shellfish, alongside notable domain shifts in captured species, as il-lustrated in Fig. 5. These shifts arise due to variations in illumination conditions, differences in camera brands, and resolution disparities between years. Notably, the appear-ance of the same species across different years may vary significantly, with perceptible differences in color and tex-ture, as shown in Fig. 5. This evolving dataset captures both ecological dynamics and the technical challenges as-sociated with longtail [22] distribution observed in nature. Tab. 5 contrasts our real-world Marine112 dataset with sev-eral public datasets commonly used for continual learning. Marine112’s unique distinction lies in its authentic, real-world data, making it intrinsically well-suited for tackling the class and domain incremental (CDI) learning task. Fur-ther details, such as the test set split, are in Appendix B. 
+
+ProTPS learns more unique text prompts than exist-ing methods. In Tab. 6, ProTPS sets the strongest baseline on Marine112. For visual-prompt-based methods, we only benchmarked CODA-P [41] and HiDe-Prompt [49] because they achieved better performance than others in previous ex-periments. 
+
+> Figure 6. Comparison of t-SNE [46] visualization on text prompts for 24 dog breeds from ImageNet100 [2].
+
+## 4.4. Ablation Study 
+
+Tab. 7 shows the impact of each proposed module in ProTPS. The proposed prototype learning strategy is de-noted as “refined”. We can see it lays the foundation for the success of ProTPS’s text prompt learning guided by learned prototypes. It outperforms learning prototypes “from scratch” or freezing them after the proposed ini-tialization method, referred to as “frozen”. The proposed text prompt selection method, denoted as “weight-top-1”, also brings a significant improvement . Both proposed 
+
+sampled classif ier 2 strategy and “prompt-prototype con-trastive loss” also bring non-negligible improvement. 
+
+t-SNE visualization of text prompts. In Fig. 6, we use t-SNE [46] to display the distribution of text prompts in the feature space for 24 dog breeds from ImageNet100. This is done after the text prompts are processed by the text en-coder. We can see our text prompts are more distinct in the feature space than CLIP’s text prompt templates. 
+
+Visualization of vision prototypes. To further con-firm the improvement of our refined vision prototypes com-pared to the initialization at the beginning of each task, we visualize the cosine similarity matrix among prototypes in Fig. 7. Despite freezing earlier learned prototypes in later tasks, ProTPS’s vision prototypes become more dis-tinguishable after 10 learning tasks on CIFAR100 with our 
+
+> 1DS-ImageNet-R introduces domain shifts that occur between classes, rather than within each class, as reflected in our training data.
+> 2CORe50-NIC aims to evaluate the model’s generalization to unseen domains, rather than its performance on domains learned incrementally, as demonstrated by our test protocol.
+
+7Dataset Authentic CL Setting Distribution #Classes Images Fine-grained Rotation MNIST [24] × DI balanced 10 synthetic ×
+
+Permutation MNIST [16] × DI balanced 10 synthetic ×
+
+NS-MiniImageNet [25] × DI balanced 100 synthetic ×
+
+CLEAR [21] × DI balanced 100 real ×
+
+DS-ImageNet-R [41] × CDI 1 balanced 200 real ×
+
+CORe50-NIC [23] × CDI 2 balanced 50 real ×
+
+Marine112 (Ours) ✓ CDI longtail 112 real ✓
+
+> Table 5. Comparison of Marine112 with public datasets with domain shift. “CL”: Continual learning. “DI”: Domain incremental learning. “CDI”: Class and domain incremental learning.
+
+Prompt Method 2015 2016 2019 2020 2021 2022 
+
+visual CODA-P [41] 71.2 42.1 33.6 13.4 12.7 13.2 HiDe-Prompt [49] 73.4 50.8 45.2 22.2 22.3 22.5 
+
+text 
+
+Continual-CLIP [43] 12.7 11.8 10.2 9.6 10.1 9.5 Zero-Shot CLIP [35] 15.4 13.1 11.6 10.3 10.5 9.6 CoOp [65] (1000) 65.3 30.2 15.1 10.2 11.4 10.3 AttriCLIP [50] 76.1 48.3 34.8 11.9 13.6 13.9 
+
+text ∗ ProTPS (ours) 76.6 70.5 61.5 59.7 58.1 55.6 (+33.1) Upper bound - - - - - 78.2 
+
+> Table 6. Accuracy on real-world Marine112 dataset under CDI setting.
+
+PL Prompt-Selection STC Loss pp Last acc. refined weight-top-1 ✓ ✓ 83.28 
+
+refined weight-top-1 × ✓ 80.95 (-2.33) refined weight-top-1 ✓ × 80.87 (-2.41) frozen weight-top-1 ✓ ✓ 80.65 (-2.63) refined × ✓ ✓ 77.62 (-5.66) scratch weight-top-1 ✓ ✓ 58.42 (-24.86)   
+
+> Table 7. Ablation study on CIFAR100.“PL”: Prototype Learning strategy. “STC”: Sampled Text Classifier strategy.
+> Figure 7. Similarity matrix of prototypes on CIFAR100. Left: Initialized prototypes via the frozen CLIP image encoder. Right: ProTPS’s refined vision prototypes.
+
+training recipe, as indicated by the darker color outside the diagonal. 
+
+Visualization of text prompts on images. To verify that our learned unique text prompts can attend to region-level image details even among similar classes, we visualize the image contents corresponding to each class’s text prompts in Fig. 1 on ImageNet100. The “CLIP” row shows the at-tention of the original CLIP’s ensembled prompts on paired images. Details and more visualizations are in Appendix D. We can see that our ProTPS’s learned text prompts can fo-cus on specific regions such as face, body, tail, beak, etc. 
+
+# 5. Conclusion 
+
+We propose ProTPS, which continually learns unique text prompts to mitigate “catastrophic forgetting”. ProTPS leverages global image-level vision prototypes to guide the selection and learning of regional semantic features en-coded in text prompts. Our experiments demonstrate su-perior performance over existing state-of-the-art methods in CI, CDC, and CDI learning settings. Additionally, we intro-duced Marine112, a real-world dataset containing 112 ma-rine species over a span of 6 years and authentically suitable for CDI setting, which brings new challenges to the commu-nity. We believe our ProTPS and Marine112 can pave the way for more practical continual learning. 8References 
+
+[1] Francisco M Castro, Manuel J Mar´ ın-Jim´ enez, Nicol´ as Guil, Cordelia Schmid, and Karteek Alahari. End-to-end incre-mental learning. In Proceedings of the European conference on computer vision (ECCV) , pages 233–248, 2018. 3 [2] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. Imagenet: A large-scale hierarchical image database. In 2009 IEEE conference on computer vision and pattern recognition , pages 248–255. Ieee, 2009. 5, 6, 7, 1, 4 [3] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Syl-vain Gelly, et al. An image is worth 16x16 words: Trans-formers for image recognition at scale. arXiv preprint arXiv:2010.11929 , 2020. 5, 3, 6 [4] Arthur Douillard, Matthieu Cord, Charles Ollion, Thomas Robert, and Eduardo Valle. Podnet: Pooled outputs dis-tillation for small-tasks incremental learning. In Computer Vision–ECCV 2020: 16th European Conference, Glasgow, UK, August 23–28, 2020, Proceedings, Part XX 16 , pages 86–102. Springer, 2020. 3 [5] Arthur Douillard, Alexandre Ram´ e, Guillaume Couairon, and Matthieu Cord. Dytox: Transformers for continual learning with dynamic token expansion. arXiv preprint arXiv:2111.11326 , 2021. 3 [6] Chrisantha Fernando, Dylan Banarse, Charles Blundell, Yori Zwols, David Ha, Andrei A Rusu, Alexander Pritzel, and Daan Wierstra. Pathnet: Evolution channels gradient descent in super neural networks. arXiv preprint arXiv:1701.08734 ,2017. 3 [7] Siavash Golkar, Michael Kagan, and Kyunghyun Cho. Continual learning via neural pruning. arXiv preprint arXiv:1903.04476 , 2019. 3 [8] Olivier Henaff. Data-efficient image recognition with con-trastive predictive coding. In International conference on machine learning , pages 4182–4192. PMLR, 2020. 3 [9] R Devon Hjelm, Alex Fedorov, Samuel Lavoie-Marchildon, Karan Grewal, Phil Bachman, Adam Trischler, and Yoshua Bengio. Learning deep representations by mutual in-formation estimation and maximization. arXiv preprint arXiv:1808.06670 , 2018. 3 [10] Saihui Hou, Xinyu Pan, Chen Change Loy, Zilei Wang, and Dahua Lin. Learning a unified classifier incrementally via rebalancing. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 831–839, 2019. 3 [11] Ching-Yi Hung, Cheng-Hao Tu, Cheng-En Wu, Chien-Hung Chen, Yi-Ming Chan, and Chu-Song Chen. Compacting, picking and growing for unforgetting continual learning. Ad-vances in Neural Information Processing Systems , 32, 2019. 3[12] Dahuin Jung, Dongyoon Han, Jihwan Bang, and Hwanjun Song. Generating instance-level prompts for rehearsal-free continual learning. In Proceedings of the IEEE/CVF Interna-tional Conference on Computer Vision , pages 11847–11857, 2023. 1 [13] Prannay Khosla, Piotr Teterwak, Chen Wang, Aaron Sarna, Yonglong Tian, Phillip Isola, Aaron Maschinot, Ce Liu, and Dilip Krishnan. Supervised contrastive learning. Advances in neural information processing systems , 33:18661–18673, 2020. 3, 4 [14] Benjamin Kiefer, Lojze ˇZust, Matej Kristan, Janez Perˇ s, Matija Terˇ sek, Arnold Wiliem, Martin Messmer, Cheng-Yen Yang, Hsiang-Wei Huang, Zhongyu Jiang, et al. The 2nd workshop on maritime computer vision (macvi) 2024. arXiv preprint arXiv:2311.14762 , 2023. 1 [15] Benjamin Kiefer, Lojze ˇZust, Matej Kristan, Janez Perˇ s, Matija Terˇ sek, Arnold Wiliem, Martin Messmer, Cheng-Yen Yang, Hsiang-Wei Huang, Zhongyu Jiang, Heng-Cheng Kuo, Jie Mei, Jenq-Neng Hwang, Daniel Stadler, Lars Som-mer, Kaer Huang, Aiguo Zheng, Weitu Chong, Kanokphan Lertniphonphan, Jun Xie, Feng Chen, Jian Li, Zhepeng Wang, Luca Zedda, Andrea Loddo, Cecilia Di Ruberto, Tuan-Anh Vu, Hai Nguyen-Truong, Tan-Sang Ha, Quan-Dung Pham, Sai-Kit Yeung, Yuan Feng, Nguyen Thanh Thien, Lixin Tian, Andreas Michel, Wolfgang Gross, Mar-tin Weinmann, Borja Carrillo-Perez, Alexander Klein, An-tje Alex, Edgardo Solano-Carrillo, Yannik Steiniger, An-gel Bueno Rodriguez, Sheng-Yao Kuan, Yuan-Hao Ho, Fe-lix Sattler, Matej Fabijani´ c, Magdalena ˇ Simunec, and Nadir Kapetanovi´ c. 2nd workshop on maritime computer vision (macvi) 2024: Challenge results. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV) Workshops , pages 869–891, 2024. 1 [16] James Kirkpatrick, Razvan Pascanu, Neil Rabinowitz, Joel Veness, Guillaume Desjardins, Andrei A Rusu, Kieran Milan, John Quan, Tiago Ramalho, Agnieszka Grabska-Barwinska, et al. Overcoming catastrophic forgetting in neu-ral networks. Proceedings of the national academy of sci-ences , 114(13):3521–3526, 2017. 1, 8 [17] Alex Krizhevsky, Geoffrey Hinton, et al. Learning multiple layers of features from tiny images. 2009. 6, 2, 4, 5 [18] Xilai Li, Yingbo Zhou, Tianfu Wu, Richard Socher, and Caiming Xiong. Learn to grow: A continual structure learn-ing framework for overcoming catastrophic forgetting. In In-ternational Conference on Machine Learning , pages 3925– 3934. PMLR, 2019. 3 [19] Yujie Li, Xin Yang, Hao Wang, Xiangkun Wang, and Tianrui Li. Learning to prompt knowledge transfer for open-world continual learning. arXiv preprint arXiv:2312.14990 , 2023. 3[20] Zhizhong Li and Derek Hoiem. Learning without forgetting. 
+
+IEEE transactions on pattern analysis and machine intelli-gence , 40(12):2935–2947, 2017. 1 [21] Zhiqiu Lin, Jia Shi, Deepak Pathak, and Deva Ramanan. The clear benchmark: Continual learning on real-world imagery. In Thirty-fifth Conference on Neural Information Processing Systems Datasets and Benchmarks Track , 2021. 8 [22] Ziwei Liu, Zhongqi Miao, Xiaohang Zhan, Jiayun Wang, Boqing Gong, and Stella X Yu. Large-scale long-tailed recognition in an open world. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 2537–2546, 2019. 2, 5, 7, 1 
+
+9[23] Vincenzo Lomonaco and Davide Maltoni. Core50: a new dataset and benchmark for continuous object recognition. In 
+
+Conference on robot learning , pages 17–26. PMLR, 2017. 8 [24] David Lopez-Paz and Marc’Aurelio Ranzato. Gradient episodic memory for continual learning. Advances in neu-ral information processing systems , 30, 2017. 5, 8 [25] Zheda Mai, Ruiwen Li, Jihwan Jeong, David Quispe, Hyun-woo Kim, and Scott Sanner. Online continual learning in image classification: An empirical survey. Neurocomputing ,469:28–51, 2022. 8 [26] Jie Mei. Continual Learning of Object Classification in the Real World . University of Washington, 2024. 1 [27] Jie Mei and Jenq-Neng Hwang. Esa: Expert-and-samples-aware incremental learning under longtail distribution. In 
+
+ICASSP 2024-2024 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP) , pages 5740–5744. IEEE, 2024. [28] Jie Mei, Jenq-Neng Hwang, Suzanne Romain, Craig Rose, Braden Moore, and Kelsey Magrane. Absolute 3d pose es-timation and length measurement of severely deformed fish from monocular videos in longline fishing. In ICASSP 2021-2021 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP) , pages 2175–2179. IEEE, 2021. [29] Jie Mei, Jenq-Neng Hwang, Suzanne Romain, Craig Rose, Braden Moore, and Kelsey Magrane. Video-based hierar-chical species classification for longline fishing monitoring. In International Conference on Pattern Recognition , pages 422–433. Springer, 2021. [30] Jie Mei, Suzanne Romain, Craig Rose, Kelsey Magrane, and Jenq-Neng Hwang. Hcil: Hierarchical class incremen-tal learning for longline fishing visual monitoring. arXiv preprint arXiv:2202.13018 , 2022. 1 [31] Jie Mei, Jingxi Yu, Suzanne Romain, Craig Rose, Kelsey Magrane, Graeme LeeSon, and Jenq-Neng Hwang. Unsuper-vised severely deformed mesh reconstruction (dmr) from a single-view image. arXiv preprint arXiv:2201.09373 , 2022. 1[32] Jie Mei, AJ Piergiovanni, Jenq-Neng Hwang, and Wei Li. Slvp: self-supervised language-video pre-training for re-ferring video object segmentation. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision , pages 507–517, 2024. 5 [33] Thomas Mensink, Jakob Verbeek, Florent Perronnin, and Gabriela Csurka. Metric learning for large scale image clas-sification: Generalizing to new classes at near-zero cost. In 
+
+Computer Vision–ECCV 2012: 12th European Conference on Computer Vision, Florence, Italy, October 7-13, 2012, Proceedings, Part II 12 , pages 488–501. Springer, 2012. 3 [34] Aaron van den Oord, Yazhe Li, and Oriol Vinyals. Repre-sentation learning with contrastive predictive coding. arXiv preprint arXiv:1807.03748 , 2018. 3 [35] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervi-sion. In International conference on machine learning , pages 8748–8763. PMLR, 2021. 1, 3, 4, 5, 6, 7, 8 [36] Sylvestre-Alvise Rebuffi, Alexander Kolesnikov, Georg Sperl, and Christoph H Lampert. icarl: Incremental classifier and representation learning. In Proceedings of the IEEE con-ference on Computer Vision and Pattern Recognition , pages 2001–2010, 2017. 1, 3 [37] Anthony Robins. Catastrophic forgetting, rehearsal and pseudorehearsal. Connection Science , 7(2):123–146, 1995. 3[38] Ramprasaath R Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedantam, Devi Parikh, and Dhruv Batra. Grad-cam: Visual explanations from deep networks via gradient-based localization. In Proceedings of the IEEE in-ternational conference on computer vision , pages 618–626, 2017. 2, 7 [39] Joan Serra, Didac Suris, Marius Miron, and Alexandros Karatzoglou. Overcoming catastrophic forgetting with hard attention to the task. In International conference on machine learning , pages 4548–4557. PMLR, 2018. 3 [40] Reza Shokri and Vitaly Shmatikov. Privacy-preserving deep learning. In Proceedings of the 22nd ACM SIGSAC con-ference on computer and communications security , pages 1310–1321, 2015. 3 [41] James Seale Smith, Leonid Karlinsky, Vyshnavi Gutta, Paola Cascante-Bonilla, Donghyun Kim, Assaf Arbelle, Rameswar Panda, Rogerio Feris, and Zsolt Kira. Coda-prompt: Contin-ual decomposed attention-based prompting for rehearsal-free continual learning. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 11909–11919, 2023. 3, 5, 6, 7, 8, 4 [42] Yu-Ming Tang, Yi-Xing Peng, and Wei-Shi Zheng. When prompt-based incremental learning does not meet strong pre-training. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 1706–1716, 2023. 3, 4[43] Vishal Thengane, Salman Khan, Munawar Hayat, and Fa-had Khan. Clip model is an efficient continual learner. 
+
+arXiv:2210.03114 , 2022. 1, 3, 5, 6, 7, 8, 4 [44] Yonglong Tian, Dilip Krishnan, and Phillip Isola. Con-trastive multiview coding. In Computer Vision–ECCV 2020: 16th European Conference, Glasgow, UK, August 23–28, 2020, Proceedings, Part XI 16 , pages 776–794. Springer, 2020. 3 [45] Marco Toldo and Mete Ozay. Bring evanescent representa-tions to life in lifelong class incremental learning. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 16732–16741, 2022. 3 [46] Laurens Van der Maaten and Geoffrey Hinton. Visualizing data using t-sne. Journal of machine learning research , 9 (11), 2008. 7 [47] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszko-reit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. Advances in neural information processing systems , 30, 2017. 3 [48] Fu-Yun Wang, Da-Wei Zhou, Liu Liu, Han-Jia Ye, Yatao Bian, De-Chuan Zhan, and Peilin Zhao. Beef: Bi-compatible class-incremental learning via energy-based expansion and fusion. In The Eleventh International Conference on Learn-ing Representations , 2022. 3 
+
+10 [49] Liyuan Wang, Jingyi Xie, Xingxing Zhang, Mingyi Huang, Hang Su, and Jun Zhu. Hierarchical decomposition of prompt-based continual learning: Rethinking obscured sub-optimality. Advances in Neural Information Processing Sys-tems , 2023. 3, 5, 6, 7, 8, 4 [50] Runqi Wang, Xiaoyue Duan, Guoliang Kang, Jianzhuang Liu, Shaohui Lin, Songcen Xu, Jinhu L¨ u, and Baochang Zhang. Attriclip: A non-incremental learner for incremental knowledge learning. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 3654–3663, 2023. 1, 3, 5, 6, 7, 8, 4 [51] Yizhou Wang, Haotian Zhang, Zhongyu Jiang, Jie Mei, Cheng-Yen Yang, Jiarui Cai, Jenq-Neng Hwang, Kwang-Ju Kim, and Pyong-Kun Kim. Hvps: A human video panoptic segmentation framework. 1 [52] Yabin Wang, Zhiwu Huang, and Xiaopeng Hong. S-prompts learning with pre-trained transformers: An occam’s razor for domain incremental learning. Advances in Neural Informa-tion Processing Systems , 35:5682–5695, 2022. 1, 3, 4 [53] Zifeng Wang, Zizhao Zhang, Sayna Ebrahimi, Ruoxi Sun, Han Zhang, Chen-Yu Lee, Xiaoqi Ren, Guolong Su, Vin-cent Perot, Jennifer Dy, et al. Dualprompt: Complementary prompting for rehearsal-free continual learning. In European Conference on Computer Vision , pages 631–648. Springer, 2022. 3, 5, 6, 7, 4 [54] Zifeng Wang, Zizhao Zhang, Chen-Yu Lee, Han Zhang, Ruoxi Sun, Xiaoqi Ren, Guolong Su, Vincent Perot, Jennifer Dy, and Tomas Pfister. Learning to prompt for continual learning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 139–149, 2022. 1, 3, 5, 6, 7, 4 [55] Andrew R Webb, Keith D Copsey, and Gavin Cawley. Sta-tistical pattern recognition . Wiley Online Library, 2011. 3 [56] Tz-Ying Wu, Gurumurthy Swaminathan, Zhizhong Li, Avinash Ravichandran, Nuno Vasconcelos, Rahul Bhotika, and Stefano Soatto. Class-incremental learning with strong pre-trained models. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 9601–9610, 2022. 3 [57] Yue Wu, Yinpeng Chen, Lijuan Wang, Yuancheng Ye, Zicheng Liu, Yandong Guo, and Yun Fu. Large scale in-cremental learning. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 374–382, 2019. 1 [58] Zhirong Wu, Yuanjun Xiong, Stella X Yu, and Dahua Lin. Unsupervised feature learning via non-parametric instance discrimination. In Proceedings of the IEEE conference on computer vision and pattern recognition , pages 3733–3742, 2018. 3 [59] Shipeng Yan, Jiangwei Xie, and Xuming He. Der: Dynam-ically expandable representation for class incremental learn-ing. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , pages 3014–3023, 2021. 3 [60] Cheng-Yen Yang, Hsiang-Wei Huang, Zhongyu Jiang, Heng-Cheng Kuo, Jie Mei, Chung-I Huang, and Jenq-Neng Hwang. Sea you later: Metadata-guided long-term re-identification for uav-based multi-object tracking. In Pro-ceedings of the IEEE/CVF Winter Conference on Applica-tions of Computer Vision , pages 805–812, 2024. 1 [61] Jaehong Yoon, Eunho Yang, Jeongtae Lee, and Sung Ju Hwang. Lifelong learning with dynamically expandable net-works. arXiv preprint arXiv:1708.01547 , 2017. 3 [62] Gengwei Zhang, Liyuan Wang, Guoliang Kang, Ling Chen, and Yunchao Wei. Slca: Slow learner with classifier align-ment for continual learning on a pre-trained model. arXiv preprint arXiv:2303.05118 , 2023. 3, 4 [63] Haotian Zhang, Yizhou Wang, Zhongyu Jiang, Cheng-Yen Yang, Jie Mei, Jiarui Cai, Jenq-Neng Hwang, Kwang-Ju Kim, and Pyong-Kun Kim. U3d-molts: Unified 3d monocu-lar object localization, tracking and segmentation. 1 [64] Aotian Zheng, Jie Mei, Farron Wallace, Craig Rose, Rania Hussein, and Jenq-Neng Hwang. Progressive mixup aug-mented teacher-student learning for unsupervised domain adaptation. In 2023 IEEE International Conference on Im-age Processing (ICIP) , pages 3030–3034. IEEE, 2023. 1 [65] Kaiyang Zhou, Jingkang Yang, Chen Change Loy, and Ziwei Liu. Learning to prompt for vision-language models. In-ternational Journal of Computer Vision , 130(9):2337–2348, 2022. 1, 2, 3, 5, 6, 7, 8, 4 [66] Fei Zhu, Xu-Yao Zhang, Chuang Wang, Fei Yin, and Cheng-Lin Liu. Prototype augmentation and self-supervision for incremental learning. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 5871–5880, 2021. 3 [67] Kai Zhu, Wei Zhai, Yang Cao, Jiebo Luo, and Zheng-Jun Zha. Self-sustaining representation expansion for non-exemplar class-incremental learning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 9296–9305, 2022. 3 
+
+11 A. Classes of ImageNet100 
+
+Following AttriCLIP [50], we use the same 100 classes from ImageNet [2] to build ImageNet100. The class names are: ‘Robin’, ‘Gila monster’, ‘hognose snake’, ‘garter snake’, ‘green mamba’, ‘garden spider’, ‘lorikeet’, ‘goose’, ‘rock crab’, ‘fiddler crab’, ‘American lobster’, ‘little blue heron’, ‘American coot’, ‘Chihuahua’, ‘Shih Tzu’, ‘Papillon’, ‘toy terrier’, ‘Walker hound’, ‘English fox-hound’, ‘borzoi’, ‘Saluki’, ‘American Staffordshire Terrier’, ‘Chesapeake Bay Retriever’, ‘Vizsla’, ‘Kuvasz’, ‘Komon-dor’, ‘Rottweiler’, ‘Doberman’, ‘Boxer’, ‘Great Dane’, ‘Standard Poodle’, ‘Mexican hairless’, ‘coyote’, ‘African hunting dog’, ‘red fox’, ‘tabby’, ‘meerkat’, ‘dung beetle’, ‘walking stick’, ‘leafhopper’, ‘hare’, ‘wild boar’, ‘gibbon’, ‘langur’, ‘ambulance’, ‘bannister’, ‘bassinet’, ‘boathouse’, ‘bonnet’, ‘bottlecap’, ‘car wheel’, ‘chime’, ‘cinema’, ‘cock-tail shaker’, ‘computer keyboard’, ‘Dutch oven’, ‘foot-ball helmet’, ‘gasmask’, ‘hard disc’, ‘harmonica’, ‘hon-eycomb’, ‘iron’, ‘jean’, ‘lampshade’, ‘laptop’, ‘milk can’, ‘mixing bowl’, ‘modem’, ‘moped’, ‘shower cap’, ‘mouse-trap’, ‘obelisk’, ‘park bench’, ‘pedestal’, ‘pickup’, ‘pi-rate’, ‘purse’, ‘reel’, ‘rocking chair’, ‘rotisserie’, ‘safety pin’, ‘sarong’, ‘ski mask’, ‘slide rule’, ‘stretcher’, ‘the-ater curtain’, ‘throne’, ‘tile roof’, ‘tripod’, ‘tub’, ‘vacuum’, ‘window screen’, ‘wing’, ‘head cabbage’, ‘cauliflower’, ‘pineapple’, ‘carbonara’, ‘chocolate sauce’, ‘gyromitra’, ‘mushroom’ 
+
+# B. Marine112 Dataset 
+
+We believe our Marine112 dataset is of great importance to the continual learning community, for the following rea-sons: (1) it features overlapped marine classes among dif-ferent tasks with varied imaging qualities, i.e., domain shift; (2) it reflects the longtail [22] (imbalanced) distribution ob-served in nature; and (3) it is naturally suited for the class and domain incremental (CDI) learning. In Marine112, there are 112 classes across 6 different years as shown in Fig. 5. This dataset is inspired by existing work [14, 15, 26– 31, 51, 60, 63, 64] 
+
+## B.1. Species Names 
+
+The labeled class names are: ‘arrowtooth flounder’, ‘rex sole’, ‘pacific ocean perch’, ‘flathead sole’, ‘walleye pol-lock’, ‘shortspine thornyhead’, ‘pacific halibut’, ‘north-ern rockfish’, ‘sablefish’, ‘pacific cod’, ‘petrale sole’, ‘starfish’, ‘northern rocksole’, ‘dungeness crab’, ‘en-glish sole’, ‘dover sole’, ‘southern rock sole’, ‘slender sole’, ‘kamchatka flounder’, ‘atka mackerel’, ‘yellow irish lord’, ‘eulachon’, ‘blackspotted rockfish’, ‘giant grenadier’, ‘darkfin sculpin’, ‘dusky rockfish’, ‘big skate’, ‘spotted rat-fish’, ‘rougheye rockfish’, ‘pacific sanddab’, ‘sea anemone’, ‘longnose skate’, ‘shortraker rockfish’, ‘harlequin rock-fish’, ‘butter sole’, ‘redstripe rockfish’, ‘strongylocentro-tus’, ‘sturgeon poacher’, ‘greenstriped rockfish’, ‘berry-teuthis magister’, ‘searcher’, ‘sharpchin rockfish’, ‘yel-lowfin sole’, ‘pacific tomcod’, ‘podothecus accipenserinus’, ‘fusitriton oregonensis’, ‘metridium farcimen’, ‘bathyraja unidentified’, ‘actinauge verrillii’, ‘bairidi tanner crab’, ‘pacific herring’, ‘chum salmon’, ‘red banded rock-fish’, ‘spectacled sculpin’, ‘silvergray rockfish’, ‘jellyfish’, ‘great sculpin’, ‘prowfish’, ‘scallop’, ‘lingcod’, ‘ctenodis-cus crispatus’, ‘pandalopsis dispar’, ‘golden king crab’, ‘popeye grenadier’, ‘gorgonocephalus eucnemis’, ‘scis-sortail sculpin’, ‘armorhead sculpin’, ‘paragorgia ar-borea’, ‘darkblotched rockfish’, ‘chlamys’, ‘pacific octo-pus’, ‘longspine thornyhead’, ‘rosethorn rockfish’, ‘starry flounder’, ‘spinyhead sculpin’, ‘kelp greenling’, ‘mud skate’, ‘sawback poacher’, ‘yellowtail rockfish’, ‘pan-dalus’, ‘shrimp’, ‘alaska plaice’, ‘dark rockfish’, ‘bathy-master signatus’, ‘ebony eelpout’, ‘cyanea capillata’, ‘toad lumpsucker’, ‘pycnopodia helianthoides’, ‘northern lamp-fish’, ‘pacific sand fish’, ‘solaster’, ‘cucumaria fallax’, ‘eelpout unidentified’, ‘chrysaora melanaster’, ‘shortfin eelpout’, ‘spot shrimp’, ‘ceramaster’, ‘bigmouth sculpin’, ‘capelin’, ‘rock greenling’, ‘stegophiura ponderosa’, ‘leop-ard skate’, ‘yelloweye rockfish’, ‘parastichopus californi-cus’, ‘allocentrotus fragilis’, ‘hippasteria’, ‘black rockfish’, ‘sea pen’, ‘skate egg case’, ‘serpula’, ‘crossaster pappo-sus’, ‘white blotched skate’ 
+
+## B.2. Data Distribution 
+
+In Marine112, annual data collection includes new data for both newly discovered and previously identified classes. The latter introduces domain shifts due to illumination, pose, imaging qualities of different types of cameras, etc, as shown in Fig. 5. Detailed data distribution of each year is in Fig. 8. The imbalance factor, calculated as the ratio of the most common class’s instance count to that of the least common class, indicates the degree of class imbalance. 
+
+## B.3. Testing Data Split 
+
+As mentioned in the previous section, new data of pre-viously seen classes usually bring domain shift. There-fore, each year, no matter the new classes or old classes, we always randomly hold 10 new images from each col-lected class as testing data. And the accuracy of each year 
+
+t, t ∈ { 2015 , 2016 , . . . , 2022 } is evaluated on testing im-ages from all the trained years so far (i.e., year 2015, ..., t). Fig. 9 shows the number of kept test data from each year. 
+
+Justification. There is a real-world application scenario for the above test data split protocol. Initially, in 2015, thousands of images were collected via electronic monitor-ing from different commercial fishing boats to ensure that fish populations in targeted areas were sustainably man-aged. The identification of marine species from images is 1Figure 8. Marine112. Data distribution in each year. 
+
+an expensive time-consuming process that requires the con-sulting of fishery specialists. Therefore, deep learning mod-els serve as valuable tools to efficiently process such data. To train a deep learning model, we ask fishery specialists to label a portion of the collected data. Our model then is ex-pected to identify remaining unlabeled images, reducing the labor cost required to gain an accurate understanding of the species and numbers caught. Our goal is to train a model continually with a subset of each year’s data, manually la-beled, and apply it to unlabelled data of previous years and the current year. Thus, in our testing protocol, once we train   
+
+> Figure 9. Marine112. Number of kept test data from each year.
+
+the model on the 2015 labeled training data, we test it on the held 2015 testing data. Subsequently, we continue to train the model on 2016 training data, and then test the model on both 2015 and 2016 testing data. Therefore, our testing split protocol can reflect the performance of the continually trained model on accumulated unidentified data from in-crementally exposed domains and classes. 
+
+# C. Implementation Details 
+
+## C.1. Training Details 
+
+We train our ProTPS for 10 epochs on each task for all datasets. SGD is adopted as the optimizer with an initial learning rate of 0.001 and follows a cosine decay schedule to a final learning rate of 1e-4. The weight decay is 0, and the batch size is 128 on two V100 GPUs. Each text prompt 
+
+Pi is a learnable embedding with the dimension of [ M , 768] where M is the prompt length and 768 is the feature dimen-sion output from the last projection layer of CLIP’s image encoder. We observe that the last accuracy is not sensitive to the loss factor λpp and prompt length M indicated in Fig. 10 thus we use λpp =1.5 and M = 6 for our ProTPS. The aver-age results over 3 runs are reported for all methods in the paper.     
+
+> Figure 10. Comparison of different (a) loss factor λpp values and different (b) prompt length Mvalues on CIFAR100 [17].
+
+Other baselines details. For baseline methods, we use 2Aggregation Last acc. Average 93.92 
+
+Max 93.86 (-0.06) 
+
+> Table 8. Different aggregation methods on ImageNet100.
+
+their own official released code and follow their own train-ing recipes. CoOp [65] is the only method in all tables storing 1000 data samples during training thus denoted as “CoOp [65] (1000)” in all tables. The prompts of CoOp [65] and AttriCLIP [50] are continually trained in a sequence of tasks. For “Zero-Shot CLIP”, “Prototypes-CLIP”, and “Linear Probe CLIP”, we implement them based on the of-ficial CLIP’s open-source code. All reported CLIP-based methods use the same original CLIP pre-trained trans-former [47] as the text encoder. All reported methods use the original CLIP pre-trained ViT-L/14 [3] as the image en-coder. All implementation codes and the Marine112 dataset will be released. 
+
+Why use CLIP pre-trained image encoder for all re-ported methods? Firstly, our ProTPS is based on CLIP architecture similar to existing text-prompt-based meth-ods [43, 50, 52, 65] which use frozen CLIP pre-trained im-age encoder and text encoder. Secondly, as mentioned in DualPrompt [53], when visual-prompt-based methods [41, 49, 53, 54] use the image encoder pre-trained on Ima-geNet, they struggle with fairness when evaluated on the ImageNet-related benchmarks such as ImageNet100 and ImageNet-R [53]. Thus we use CLIP pre-trained ViT-L/14 [3] as the image encoder for all methods. 
+
+Classifiers aggregation methods. Tab. 8 shows aggre-gating ProTPS’s dual classifiers via the proposed average operation is better than the max operation. 
+
+## C.2. Evaluation Metric Details 
+
+As emphasized by previous works [41, 53], “Average Accu-racy” is the overall evaluation metric for continual learning, which includes two aspects: greater learning capacity and less catastrophic forgetting. However, real-world continual learning datasets may be imbalanced, e.g . Marine112. Thus, we define the general-ized average accuracy to evaluate continual learning mod-els. Consider a series of T tasks D = {D1, ..., D T }.Each task has its own training data, Dt,train =
+
+{(xit,train , y it,train )}nt,train  
+
+> i=1
+
+comprising nt,train instances 
+
+xit,train and their respective labels yit,train , and testing data, 
+
+Dt,test = {(xit,test , y it,test )}nt,test  
+
+> i=1
+
+comprising nt,test in-stances xit,test and their respective labels yit,test . After the model finishes training on the task t, we compute general-ized average accuracy At as follows: 
+
+At =
+
+Ptm=1 
+
+Pnm,test  
+
+> i=1
+
+equal (model (xim,test ), y im,test )
+
+Ptm=1 nm,test 
+
+,
+
+(5) where the numerator is the number of true predictions on testing data from all exposed tasks (i.e., task 1, 2...t ) and the denominator is the total number of involved testing data. When testing data from each task is balanced, At is exactly the widely-used “Average Accuracy” well-defined in previ-ous works such as [53] (see its Appendix C). Similarly, we refer to the final task’s AT as the “Last Accuracy”. 
+
+## C.3. More Results on Class Incremental Learning 
+
+APG [42] is also a visual-prompt-based method that demon-strates its effectiveness when training from scratch and has comparable performance to other existing visual-prompt-based methods when using the same pre-trained image en-coder. Since APG [42] does not achieve the best perfor-mance among visual-prompt-based methods, we report its performance in this section with the same CLIP pre-trained ViT-L/14 [3] as the image encoder in Tab. 9. Besides, SLCA [62] is also built upon the pre-trained im-age encoder. But SLCA [62] is a non-prompt-based method that carefully finetunes the pre-trained image encoder with a smaller learning rate than in the classifier head. It mod-els class-wise distributions in the form of a feature covari-ance matrix for every class and generates pseudo-training samples (features) of seen classes to align the classifier heads between consecutive tasks. Since SLCA [62] is not a prompt-based method, we report its performance in this section with the same CLIP pre-trained ViT-L/14 [3] as the image encoder in Tab. 9. text ∗ denotes that the learning and selection of text prompts are instructed by vision prototypes in our ProTPS. 
+
+## C.4. More Results on Cross-Datasets Continual Learning 
+
+S-liPrompts [52] is a CLIP-based method, that uses both vi-sual prompts and text prompts and derives the classifier via the text encoder. Yet, it is designed for domain incremental learning. By treating each dataset as a domain, we also test S-liPrompts [52] on the Cross-Datasets Continual Learning setting. The results are in Tab. 10 and Tab. 11. text ∗ denotes the learning and selection of text prompts are instructed by vision prototypes in our ProTPS. “ v +t” denotes both visual and text prompts. 
+
+## C.5. SupCon Loss Details 
+
+In Tab. 12, we compare our proposed “prompt-prototype contrastive loss” and SupCon [13] which is originally pro-posed to learn good encoders, i.e., representation learning. 3Prompt Method CIFAR100 ImageNet100 - SLCA [62] 79.1 56.3 
+
+visual 
+
+L2P [54] 49.4 48.3 DualPrompt [53] 54.0 52.6 APG [42] 54.2 53.1 CODA-P [41] 72.3 75.2 HiDe-Prompt [49] 81.0 82.9 
+
+text 
+
+CoOp [65] (1000) 67.6 79.3 Continual-CLIP [43] 73.4 75.4 Zero-Shot CLIP [35] 78.3 75.1 AttriCLIP [50] 81.4 83.3 
+
+text ∗ ProTPS (ours) 83.3 (+1.9) 93.9 (+10.6) Table 9. Last accuracy on CIFAR100 [17] and ImageNet100 [2] under CI setting. Prompt Method C I2C FT ↑
+
+v + t S-liPrompts [52] 58.9 53.3 -5.6 
+
+visual 
+
+L2P-1 [54] 49.4 45.7 -3.7 DualPrompt-1 [53] 54.0 49.5 -4.5 CODA-P-1 [41] 72.3 66.9 -5.4 HiDe-Prompt-1 [49] 81.0 77.2 -3.8 
+
+text 
+
+CoOp-1 [65] (1000) 67.6 61.1 -6.5 Continual-CLIP [43] 73.4 73.4 0Zero-Shot CLIP [35] 78.3 78.3 0AttriCLIP [50] 81.4 82.3 +0.9 
+
+text ∗ ProTPS (ours) 83.3 84.4 (+2.1) +1.1 
+
+Table 10. Last accuracy of different methods on CIFAR100 [17] under CDC setting. The models are either trained on CIFAR100 only (C), or continually fine-tuned on CIFAR100 after being trained on ImageNet100 (I2C). Prompt Method I+C 
+
+v + t S-liPrompts [52] 39.6 
+
+visual 
+
+L2P-2 [54] 41.6 DualPrompt-2 [53] 45.8 CODA-P-2 [41] 62.7 HiDe-Prompt-2 [49] 75.3 
+
+text 
+
+CoOp-2 [65] (1000) 55.4 Continual-CLIP [43] 65.9 Zero-Shot CLIP [35] 68.7 AttriCLIP [50] 78.3 
+
+text ∗ ProTPS (ours) 85.6 (+7.3) Table 11. Last accuracy of different methods on ImageNet100 + CIFAR100 (I+C) where each model is continually trained on ImageNet100 and CIFAR100 in sequence under CDC setting. 
+
+SupCon [13] loss is defined within a batch of images as: 
+
+Lsup out = X
+
+> i∈I
+
+− 1
+
+|P (i)|
+
+X 
+
+> p∈P(i)
+
+log exp( zi · zp/τ )
+
+P 
+
+> a∈A(i)
+
+exp( zi · za/τ ) ,
+
+(6) where i is the image index in a batch, P (i) is the set of in-dices of all positives of ith image in this batch distinct from 
+
+Loss function Last acc. 
+
+Loss pp (ours) 83.28 
+
+SupCon Loss [13] 82.57 (-0.71) Table 12. Different loss functions on CIFAR100 [17]. 
+
+i. A(i) is the set of indices of all images in this batch except 
+
+i, zi represents the image feature of ith image, “ ·” denotes the inner product, and τ is a scalar temperature parameter. We adopt it with the following equation to replace our proposed “prompt-prototype contrastive loss” and report the performance in Tab. 12. Given a single image input of class 
+
+i, there is only one positive pair between our vision pro-totypes and weight vectors of classif ier 2 denoted as the yellow grid in the matrix shown in Fig. 3, thus the adopted SupCon loss is as follows: 
+
+L = − log exp( Ii · Ti/τ )
+
+P     
+
+> j̸=ior k̸=i
+
+exp( Ij · Tk/τ ) , (7) where the numerator is the positive pair and the denomina-tor includes all negative pairs between our vision prototypes and weight vectors of classif ier 2 in our ProTPS. 4C.6. ProTPS’s Upper Bound Accuracy 
+
+We further test our ProTPS’s upper bound accuracy by us-ing all tasks’ training data at the same time, the same as standard supervised training. The performance is reported in Tab. 13. We can see that ProTPS can achieve better per-formance than Linear Probe CLIP which trains a linear clas-sifier based on the CLIP image encoder.        
+
+> Method CIFAR100 ImageNet100 Linear Probe CLIP 86.69 95.52
+> ProTPS (ours) 87.19 95.86
+> Table 13. Upper bound accuracy of ‘Linear Probe CLIP’ [35] and our ProTPS on CIFAR100 [17] and ImageNet100 [2].
+
+## C.7. Ablation on ProTPS’s prototypes training strategy 
+
+The proposed prototype learning strategy is denoted as “re-fined” in Fig. 11. We can see it is critical to help dual clas-sifiers’ alignment and achieves the best performance over training from “scratch” or “freezing” them after the pro-posed initialization method. 
+
+> Figure 11. Ablation study of ProTPS’s on ImageNet100 [2] under CI setting. The “vision classifier” and “text classifier” of ProTPS are well-aligned when using the proposed prototype learning strat-egy.
+
+## C.8. Pilot Study 
+
+Inspiration. Inspired by the effectiveness of using vision query for a different task [32], we did the pilot study on CIFAR100 with ViT-L/14 [3] and ViT-B/16 [3] backbones in Tab. 14 for the class incremental learning task. Zero-shot CLIP’s 18 prompt templates for CIFAR100 can be found in its official github. On both backbones, we consistently find that applying the basic nearest-prototype classifier to CLIP, denoted as Prototypes-CLIP, achieves slightly better performance than text prompt engineering and ensembling. This pilot study motivates us to use prototypes as guidance for our text prompt selection. 
+
+# D. More Text Prompts Visualizations 
+
+The “CLIP” column in Fig. 1 shows the attention of the original CLIP’s prompts on paired images on ImageNet100. The original CLIP’s 80 prompt templates for ImageNet can be found in CLIP’s official github. The way to create “zero-shot classifier weights” for each class is also introduced in that link. For each class, we use the corresponding “zero-shot classifier weights” for visualization of the CLIP col-umn in Fig. 1. More visualizations of text prompts from randomly selected classes are shown in Fig. 12. We can see that our learned unique text prompts can attend to region-level image details. 5Method Classifier T-1 T-2 T-3 T-4 T-5 T-6 T-7 T-8 T-9 T-10 Continual-CLIP [43] text 94.7 88.5 76.8 73.6 72.4 72.8 69.6 68.5 68.1 66.7 Zero-Shot CLIP [35] text 95.6 89.2 77.7 74.6 73.9 74.1 70.6 70.1 69.6 68.3 Prototypes-CLIP vision 95.6 90.7 81.5 77.1 75.9 75.7 72.8 72.3 71.4 69.9 
+
+Continual-CLIP [43] text 95.3 92.3 82.1 79.2 78.5 77.9 75.7 75.2 74.8 73.4 Zero-Shot CLIP [35] text 95.7 92.9 85.2 82.9 82.3 82.1 79.6 79.6 79.2 78.3 Prototypes-CLIP vision 97.6 92.8 88.1 85.3 84.3 84.3 81.9 81.9 81.2 80.0 
+
+Upper-bound (B/16) - - - - - - - - - - 82.5 Upper-bound (L/14) - - - - - - - - - - 86.7 
+
+Table 14. Pilot Study. Comparison of different CLIP-based methods in CI setting on CIFAR100 [17] with ViT-B/16 [3] (first 3 rows) or ViT-L/14 [3] (second 3 rows) backbone. After learning each task T − i, the accuracy on exposed classes from all the trained tasks (i.e., 
+
+T − 1, 2, ..., t ) is reported. The upper-bound method is ‘Linear Probe CLIP’ [35] using all tasks’ training data at the same time to optimize a linear classifier. The column ‘Classifier’ denotes the encoder from which the classifier weights are derived. 
+
+6Figure 12. 1st and 4th column: CLIP. 2nd and 5th column: Image. 3rd and 6th column: Ours. Text prompts visualized via Grad-CAM [38] on randomly selected classes of ImageNet100. 
+
+7

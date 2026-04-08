@@ -1,0 +1,142 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-001.webp",
+      "caption": "Table 1. Accuracy of different continual learning methods on ImageNet100 [2] under CI setting. Second-best results are underlined. T-i denotes Task-i.",
+      "page": 6,
+      "index": 1,
+      "width": 1036,
+      "height": 321
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-002.webp",
+      "caption": "Table 2. Accuracy of different continual learning methods on CIFAR100 [17] under CI setting. Second-best results are underlined. T-i denotes Task-i.",
+      "page": 6,
+      "index": 2,
+      "width": 1036,
+      "height": 321
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-003.webp",
+      "caption": "Table 9. Last accuracy on CIFAR100 [17] and ImageNet100 [2] under CI setting.",
+      "page": 15,
+      "index": 3,
+      "width": 502,
+      "height": 293
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-004.webp",
+      "caption": "Table 10. Last accuracy of different methods on CIFAR100 [17] under CDC setting. The models are either trained on CIFAR100 only (C), or continually fine-tuned on CIFAR100 after being trained on ImageNet100 (I2C).",
+      "page": 15,
+      "index": 4,
+      "width": 490,
+      "height": 286
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-005.webp",
+      "caption": "Figure 1. Visualization of learned text prompts via Grad-CAM [38]. Highlighted image areas are the attended regions of the learned text prompt of each class. Each pair of adjacent columns, moving from left to right, represents the same class: “african hunting dog”, “chihuahua”, “borzoi”, “little blue heron”, “american coot”.",
+      "page": 2,
+      "index": 5,
+      "width": 972,
+      "height": 242
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-006.webp",
+      "caption": "Figure 2. Prior work [65] proposes learnable prompts to replace predefined prompt templates. Our work introduces a novel text prompt selection approach that enables semantic prompts of each class to interact with all other class names. Note that three big gray circles in the feature space represent all possible semantic features for each class.",
+      "page": 2,
+      "index": 6,
+      "width": 990,
+      "height": 391
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-007.webp",
+      "caption": "Figure 5. Marine112 captures both ecological dynamics (incremental domains and classes) and natural longtail distribution.",
+      "page": 7,
+      "index": 7,
+      "width": 466,
+      "height": 342
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-008.webp",
+      "caption": "Figure 6. Comparison of t-SNE [46] visualization on text prompts for 24 dog breeds from ImageNet100 [2].",
+      "page": 7,
+      "index": 8,
+      "width": 498,
+      "height": 246
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-009.webp",
+      "caption": "Figure 12. 1st and 4th column: CLIP. 2nd and 5th column: Image. 3rd and 6th column: Ours. Text prompts visualized via Grad-CAM [38] on randomly selected classes of ImageNet100.",
+      "page": 18,
+      "index": 9,
+      "width": 648,
+      "height": 1319
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-010.webp",
+      "caption": "Figure 8. Marine112. Data distribution in each year.",
+      "page": 13,
+      "index": 10,
+      "width": 487,
+      "height": 968
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-011.webp",
+      "caption": "Figure 9. Marine112. Number of kept test data from each year.",
+      "page": 13,
+      "index": 11,
+      "width": 498,
+      "height": 367
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-012.webp",
+      "caption": "Table 5. Comparison of Marine112 with public datasets with domain shift. “CL”: Continual learning. “DI”: Domain incremental learning. “CDI”: Class and domain incremental learning.",
+      "page": 8,
+      "index": 12,
+      "width": 914,
+      "height": 236
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-013.webp",
+      "caption": "Table 6. Accuracy on real-world Marine112 dataset under CDI setting.",
+      "page": 8,
+      "index": 13,
+      "width": 748,
+      "height": 263
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-014.webp",
+      "caption": "Figure 3. ProTPS framework. In Task-1, we use the prototype Ii of class i to initialize the weights of the linear classifier1, which is referred to as ProTPS’s “vision classifier”. We finetune these vision prototypes for refinement. Each class prototype Ii is paired with a learnable text prompt Pi. For a single input image, we select a text prompt to concatenate with all class names in Task-1 to create classifier2, which is referred to as the “text classifier” of ProTPS. In Task-2, prototypes and paired prompts are expanded. We freeze prototypes I1, ..., In and prompts P1, ..., Pn trained in the previous task. We propose a sampling method to create sampled classifier2 to help new text prompts capture exclusive unique features for new classes. For the later tasks, the expansion rule is the same as Task-2.",
+      "page": 4,
+      "index": 14,
+      "width": 990,
+      "height": 415
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-015.webp",
+      "caption": "Table 14. Pilot Study. Comparison of different CLIP-based methods in CI setting on CIFAR100 [17] with ViT-B/16 [3] (first 3 rows) or ViT-L/14 [3] (second 3 rows) backbone. After learning each task T − i, the accuracy on exposed classes from all the trained tasks (i.e., T − 1, 2, ..., t) is reported. The upper-bound method is ‘Linear Probe CLIP’ [35] using all tasks’ training data at the same time to optimize a linear classifier. The column ‘Classifier’ denotes the encoder from which the classifier weights are derived.",
+      "page": 17,
+      "index": 15,
+      "width": 922,
+      "height": 262
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-016.webp",
+      "caption": "Figure 4. Accuracy evolution of ProTPS’s different classifiers on ImageNet100 [2] under CI setting.",
+      "page": 5,
+      "index": 16,
+      "width": 519,
+      "height": 261
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01116v1/fig-017.webp",
+      "caption": "Figure 11. Ablation study of ProTPS’s on ImageNet100 [2] under CI setting. The “vision classifier” and “text classifier” of ProTPS are well-aligned when using the proposed prototype learning strategy.",
+      "page": 16,
+      "index": 17,
+      "width": 487,
+      "height": 327
+    }
+  ]
+}

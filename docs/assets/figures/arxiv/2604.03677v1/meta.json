@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-001.webp",
+      "caption": "Table 2: Model performance comparison with different prompting strategies on SummEval dataset. Bold indicates best performance within each model; underline indicates best prompt per (Model, Train) setup.",
+      "page": 6,
+      "index": 1,
+      "width": 830,
+      "height": 575
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-002.webp",
+      "caption": "Figure 3: Example of a score rubric with infilled tokens by the model (right) and original score rubric (left). The model replaces descriptions with non-uniform score values (e.g., 1.2, 1.8, 4.8) inferred from few-shot examples, encouraging float score outputs which results in better human correlation.",
+      "page": 6,
+      "index": 2,
+      "width": 829,
+      "height": 251
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-003.webp",
+      "caption": "Figure 1: Overview of the prompt infilling procedure and the change in training. (1) Gather few-shot examples with prompt templates and reference responses. (2) A diffusion LM (dLM) infills masked tokens in the prompt template, conditioned on the reference responses. (3) Validate infilled prompts by generating responses across all few-shot examples using either a dLM or an LLM. (4) The best infilled prompt is used for final inference on all inputs.",
+      "page": 2,
+      "index": 3,
+      "width": 790,
+      "height": 553
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-004.webp",
+      "caption": "Table 3: Diffusion perplexity analysis with LLaDA. (a) BigGen-Bench results using Judge Infill prompt across finetuning stages. PPL: diffusion perplexity with gold responses. Full-sequence masking (FS) achieves best performance with lowest variance and lowest perplexity. (b) Diffusion perplexity (↓) on SummEval with gold responses ([RESULT] {score}) using finetuned and non-finetuned variants of LLaDA-8B-Instruct.",
+      "page": 7,
+      "index": 4,
+      "width": 826,
+      "height": 262
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-005.webp",
+      "caption": "Table 5: Training hyperparameters for full-sequence masking (FS) and response-only masking (RO).",
+      "page": 13,
+      "index": 5,
+      "width": 668,
+      "height": 327
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-006.webp",
+      "caption": "Figure 5: Full prompt transfer evaluation on SummEval using LLaDA models trained with different configurations (mean ± std), showing Pearson, Spearman, and Kendall correlations. Baseline results from Table 2 showing Judge Infilled prompts results across different training stages. The transferred prompt improves on Public and RO models showing that the infilled prompts transfer across different LLaDA variants.",
+      "page": 12,
+      "index": 6,
+      "width": 738,
+      "height": 198
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-007.webp",
+      "caption": "Table 4: Effect of LLaDA infilling on COPRO and GEPA prompts across Prometheus models (8x7B v2.0 and 13B v1.0) on SummEval (16-shot). Infilling improves both methods, but is far more effective on COPRO: variance largely drops (.073 → .010) while GEPA barely changes (.147 → .133). COPRO + Infill on 8x7B achieves the best result overall.",
+      "page": 9,
+      "index": 7,
+      "width": 826,
+      "height": 359
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-008.webp",
+      "caption": "Table 1: GSM8K results on public checkpoints (no fine-tuning). In both models, infilled prompts with the publicly available checkpoints decreases the exact match (EM) score (%).",
+      "page": 5,
+      "index": 8,
+      "width": 826,
+      "height": 275
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03677v1/fig-009.webp",
+      "caption": "Figure 2: Example prompt with infilled tokens using the public LLaDA checkpoint (LLaDA-8B-Instruct) on GSM8K. All masked prefix tokens are filled with EOS tokens, confirming the training-inference gap for prompt infilling.",
+      "page": 5,
+      "index": 9,
+      "width": 829,
+      "height": 233
+    }
+  ]
+}

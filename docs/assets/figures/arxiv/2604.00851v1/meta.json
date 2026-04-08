@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.00851v1/fig-001.webp",
+      "caption": "Table III: M1.1: HMS-Concrete Class Performance Averaged across 10 Runs",
+      "page": 6,
+      "index": 1,
+      "width": 790,
+      "height": 198
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00851v1/fig-002.webp",
+      "caption": "Table IV: M1.1: HMS-Abstract Class Performance Averaged across 10 Runs",
+      "page": 6,
+      "index": 2,
+      "width": 764,
+      "height": 199
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00851v1/fig-003.webp",
+      "caption": "Table V: M1.1: HMS-Relationship Performance Averaged across 10 runs",
+      "page": 6,
+      "index": 3,
+      "width": 798,
+      "height": 200
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00851v1/fig-004.webp",
+      "caption": "Table VII: M1.1: Sensor Netwrok— Abstract Class Performance Averaged across 10 runs",
+      "page": 7,
+      "index": 4,
+      "width": 636,
+      "height": 199
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00851v1/fig-005.webp",
+      "caption": "Table VIII: M1.1: Sensor Network— Relationship Performance Averaged across 10 runs",
+      "page": 7,
+      "index": 5,
+      "width": 798,
+      "height": 200
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00851v1/fig-006.webp",
+      "caption": "Table VI: M1.1: Sensor Network— Concrete Class Performance Averaged across 10 runs",
+      "page": 7,
+      "index": 6,
+      "width": 798,
+      "height": 198
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00851v1/fig-007.webp",
+      "caption": "Figure 1: Proposed Approach",
+      "page": 5,
+      "index": 7,
+      "width": 529,
+      "height": 289
+    }
+  ]
+}

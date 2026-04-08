@@ -1,0 +1,355 @@
+Title: Less Detail, Better Answers: Degradation-Driven Prompting for VQA
+
+URL Source: https://arxiv.org/pdf/2604.04838v1
+
+Published Time: Tue, 07 Apr 2026 01:57:22 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# Less Detail, Better Answers: Degradation-Driven Prompting for VQA 
+
+## Haoxuan Han * Weijie Wang *† Zeyu Zhang Yefei He Bohan Zhuang B
+
+## State Key Lab of CAD&CG, Zhejiang University 
+
+## Abstract 
+
+Recent advancements in Vision-Language Models (VLMs) have significantly pushed the boundaries of Visual Ques-tion Answering VQA. However, high-resolution details can sometimes become noise that leads to hallucinations or reasoning errors. In this paper, we propose Degradation-Driven Prompting (DDP), a novel framework that improves VQA performance by strategically reducing image fidelity to force models to focus on essential structural information. We evaluate DDP across two distinct tasks. Physical at-tributes targets images prone to human misjudgment, where DDP employs a combination of 80p downsampling, struc-tural visual aids white background masks and orthometric lines, and In-Context Learning ICL to calibrate the model’s focus. Perceptual phenomena addresses various machine-susceptible visual anomalies and illusions, including Visual Anomaly VA, Color CI, Motion MI, Gestalt GI, Geometric GSI, and Visual Illusions VI. For this task, DDP integrates a task-classification stage with specialized tools such as blur masks and contrast enhancement alongside downsampling. Our experimental results demonstrate that less is more by intentionally degrading visual inputs and providing targeted structural prompts, DDP enables VLMs to bypass distract-ing textures and achieve superior reasoning accuracy on challenging visual benchmarks. Code is available on our project page: https://hhx-jpg.github.io/ddp_ project_page/ .
+
+## 1. Introduction 
+
+Vision-Language Models (VLMs) [11, 12, 28] have demonstrated remarkable capabilities in cross-modal un-derstanding, image captioning, and complex visual reason-ing. Despite achieving state-of-the-art results on standard benchmarks, these models often exhibit a surprising lack of robustness when faced with visually deceptive images, such as optical illusions. This vulnerability suggests that current  
+
+> *
+
+Equal contribution. † Project Lead: Weijie Wang (wang-weijie@zju.edu.cn). B Corresponding author: Bohan Zhuang (bo-han.zhuang@zju.edu.cn). Q:What numbers    
+
+> or characters
+> are shown in the
+> picture?
+> Answer: 18
+> Answer: 73
+> <reason> ignore
+> the background
+> color
+> blocks…< \reason>
+> Degration driven
+> prompt strategy.
+> (DDP )
+> Tool magazine
+> Classified prompt
+> Lower resolution ~ < 80 *80p
+> Faster response ~ 50% ↓
+> Higher accuracy in basic
+> physical attributes tasks
+> ~10% ↑
+> (80*64 p)
+> (500*400 p)
+
+Figure 1. Less is More in Visual Perception. Comparison be-tween a standard high-resolution pipeline and our proposed DDP strategy. While high-resolution inputs ( 500 × 400 p) can paradox-ically lead to misinterpretation (e.g., identifying ”18” instead of ”73”), our DDP leverages lower resolution ( 80 × 64 p) to elimi-nate background noise. This approach achieves a 50% reduction in response time and a 50% improvement in accuracy for basic physical attribute tasks by focusing the model on essential struc-tural information. 
+
+scaling laws, while effective for general recognition, may be hitting a plateau regarding deep structural understand-ing. As highlighted by [10], there is a fundamental dis-crepancy between how machines and humans perceive the world; while humans possess a poetic ability to generalize global structures and semantic logic, VLMs remain heavily reliant on local textures and statistical patterns pixels and patterns. This limitation makes them highly susceptible to visual traps in which local features contradict global reality, leading to confident but catastrophically incorrect halluci-nations. The core challenge lies in the passive nature of the cur-rent VLM inference. Standard models typically employ a single-shot observation approach akin to a fast, instinctive response which is often insufficient to resolve the ambigu-ity inherent in deceptive visual signals. To bridge this gap, we argue that a shift from passive observation to agentic perception[7, 18, 29] is required. This shift mimics the hu-man cognitive process of slow thinking, where initial vi-sual cues are scrutinized through deliberate focus. Drawing inspiration from DeepEyesV2 [15], we posit that VLMs 
+
+> arXiv:2604.04838v1 [cs.CV] 6 Apr 2026
+
+should not merely be static evaluators but active agents ca-pable of interacting with their environment. By utilizing tool-use and iterative verification, these models can refine their initial, often flawed, visual intuitions into a grounded understanding of the scene’s underlying geometry. In this paper, we propose DDP, a multi-faceted frame-work designed to enhance VLM performance on challeng-ing visual tasks by integrating downsampling strategies, ad-vanced prompt engineering, and agentic tool-use. Our ap-proach is motivated by three key insights Structural Over-Sensitivity. To mitigate the model’s over-reliance on deceptive high-frequency textures, we in-troduce the DDP mechanism. By reducing local noise and fine details, we effectively create a low-pass filter that forces the model to prioritize global topological structures. This simulates the human tendency to squint or step back to resolve optical ambiguities that disappear when high-frequency information is suppressed. Fine-Grained Inter-action. Building upon the concepts in Fine-Grained Visual Prompting [45], we utilize targeted visual prompts to guide the model’s attention toward specific contradictory regions within an illusion. Agentic Tool Augmentation. Following the Deep-EyesV2 training philosophy [15], we empower the VLM to call on external diagnostic tools such as blurmasks, grid auxlines, and localized magnifiers. By treating the VLM as an agent that can test its visual hypotheses against objec-tive geometric data, we move closer to the robust general-ization and self-correction capabilities observed in human vision. The primary contributions of this work are as fol-lows: We provide a systematic analysis of VLM vulnerabil-ities in the context of visual illusions, framing the problem through the lens of the perception-logic gap[10] and estab-lishing a new set of benchmarks for deceptive vision. We introduce a novel inference pipeline that combines multi-resolution downsampling and fine-grained visual prompt-ing to improve the structural awareness of multimodal mod-els. An agentic framework is implemented where the VLM actively utilizes external tools to verify visual inputs, sig-nificantly reducing hallucination rates. Experimental re-sults demonstrate that our collaborative approach consis-tently outperforms traditional end-to-end VLM inference, providing a scalable and interpretable pathway toward more reliable and human-like machine vision. 
+
+## 2. Related Works 
+
+2.1. Agentic Multimodal Model 
+
+The paradigm shift from passive observation to agentic perception is characterized by models that do not merely generate descriptions but actively manipulate their cognitive processes and environment. Visual Programming and Tool Augmented Reasoning. Early efforts like VisProg [14] and ViperGPT [35] pioneered code generation for visual tasks enabling complex reasoning through modular tool use while Chameleon [27] integrates external tools to augment LLM knowledge. Similarly HuggingGPT [32] and Visual Chat-GPT [39] orchestrate task specific models showcasing multi tool potential. Active Perception and Fine grained Interac-tion. Addressing the perception logic gap recent research emphasizes active analysis where Ferret [46] enables fine grained grounding and models like LLaVA Interactive [4] and LLaVA Plus [25] incorporate visual prompts for real world editing. Furthermore SPHINX [23] and InternLM XComposer2 [8] support multi resolution inputs allowing models to zoom in on critical regions. Multimodal Agents in Complex Environments. In dynamic environments Ap-pAgent [43] and Mobile Agent [38] operate smartphones via visual feedback while Mind2Web V [7] and SeeClick [5] focus on web navigation. Cradle [36] explores gam-ing agents and VILA Agent [41] with Agent V [29] target long horizon planning and self correction. Benchmarks for Agentic Evaluation. For evaluation benchmarks like Math-Verse [47] and MMSearch [20] assess logic whereas Tool-Bench [30] and RealX Bench measure tool invocation capa-bilities bridging the gap between reasoning and perception. 
+
+2.2. Visual Prompting for VLMs 
+
+The evolution of visual prompting has transitioned from simple indicators to semantic overlays. Marker based grounding and set of mark. A key milestone is Set of Mark SoM [44] which uses alphanumeric symbols for region grounding a method extended by Ferret [46] and GLaMM [31] to integrate continuous spatial coordinates for inter-acting with arbitrary shapes. Interactive and Point based Prompting. To facilitate natural interaction ViP LLaVA [2] and Draw and Understand [3] process arbitrary cues like scribbles while Shtedritski et al [33] demonstrate that sim-ple markers act as visual anchors guiding cross attention networks. Multi scale and grid based Strategies. Address-ing high resolution scenes LLaVA UHD [42] and Monkey [22] utilize grid based cropping strategies whereas V IRL [17] and G LLaVA [11] incorporate geometric annotations for spatial navigation and problem solving. In context Vi-sual Learning. Finally In context Visual Learning methods such as Visual Prompt Tuning VPT [18] and Images Speak in Images [37] use visual demonstrations to steer behavior while Mantis [19] leverages interleaved contexts for com-parative reasoning. The evolution of visual prompting has moved from ba-sic indicators toward sophisticated semantic overlays that bridge the gap between raw pixel data and linguistic in-structions. A major development in this area involves the use of alphanumeric symbols and markers to establish re-gion grounding which allows models to associate specific parts of an image with text descriptions.These visual an-DDP 
+
+Image and choice question 
+
+How many animals are in the image? 
+
+Option: A. 0 B. 1 C. 2 D. Not Sure         
+
+> Qwen2.5 VL:
+> Based on the image, there are one dogs visible: rear
+> part on the left side of the tree and front part on
+> the right side.Therefore ,the correct option is B. 1.
+> Gemini3 -flash:
+> Based on the image provided, there is 1 animal (a dog)
+> in the picture.The dog is standing behind a large tree
+> trunk, which hides its middle section. This creates an
+> optical illusion that makes it look like there might be
+> two separate parts or …Therefore, the correct option
+> is:B . 1
+> GPT 5.3:
+> The image shows one animal (dog):On the left side,
+> behind the tree, you can see the back half and tail of
+> adog.On the right side, there is the same
+> dog …correct answer is B. 1
+
+Direct answer by VLM(wrong) 
+
+DDP workflow   
+
+> Classifier:
+> The image is classified as 6 ( real_picture )
+> because it is a photograph of a real -world
+> scene … visual perfectly.<class>6</class>
+> Tool -manager:
+> <tool3> draw_rectangle (image, [[170, 260, 220,
+> 310]])</tool3>
+> <tool2> crop_image (image, [0, 180, 1000,
+> 500])</tool2>…
+> Critic:
+> The image is classified as a real -world photograph (class
+> 6), which requires applying common sense and physical
+> logic.
+> Alignment: The front and back portions of the dog
+> slightly mismatch the width of the tree trunk.
+> Auxline:he processed image feature two parts framed by
+> red boxes, emphasizing 2 parts belong to different
+> animals.
+> Final answer:<answer>C< \answer>
+
+DDP Figure 2. Overcoming visual reasoning bottlenecks via the DDP framework. Standard VLMs are easily deceived by optical illusions or occlusions (e.g., a dog seemingly split by a tree). Our DDP approach introduces a ”divide-and-conquer” strategy: the classifier categorizes the image type, the tool manager invokes specialized visual tools (e.g., draw rectangle and crop ) to highlight suspicious regions, and the 
+
+Critic synthesizes these visual cues. The Critic detects that the front and back portions mismatch the trunk width, thereby correcting the initial misconception and providing the right answer ( Option C: 2 ). 
+
+chors serve as critical guidance for cross attention mecha-nisms helping the model focus its computational resources on the most relevant areas for answering questions or per-forming tasks. As research progresses toward handling high resolution scenes and complex reasoning strategies have become es-sential for modern architectures. Parallel to these structural improvements in context visual learning has emerged as a powerful paradigm for steering model behavior through vi-sual demonstrations. Methods like visual prompt tuning and the images speak in images approach provide the model with examples that clarify the desired output format or rea-soning logic. More recent efforts such as mantis leverage in-terleaved contexts to support comparative reasoning across multiple images which allows for a deeper understanding of relationships within a visual sequence or a collection of related scenes. 
+
+## 3. Methodology 
+
+In this section, we detail our proposed multi-stage infer-ence pipeline designed to mitigate visual illusions in Vision-Language Models. The framework consists of three pri-mary stages: initial perception and hierarchical task classifi-cation, agentic tool invocation for feature disentanglement, and low-resolution refinement with targeted prompting. 
+
+3.1. Overview 
+
+The core observation motivating our Degradation-Driven Prompting (DDP) is that excessive visual detail in high-resolution images often acts as a distraction, diverting VLMs from the main task and significantly increasing con-text length. DDP is not the entire pipeline but refers specif-ically to the strategic injection of downsampling operations at key stages to enforce structural attention. By employing these degradation steps, we not only improve computational efficiency but also force the VLM’s attention mechanism to focus on the essential structural elements required for the task. We detail our proposed multi-stage inference pipeline designed to mitigate visual illusions in Vision-Language Models. The framework consists of three primary stages,please refer to Secs. 3.2 to 3.4. The DDP mecha-nism is applied at the beginning of Sec. 3.3 and Sec. 3.4 respectively. CLASSIFIER 
+
+Preset classes 
+
+Choice 
+
+question 
+
+case2 case1 
+
+> Classid :4(Length
+> attribute)
+> Classid:3( Co
+> -lorblind )
+
+case3    
+
+> Classid:2(
+> Color attribute)
+> Polar auxline Cartesian auxline Crop
+> Red box
+> Cartesian auxline
+> White mask Crop
+> Blur mask
+
+Function call Function call 
+
+Feedback  Feedback VLM 
+
+Tool magazine1  Tool magazine2 
+
+DDP(noise removal )
+
+DDP(structural bottleneck <80p) 
+
+CRITIC 
+
+Processed image 
+
+Target prompt  Final CoT and 
+
+option 
+
+Classid     
+
+> class1prompt = (
+> Task: precise counting
+> Warning:Objects may be
+> clustered…
+> Strict Requirement:focus only on…
+> Question: {question from csv}
+> Answer
+> format
+> Option
+> check
+> Auxline
+> tips
+> <reasons>
+> Based on the provided
+> auxiliary lines (neopurple
+> lines),
+> 1. For the left orange
+> circle …
+> 2. For the right orange …
+> </reasons>
+> <answer>0</answer>
+> enhance contrast
+
+Figure 3. Overview of the DDP-based VLM enhancement framework. The workflow consists of three primary stages: (1) classifier :The input image and choice question are categorized into preset domains (e.g., motion illustration, colorblindness, or color attributes) to guide subsequent tool selection. (2) tool manager : After an initial noise-removal downsampling, a DDP agent performs iterative function calls to select specialized visual tools from magazines, such as Polar/Cartesian auxiliary lines , crops , and masks , to highlight key features. (3) target prompting : Despite the extreme downsampling (structural bottleneck < 80p), the processed image is fed into the Critic module. By leveraging task-specific prompts and auxiliary tips based on the ClassID, the system generates a structured Chain-of-Thought (CoT) reasoning process to produce the final option. 
+
+3.2. Task Classification 
+
+The DDP begins with a task classification stage. To mit-igate the impact of high-frequency deceptive signals at the outset, the input image I is first subjected to a light-weight Gaussian smoothing σ1 to generate a base perception: 
+
+Ibase = Smooth (I, σ 1) (1) The classifier then performs a dual-level taxonomy analysis to determine the routing logic for subsequent stages. Given the smoothed image and the user query Q, the classifier pro-duces a task configuration C:
+
+C = classifer (Ibase , Q ) (2) We categorize the visual challenges into two primary task sets based on their cognitive complexity, which are further divided into specific subcategories: • Physical Attributes: Focuses on objective geometric and photometric properties. This major category is subdi-vided into Size , Length , Color , and Others .• Perceptual Phenomena: Addresses higher-level cogni-tive illusions that deceive the global reasoning of VLM. This category is subdivided into eight specific sub-tasks: 
+
+Counting , Find Difference , Color-Blind , Motion , Geome-try , Real Picture , Size , and Others .The configuration C dictates the selection of specialized vi-sual primitives in the next stage. 
+
+3.3. Tool Manager 
+
+In this stage, we apply the first level of Degradation-Driven Prompting (DDP), where the input image is pre-liminarily compressed to a maximum dimension (height or width) of approximately 150 pixels ( IDDP ) to filter out high-frequency noise while retaining sufficient detail for tool application. 
+
+IDDP = Downsample (Ibase , R 150 ) (3) Upon receiving the task category C from the classifer, the Tool Manager functions as an autonomous agent designed to decouple deceptive visual signals by invoking special-ized external tools T from a predefined library Ω. The core objective of this stage is to transform the ambiguous or illusion-contaminated input into a series of evidence-enhanced representations that facilitate objective reasoning. The interaction is formulated as the generation of a tool-processed image set: 
+
+Itool = T (IDDP , θ ) (4) In this equation, θ represents the execution parameters, such as position of aux lines, angles of aux lines, which are dy-namically predicted by the agent based on the semantic re-quirements of the task. 
+
+Tools for Physical Attribute Decoupling. For tasks cat-egorized under Physical Attributes, such as assessing geo-metric proportions or rectifying perspective distortions, the Tool Manager employs a suite of auxiliary lines and spatial-isolation primitives. The polar aux line is utilized to serve as the reference to eliminate the illusion of distortion of slant lines, effectively serving as a reference to whether two lines are aligned. The cartesian aux line (or perspective rectifica-tion) is applied to correct skewed planes, ensuring that par-allel lines in 3D space are projected accurately for the eval-uation of critic Sec. 3.4. To eliminate peripheral distractions and context-induced size illusions (e.g., the Ebbinghaus il-lusion), the crop tool is invoked to extract the target objects at a uniform scale: 
+
+Icrop = Extract (IDDP , [x, y, w, h ]) (5) These transformations ensure that the physical dimensions of the stimuli are presented in a canonical, measurement-ready format. 
+
+Tools for Perceptual Phenomenon Mitigation. To mit-igate higher-level cognitive illusions that rely on the ”Gestalt” effect or deceptive local textures, the tool man-ager deploys a complex array of ”signal-disturbing” tools. The red box and white-out masking tools are used to break global context; the former forces the model’s spatial at-tention onto a specific boundary, while the latter replaces the surrounding deceptive gradients with a neutral constant 
+
+1white to isolate the target’s true luminance or color: 
+
+Imask = IDDP ⊙ M + (1 − M ) · 1white (6) For alignment and parallelism verification in structural illu-sions (e.g., the Poggendorff illusion), the cartesian aux line tool overlays specific orthogonal reference lines,horizontal or vertical at critical intersection points predicted by the agent. 
+
+Iaux = Overlay (IDDP , L {hori,vert }) (7) Additionally, blur masking is applied to suppress high-frequency deceptive textures that often trigger motion or depth illusions in VLMs. By convolving the image with a heavy Gaussian kernel G(σ), the tool forces the model to ig-nore noisy textural cues and focus on stable, low-frequency structural signals: 
+
+Iblur = IDDP × G(σ), σ ≫ σ1 (8) Finally, the crop tool is re-utilized here to provide a ”foveated” view of disputed regions, ensuring that the critic’s synthesis is based on purified, localized evidence rather than the original deceptive global configuration. 
+
+3.4. Target Prompting 
+
+Standard VLMs are known to be heavily reliant on lo-cal textures, often prioritizing high-frequency details over global semantics. To mitigate this high-frequency bias , we implement the most aggressive form of DDP in this final stage, where the image is further downsampled to a maxi-mum dimension of 80 pixels . This extreme reduction acts as a structural bottleneck, effectively stripping away decep-tive local textures and forcing the model to rely solely on global structural cues. During this stage, the critic is respon-sible for synthesizing the raw image, the tool-augmented evidence, and the task-specific logic to produce a calibrated judgment. Unlike standard VLMs that may fall into the trap of over-interpreting pixel-level noise, our critic avoids this pitfall by operating through the aforementioned structural bottleneck. 
+
+Structural Bottleneck via Strategic Downsampling We introduce a radical downsampling B that reduces the tool-processed image Itool to an extreme low-resolution repre-sentation IDDP (typically R ≤ 80 p): 
+
+IDDP = Downsample (Itool , R 80 ) (9) The theoretical motivation is grounded in the Data Process-ing Inequality . By deliberately discarding high-resolution details, we minimize the mutual information between the deceptive textural noise N and the final prediction Y :
+
+I(N ; Y ) → 0 (10) This bottleneck forces the critic to focus exclusively on the topological and structural alignment of the objects. 
+
+Evidence Synthesis and Final Alignment. The critic receives the low-resolution ”purified” image IDDP along with an Alignment Prompt Palign . The critic performs a multi-step logical check encompassing consistency verifica-tion and physical dimension deduction. The final reasoning and answer A are produced as: 
+
+A = critic (IDDP , T (I), P align ) (11) By transforming the problem from direct visual recog-nition to structured logical criticism, the critic effectively overcomes the inherent cognitive biases of the underlying VLM. Question&picture  
+
+> input
+> vlm
+> tools
+> CoT1
+
+<classid >2< \classid >   
+
+> classification prompt
+> CoT2
+> <tool4> reversed_blur_mask (image,
+> [[100, 100]], [80], 21, 0)</tool4>
+> <tool5> enhance_contrast (image,
+> 2.0, (8, 8))</tool5>
+> red box white mask
+> crop auxline auxline
+> enhance contrast
+> DDP
+> tool -guide prompt
+> tool4
+
+tool5 
+
+> Final inference
+
+target prompt 
+
+> CoT3
+> Based on the
+> visual analysis of
+> the color
+> blindness test
+> plate provided
+> in …<answer>A< \a
+> nswer>
+> DDP
+
+Figure 4. A case study demonstrating how DDP leverages external tools to solve visual perception bottlenecks. The pipeline iteratively classifies the task, invokes specific image-processing tools (blurring and contrast enhancement), and utilizes the resulting ”degraded” yet cleaner visual features to perform robust reasoning on perception-intensive tasks. Table 1. Task classification and corresponding tool-sets. For physical attributes (e.g., color, size, length), isolation and highlighting tools such as crop, masks, and red boxes are utilized to eliminate background interference . Conversely, for perceptual phenomena tasks (e.g., counting, geometry, difference locating), structural and visibility-enhancing tools like auxiliary lines (cartesian/polar) and contrast enhancement are employed to provide spatial coordinate references and emphasize subtle visual patterns. 
+
+Category Sub-tasks Assigned Tools Physical Attributes color, size, length crop, white mask, cartesian mask, red box Perceptual Phenomena counting,difference locat-ing, color-blind, motion, geometry, real picture, size, others cartesian auxline,polar auxline, blur mask, red box, enhance contrast, crop ,white mask 
+
+## 4. Experiments 
+
+4.1. Experimental Setup 
+
+Datasets. We evaluate our proposed pipeline across five widely recognized multi-modal benchmarks to test gen-eral perception, reasoning, and grounding capabilities: MME [9] (Perception), SEED-Bench [21] (General), Sci-enceQA [26] (Image-based), and VQAv2 [13] (Open-domain VQA). These datasets cover a spectrum from low-level recognition to high-level cognitive reasoning. 
+
+Baselines. We compare our approach with: LLaVA-v1.5 [24], Qwen-VL-Plus [1], Gemini-1.5-Pro [12] and GPT-4o [28]. It should be noted that we do not include certain more recent frontier models or iterative updates in this comparison. This is primarily because their perfor-mance results on the specific academic benchmarks used in our evaluation (e.g., SEED-Bench[21], MMBench [9]) have not been officially disclosed in their technical reports or lack independent, verifiable third-party testing. To en-sure the accuracy and fairness of our comparative analysis, we only report results from models with publicly available and validated metrics. 
+
+Implementation Details. We employ the gemini-3-flash-preview and gemini-3-pro-preview models as our primary visual-language backbones. All inferences are conducted via an API-based agentic pipeline with a temperature of 0.1 and top p = 1 . To handle large-scale evaluation ef-ficiently, we implement a high-concurrency framework us-ing ThreadPoolExecutor. This system supports multi-key polling and parallel querying, significantly reducing total latency. During development, we perform iterative prompt engi-neering by monitoring intermediate outputs. Specifically, we analyze the CoT traces to identify logical fallacies and inspect the tool-processed images to ensure the generated masks or grids correctly highlight the target objects. 4.2. Main Results on Public Benchmarks 
+
+Performance on General Benchmarks. As shown in Tab. 2, DDP achieves superior performance across all perception-related metrics. While vanilla VLMs strug-gle with small-scale object grounding, our multi-modal prompting scheme provides clear directional cues. As summarized in Tab. 2, our multi-modal visual prompting pipeline consistently outperforms existing meth-ods. While GPT-4o exhibits strong zero-shot capabilities, our method further enhances its performance by providing a buffer zone and noise reduction through Gaussian blur-reverse masks. 
+
+Performance on V ∗bench.[40] Performance on High-Resolution Visual Grounding. To evaluate DDP’s ability to handle fine-grained visual details, we conduct benchmarks on V ∗ Bench. As shown in Tab. 3, DDP achieves a signif-icant performance leap over standard multimodal large lan-guage models (MLLMs). Specifically, our model reaches an overall accuracy of 65.8%, surpassing the leading propri-etary model GPT-4V by 10.8% and the popular open-source LLaVA-1.5 by 17.1%. Robustness in Fine-grained Reason-ing. DDP demonstrates strong consistency across both sub-tasks. In the Attribute Recognition task, we achieve 62.2%, indicating that our DDP effectively captures microscopic vi-sual features that are typically lost during the image resizing process in traditional vision-language encoders. More im-pressively, our model scores 71.2% on the Spatial Relation-ship task, which is a 10.7% improvement over GPT-4V. This gain is largely attributed to our precise local-view cropping and iterative feedback loop, which provides more accurate geometric priors compared to global-image-only inference. DDP offers a more efficient approach that maintains a supe-rior balance between computational overhead and ground-ing precision. 
+
+Experiments on ColorBlind Dataset [10] To further eval-uate the robustness of our proposed pipeline in challenging visual scenarios, we conducted a specialized evaluation on the ColorBlind dataset which is similar to a part of valida-tion set in the workshop[16, 34]. This dataset is designed to test a model’s ability to distinguish subtle color variations and patterns, a task that remains a significant bottleneck for current large VLMs. As shown in Tab. 4, existing state-of-the-art mod-els, including OpenAI o1 [10], Gemini-2.5-Pro [10], and Qwen2.5-VL-72B [10], all fail to achieve a non-zero score on the Pass@1 metric, highlighting the extreme difficulty of this benchmark. In contrast, our proposed method demon-strates a remarkable breakthrough. Our Baseline (without applying blur and visual enhance-ment techniques) already achieves a competitive accu-racy of 15.50%, surpassing all tested general-purpose large VLMs. By integrating the full pipeline with fine-grained visual prompting and enhancement, our method reaches a Pass@1 accuracy of 28.89%. These results confirm that tar-geted visual enhancement and fine-grained prompting are essential for models to see and interpret complex chromatic patterns that are otherwise ignored by standard visual en-coders. 
+
+4.3. DataCV CVPR Challenge Submission 
+
+To validate the effectiveness of our proposed framework in real-world complex scenarios, we conducted evaluations on Track 1. The track probe the limits of VLM reasoning concerning tangible object properties and deceptive visual patterns. We are the 1st solution in this track. As summa-rized in Tab. 5 that our approach, which integrates tool-use capabilities and our DDP strategy, demonstrates a substan-tial performance leap over the Gemini-3-Pro, particularly in Track 1. DDP achieves a solid accuracy of 95.71% (+6.19% improvement) on original images. More importantly, in the much more challenging perturbed images category where standard models typically struggle with visual noise or dis-tortions, our method achieves a remarkable 86.19% accu-racy, representing a 20.00% absolute increase over the base-line. This significant margin underscores the robustness of our DDP reasoning, proving that our pipeline can effec-tively see through visual perturbations that confuse vanilla VLMs. Beyond Track 1, our framework also maintains its su-periority in Track 2, even though we did not use permitted measurement tools , etc. As observed in our broader eval-uation, DDP achieved an accuracy of 82.26%, outperform-ing the baseline by 10.89%. These consistent improvements across both tracks suggest that while state-of-the-art models like Gemini-3-Pro possess strong foundational vision capa-bilities, they often falter when faced with visual deceptive or attribute-specific scenarios. By leveraging external tools to calibrate visual perception and applying systematic prompt engineering, DDP successfully mitigates common failure modes identified in TeT [10], reinforcing that structured vi-sual reasoning is more effective than increasing model scale alone for solving high-order perceptual challenges. 
+
+4.4. Ablation Study 
+
+We perform a systematic ablation study on the V*Bench [40] to quantify the contribution of each pipeline component including the visual tools such as the red bound-ing box and white-out mask, the prompt engineering, and the image degradation via the blur-reverse mask. The re-sults are summarized in Tab. 6. The effect of image degra-dation is significant, while removing this component re-sults in an 8.7% overall performance drop. The impact is most evident in spatial reasoning where accuracy falls from 89.5% to 76.3%. This confirms the insight from tet [10] that high-frequency pixel noise can hinder the generaliza-tion of the vision tower. Blurring non-essential areas serves Table 2. Performance comparison on common public benchmarks. Accuracy (%) is reported for all metrics. GPT-4o results are cited from its official technical report. 
+
+Method MMBench [9] SEED-Bench [21] SciQA[13] VQAv2 [26] LLaVA-v1.5 [24] 64.3 66.1 66.8 78.5 Qwen-VL [1] 38.2 62.3 67.1 78.8 GPT-4o [6, 28] 83.4 77.1 94.3 82.3 Gemini-1.5-pro [12] 82.3 77.1 94.8 73.2 Gemini-3-pro 88.4 87.2 98.1 85.6 
+
+DDP (w/ Gemini-3-Pro) 92.1 94.5 99.1 89.4 
+
+Table 3. Performance comparison on the V*Bench [40]. Our pro-posed DDP consistently outperforms both state-of-the-art propri-etary models and open-source models across all evaluation met-rics, including Attribute, Spatial, and Overall accuracy.                         
+
+> Model Attribute (%) Spatial (%) Overall (%)
+> Human [40] 98.3 100.0 99.0 Bard [40] 31.3 46.1 37.2 Gemini-1.5-Pro [40] 40.9 59.2 48.2 GPT-4V [40] 51.3 60.5 55.0 InstructBLIP [40] 25.2 47.4 34.0 LLaVA-1.5-7B [40] 43.5 56.6 48.7
+> Ours 89.2 89.5 89.3
+
+Table 4. Comparison of Pass@1 accuracy on TeT [10]. DDP significantly outperforms state-of-the-art general-purpose VLMs. 
+
+Models / Tasks ColorBlind (Pass@1) 
+
+OpenAI o1 0.00% Claude-3-Sonnet 0.00% Gemini-2.5-Pro 0.00% Qwen2.5-VL-72B 0.00% InternVL3-78B 0.00% MiniCPM-V-2.6 0.00% 
+
+Gemini-3-Pro 15.33% DDP (w/ Gemini-3-Pro) 29.33% 
+
+Table 5. Performance comparison on Workshop task1[34] . We evaluate the zero-shot accuracy ( ↑) using Gemini-3-Pro as the backbone model across task1 challenging domain.         
+
+> Method Original Images Perturbed Images
+> Gemini-3-Pro 89.52% 66.19%
+> DDP (w/ Gemini-3-Pro) 95.71% 86.19%
+> Improvement +6.19% +20.00%
+
+as a soft attention mechanism that guides the vlm toward semantic-level features rather than low-level pixel noise. The importance of the buffer zone is demonstrated by re-moving the visual tools which leads to a 5.5% decrease in 
+
+Table 6. Ablation study of pipeline components on the V*Bench [40]. We evaluate the contribution of the Tool Manager, Prompt Engineering, and Task Classifier across different reason-ing dimensions. Bold indicates the best performance.                         
+
+> Variant Attribute (%) Spatial (%) Overall (%) ∆
+> Full Pipeline 89.2 89.5 89.3 -w/o Visual Tools 82.6 85.5 83.8 -5.5 w/o Prompt Engineering 85.2 86.8 85.9 -3.4 w/o Degradation 83.8 76.3 80.6 -8.7 Gemini-3-Pro 52.2 68.4 58.6 -30.7
+
+performance. This design choice prevents the model from losing critical edge information of the objects which often occurs when segmentation masks are overly aggressive or misaligned. Furthermore, removing prompt engineering in row 3 leads to a 3.4% decline in accuracy. The vanilla direct inference shown in row 5 results in a 30.7% performance collapse compared to the full pipeline. This underscores that standard vlm inference is insufficient for tasks involv-ing tiny or long-tail objects without a specialized pipeline that manages visual focus and reasoning logic. 
+
+## 5. Conclusion 
+
+We introduced Degradation-Driven Prompting (DDP), a novel agentic strategy designed to mitigate the structural over-sensitivity and local-texture biases inherent in current VLMs. For addressing the fundamental perception-logic gap, our DDP employs deliberate multi-scale downsam-pling as a structural bottleneck, forcing models to priori-tize global topological cues over deceptive high-frequency noise. By seamlessly integrating hierarchical task classifi-cation, an autonomous tool manager for objective geomet-ric and photometric disentanglement, and a critic module for localized, evidence-based reasoning, our pipeline ef-fectively transforms passive observation into active visual verification. Extensive evaluations demonstrate that this approach establishes a new state-of-the-art across rigorous benchmarks. DDP empirically proves that ”less is more” in visual perception, by systematically degrading distrac-tive visual inputs and equipping VLMs with active tool-use, DDP provides a scalable, robust, and interpretable pathway toward more reliable and human-like machine vision. 
+
+## References 
+
+[1] Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. Qwen-vl: A versatile vision-language model for understanding, localization, text reading, and beyond, 2023. 6, 8 [2] Mu Cai, Haotian Liu, Dennis Park, Siva Karthik Mustikovela, Gregory P. Meyer, Yuning Chai, and Yong Jae Lee. Vip-llava: Making large multimodal models understand arbitrary visual prompts, 2024. 2 [3] Weizhou Chen, Guande Chen, Ran Ren, Yuan Yao Hu, Ziyi Li, Yuxuan Ji, Haotian Wang, Zhengyi Lu, Zeyu Xie, and Tat-Seng Chua. Draw-and-understand: Leveraging visual prompts to enable mllms to comprehend what you want. arXiv preprint arXiv:2403.20271 , 2024. 2 [4] Wei-Ge Chen, Irina Spiridonova, Jianwei Yang, Jian-feng Gao, and Chunyuan Li. Llava-interactive: An all-in-one demo for image chat, segmentation, gener-ation and editing, 2023. 2 [5] Kanzhi Cheng, Yi Xie, et al. Seeclick: Harnessing gui grounding for advanced visual gui agents. arXiv preprint arXiv:2401.10935 , 2024. 2 [6] OpenCompass Contributors. Vlmevalkit: An open-source toolkit for evaluating large multi-modality models. https : / / github . com / open -compass/VLMEvalKit , 2024. 8 [7] Xiang Deng, Yu Gu, Boyuan Zheng, Shijie Chen, Samuel Stevens, Boshi Wang, Huan Sun, and Yu Su. Mind2web: Towards a generalist agent for the web, 2023. 1, 2 [8] Xiaoyi Dong, Pan Zhang, Yuhang Zang, Yuhang Cao, Bin Wang, Jiaqi Li, Wei Li, Kai Chen, and Dahua Lin. Internlm-xcomposer2: Mastering free-form text-image composition and comprehension. arXiv preprint arXiv:2401.16420 , 2024. 2 [9] Chaoyou Fu, Peixian Chen, Yunhang Shen, Yulei Qin, Mengdan Zhang, Xu Lin, Jinrui Yang, Xiawu Zheng, Ke Li, Xing Sun, Yunsheng Wu, Rongrong Ji, Caifeng Shan, and Ran He. Mme: A comprehensive evalua-tion benchmark for multimodal large language mod-els, 2025. 6, 8 [10] Hongcheng Gao, Zihao Huang, Lin Xu, Jingyi Tang, Xinhao Li, Yue Liu, Haoyang Li, Taihang Hu, Minhua Lin, Xinlong Yang, Ge Wu, Balong Bi, Hongyu Chen, and Wentao Zhang. Pixels, patterns, but no poetry: To see the world like humans, 2025. 1, 2, 7, 8 [11] Jiahui Gao, Renjie Pi, Jipeng Zhang, Jialong Ye, Wan-jun Zhong, Yufei Wang, Lanqing Hong, Jianhua Han, Hang Xu, Zhenguo Li, et al. G-llava: Solving geomet-ric problem with multi-modal large language model. 
+
+arXiv preprint arXiv:2312.11370 , 2023. 1, 2 [12] Gemini Team, Google. Gemini 1.5: Unlocking multi-modal understanding across millions of tokens of con-text. arXiv preprint arXiv:2403.05530 , 2024. 1, 6, 8[13] Yash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv Batra, and Devi Parikh. Making the v in vqa matter: Elevating the role of image understanding in visual question answering, 2017. 6, 8 [14] Tanmay Gupta and Aniruddha Kembhavi. Visual pro-gramming: Compositional visual reasoning without training. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 14953–14962, 2023. 2 [15] Jack Hong, Chenxiao Zhao, ChengLin Zhu, Weiheng Lu, Guohai Xu, and Xing Yu. Deepeyesv2: Toward agentic multimodal model, 2025. 1, 2 [16] Wenjin Hou, Wei Liu, Han Hu, Xiaoxiao Sun, Serena Yeung-Levy, and Hehe Fan. Seeing is believing? abenchmark for multimodal large language models on visual illusions and anomalies, 2026. 7 [17] Ye Hu, Jun Zhang, Sibo Liu, Xiao Han, and Wei Yang. V-irl: Grounding virtual intelligence in real life. arXiv preprint arXiv:2402.03310 , 2024. 2 [18] Menglin Jia, Luming Tang, Bor-Chun Chen, Claire Cardie, Serge Belongie, Bharath Hariharan, and Ser-Nam Lim. Visual prompt tuning, 2022. 1, 2 [19] Dongfu Jiang, Xiang Ren, and Bill Yuchen Lin. Man-tis: Interleaved multi-image instruction tuning. In 
+
+First Conference on Language Modeling , 2024. 2 [20] Dongzhi Jiang, Renrui Zhang, Ziyu Guo, Yanmin Wu, Jiayi Lei, Pengshuo Qiu, Pan Lu, Zehui Chen, Chaoyou Fu, Guanglu Song, Peng Gao, Yu Liu, Chun-yuan Li, and Hongsheng Li. Mmsearch: Bench-marking the potential of large models as multi-modal search engines, 2024. 2 [21] Bohao Li, Rui Wang, Guangzhi Wang, Yuying Ge, Yixiao Ge, and Ying Shan. Seed-bench: Benchmark-ing multimodal llms with generative comprehension, 2023. 6, 8 [22] Zhang Li, Biao Yang, Qiang Liu, Zhiyin Ma, Shuo Zhang, Jingxu Yang, Yabo Sun, Yuliang Liu, and Xi-ang Bai. Monkey: Image resolution and text label are important things for large multi-modal models. In 
+
+Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , 2024. 2[23] Ziyi Lin, Chris Liu, Renrui Zhang, Peng Gao, Long-tian Qiu, Han Xiao, Han Qiu, Chen Lin, Wenqi Shao, Keqin Chen, Jiaming Han, Siyuan Huang, Yichi Zhang, Xuming He, Hongsheng Li, and Yu Qiao. Sphinx: The joint mixing of weights, tasks, and visual embeddings for multi-modal large language models, 2023. 2 [24] Haotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved baselines with visual instruction tun-ing, 2024. 6, 8 [25] Shilong Liu, Chunyuan Li, Qingyang Wu, Yuheng Wang, Chao Zhang, Jianfeng Gao, and Jian Feng. Llava-plus: Learning to use tools for creating mul-timodal agents. arXiv preprint arXiv:2311.05437 ,2023. 2 [26] Pan Lu, Swaroop Mishra, Tony Xia, Liang Qiu, Kai-Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter Clark, and Ashwin Kalyan. Learn to explain: Multi-modal reasoning via thought chains for science ques-tion answering, 2022. 6, 8 [27] Pan Lu, Baolin Peng, Hao Cheng, Michel Galley, Kai-Wei Chang, Ying Nian Wu, Song-Chun Zhu, and Jianfeng Gao. Chameleon: Mixed-modal early-fusion alignment for multimodal llms. arXiv preprint arXiv:2304.09842 , 2024. 2 [28] OpenAI. Hello gpt-4o. OpenAI Blog , 2024. 1, 6, 8 [29] SunYoung Park, Jong-Hyeon Lee, Youngjune Kim, Daegyu Sung, Younghyun Yu, Young rok Cha, and Jeongho Ju. V-agent: An interactive video search sys-tem using vision-language models, 2026. 1, 2 [30] Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan Yan, Yaxi Lu, Yankai Lin, Xin Cong, Xiangru Tang, Bill Qian, Sihan Zhao, Lauren Hong, Runchu Tian, Ruobing Xie, Jie Zhou, Mark Gerstein, Dahai Li, Zhiyuan Liu, and Maosong Sun. Toolllm: Facil-itating large language models to master 16000+ real-world apis, 2023. 2 [31] Hanoona Rasheed, Muhammad Maaz, Sahal Shaji, Ammar Shaker, Salman Khan, Hisham Cholakkal, Rao M Anwer, Eric Xing, Ming-Hsuan Yang, and Fa-had S Khan. Glamm: Pixel grounding large multi-modal model. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition (CVPR) , 2024. 2 [32] Yongliang Shen, Kaitao Song, Xu Tan, Dongsheng Li, Weiming Lu, and Yueting Zhuang. Hugginggpt: Solv-ing ai tasks with chatgpt and its friends in hugging face. In Advances in Neural Information Processing Systems (NeurIPS) , 2024. 2 [33] Aleksandar Shtedritski, Christian Rupprecht, and An-drea Vedaldi. What does clip know about a red circle? visual prompt engineering for vlms. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , pages 11953–11963, 2023. 2 [34] Xiaoxiao Sun, Mingyang Li, Min Woo Sun, Mark Endo, Shengguang Wu, Changlin Li, Yuhui Zhang, Zeyu Wang, Serena Yeung-Levy, et al. Do vlms perceive or recall? probing visual perception vs. memory with classic visual illusions. arXiv preprint arXiv:2601.22150 , 2026. 7, 8 [35] D´ ıdac Sur´ ıs, Sachit Menon, and Carl Vondrick. Vipergpt: Visual inference via python execution for reasoning, 2023. 2 [36] Weihao Tan, Wentao Zhang, Xinrun Xu, Haochong Xia, Ziluo Ding, Boyu Li, Bohan Zhou, Junpeng Yue, Jiechuan Jiang, Yewen Li, Ruyi An, Molei Qin, Chuqiao Zong, Longtao Zheng, Yujie Wu, Xiaoqiang Chai, Yifei Bi, Tianbao Xie, Pengjie Gu, Xiyun Li, Ceyao Zhang, Long Tian, Chaojie Wang, Xinrun Wang, B¨ orje F. Karlsson, Bo An, Shuicheng Yan, and Zongqing Lu. Cradle: Empowering foundation agents towards general computer control, 2024. 2 [37] Xinlong Wang, Wen Wang, Yue Cao, Chunhua Shen, and Tiejun Huang. Images speak in images: A gener-alist painter for in-context visual learning, 2023. 2 [38] Zhiyong Wang, Zhao Han, Ruichao Jiang, Binyuan Chen, et al. Mobile-agent: Autonomous multi-modal mobile device agent with visual perception. arXiv preprint arXiv:2401.16158 , 2024. 2 [39] Chenfei Wu, Shengming Yin, Weizhen Qi, Aiwen Wang, Zheqi Han, Lingpeng Liu, Jianfeng Li, Nan Duan, et al. Visual chatgpt: Talking, drawing and editing with visual foundation models. arXiv preprint arXiv:2303.04671 , 2023. 2 [40] Penghao Wu and Saining Xie. V*: Guided visual search as a core mechanism in multimodal llms, 2023. 7, 8 [41] Haotian Xu et al. Vila-agent: Powering high-resolution video and image understanding with vila. 
+
+arXiv preprint arXiv:2406.10232 , 2024. 2 [42] Ruyi Xu, Yuan Yao, Zonghao Guo, Junbo Cui, Zhan-hui Ni, Chunjiang Ge, Tat-Seng Chua, Zhiyuan Liu, and Gao Huang. Llava-uhd: an lmm perceiving any aspect ratio and high-resolution images. arXiv preprint arXiv:2403.11703 , 2024. 2 [43] Chi Yang, Zhao Han, Ruichao Jiang, Binyuan Chen, Zuxuan Liu, Chi Zhang, Xiaojun Han, et al. Appa-gent: Multimodal intelligent agent for smartphone ap-plications. arXiv preprint arXiv:2312.13771 , 2023. 2 [44] Jianwei Yang, Hao Zhang, Feng Li, Xueyan Zou, Chunyuan Li, and Jianfeng Gao. Set-of-mark prompt-ing unleashes extraordinary visual grounding in gpt-4v, 2023. 2 [45] Lingfeng Yang, Yueze Wang, Xiang Li, Xinlong Wang, and Jian Yang. Fine-grained visual prompting, 2023. 2 [46] Haoxuan You, Haotian Zhang, Zhe Gan, Xianzhi Du, Bowen Zhang, Zirui Wang, Liangliang Cao, Shih-Fu Chang, and Yinfei Yang. Ferret: Refer and ground anything anywhere at any granularity, 2023. 2 [47] Renrui Zhang et al. Mathverse: Does your multi-modal llm truly see the diagrams in visual math prob-lems? In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) ,2024. 2

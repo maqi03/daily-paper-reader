@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.03657v1/fig-001.webp",
+      "caption": "Figure 1. We randomly sample 100 query-prompt training pairs constructed by SupPR [46]. We compute the label matching consistency and VICL performance to investigate their correlation.",
+      "page": 1,
+      "index": 1,
+      "width": 490,
+      "height": 261
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03657v1/fig-002.webp",
+      "caption": "Figure 2. Prompt retrieval paradigms. (a) Label-agnostic pipelines rely on image similarity and may yield label-inconsistent prompts and disturb inference. (b) LaPR considers both image similarity and label consistency for prompt retrieval, retrieving more relevant prompts.",
+      "page": 2,
+      "index": 2,
+      "width": 1032,
+      "height": 302
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03657v1/fig-003.webp",
+      "caption": "Table 1. Comparison of LaPR with existing methods across three VICL tasks, including foreground segmentation, single-object detection, and colorization. The best performance values are boldfaced, and the second-best ones are italicized for clarity.",
+      "page": 7,
+      "index": 3,
+      "width": 902,
+      "height": 300
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03657v1/fig-004.webp",
+      "caption": "Figure 4. Qualitative visualization comparing LaPR (label-aware prompt retrieval) with SupPR (label-agnostic prompt retrieval). LaPR consistently retrieves label compatible prompts and yields visibly more accurate VICL predictions.",
+      "page": 7,
+      "index": 4,
+      "width": 972,
+      "height": 343
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03657v1/fig-005.webp",
+      "caption": "Table 2. Transferability across folds for LaPR, SupPR, and Partial2Global on the segmentation benchmark. Each method is trained on one fold and evaluated on the remaining folds.",
+      "page": 7,
+      "index": 5,
+      "width": 487,
+      "height": 312
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03657v1/fig-006.webp",
+      "caption": "Figure 5. Proportion of each mode-specific expert selected under each category, visualized as a heatmap.",
+      "page": 8,
+      "index": 6,
+      "width": 439,
+      "height": 451
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03657v1/fig-007.webp",
+      "caption": "Table 3. Ablation study on segmentation and detection across different configurations.",
+      "page": 8,
+      "index": 7,
+      "width": 882,
+      "height": 254
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03657v1/fig-008.webp",
+      "caption": "Figure 3. Overview of LaPR. (a) LaPR architecture. Prompt labels are injected to form joint embeddings. On both sides, experts produce mode specific features and a query conditioned router picks the matching mode and extracts its information, resulting in label-aware query embeddings and query-relevant prompt embeddings. (b) Training framework. Each mini-batch alternates an expert step (performance-guided contrastive learning, router fixed) and a router step (label-guided contrastive learning with load balancing, experts frozen).",
+      "page": 4,
+      "index": 8,
+      "width": 1034,
+      "height": 542
+    }
+  ]
+}

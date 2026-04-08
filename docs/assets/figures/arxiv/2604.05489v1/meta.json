@@ -1,0 +1,142 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-001.webp",
+      "caption": "Table 1: Quantitative results (%) on VBench with LaVie and Wan as T2V backbones. Bold values denote the best performance for each metric under each backbone.",
+      "page": 6,
+      "index": 1,
+      "width": 921,
+      "height": 279
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-002.webp",
+      "caption": "Table 2: Quantitative comparisons on EvalCrafter. SCMAPR consistently achieves better results, demonstrating a clear lead on this benchmark.",
+      "page": 6,
+      "index": 2,
+      "width": 960,
+      "height": 258
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-003.webp",
+      "caption": "Table A.3: Validation results for refined prompt.",
+      "page": 25,
+      "index": 3,
+      "width": 950,
+      "height": 220
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-004.webp",
+      "caption": "Table A.4: Validation results for revised prompt",
+      "page": 25,
+      "index": 4,
+      "width": 950,
+      "height": 248
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-005.webp",
+      "caption": "Figure A.9: Qualitative comparison of generated videos under an abstract user input (user-provided prompt) and refined prompt. Sampled frames generated from the user-provided prompt (top) and the prompt refined by SCMAPR (bottom) are contrasted. The original prompt yields a visually plausible but semantically drifting dark-water scene, while the refined prompt concretizes the intended metaphor and produces a consistent depiction of a flower bud emerging through cracked dark soil with a warm glow, better matching the target concept.",
+      "page": 26,
+      "index": 5,
+      "width": 950,
+      "height": 398
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-006.webp",
+      "caption": "Figure A.1: Examples of hallucination elimination after prompt refined by SCMAPR.",
+      "page": 15,
+      "index": 6,
+      "width": 950,
+      "height": 265
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-007.webp",
+      "caption": "Figure A.2: Examples of hallucination elimination after prompt refined by SCMAPR. The hallucinated information is highlighted in red, and its elimination or correction is marked in green.",
+      "page": 15,
+      "index": 7,
+      "width": 950,
+      "height": 281
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-008.webp",
+      "caption": "Figure A.3: Distribution of complex scenarios across VBench.",
+      "page": 15,
+      "index": 8,
+      "width": 917,
+      "height": 390
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-009.webp",
+      "caption": "Table 3: Quantitative comparisons on T2V-CompBench. SCMAPR achieves the highest average score.",
+      "page": 7,
+      "index": 9,
+      "width": 925,
+      "height": 248
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-010.webp",
+      "caption": "Figure 3: Comparisons of videos generated using Wan (Wang et al., 2025a) conditioned on user input and refined prompts from SCMAPR.",
+      "page": 7,
+      "index": 10,
+      "width": 950,
+      "height": 596
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-011.webp",
+      "caption": "Figure A.7: Distribution of prompt lengths on T2V-CompBench and T2V-Complexity (in words).",
+      "page": 18,
+      "index": 11,
+      "width": 667,
+      "height": 727
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-012.webp",
+      "caption": "Table A.1: Summary of the ten complex-scenario taxonomy categories, including each category’s core difficulty for text-to-video generation and the rationale used to ensure non-overlapping primary-label annotation.",
+      "page": 13,
+      "index": 12,
+      "width": 961,
+      "height": 682
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-013.webp",
+      "caption": "Figure 1: Self-Correcting Multi-Agent Prompt Refinement Framework (SCMAPR). SCMAPR organizes prompt refinement as a stage-wise multi-agent collaboration involving six specialized agents. The framework proceeds through five functional stages: (I) Scenario Routing, where Scenario Router assigns a scenario tag to the input prompt. (II) Policy Synthesis, where a Policy Generator generates a scenario-conditioned rewriting policy. (III) Policy-Conditioned Refinement, where a Prompt Refiner rewrites the prompt. (IV) Semantic Verification, where Atomizer and Validator collaboratively verify semantic fidelity through atomic extraction and entailment judgment. (V) Conditional Revision, where verification feedback conditionally triggers targeted revision, enabling self-correcting refinement.",
+      "page": 4,
+      "index": 13,
+      "width": 950,
+      "height": 594
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-014.webp",
+      "caption": "Figure A.6: Distribution of prompt lengths on VBench and EvalCrafter (in words).",
+      "page": 17,
+      "index": 14,
+      "width": 667,
+      "height": 726
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-015.webp",
+      "caption": "Figure A.8: An end-to-end case study of SCMAPR with self-correction. Given a user input, the framework performs scenario routing, policy generation, policy-conditioned prompt refinement, atom-level verification, and targeted revision. Entailment Validator labels each atom-evidence pair and conditionally triggers targeted revision, producing a verified refined prompt for downstream video generation.",
+      "page": 24,
+      "index": 15,
+      "width": 950,
+      "height": 475
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-016.webp",
+      "caption": "Figure 2: Illustration of the Semantic Verification Stage in SCMAPR. Given a user input and the corresponding refined prompt, semantic verification is performed in four steps. (1) Atomic Extraction decomposes the user input into atom elements. (2) Chunking segments the refined prompt into semantically coherent evidence units. (3) Atom-Chunk Matching retrieves the most relevant evidence chunk for each atom. (4) Entailment Validation assesses atom-level semantic relations between atoms and evidence chunks. Through this design, semantic missing and contradictions in the refined prompt can be detected and subsequently used to trigger downstream revision.",
+      "page": 5,
+      "index": 16,
+      "width": 950,
+      "height": 442
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05489v1/fig-017.webp",
+      "caption": "Table A.2: VBench-metric results (%) on T2V-Complexity when employing Wan as T2V backbone.",
+      "page": 16,
+      "index": 17,
+      "width": 917,
+      "height": 526
+    }
+  ]
+}

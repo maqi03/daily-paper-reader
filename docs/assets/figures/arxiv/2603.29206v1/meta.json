@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.29206v1/fig-001.webp",
+      "caption": "Figure 2: Multi-model overview of ∆Attn (mean ± SEM). Negative values indicate reduced attention share to domain keywords.",
+      "page": 6,
+      "index": 1,
+      "width": 950,
+      "height": 266
+    },
+    {
+      "url": "assets/figures/arxiv/2603.29206v1/fig-002.webp",
+      "caption": "Figure 3: Instance-level correlations between ∆C1 (prompt Hoyer) and ∆C3 across models and contrasts. Positive values indicate that instances with larger decreases in Hoyer tend to also exhibit larger decreases in the corresponding instability measure (entropy or semantic variation).",
+      "page": 7,
+      "index": 2,
+      "width": 950,
+      "height": 266
+    },
+    {
+      "url": "assets/figures/arxiv/2603.29206v1/fig-003.webp",
+      "caption": "Table 8: Pearson r between C1 (∆Hoyer) and C3SemVar (∆Var). Superscripts: ∗∗∗p < 0.001, ∗∗p < 0.01, ∗p < 0.05, ns not significant.",
+      "page": 22,
+      "index": 3,
+      "width": 443,
+      "height": 520
+    }
+  ]
+}

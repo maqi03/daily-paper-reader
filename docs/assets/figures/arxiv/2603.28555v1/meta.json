@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.28555v1/fig-001.webp",
+      "caption": "Figure 1: Overview of Domain-invariant Context Optimization (DiCoOp). Domain First Prompting (DFP) is illustrated, where the first half of the prompt is dedicated to domain information, and the remaining half is dedicated to class information. During domain-related optimization, the class tokens remain frozen, and vice versa.",
+      "page": 3,
+      "index": 1,
+      "width": 826,
+      "height": 286
+    },
+    {
+      "url": "assets/figures/arxiv/2603.28555v1/fig-002.webp",
+      "caption": "Figure 2: Results of few-shot learning on the PACS dataset using the leave-one-domain-out technique. Each plot is defined by the domain name that is left out during prompt learning, and testing is performed on that same domain.",
+      "page": 4,
+      "index": 2,
+      "width": 826,
+      "height": 673
+    },
+    {
+      "url": "assets/figures/arxiv/2603.28555v1/fig-003.webp",
+      "caption": "Table 1: Accuracy (%) on Mini-DomainNet for domain generalization using a leave-one-domainout approach. Each column shows results on the domain that has been left out, comparing domain generalization performance to the baseline. Bold numbers indicate the best accuracy in each column.",
+      "page": 5,
+      "index": 3,
+      "width": 779,
+      "height": 240
+    }
+  ]
+}
