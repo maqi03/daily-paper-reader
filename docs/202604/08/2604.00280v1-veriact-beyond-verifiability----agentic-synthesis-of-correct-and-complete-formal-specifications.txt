@@ -1,0 +1,598 @@
+Title: VeriAct: Beyond Verifiability -- Agentic Synthesis of Correct and Complete Formal Specifications
+
+URL Source: https://arxiv.org/pdf/2604.00280v1
+
+Published Time: Thu, 02 Apr 2026 00:16:57 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# VeriAct: Beyond Verifiability – Agentic Synthesis of Correct and Complete Formal Specifications 
+
+## Md Rakib Hossain Misu ∗
+
+University of California, Irvine Irvine, California, USA mdrh@uci.edu 
+
+## Iris Ma 
+
+University of California, Irvine Irvine, California, USA huaiyaom@uci.edu 
+
+## Cristina V. Lopes 
+
+University of California, Irvine Irvine, California, USA lopes@uci.edu 
+
+## Abstract 
+
+Formal specifications play a central role in ensuring software relia-bility and correctness. However, automatically synthesizing high-quality formal specifications remains a challenging task, often re-quiring domain expertise. Recent work has applied large language models to generate specifications in Java Modeling Language (JML), reporting high verification pass rates. But does passing a verifier mean that the specification is actually correct and complete? In this work, we first conduct a comprehensive evaluation comparing classical and prompt-based approaches for automated JML specifi-cation synthesis. We then investigate whether prompt optimization can push synthesis quality further by evolving prompts through structured verification feedback. While optimization improves veri-fier pass rates, we find a clear performance ceiling. More critically, we propose Spec-Harness, an evaluation framework that measures specification correctness and completeness through symbolic verifi-cation, revealing that a large fraction of verifier-accepted specifica-tions, including optimized ones, are in fact incorrect or incomplete, over- or under-constraining both inputs and outputs in ways invisi-ble to the verifier. To push beyond this ceiling, we propose VeriAct, a verification-guided agentic framework that iteratively synthesizes and repairs specifications through a closed loop of LLM-driven planning, code execution, verification, and Spec-Harness feedback. Our experiments on two benchmark datasets show that VeriAct outperforms both prompt-based and prompt-optimized baselines, producing specifications that are not only verifiable but also correct and complete. 
+
+## CCS Concepts 
+
+• Software and its engineering → Formal software verifica-tion .
+
+## Keywords 
+
+Program Verification, LLM, Java, JML 
+
+## 1 Introduction 
+
+The correctness of software systems increasingly depends on the availability of precise, machine-checkable behavioral contracts. For-mal specifications describe the intended behavior of programs using behavioral contracts with precise semantics, typically expressed as method preconditions and postconditions, loop invariants, or asser-tions at specific program locations. They form the foundation for a wide range of software quality assurance tasks, including testing, model checking, and program verification. In the Java ecosystem, the Java Modeling Language (JML) [ 7 , 29 ] provides a standard 
+
+> ∗Corresponding author: Md Rakib Hossain Misu (mdrh@uci.edu)
+
+notation for writing such behavioral contracts, which tools like OpenJML [ 13 ] and KeY [ 2] can then verify against the implementa-tion. When these specifications are both correct and complete, they enable exhaustive reasoning about program behavior, detection of boundary violations, and generation of test oracles. However, writing JML annotations in practice remains demand-ing since it requires domain specific expertise, deep understanding of program semantics, and significant manual efforts. Traditional rules base approaches have been developed for automated JML syn-thesis [ 15 , 16 , 34 ]. Among them, Houdini [ 16 ] and Daikon [ 15 ] being the most prominent for Java programs. Houdini uses a refutation-based approach that starts with a large set of candidate annotations drawn from predefined templates and iteratively removes those that the verifier disproves. Daikon takes a dynamic analysis ap-proach, observing program executions to infer likely invariants over observed variable values. While both tools reduce the manual burden of writing specifications, their output is constrained by fixed templates or grammars and this reliance on predefined patterns produces overly simplistic specifications [ 32 ] that fails to capture all program semantics and behaviors. Recent advances in large language models have opened a promis-ing direction for automatically synthesizing meaningful specifica-tions because of their excellent capabilities of code understanding and reasoning. For instance, SpecGen [ 31 ] introduced a prompt-driven pipeline for generating JML specifications from Java method signatures and bodies, demonstrating that contemporary LLMs pos-sess sufficient syntactic and semantic understanding to produce plausible formal annotations. AutoSpec [ 43 ] combines LLMs with static analysis by decomposing a program into components, gener-ating specifications for each through LLM queries, and composing them into a complete annotation. It iteratively refines the result using verifier feedback until the specification is accepted. Formal-Bench [ 28 ] subsequently established a systematic benchmark for evaluating LLM performance on formal specification generation tasks, providing standardized evaluation across a curated suite of Java methods with various prompts. Despite recent advances, existing LLM-based approaches con-tinue to exhibit three major drawbacks. l When an LLM is prompted to generate a specification for a given java code, existing approaches do not validate whether the model has silently altered the original code to fit the specification it produces. l More fundamentally, cur-rent approaches largely rely on verifier acceptance as the principal measure of specification quality. However, successful verification does not guarantee that a specification is either correct or complete. For example, a trivial postcondition such as ensures true , will satisfy any verifier, yet it provides no meaningful characterization  
+
+> arXiv:2604.00280v1 [cs.SE] 31 Mar 2026 Conference’17, July 2017, Washington, DC, USA M.R.H Misu, I.Ma and C.V.Lopes
+
+of the code’s behavior and would be ineffective in identifying er-roneous outputs during testing [ 14 , 26 , 27 ]. l Finally, the task of distinguishing substantive specifications from trivial or incomplete ones continues to depend on manual evaluation by human experts. This reliance on human judgment presents a significant scalability challenge, particularly when assessing large benchmark datasets comprising hundreds or thousands of java code snippets. These shortcomings collectively point to the need for investigat-ing four key aspects: ¬ An empirical study of state-of-the-art classi-cal and prompt-based specification synthesis approaches, ¬ Prompt optimization techniques that leverage structured verification feed-back to improve synthesis quality, ¬ An automated evaluation framework that measures specification quality beyond verifier ac-ceptance, and ¬ A verification-guided agentic approach that itera-tively synthesizes and repairs specifications through closed-loop feedback. This work investigates all four aspects through a structured, multi-stage analysis: we begin with a broad empirical study of exist-ing approaches, apply prompt optimization to push verifier-based synthesis to its limits, introduce a new evaluation framework that exposes the hidden gap between verifiability and actual specifica-tion quality, and finally propose an agentic approach that closes this gap by incorporating specification quality feedback directly into the synthesis loop. In summary, this paper makes the following contributions: 
+
+ We conduct a comprehensive evaluation of classical and prompt-based specification synthesis approaches, revealing that high verifier acceptance rates alone do not reflect actual specification quality. 
+
+ We demonstrate that GEPA-driven prompt optimization with structured verification feedback improves verifier pass rates but reaches a performance ceiling — and more critically, the resulting specifications still suffer from correctness and completeness deficiencies. 
+
+ We propose Spec-Harness, an automated evaluation frame-work that measures the correctness and completeness of formal specifications beyond verifier pass/fail, using met-rics grounded in Hoare-triple reasoning and input/output mutation testing. 
+
+ We develop VeriAct, a verification-guided agentic frame-work that combines closed-loop iterative LLM planning, code execution, verification, and Spec-Harness feedback to synthe-size specifications that are verifiable, correct, and complete. 
+
+## 2 Background & Motivation 2.1 JML and Deductive Verification 
+
+The Java Modeling Language (JML) is a behavioral specification language that allows developers to annotate Java methods with formal contracts. A JML contract consists of requires clauses, which define preconditions that must hold before a method exe-cutes, and ensures clauses, which define postconditions that must hold when the method returns. The keyword \result refers to the method’s return value within postconditions. For iterative code, JML provides loop_invariant and maintaining annotations that ex-press properties preserved across every iteration of a loop, enabling the verifier to reason about loops without unrolling them. SGB_ChangeCase: Change Character Case                                      
+
+> 1 : public class ChangeCase { 2 : /*@ 3 : @requires c >= 'A'&& c <= 'z';4 : @ensures (c >= 'a'&& c <= 'z')5 : @==> (\result >= 'A'&& \result <= 'Z'); 6 : @*/ 7 : public char changeCase (char c) { 8 : char out = ' ' ;9 : if (c > 'z') { out = c; } 10: else if (c >= 'a') { out = (char)(c -'a'+'A'); } 11: else if (c > 'Z') { out = c; } 12: else if (c >= 'A') { out = (char)(c -'A'+'a'); } 13: else { out = c; } 14: return out; 15: }16: }
+
+Figure 1: Example of a JML annotated snippet from SpecGen-Bench with formal specification generated by an LLM 
+
+Once annotated, a deductive verifier such as OpenJML statically checks whether the implementation satisfies its JML specification. Internally, the verifier translates the annotated program into a set of logical proof obligations and dispatches them to an SMT (Satisfiability Modulo Theories) solver. The SMT solver attempts to prove that each obligation holds across all possible inputs and execution paths. If all obligations are discharged, the specification is considered verified — meaning the implementation does not violate the stated contract. However, successful verification only confirms that the code is consistent with the specification, not that the specification itself is correct or complete. 
+
+## 2.2 Motivating Example 
+
+Figure 1 illustrates an LLM-annotated JML specification on top of the changeCase method that converts characters between upper-case and lowercase. The precondition on line 3 restricts the input to characters in the range [’A’..’z’] , and the postcondition on lines 4–5 states that if the input is a lowercase letter, the result falls within the uppercase range [’A’..’Z’] . This specification passes OpenJML verification without any errors. However, passing the verifier does not mean this specification is correct or complete. The postcondition covers only the lowercase-to-uppercase branch and, even for that branch, it only asserts that the result falls somewhere in [’A’..’Z’] rather than equating it to the precise conversion ex-pression (char)(c - ’a’ + ’A’) . The remaining four branches, uppercase-to-lowercase conversion, identity for non-letter charac-ters, and characters outside [’A’..’z’] , are entirely unspecified. Any return value would satisfy the postcondition for these cases. Similarly, the precondition restricts input to c >= ’A’ && c <= ’z’ , which incorrectly rejects valid printable characters below ’A’ 
+
+such as ’!’ or digits, and above ’z’ such as ’|’ , even though the method handles these correctly through identity assignment. In short, this specification is both too weak in what it guarantees about outputs and too strong in what it demands of inputs. This example exposes a fundamental limitation of relying on verifier acceptance as a quality measure. A verifier confirms that the implementation does not violate the specification — but if the VeriAct: Beyond Verifiability – Agentic Synthesis of Correct and Complete Formal Specifications Conference’17, July 2017, Washington, DC, USA 
+
+specification says very little, there is very little to violate. Trivial or partial specifications pass verification easily, yet they fail to capture the full behavioral contract of the method. This gap between verifiability and actual specification quality motivates the need for an evaluation framework that can systematically measure how correct and how complete a specification truly is, independent of whether a verifier accepts it. 
+
+## 2.3 Research Questions 
+
+We structure our investigation around four research questions, each building on the findings of the preceding one. 
+
+⋆ RQ1 [Effectiveness]: How effective are state-of-the-art ap-proaches — classical (Daikon, Houdini) vs. prompt-based (SpecGen, AutoSpec, FormalBench) — in synthesizing verifiable formal specifica-tions? Both classical and LLM-based approaches report varying levels of success in generating JML specifications that pass a ver-ifier. However, no existing study provides a unified comparison across these two families under a common benchmark and eval-uation setup. RQ1 establishes this baseline by measuring verifier acceptance rates across all approaches. 
+
+⋆ RQ2 [Optimization]: Can prompt optimization, leveraging structured verification feedback, improve the effectiveness of LLM-driven formal specification synthesis? Prompt design significantly influences LLM output quality. RQ2 investigates whether system-atically evolving prompts, using GEPA-driven optimization with a graduated verification scoring function, can push verifier pass rates beyond what fixed prompt strategies achieve. We apply this optimization across the best, average and the worst prompt types selected from RQ1 results. 
+
+⋆ RQ3 [Correctness & Completeness]: How correct and com-plete are verifier-accepted formal specifications, including prompt-optimized ones, when evaluated with Spec-Harness? RQ1 and RQ2 measure success by verifier acceptance, but this metric cannot dis-tinguish a meaningful specification from a trivially weak one. RQ3 applies Spec-Harness, a set of metrics, to all verifier-accepted speci-fications produced across RQ1 and RQ2, exposing the gap between verifiability and actual specification quality. 
+
+⋆ RQ4 [VeriAct]: Can VeriAct — a verification-guided agentic loop combining code execution with Spec-Harness feedback — outper-form prompt-based and prompt-optimized approaches in synthesizing correct and complete formal specifications? RQ3 reveals that nei-ther prompt-based nor optimized approaches consistently produce correct and complete specifications. RQ4 investigates whether an agentic framework that incorporates Spec-Harness feedback di-rectly into its synthesis loop can close this gap. 
+
+## 3 Empirical Study: Classical vs. Prompt-Based Specification Synthesis 3.1 Baselines 
+
+We evaluate two families of specification synthesis approaches: classical tools that rely on predefined templates or dynamic analysis, and prompt-based approaches that leverage LLMs for specification generation. 
+
+3.1.1 Classical Approaches. We elected two conventional approaches, utilized in JML specification generations. Sequential 
+
+> Branch
+> SP Loop
+> MP Loop
+> Nested
+> 10%
+> 20%
+> 30%
+> 40%
+> SpecGenBench
+> FormalBench
+
+Figure 2: Task category distribution (%) for SpecGenBench and FormalBench. 
+
+Ö Houdini [ 16 ] is a template-based JML annotation generator. Given a Java method, it populates a set of predefined templates with available variables and operators to produce candidate speci-fications. It then iteratively invokes a JML verifier, removing any candidate that the verifier refutes, until all remaining annotations are verified. 
+
+Ö Daikon [15 ] is a dynamic invariant detection tool. It instru-ments the target program to trace variable values during execution, then applies a generate-and-check algorithm over the collected traces to infer likely invariants. Daikon supports multiple output formats including JML. 
+
+3.1.2 Prompt-Based Approaches. There are three LLM-driven au-tomated JML annotation generation approaches reported in the literature. 
+
+j SpecGen [ 31 ] uses its own prompt templates to generate JML specifications from Java method signatures and bodies. It employs a mutation-guided conversational pipeline where the LLM iteratively refines its output based on verifier feedback. We evaluate SpecGen with three prompt configurations: zero, two, and four-shot. 
+
+j AutoSpec [ 43 ] combines LLMs with static analysis by first decomposing a program into components and building a hierarchy graph. It queries the LLM for specifications of each component, composes them, and iteratively refines the result through verifier feedback until the specification is accepted. We evaluate AutoSpec with zero-shot, two-shot, and four-shot prompts. 
+
+j FormalBench [28 ] provides a set of prompting strategies designed for formal specification generation, covering a range of prompting techniques. We evaluate five prompt configurations: zero-shot, two-shot, zero-shot chain-of-thought (zs_cot), few-shot chain-of-thought (fs_cot), and few-shot least-to-most (fs_ltm). It is a benchmark dataset and also include advance prompting approaches to infer and fix JML specification with LLMs. 
+
+## 3.2 Dataset 
+
+We use two established benchmarks for evaluation. SpecGenBench 
+
+contains 120 Java method tasks and FormalBench contains 700 Java method tasks. Upon manual review, we found that a small num-ber of methods in FormalBench have no return type ( void ) or use 
+
+Object as a parameter or return type. Methods without a return Conference’17, July 2017, Washington, DC, USA M.R.H Misu, I.Ma and C.V.Lopes 
+
+Table 1: Summary of Models and Prompt Configurations Component Configuration 
+
+Proprietary Models 
+
+gpt-4o-2024-08-06 [35] 
+
+gemini-2.0-flash [17] 
+
+claude-sonnet-4-6 [4] 
+
+Open-Weight Models 
+
+Qwen2.5-Coder-32B-Instruct [22] 
+
+deepseek-coder-33b-instruct [20] 
+
+CodeLlama-34b-Instruct-hf [39] 
+
+Prompt Configurations 
+
+SpecGen [31] zero-shot (ZS), two-shot (2S), four-shot (4S) AutoSpec [43] zero-shot, two-shot, four-shot FormalBench [28] zero-shot, two-shot, zs-cot, fs-cot, fs-ltm value cannot be meaningfully evaluated with postcondition verifi-cation, since there is no \result to constrain. Similarly, Object -typed parameters lack the type specificity needed for meaningful preconditions. We exclude these methods, resulting in 662 tasks from FormalBench. Both benchmarks categorize their tasks into five types based on control-flow structure: branch , multi_path_loop ,
+
+nested , sequential , and single_path_loop . Figure 2 shows the task category distributions across SpecGenBench and FormalBench, re-vealing that SpecGenBench is proportionally more branch-heavy while FormalBench is skewed toward loop-based (both single-path and multi-path) task categories. 
+
+Normalization. To ensure that LLMs rely solely on code rea-soning rather than inferring behavior from naming conventions, we normalize all benchmark tasks by renaming class names to 
+
+Solution and method names to solve() . Without this step, a class named BinarySearch with a method search() would leak semantic hints to the model, allowing it to bypass actual code comprehension. This normalization enforces a uniform evaluation setting across all models and approaches. 
+
+Test Suite Extension. The original benchmarks provide only 3–5 test pairs per task. To enable more robust evaluation — particularly for Daikon, which requires execution traces, and for Spec-Harness, which relies on diverse input-output pairs — we extend each task with 100–200 additional test pairs generated through randomly guided automated test generation. These extended test suites also serve to validate task correctness across all approaches. 
+
+## 3.3 Experiments 
+
+For classical approaches, we run Houdini and Daikon on both bench-marks. For prompt-based approaches, we evaluate 11 prompt con-figurations (3 from SpecGen, 3 from AutoSpec, and 5 from Formal-Bench) across six LLMs: three frontier proprietary models from ma-jor providers (OpenAI [ 36 ], Google [ 18 ], Anthropic [ 3]), and three open-weight models at a comparable parameter scale ( 32–34B) to provide a controlled comparison. Table 1 presents a summary of all configurations that yield 11 prompts × 6 models × 2 benchmarks = 132 prompt-based runs, plus 2 classical runs (Daikon and Houdini), 
+
+Table 2: Summary: Classical vs. Prompt-based Approaches (Best Configurations) 
+
+Approach SpecGenBench FormalBench Daikon 22/120 (18.3%) 87/662 (13.1%) Houdini 104/120 (86.7%) 359/662 (54.2%) SpecGen (best) 80/120 (66.7%) 200/659 (30.3%) AutoSpec (best) 70/120 (58.3%) 185/662 (27.9%) FormalBench (best) 77/120 (64.2%) 238/662 (36.0%) totaling 134 experimental configurations. All experiments use the same OpenJML version (21-0.21) and Java 21.0.4 to ensure a con-sistent verification environment. We use the same max_iterations 
+
+configuration for each approach as reported in baselines original experiments. For this research question, we measure specification quality using the Verification Rate (VR) , defined as the fraction of generated specifications that pass OpenJML verification without errors. This binary pass/fail metric reflects the standard evaluation criterion used by all existing approaches. 
+
+## 3.4 Results 
+
+RQ1 [Effectiveness]: How effective are state-of-the-art approaches — classical (Daikon, Houdini) vs. prompt-based (SpecGen, AutoSpec, FormalBench) — in synthesizing verifiable formal specifications? 
+
+3.4.1 Classical Approaches. The two classical approaches show a wide performance gap. Houdini achieves the strongest results overall — 86.7% on SpecGenBench and 54.2% on FormalBench (Fig. 2) — because it leverages iterative candidate weakening with a fixed verifier, giving it a structural advantage. Daikon, by contrast, performs poorly across both benchmarks (18.3% and 13.1%), as its dynamic invariant inference struggles to produce specifications precise enough to pass static verification. This gap highlights that classical approaches are not uniformly strong, and their effective-ness is tightly coupled to their underlying verification strategy. 
+
+3.4.2 Prompt-based Approaches (Best Configurations). Among prompt-based approaches, SpecGen leads on SpecGenBench at 66.7%, fol-lowed closely by the FormalBench prompts (64.2%) and AutoSpec (58.3%). On FormalBench dataset, the FormalBench prompts achieve the best result at 36.0%, while SpecGen and AutoSpec trail at 30.3% and 27.9% respectively. As seen in Figure 3 proprietary models (GPT-4o, Gemini, Claude Sonnet 4.6) consistently outperform open-weight models under the best configuration, with Claude Sonnet 4.6 reaching 66.7% on SpecGenBench with SpecGen 4-shot. Table 2 rep-resent the summary of the best configurations result of all prompt based approaches vs classical approaches. 
+
+3.4.3 Average vs. Best Configuration Gap. When looking at average verification rates across all configurations, performance drops no-tably for all prompt-based approaches — SpecGen falls from 66.7% to 43.1% on SpecGenBench, and from 30.3% to 20.1% on Formal-Bench. A similar drop is observed for AutoSpec and FormalBench prompts. This gap between best and average configurations signals that prompt-based methods are sensitive to prompt design choices VeriAct: Beyond Verifiability – Agentic Synthesis of Correct and Complete Formal Specifications Conference’17, July 2017, Washington, DC, USA SpecGen                                                             
+
+> ZS
+> SpecGen
+> 2S
+> SpecGen
+> 4S
+> AutoSpec
+> ZS
+> AutoSpec
+> 2S
+> AutoSpec
+> 4S
+> FormalBench
+> ZS
+> FormalBench
+> 2S
+> FormalBench
+> ZS-CoT
+> FormalBench
+> FS-CoT
+> FormalBench
+> FS-LtM
+> GPT-4o
+> Gemini-2.0-Flash
+> Claude Sonnet 4.6
+> Qwen2.5-Coder-32B
+> DeepSeek-Coder-33B
+> CodeLlama-34B
+> 57.5 54.2 54.2 49.2 51.7 56.7 48.3 58.3 50.8 54.2 53.3
+> 43.3 53.3 56.7 9.2 53.3 54.2 48.3 55.0 43.3 51.7 52.5
+> 56.7 61.7 66.7 8.3 56.7 58.3 49.2 60.0 50.8 64.2 61.7
+> 51.7 35.0 46.7 0.0 45.8 46.7 29.2 50.0 36.7 39.2 43.3
+> 8.3 38.3 38.7 10.8 52.5 44.2 8.3 39.2 14.2 33.3 30.0
+> 3.3 25.0 24.2 0.0 39.2 38.3 0.8 25.0 0.0 19.2 10.0
+
+SpecGenBench                                                             
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Verification Rate (VR%) SpecGen
+> ZS
+> SpecGen
+> 2S
+> SpecGen
+> 4S
+> AutoSpec
+> ZS
+> AutoSpec
+> 2S
+> AutoSpec
+> 4S
+> FormalBench
+> ZS
+> FormalBench
+> 2S
+> FormalBench
+> ZS-CoT
+> FormalBench
+> FS-CoT
+> FormalBench
+> FS-LtM
+> GPT-4o
+> Gemini-2.0-Flash
+> Claude Sonnet 4.6
+> Qwen2.5-Coder-32B
+> DeepSeek-Coder-33B
+> CodeLlama-34B
+> 23.9 22.1 23.4 22.4 22.2 23.9 18.7 23.0 18.3 20.7 16.9
+> 26.6 27.3 30.3 4.4 27.9 27.6 24.8 36.0 21.0 34.7 24.8
+> 25.2 27.2 29.0 2.7 27.9 26.1 25.1 33.2 23.4 34.3 30.1
+> 24.3 15.7 20.5 0.0 19.6 18.6 10.1 20.1 12.2 17.4 19.3
+> 3.0 16.5 17.4 8.5 21.1 21.1 5.6 18.4 4.8 15.0 14.0
+> 3.5 12.8 12.8 0.3 21.0 18.1 0.2 13.3 0.3 11.3 8.0
+
+FormalBench 
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Verification Rate (VR%)
+
+Figure 3: Verification Rate (VR%) in all prompt based approaches for all LLMs and prompt types. 
+
+such as shot count and instruction framing, and do not generalize uniformly across all settings. 
+
+3.4.4 Prompt-based vs. Classical. Despite their flexibility, prompt-based approaches fall short of Houdini under best configurations (66.7% vs. 86.7% on SpecGenBench; 36.0% vs. 54.2% on Formal-Bench), as shown in Figure 3. However, they substantially outper-form Daikon and offer broader applicability across diverse method types without requiring instrumented execution. 
+
+Summary RQ1 
+
+Houdini remains the strongest baseline overall, but prompt-based approaches — particularly SpecGen and FormalBench prompts with proprietary LLMs — close the gap meaningfully on simpler benchmarks. All prompt-based methods show a significant drop from best to average configuration, pointing to high sensitivity to prompt design. 
+
+## 4 GEPA-Driven Prompt Optimization for Specification Synthesis 
+
+Prompt optimization is the process of systematically refining the in-structions given to an LLM to improve its output quality on a target task [ 1, 25 , 37 , 40 ]. Rather than relying on manually crafted prompts, optimization techniques automatically search for prompt formu-lations that maximize a given scoring function. Several prompt optimizers have been proposed in recent literature. COPRO [ 40 ] it-eratively rewrites prompts by sampling candidate variations and se-lecting the best-performing one based on task accuracy. MIPRO [ 37 ]extends this idea by jointly optimizing both the instruction text and few-shot example selection using a Bayesian surrogate model. While both approaches are effective for general NLP tasks, they treat the scoring function as a black-box scalar signal and do not leverage structured feedback about why a particular output failed. GEPA (Genetic-Pareto) [ 1] takes a fundamentally different ap-proach through reflective prompt evolution. Given a set of system-level execution traces, including the LLM’s reasoning, tool calls, and outputs, GEPA reflects on them in natural language to diagnose problems, propose prompt updates, and combine complementary lessons from the Pareto frontier of its own attempts. This reflective mechanism makes GEPA particularly well-suited for formal specifi-cation synthesis, where failure modes are structured and classifiable. When a generated specification fails verification, the error is not arbitrary, it is a syntax error, a postcondition violation, or a type mismatch, each requiring a different repair direction. GEPA can consume both a numerical score and textual feedback explaining what went wrong, giving the optimizer a double signal: the score provides gradient, and the feedback explains the direction. Conference’17, July 2017, Washington, DC, USA M.R.H Misu, I.Ma and C.V.Lopes 
+
+In contrast, COPRO and MIPRO would receive only a binary or scalar reward without any structured explanation of the failure, limiting their ability to make targeted prompt refinements. For a domain where the difference between a syntax error and a single postcondition violation represents a meaningful quality gap, this distinction is critical. We therefore adopt GEPA as our prompt optimizer for this study. 
+
+## 4.1 Approach 
+
+From the results of RQ1, we identify three representative prompt types based on their verifier pass rates: zero-shot (worst perform-ing), few-shots least-to-most (average performing) and few-shot chain-of-thought (best performing). We use these three prompts as seed prompts for GEPA optimization, ensuring that the optimizer is evaluated across the full performance spectrum rather than on a single prompting strategy. For the few-shot CoT and few-shot LtM seeds, we include two example tasks drawn from SpecGenBench as in-context demonstrations. We draw a stratified sample from FormalBench based on task categories, resulting in a 100/50/512 split for train, validation, and test sets respectively. Stratification ensures that each task category is proportionally represented across all splits, preventing the optimizer from overfitting to a narrow sub-set of specification patterns. To provide GEPA with a meaningful optimization signal, we design a graduated scoring function that assigns partial credit based on the severity of verification failures, rather than treating verification as a binary pass/fail outcome: Equation 1 represents this scoring function, where 𝑟 is the ver-ification result, 𝐸 𝑠 (𝑟 ) denotes the set of syntax errors, and 𝐸 𝑣 (𝑟 )
+
+denotes the set of verification errors reported by the verifier. The key insight behind this scoring function is that not all failures are equal: a specification with a single postcondition violation is structurally much closer to a correct specification than one with a syntax error, and the optimizer should be able to distinguish between these cases. Combined with GEPA’s reflective feedback mechanism, which receives classified error descriptions alongside the score, this gives the optimizer both a gradient to climb and an explanation of the repair direction. In our implementation, we utilize DSPy ’s [ 25 ] optimizer mod-ule with GEPA as the optimization strategy. We use gpt-4o as both the target model (generating specifications) and the reflec-tion model (analyzing failures and proposing prompt updates). The optimization budget is set to the medium in the run configuration. 
+
+Score (𝑟 ) =
+
+
+
+1.0 if 𝑟 is verified successfully 
+
+0.3 if |𝐸 𝑣 (𝑟 )| = 1 ∧ | 𝐸 𝑠 (𝑟 )| = 00.1 if |𝐸 𝑣 (𝑟 )| ≥ 2 ∧ | 𝐸 𝑠 (𝑟 )| = 00.0 if |𝐸 𝑠 (𝑟 )| > 0 or 𝑟 = ∅
+
+(1) 
+
+## 4.2 Results 
+
+RQ2 [Optimization]: Can prompt optimization, leveraging struc-tured verification feedback, improve the effectiveness of LLM-driven formal specification synthesis? 
+
+We evaluate each GEPA-optimized prompt against its corre-sponding seed prompt on both the FormalBench test set (512 tasks) and SpecGenBench (118 tasks, with 2 tasks excluded as they were 
+
+Table 3: Verification Rate (VR%) in Seed Prompts vs GEPA Optimized Prompts                   
+
+> Prompt Type Configuration SpecGenBench FormalBench
+> Zero-Shot / Plain Seed Prompt 39.83.% 17.81% GEPA Optimized 46.61(+7)% 18.59% Few-Shot LtM Seed Prompt 45.66% 19.90% GEPA Optimized 45.70% 19.96% Few-Shot CoT Seed Prompt 44.07% 19.18% GEPA Optimized 46.61 (+2)% 19.77%
+
+used for few-shot examples during optimization). Our initial results reveal an interesting pattern across the three prompt types as pre-sented in Table 3. The zero-shot seed prompt, which had the lowest baseline performance, shows noticeable improvement after GEPA optimization, suggesting that the optimizer successfully identified and incorporated structural cues missing from the minimal seed prompt. The few-shot CoT prompt also benefits from optimization, achieving a slight gains over its seed. However, the few-shot LtM prompt shows negligible improvement after optimization. This sug-gests that the LtM prompting strategy already captures much of what GEPA’s reflective evolution would discover, leaving little room for further gains within the verifier-based scoring regime. 
+
+Summary RQ2 
+
+GEPA-driven prompt optimization improves verifier pass rates for weaker prompt strategies but reaches a performance ceil-ing for already well-performing prompts. This ceiling raises a deeper question: are the optimized specifications actually correct and complete, or has the optimizer simply learned to produce specifications that satisfy the verifier without mean-ingfully capturing program behavior? We investigate this ques-tion in RQ3. 
+
+## 5 Spec-Harness: Evaluation Metrics for Specification Quality 
+
+The results of RQ1 and RQ2 rely entirely on verifier pass rates, a bi-nary pass/fail signal, but a fundamental question remains: are these verifier-accepted specifications actually correct and complete? Re-cent studies [ 26 , 27 , 41 , 45 ] addressed such questions for verification-aware programming language such as Dafny, proposing various metrics to evaluate LLMs’ generated specifications. The key insight we have from these studies is that a correct specification should be consistent with all valid test pairs, while a complete specifica-tion should reject mutated outputs, a vacuous postcondition like 
+
+ensures true would pass correctness but fail completeness, as it accepts every mutant unchallenged. Inspired by this formulation, we design four Spec-Harness met-rics that adapt the Hoare-triple-based symbolic verification pro-cedure to work with OpenJML and Java programs. These metrics evaluate formal specifications along four dimensions — precondi-tion and postcondition correctness and completeness — enabling a VeriAct: Beyond Verifiability – Agentic Synthesis of Correct and Complete Formal Specifications Conference’17, July 2017, Washington, DC, USA Daikon Houdini Specgen Autospec Formalbench                             
+
+> Approach
+> Daikon
+> Houdini
+> GPT-4o
+> Gemini-2.0
+> Claude-S
+> Qwen2.5
+> DeepSeek
+> CodeLlama
+> Model
+> 0.8%
+> 1.7%
+> 25.0% 43.3% 44.2%
+> 43.3% 42.5% 40.8%
+> 50.0% 46.7% 50.0%
+> 15.8% 35.0% 37.5%
+> 23.3% 30.8% 27.5%
+> 10.8% 17.5% 19.2%
+> SpecGenBench
+> Daikon Houdini Specgen Autospec Formalbench
+> Approach
+> Daikon
+> Houdini
+> GPT-4o
+> Gemini-2.0
+> Claude-S
+> Qwen2.5
+> DeepSeek
+> CodeLlama
+> Model
+> 0.0%
+> 0.0%
+> 7.7% 8.2% 8.5%
+> 4.1% 8.0% 8.6%
+> 9.7% 9.5% 10.9%
+> 5.0% 6.5% 6.6%
+> 7.4% 7.4% 6.6%
+> 5.1% 6.5% 5.1%
+> FormalBench
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> MVR%
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> MVR%
+
+Figure 4: Meaningfully Verified Rate (MVR), for the best prompt configurations. MVR% = % of verified task where the 
+
+Spec-Harness metrics value, PostCorr >= 0.50 and PostComp >= 0.50 
+
+comprehensive assessment of both input and output contracts. We formalize them as follows: 
+
+## 5.1 Preliminaries 
+
+Let 𝑃 be a Java method with signature 𝑚 (x) : y, where x denotes the input parameters and y the return value. Let 𝜑 (x, y) be an LLM-generated JML postcondition and 𝜓 (x) an LLM-generated JML 
+
+precondition for 𝑃 . Let T = {( 𝑖 1, 𝑜 1), . . . , (𝑖 𝑛 , 𝑜 𝑛 )} be a set of valid 
+
+input–output test pairs, i.e., pairs produced by a known-correct execution of 𝑃 .
+
+Spec harness. For a postcondition check against test pair (𝑖, 𝑜 ) ∈ T , we construct a harness stub that replaces the method body with the concrete assignments x := 𝑖 ; y := 𝑜 and submits the following Hoare triple to the verifier: 
+
+|=  true x := 𝑖 ; y := 𝑜  𝜑 (x, y) (2) For a precondition check against input 𝑖 , the stub assigns x := 𝑖 
+
+only, and the triple becomes: 
+
+|=  true x := 𝑖  𝜓 (x) (3) In both cases the verifier symbolically checks the Hoare triple using an SMT solver, without executing 𝑃 .
+
+## 5.2 Postcondition Metrics 
+
+Definition 5.1 ( Post-Correctness ). A postcondition 𝜑 is post-correct with respect to T if it raises no false alarms on any known-correct execution. Formally: 
+
+PostCorr (𝜑, T ) = { ( 𝑖, 𝑜 ) ∈ T | | = {true } x:=𝑖 ; y:=𝑜 {𝜑 (x, y)}} 
+
+|T | 
+
+(4) A score of 1.0 indicates that 𝜑 is consistent with every valid execu-tion in T . Note that a vacuous postcondition (e.g., ensures true )trivially achieves PostCorr = 1.0, motivating the complementary completeness metric below. 
+
+Definition 5.2 ( Post-Completeness ). Post-completeness mea-sures the discriminative strength of 𝜑 : its ability to reject incorrect output values. For each pair (𝑖, 𝑜 ) ∈ T , let 𝜇 (𝑜 ) = {𝑜 ′
+
+> 1
+
+, . . . , 𝑜 ′ 
+
+> 𝑘
+
+} be a fixed-size set of output mutants obtained by type-specific pertur-bation of 𝑜 (e.g., 𝑜 ± 𝛿 for integers, element insertion/deletion for arrays). Define the full mutant pool as: 
+
+T1 =
+
+Ø 
+
+> (𝑖,𝑜 ) ∈ T
+
+ (𝑖, 𝑜 ′) | 𝑜 ′ ∈ 𝜇 (𝑜 ) (5) Let T2 ⊆ T 1 be the subset of mutant pairs that 𝜑 correctly rejects :
+
+T2 =  (𝑖, 𝑜 ′) ∈ T 1 |̸ | = {true } x:=𝑖 ; y:=𝑜 ′ {𝜑 (x, y)} (6) Post-completeness is then: 
+
+PostComp (𝜑, T ) = |T 2 ||T 1 | (7) A score of 1.0 means 𝜑 distinguishes the correct output from all injected output faults. A vacuous postcondition scores 0.0, as it admits every mutant unchallenged. 
+
+## 5.3 Precondition Metrics 
+
+Precondition quality is evaluated over two disjoint input sets de-rived from the test suite. Let T + denote the set of valid inputs , i.e., the input components {𝑖 | ( 𝑖, 𝑜 ) ∈ T } , and let T − denote a set of invalid inputs : boundary and edge-case values that violate the intended domain of 𝑃 (e.g., null references, out-of-range integers, empty arrays where non-empty is required). The elements of T −
+
+are provided explicitly in the test suite, not generated heuristically, ensuring that the domain violations are semantically meaningful by construction. 
+
+Definition 5.3 ( Pre-Correctness ). A precondition 𝜓 is pre-correct 
+
+with respect to T + if it admits every valid input without false rejection: 
+
+PreCorr (𝜓, T +) = { 𝑖 ∈ T + | | = {true } x:=𝑖 {𝜓 (x)}} 
+
+|T + | (8) Conference’17, July 2017, Washington, DC, USA M.R.H Misu, I.Ma and C.V.Lopes Daikon              
+
+> Houdini
+> Specgen
+> Autospec
+> Formalbench
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> Rate
+> 18%
+> 86%
+> 54% 53% 52%
+> 1% 2%
+> 24%
+> 39% 39%
+> 17%
+> 84%
+> 30%
+> 15% 13%
+> SpecGenBench
+> Daikon
+> Houdini
+> Specgen
+> Autospec
+> Formalbench
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> Rate
+> 13%
+> 54%
+> 24% 22% 22%
+> 0% 0%
+> 6% 8% 8%
+> 13%
+> 54%
+> 18% 14% 14%
+> FormalBench
+> VR% MVR%
+
+Figure 5: Verification Rate (VR%) vs. Meaningfully Verified Rate (MVR%) for the Best Configurations Prompts 
+
+A score of 1.0 indicates that 𝜓 imposes no spurious constraints on any valid caller. An overly restrictive precondition (e.g., one that guards against inputs that are in fact safe) is penalised here. 
+
+Definition 5.4 ( Pre-Completeness ). A precondition 𝜓 is pre-complete with respect to T − if it correctly guards against every known-invalid input: 
+
+PreComp (𝜓, T − ) = { 𝑖 ′ ∈ T − |̸ | = {true } x:=𝑖 ′ {𝜓 (x)}} 
+
+|T − | (9) A score of 1.0 indicates that 𝜓 rejects all boundary and edge-case inputs in T − . A vacuous precondition (e.g., requires true ) scores 
+
+0.0, as it admits every invalid input unchallenged. Table 4 summarizes our proposed four Spec-Harness metrics. We apply Spec-Harness to evaluate every task that passed the verifier across both RQ1 and RQ2. This includes specifications generated by classical approaches (Daikon, Houdini), all prompt-based ap-proaches (SpecGen, AutoSpec, FormalBench), and the three GEPA-optimized prompt variants. For each verifier-accepted specification, we compute all four metrics using the corresponding input test pairs from the benchmark. This unified evaluation allows us to directly compare the actual specification quality across all approaches on a common scale, independent of their verifier pass rates. 
+
+## 5.4 Results 
+
+RQ3 [Correctness & Completeness]: How correct and complete are verifier-accepted formal specifications, including prompt-optimized ones, when evaluated with Spec-Harness? 
+
+Table 4: Summary of Spec-Harness Evaluation Metrics Metric Spec Stub Test Set Outcome 
+
+PostCorr 𝜑 (x, y) x:=𝑖 ; y:=𝑜 (𝑖, 𝑜 ) ∈ T no false alarm 
+
+PostComp 𝜑 (x, y) x:=𝑖 ; y:=𝑜 ′ (𝑖, 𝑜 ′) ∈ T 1 mutant rejected 
+
+PreCorr 𝜓 (x) x:=𝑖 𝑖 ∈ T + input admitted 
+
+PreComp 𝜓 (x) x:=𝑖 ′ 𝑖 ′ ∈ T − input rejected 
+
+5.4.1 Verification Rate Alone is Misleading: A high VR does not mean that a specification is correct or complete. Figure 5 shows a consistent gap between the Verification Rate (VR) and the Meaning-fully Verified Rate (MVR), the fraction of tasks where a specification achieves both PostCorrectness ≥ 0.50 and PostCompleteness 
+
+≥ 0.50 under the Spec-Harness evaluation. This gap appears across all approaches on both benchmarks, revealing that many verifier-accepted specifications are too weak to meaningfully capture the intended method behavior, a problem that VR alone cannot detect. 
+
+5.4.2 Classical Approaches Collapse Under Spec-Harness. Houdini’s VR of 86% on SpecGenBench and 54% on FormalBench drops to just 2% and 0% MVR respectively ( Δ84%, Δ54%). This collapse is due to Houdini’s predefined templates that produce trivially weak post-conditions the verifier accepts but Spec-Harness correctly rejects as incomplete. Daikon follows the same pattern, falling from 18% to 1% MVR on SpecGenBench , confirming that classical approaches largely produce formally valid but semantically empty specifications. 
+
+5.4.3 Prompt-Based Approaches Drop Sharply Too. Prompt-based approaches show a smaller but still significant VR-to-MVR gap. On 
+
+SpecGenBench , SpecGen drops from 54% VR to 24% MVR ( Δ30%), while AutoSpec and FormalBench prompts fall by Δ15% and Δ13% respectively. On FormalBench , all three approaches collapse to near-zero MVR (Figure 5). From the MVR heatmap (Figure 4), Claude Sonnet 4.6 achieves the highest MVR at 50% on SpecGenBench , while open-weight models remain below 20%. 
+
+5.4.4 Spec-Harness Reveals the True Quality Gap. On FormalBench ,MVR stays below 11% for all models across all prompt-based ap-proaches (Figure 4), far below their corresponding VR scores re-ported in RQ1. The Spec-Harness metrics , PostCorrectness and 
+
+PostCompleteness , together expose two failure modes invisible to the verifier: specifications that are too strong and specifications that are too weak. This confirms that Spec-Harness provides a more honest and necessary measure of specification quality. VeriAct: Beyond Verifiability – Agentic Synthesis of Correct and Complete Formal Specifications Conference’17, July 2017, Washington, DC, USA 
+
+Summary RQ3 
+
+VR consistently overstates specification quality across all ap-proaches. Houdini’s near-total MVR collapse exposes that high VR can be driven entirely by trivially weak specifications. Prompt-based approaches retain more meaningful specifica-tions but still show large VR-to-MVR gaps.Spec-Harness is essential for distinguishing genuinely correct and complete specifications from those that merely satisfy the verifier. 
+
+## 6 Verification-Guided Agentic Specification Synthesis 
+
+Our analysis found that LLMs struggle to generate complete and correct specifications. Without a feedback loop they often pro-duce annotations that fail verification or miss important behavioral properties. To address this gap, we propose VeriAct, framing spec-ification synthesis as an iterative, agent-driven task. The agent proposes a specification, checks it automatically, and receives struc-tured feedback to guide its revision. This closed-loop design trans-forms prompt-based generation into a guided search over the space of valid specifications, where each iteration brings the candidate closer to one that both the verifier and Spec-Harness accept. 
+
+## 6.1 VeriAct 
+
+We develop VeriAct on the CodeAct [ 42 ] paradigm, which equips an LLM agent with the ability to write and execute Python code as its action space within a ReAct-style reasoning loop. Rather than selecting from a fixed set of predefined actions, the agent generates executable code at each step, calls domain-specific tools, and observes their output before deciding what to do next. Veri-Act specializes this framework for formal verification by injecting verification-aware tools into the agent’s execution environment and guiding the model with a system prompt tailored to JML synthesis. The agent maintains a shared namespace across steps, so variables and intermediate results persist throughout the refinement process. The agent operates with four purpose-built tools: 
+
+ verify_with_openjml : Runs OpenJML ESC on a JML-annotated class and returns verification results and errors. 
+
+ analyze_openjml_errors : Parses verifier logs, classifies failures, and suggests targeted specification fixes. 
+
+ run_spec_harness : Evaluates specification correctness and completeness against test pairs using symbolic verifica-tion. 
+
+ task_complete : Terminates the CodeAct loop when spec-harness metrics value exceed the predefined threshold. A typical VeriAct run proceeds as follows. The agent reads the Java method, plans its approach, and drafts an initial JML annotation. It calls the verification tool; if OpenJML reports errors, the agent invokes the error analysis tool to understand the failure and revises accordingly. Once verification passes, the agent runs Spec-Harness to measure specification quality. If both postcondition correctness and completeness exceed the predefined threshold, the agent calls 
+
+task_complete and the loop terminates. Otherwise, it continues refining. The full trajectory, thought, code action, and tool output are recorded for later analysis, providing complete transparency into the agent’s reasoning process. Since VeriAct requires tight integration between the LLM, the SMT-based verifier, and the Spec-Harness computation, we implement VeriAct as a standalone system without relying on external agents development frameworks. 
+
+## 6.2 Results 
+
+RQ4 [VeriAct]: Can VeriAct — a verification-guided agentic loop combining code execution with Spec-Harness feedback — outperform prompt-based and prompt-optimized approaches in synthesizing cor-rect and complete formal specifications? 
+
+Using GPT-4o as the base model, we evaluate VeriAct on both SpecGenBench and FormalBench under a fixed configurations, al-lowing up to three full refinement cycles of verify → error analysis 
+
+→ re-verification → Spec-Harness evaluation. Our results show that VeriAct consistently outperforms strong prompt-based base-lines. Compared to the best-performing prompt-optimized con-figurations, VeriAct achieves a +5% improvement in Meaningfully Verified Rate (MVR) on SpecGenBench. The gains are even larger on FormalBench, where VeriAct improves performance by +12%. The improvements of VeriAct comes from its ability to use verification failures as structured guidance. Instead of relying on implicit rea-soning alone, the agent incrementally refines specifications based on concrete error signals and correctness checks, leading to higher completeness and fewer invalid annotations, where prompt-based approaches often fails to capture complete behavioral properties. The gap between the two benchmarks is worth noting. Spec-GenBench methods tend to be shorter and have clearer behavioral contracts, so a well-prompted LLM already gets reasonably close on the first attempt, there is less room for the loop to help. Formal-Bench, on the other hand, includes methods with richer control flow, edge cases around boundary values, and less obvious postcondi-tions. For these cases, the initial specification often passes OpenJML verification but fails the Spec-Harness completeness check, mean-ing the specification is valid but too loose. The refinement loop catches exactly this kind of gap: the agent sees that its postcon-dition admits mutated outputs, tightens the ensures clause, and re-checks. This pattern, verify-pass but harness-fail, driving further refinement, accounts for the majority of productive iterations we observe across both benchmarks. It is also worth noting that in most successful VeriAct runs, the first iteration typically resolves syntax-level and type-level issues flagged by OpenJML, while the second addresses specification weakness exposed by Spec-Harness. Cases that still fail after three cycles tend to required complex quan-tified expressions, exceptional loop invariants, supportive lemmas and axioms that the model struggles to express in JML regardless of feedback. This suggests that while the agentic loop is effective at closing the gap between a rough draft and a tight specification, it does not eliminate the fundamental limitations of the underlying LLM’s ability to reason about complex formal properties. 
+
+Summary RQ4 
+
+VeriAct shows that iterative Spec-Harness feedback is more effective than prompts to drive targeted refinements for correct and complete JML synthesis. It outperforms prompt-based approaches with a positive gain on the challenging benchmark. Conference’17, July 2017, Washington, DC, USA M.R.H Misu, I.Ma and C.V.Lopes 
+
+## 7 Threats to Validity 
+
+Internal Validity. We re-implemented and refactored all base-line approaches to ensure a fair comparison under a unified ex-ecution environment, using the same OpenJML ( 21-2.21 ) and Java ( 21.0.4 ) versions, the same verification command across all approaches. For GEPA optimization, we used gpt-4o as both the target and reflection model, which may limit the diversity of op-timization feedback. However, this choice isolates the effect of prompt optimization from model variation. VeriAct’s configura-tions: max_steps=12 , planning_interval=4 , and max_pairs=5 
+
+for Spec-Harness test pairs — were set based on preliminary exper-iments balancing cost and performance. Different configurations may yield different results; however, our preliminary experiments showed that increasing these values in configurations led to sig-nificantly longer execution times and higher computational costs without a proportional improvement in specification quality. 
+
+External Validity. Our evaluation is conducted on two estab-lished benchmarks, SpecGenBench (120 tasks) and FormalBench (662 tasks), both consisting of Java method snippets. While these benchmarks cover a range of task categories and complexity levels, our findings may not directly generalize to other programming languages, specification languages, or larger industrial codebases. As presented in Table 1, our prompt-based evaluation covers six LLMs that span both proprietary and open-weight models , but the results may differ with other models or future model versions. 
+
+Construct Validity. Spec-Harness measures specification qual-ity through four metrics addressing postcondition and precondition correctness and completeness. Although these metrics capture the core dimensions of specification quality grounded in Hoare-triple reasoning, they do not cover all possible specification properties such as frame conditions or exceptional postconditions. The qual-ity of Spec-Harness evaluation also depends on the test pairs and input cases drawn from the benchmarks; richer test suites could surface additional specification deficiencies. We mitigate this by using the benchmark-provided test suites, which were curated to cover various execution paths and boundary conditions reasoning. 
+
+## 8 Related Work 8.1 Formal Specification Synthesis 
+
+Automated specification synthesis has a long history before LLMs. Classical tools such as Daikon [ 15 ], Houdini [ 16 ], and DIG [ 33 ]infer likely invariants from runtime observations using predefined templates. While useful in constrained settings, they often produce trivial invariants (e.g., nums != null ) and struggle with complex functional properties [ 31 ]. LLMs have since enabled a shift toward specification synthesis without exhaustive execution. Early work focused on fine-tuning models for invariant inference [ 9 , 38 ], pri-marily targeting loop invariants in isolation. More recent systems such as SpecGen [ 31 ] generate full JML specifications through iterative, mutation-guided prompting, while AutoSpec [ 43 ] com-bines LLMs with static analysis and code decomposition for verifi-able specification generation. Related efforts span other languages and contract types: Janssen et al. [ 23 ] applied ChatGPT to loop invariant inference for C programs, Endres et al. [ 14 ] introduces metrics for evaluating NL-to-postcondition approaches and finds that generated postconditions are generally correct and effective at distinguishing incorrect code. Yang et al. [ 46 ] used LLM agent networks for automated proof generation in Rust, and Chen et al. [ 12 ] developed a self-evolving synthesis and fine-tuning cycle for the same language. Across all these approaches, specification quality is assessed primarily through verifier acceptance. Our work departs from this by decoupling generation quality from verifica-tion success — Spec-Harness independently measures correctness and completeness deficiencies, and VeriAct uses this structured feedback in a closed-loop agent to drive targeted repairs. 
+
+## 8.2 Benchmarking LLM-Synthesized Formal Specifications 
+
+Existing benchmarks for evaluating LLM code capabilities — Hu-manEval [ 11 ], MBPP [ 6], MBXP [ 5 ], and SWE-bench [ 24 ] — mea-sure functional correctness through test-suite execution. However, these protocols do not transfer to specification evaluation, since a specification is not an implementation and cannot be tested by running it. Code reasoning benchmarks such as CRUXEval [ 19 ], CRUXEval-X [ 44 ], and REval [ 10 ] come closer by assessing in-put/output prediction and execution trace simulation, but they still evaluate single-execution behavior rather than the exhaustive contracts that formal specifications must express. Several recent efforts target specification evaluation directly. He et al. [ 21 ] eval-uate LLMs on postcondition generation tasks, while Cao et al. [ 8]study how fine-tuning affects model performance on formal meth-ods benchmarks. SpecEval [ 30 ] broadens the scope to precondi-tions, postconditions, and loop invariants, adding counterfactual analysis to probe sensitivity to semantic-preserving code changes. FormalBench [ 28 ] establishes a standardized benchmark of Java methods that demands reasoning across the full range of execu-tion behaviors, revealing LLM weaknesses in multi-branch and boundary-condition. Despite this progress, all these benchmarks share a common limitation: they assess specifications as correct or incorrect relative to a ground-truth annotation or verifier oracle, producing a binary signal. Spec-Harness addresses this gap by inde-pendently measuring postcondition and precondition correctness and completeness through targeted Hoare-triple queries, making specification deficiencies visible and actionable. 
+
+## 9 Conclusion & Future Work 
+
+In this paper, we investigated the gap between verifiability and actual specification quality in automated formal specification syn-thesis. Our empirical study (RQ1) established baseline verifier pass rates, while GEPA-driven prompt optimization (RQ2) pushed these rates further but reached a clear performance ceiling. More crit-ically, our proposed Spec-Harness (RQ3) metrics revealed that a significant fraction of verifier-accepted specifications are incorrect or incomplete, demonstrating that verifier acceptance alone is an insufficient measure of specification quality. To address this, we proposed VeriAct, a verification-guided agentic framework that incorporates Spec-Harness feedback directly into its synthesis loop. Our results (RQ4) showed that VeriAct outperforms both prompt-based and prompt-optimized baselines across all four Spec-Harness metrics, producing specifications that are not only verifiable but also correct and complete. Together, Spec-Harness and VeriAct shift VeriAct: Beyond Verifiability – Agentic Synthesis of Correct and Complete Formal Specifications Conference’17, July 2017, Washington, DC, USA 
+
+the evaluation and synthesis of formal specifications beyond verifia-bility toward meaningful behavioral contracts. For future work, we plan to extend Spec-Harness to support additional constructs such as loop invariants, class invariants, and exceptional postconditions. 
+
+## 10 Data Availability 
+
+All artifacts associated with this study are available here in the 
+
+§ VeriAct GitHub Repository. It includes implementation and execution scripts for all baseline approaches (Daikon, Houdini, Spec-Gen, AutoSpec, and FormalBench), normalized benchmark datasets (SpecGenBench and FormalBench) with extended test suites, our im-plementations of the GEPA-based prompt optimizer, Spec-Harness, and VeriAct. 
+
+## References 
+
+[1] Lakshya A Agrawal, Shangyin Tan, Dilara Soylu, Noah Ziems, Rishi Khare, Krista Opsahl-Ong, Arnav Singhvi, Herumb Shandilya, Michael J Ryan, Meng Jiang, Christopher Potts, Koushik Sen, Alex Dimakis, Ion Stoica, Dan Klein, Matei Zaharia, and Omar Khattab. 2026. GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning. In The Fourteenth International Conference on Learning Representations . https://openreview.net/forum?id=RQm2KQTM5r [2] Wolfgang Ahrendt, Bernhard Beckert, Daniel Bruns, Richard Bubel, Christoph Gladisch, Sarah Grebing, Reiner Hähnle, Martin Hentschel, Mihai Herda, Vladimir Klebanov, et al . 2014. The KeY platform for verification and analysis of Java programs. In Verified Software: Theories, Tools and Experiments: 6th International Conference, VSTTE 2014, Vienna, Austria, July 17-18, 2014, Revised Selected Papers 6. Springer, 55–71. [3] Anthropic. 2026. Claude. https://docs.anthropic.com/claude/docs. [Online], [Accessed: 2026-03-20]. [4] Anthropic. 2026. Claude Sonnet 4.6 System Card. https://www.anthropic.com/ claude-sonnet-4-6-system-card. [Online], [Accessed: 2026-03-20]. [5] Ben Athiwaratkun, Sanjay Krishna Gouda, Zijian Wang, Xiaopeng Li, Yuchen Tian, Ming Tan, Wasi Uddin Ahmad, Shiqi Wang, Qing Sun, Mingyue Shang, Su-jan Kumar Gonugondla, Hantian Ding, Varun Kumar, Nathan Fulton, Arash Farahani, Siddhartha Jain, Robert Giaquinto, Haifeng Qian, Murali Krishna Ramanathan, and Ramesh Nallapati. 2023. Multi-lingual Evaluation of Code Generation Models. In The Eleventh International Conference on Learning Rep-resentations, ICLR 2023, Kigali, Rwanda, May 1-5, 2023 . OpenReview.net. https: //openreview.net/forum?id=Bo7eeXm6An8 [6] Jacob Austin, Augustus Odena, Maxwell I. Nye, Maarten Bosma, Henryk Michalewski, David Dohan, Ellen Jiang, Carrie J. Cai, Michael Terry, Quoc V. Le, and Charles Sutton. 2021. Program Synthesis with Large Language Models. CoRR 
+
+abs/2108.07732 (2021). arXiv:2108.07732 https://arxiv.org/abs/2108.07732 [7] Jan Boerman, Marieke Huisman, and Sebastiaan J. C. Joosten. 2018. Reasoning About JML: Differences Between KeY and OpenJML. In Integrated Formal Methods - 14th International Conference, IFM 2018, Maynooth, Ireland, September 5-7, 2018, Proceedings (Lecture Notes in Computer Science) , Carlo A. Furia and Kirsten Winter (Eds.). Springer, 30–46. doi:10.1007/978-3-319-98938-9_3 [8] Jialun Cao, Yaojie Lu, Meiziniu Li, Haoyang Ma, Haokun Li, Mengda He, Cheng Wen, Le Sun, Hongyu Zhang, Shengchao Qin, Shing-Chi Cheung, and Cong Tian. 2025. From Informal to Formal - Incorporating and Evaluating LLMs on Natural Language Requirements to Verifiable Formal Proofs. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2025, Vienna, Austria, July 27 - August 1, 2025 , Wanxiang Che, Joyce Nabende, Ekaterina Shutova, and Mohammad Taher Pilehvar (Eds.). Association for Computational Linguistics, 26984–27003. https://aclanthology.org/2025.acl-long.1310/ [9] Saikat Chakraborty, Shuvendu K. Lahiri, Sarah Fakhoury, Akash Lal, Madanlal Musuvathi, Aseem Rastogi, Aditya Senthilnathan, Rahul Sharma, and Nikhil Swamy. 2023. Ranking LLM-Generated Loop Invariants for Program Verification. In Findings of the Association for Computational Linguistics: EMNLP 2023, Singa-pore, December 6-10, 2023 (Findings of ACL, Vol. EMNLP 2023) , Houda Bouamor, Juan Pino, and Kalika Bali (Eds.). Association for Computational Linguistics, 9164–9175. doi:10.18653/V1/2023.FINDINGS-EMNLP.614 [10] Junkai Chen, Zhiyuan Pan, Xing Hu, Zhenhao Li, Ge Li, and Xin Xia. 2024. Evaluating Large Language Models with Runtime Behavior of Program Execution. 
+
+CoRR abs/2403.16437 (2024). arXiv:2403.16437 doi:10.48550/ARXIV.2403.16437 [11] Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Pondé de Oliveira Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph, Greg Brockman, Alex Ray, Raul Puri, Gretchen Krueger, Michael Petrov, Heidy Khlaaf, Girish Sastry, Pamela Mishkin, Brooke Chan, Scott Gray, Nick Ryder, Mikhail Pavlov, Alethea Power, Lukasz Kaiser, Mohammad Bavarian, Clemens Winter, Philippe Tillet, Felipe Petroski Such, Dave Cummings, Matthias Plappert, Fo-tios Chantzis, Elizabeth Barnes, Ariel Herbert-Voss, William Hebgen Guss, Alex Nichol, Alex Paino, Nikolas Tezak, Jie Tang, Igor Babuschkin, Suchir Balaji, Shan-tanu Jain, William Saunders, Christopher Hesse, Andrew N. Carr, Jan Leike, Joshua Achiam, Vedant Misra, Evan Morikawa, Alec Radford, Matthew Knight, Miles Brundage, Mira Murati, Katie Mayer, Peter Welinder, Bob McGrew, Dario Amodei, Sam McCandlish, Ilya Sutskever, and Wojciech Zaremba. 2021. Eval-uating Large Language Models Trained on Code. CoRR abs/2107.03374 (2021). arXiv:2107.03374 https://arxiv.org/abs/2107.03374 [12] Tianyu Chen, Shuai Lu, Shan Lu, Yeyun Gong, Chenyuan Yang, Xuheng Li, Md Rakib Hossain Misu, Hao Yu, Nan Duan, Peng Cheng, Fan Yang, Shuvendu K. Lahiri, Tao Xie, and Lidong Zhou. 2025. Automated Proof Generation for Rust Code via Self-Evolution. In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025 . OpenReview.net. https: //openreview.net/forum?id=2NqssmiXLu [13] David R Cok. 2011. OpenJML: JML for Java 7 by extending OpenJDK. In NASA Formal Methods: Third International Symposium, NFM 2011, Pasadena, CA, USA, April 18-20, 2011. Proceedings 3 . Springer, 472–479. [14] Madeline Endres, Sarah Fakhoury, Saikat Chakraborty, and Shuvendu K. Lahiri. 2024. Can Large Language Models Transform Natural Language Intent into Formal Method Postconditions? Proc. ACM Softw. Eng. 1, FSE (2024), 1889–1912. doi:10.1145/3660791 [15] Michael D. Ernst, Jeff H. Perkins, Philip J. Guo, Stephen McCamant, Carlos Pacheco, Matthew S. Tschantz, and Chen Xiao. 2007. The Daikon system for dynamic detection of likely invariants. Sci. Comput. Program. 69, 1-3 (2007), 35–45. doi:10.1016/J.SCICO.2007.01.015 [16] Cormac Flanagan and K. Rustan M. Leino. 2001. Houdini, an Annotation Assistant for ESC/Java. In FME 2001: Formal Methods for Increasing Software Productivity, International Symposium of Formal Methods Europe, Berlin, Germany, March 12-16, 2001, Proceedings (Lecture Notes in Computer Science, Vol. 2021) , José Nuno Oliveira and Pamela Zave (Eds.). Springer, 500–517. doi:10.1007/3-540-45251-6_29 [17] Google. 2025. Gemini 2.0 Flash Model Card. https://modelcards.withgoogle.com/ assets/documents/gemini-2-flash.pdf. [Online], [Accessed: 2026-03-20]. [18] Google. 2026. Gemini. https://ai.google.dev/. [Online], [Accessed: 2026-03-20]. [19] Alex Gu, Baptiste Rozière, Hugh James Leather, Armando Solar-Lezama, Gabriel Synnaeve, and Sida Wang. 2024. CRUXEval: A Benchmark for Code Reasoning, Understanding and Execution. In Forty-first International Conference on Machine Learning, ICML 2024, Vienna, Austria, July 21-27, 2024 (Proceedings of Machine Learning Research, Vol. 235) , Ruslan Salakhutdinov, Zico Kolter, Katherine A. Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp (Eds.). PMLR / OpenReview.net, 16568–16621. https://proceedings.mlr.press/ v235/gu24c.html [20] Daya Guo, Qihao Zhu, Dejian Yang, Zhenda Xie, Kai Dong, Wentao Zhang, Guant-ing Chen, Xiao Bi, Y. Wu, Y. K. Li, Fuli Luo, Yingfei Xiong, and Wenfeng Liang. 2024. DeepSeek-Coder: When the Large Language Model Meets Programming – The Rise of Code Intelligence. https://arxiv.org/abs/2401.14196. arXiv preprint arXiv:2401.14196 (2024). [Online], [Accessed: 2026-03-20]. [21] Fusen He, Juan Zhai, and Minxue Pan. 2024. Beyond Code Generation: As-sessing Code LLM Maturity with Postconditions. CoRR abs/2407.14118 (2024). arXiv:2407.14118 doi:10.48550/ARXIV.2407.14118 [22] Binyuan Hui, Jian Yang, Zeyu Cui, Jiaxi Yang, Dayiheng Liu, Lei Zhang, Tianyu Liu, Jiajun Zhang, Bowen Yu, Kai Dang, et al . 2024. Qwen2.5-Coder Technical Report. https://arxiv.org/abs/2409.12186. arXiv preprint arXiv:2409.12186 (2024). [Online], [Accessed: 2026-03-20]. [23] Christian Janßen, Cedric Richter, and Heike Wehrheim. 2024. Can ChatGPT support software verification?. In Fundamental Approaches to Software Engineering - 27th International Conference, FASE 2024, Held as Part of the European Joint Conferences on Theory and Practice of Software, ETAPS 2024, Luxembourg City, Luxembourg, April 6-11, 2024, Proceedings (Lecture Notes in Computer Science, Vol. 14573) , Dirk Beyer and Ana Cavalcanti (Eds.). Springer, 266–279. doi:10.1007/ 978-3-031-57259-3_13 [24] Carlos E. Jimenez, John Yang, Alexander Wettig, Shunyu Yao, Kexin Pei, Ofir Press, and Karthik R. Narasimhan. 2024. SWE-bench: Can Language Models Resolve Real-world Github Issues?. In The Twelfth International Conference on Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024 . OpenReview.net. https://openreview.net/forum?id=VTF8yNQM66 [25] Omar Khattab, Arnav Singhvi, Paridhi Maheshwari, Zhiyuan Zhang, Keshav Santhanam, Sri Vardhamanan, Saiful Haq, Ashutosh Sharma, Thomas T. Joshi, Hanna Moazam, Heather Miller, Matei Zaharia, and Christopher Potts. 2023. DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines. 
+
+CoRR abs/2310.03714 (2023). arXiv:2310.03714 doi:10.48550/ARXIV.2310.03714 [26] Shuvendu K. Lahiri. 2024. Evaluating LLM-driven User-Intent Formalization for Verification-Aware Languages. In Formal Methods in Computer-Aided Design, FMCAD 2024, Prague, Czech Republic, October 15-18, 2024 , Nina Narodytska and Philipp Rümmer (Eds.). IEEE, 142–147. doi:10.34727/2024/ISBN.978-3-85448-065-5_19 [27] Shuvendu K Lahiri. 2026. Intent Formalization: A Grand Challenge for Reliable Coding in the Age of AI Agents. arXiv preprint arXiv:2603.17150 (2026). Conference’17, July 2017, Washington, DC, USA M.R.H Misu, I.Ma and C.V.Lopes 
+
+[28] Thanh Le-Cong, Bach Le, and Toby Murray. 2025. Can LLMs Reason About Program Semantics? A Comprehensive Evaluation of LLMs on Formal Specifica-tion Inference. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2025, Vienna, Austria, July 27 - August 1, 2025 , Wanxiang Che, Joyce Nabende, Ekaterina Shutova, and Mohammad Taher Pilehvar (Eds.). Association for Computational Linguistics, 21991–22014. https://aclanthology.org/2025.acl-long.1068/ [29] Gary T Leavens, Albert L Baker, and Clyde Ruby. 2006. Preliminary design of JML: A behavioral interface specification language for Java. ACM SIGSOFT Software Engineering Notes 31, 3 (2006), 1–38. [30] Lezhi Ma, Shangqing Liu, Lei Bu, Shangru Li, Yida Wang, and Yang Liu. 2024. SpecEval: Evaluating Code Comprehension in Large Language Mod-els via Program Specifications. CoRR abs/2409.12866 (2024). arXiv:2409.12866 doi:10.48550/ARXIV.2409.12866 [31] Lezhi Ma, Shangqing Liu, Yi Li, Xiaofei Xie, and Lei Bu. 2025. SpecGen: Automated Generation of Formal Program Specifications via Large Language Models. In 47th IEEE/ACM International Conference on Software Engineering, ICSE 2025, Ottawa, ON, Canada, April 26 - May 6, 2025 . IEEE, 16–28. doi:10.1109/ICSE55347.2025.00129 [32] Facundo Molina, Marcelo d’Amorim, and Nazareno Aguirre. 2022. Fuzzing class specifications. In Proceedings of the 44th International Conference on Software Engineering . 1008–1020. [33] ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. 2014. DIG: A Dynamic Invariant Generator for Polynomial and Array Invariants. ACM Trans. Softw. Eng. Methodol. 23, 4 (2014), 30:1–30:30. doi:10.1145/2556782 [34] Jeremy W Nimmer and Michael D Ernst. 2002. Automatic generation of program specifications. ACM SIGSOFT Software Engineering Notes 27, 4 (2002), 229–239. [35] OpenAI. 2024. GPT-4o. https://platform.openai.com/docs/models/gpt-4o. [On-line], [Accessed: 2026-03-20]. [36] OpenAI. 2026. OpenAI. https://platform.openai.com/docs/models. [Online], [Accessed: 2026-03-20]. [37] Krista Opsahl-Ong, Michael J. Ryan, Josh Purtell, David Broman, Christopher Potts, Matei Zaharia, and Omar Khattab. 2024. Optimizing Instructions and Demonstrations for Multi-Stage Language Model Programs. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, EMNLP 2024, Miami, FL, USA, November 12-16, 2024 , Yaser Al-Onaizan, Mohit Bansal, and Yun-Nung Chen (Eds.). Association for Computational Linguistics, 9340–9366. doi:10.18653/V1/2024.EMNLP-MAIN.525 [38] Kexin Pei, David Bieber, Kensen Shi, Charles Sutton, and Pengcheng Yin. 2023. Can Large Language Models Reason about Program Invariants?. In International Conference on Machine Learning, ICML 2023, 23-29 July 2023, Honolulu, Hawaii, USA (Proceedings of Machine Learning Research, Vol. 202) , Andreas Krause, Emma Brunskill, Kyunghyun Cho, Barbara Engelhardt, Sivan Sabato, and Jonathan Scarlett (Eds.). PMLR, 27496–27520. https://proceedings.mlr.press/v202/pei23a. html [39] Baptiste Rozière, Jonas Gehring, Fabian Gloeckle, Sten Sootla, Itai Gat, Xiao-qing Ellen Tan, Yossi Adi, Jingyu Liu, Romain Sauvestre, Tal Remez, Jérémy Rapin, Artyom Kozhevnikov, Ivan Evtimov, Joanna Bitton, Manish Bhatt, Cristian Canton Ferrer, Aaron Grattafiori, Wenhan Xiong, Alexandre Défossez, Jade Copet, Faisal Azhar, Hugo Touvron, Louis Martin, Nicolas Usunier, Thomas Scialom, and Gabriel Synnaeve. 2023. Code Llama: Open Foundation Models for Code. https://arxiv.org/abs/2308.12950. arXiv preprint arXiv:2308.12950 (2023). [Online], [Accessed: 2026-03-20]. [40] Bhaskarjit Sarmah, Kriti Dutta, Anna Grigoryan, Sachin Tiwari, Stefano Pasquali, and Dhagash Mehta. 2024. A Comparative Study of DSPy Teleprompter Al-gorithms for Aligning Large Language Models Evaluation Metrics to Human Evaluation. CoRR abs/2412.15298 (2024). arXiv:2412.15298 doi:10.48550/ARXIV. 2412.15298 [41] Chuyue Sun, Ying Sheng, Oded Padon, and Clark W. Barrett. 2024. Clover: Closed-Loop Verifiable Code Generation. In AI Verification - First International Symposium, SAIV 2024, Montreal, QC, Canada, July 22-23, 2024, Proceedings (Lecture Notes in Computer Science, Vol. 14846) , Guy Avni, Mirco Giacobbe, Taylor T. Johnson, Guy Katz, Anna Lukina, Nina Narodytska, and Christian Schilling (Eds.). Springer, 134–155. doi:10.1007/978-3-031-65112-0_7 [42] Xingyao Wang, Yangyi Chen, Lifan Yuan, Yizhe Zhang, Yunzhu Li, Hao Peng, and Heng Ji. 2024. Executable Code Actions Elicit Better LLM Agents. In Forty-first International Conference on Machine Learning, ICML 2024, Vienna, Austria, July 21-27, 2024 (Proceedings of Machine Learning Research) , Ruslan Salakhutdinov, Zico Kolter, Katherine A. Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp (Eds.). PMLR / OpenReview.net, 50208–50232. https: //proceedings.mlr.press/v235/wang24h.html [43] Cheng Wen, Jialun Cao, Jie Su, Zhiwu Xu, Shengchao Qin, Mengda He, Haokun Li, Shing-Chi Cheung, and Cong Tian. 2024. Enchanting Program Specification Synthesis by Large Language Models Using Static Analysis and Program Ver-ification. In Computer Aided Verification - 36th International Conference, CAV 2024, Montreal, QC, Canada, July 24-27, 2024, Proceedings, Part II (Lecture Notes in Computer Science, Vol. 14682) , Arie Gurfinkel and Vijay Ganesh (Eds.). Springer, 302–328. doi:10.1007/978-3-031-65630-9_16 [44] Ruiyang Xu, Jialun Cao, Yaojie Lu, Ming Wen, Hongyu Lin, Xianpei Han, Ben He, Shing-Chi Cheung, and Le Sun. 2025. CRUXEVAL-X: A Benchmark for Multilingual Code Reasoning, Understanding and Execution. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), ACL 2025, Vienna, Austria, July 27 - August 1, 2025 , Wanxiang Che, Joyce Nabende, Ekaterina Shutova, and Mohammad Taher Pilehvar (Eds.). Association for Computational Linguistics, 23762–23779. https://aclanthology. org/2025.acl-long.1158/ [45] Chuanhao Yan, Fengdi Che, Xuhan Huang, Xu Xu, Xin Li, Yizhi Li, Xingwei Qu, Jingzhe Shi, Zhuangzhuang He, Chenghua Lin, Yaodong Yang, Binhang Yuan, Hang Zhao, Yu Qiao, Bowen Zhou, and Jie Fu. 2025. Re:Form - Reducing Human Priors in Scalable Formal Software Verification with RL in LLMs: A Preliminary Study on Dafny. CoRR abs/2507.16331 (2025). arXiv:2507.16331 doi:10.48550/ARXIV.2507.16331 [46] Chenyuan Yang, Xuheng Li, Md Rakib Hossain Misu, Jianan Yao, Weidong Cui, Yeyun Gong, Chris Hawblitzel, Shuvendu K. Lahiri, Jacob R. Lorch, Shuai Lu, Fan Yang, Ziqiao Zhou, and Shan Lu. 2025. AutoVerus: Automated Proof Generation for Rust Code. Proc. ACM Program. Lang. 9, OOPSLA2 (2025), 3454–3482. doi:10. 1145/3763174

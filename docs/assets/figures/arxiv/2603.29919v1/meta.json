@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.29919v1/fig-001.webp",
+      "caption": "TABLE I DISTRIBUTION OF CONTENT TYPES ACROSS SKILL BODIES.",
+      "page": 3,
+      "index": 1,
+      "width": 529,
+      "height": 460
+    },
+    {
+      "url": "assets/figures/arxiv/2603.29919v1/fig-002.webp",
+      "caption": "Fig. 5. GMM model selection. k = 5 is the first local peak (silhouette = 0.393), matching the five-category taxonomy.",
+      "page": 12,
+      "index": 2,
+      "width": 514,
+      "height": 328
+    },
+    {
+      "url": "assets/figures/arxiv/2603.29919v1/fig-003.webp",
+      "caption": "TABLE II FROM EMPIRICAL FINDINGS TO DESIGN REQUIREMENTS.",
+      "page": 5,
+      "index": 3,
+      "width": 990,
+      "height": 206
+    },
+    {
+      "url": "assets/figures/arxiv/2603.29919v1/fig-004.webp",
+      "caption": "Fig. 3. Overview of SKILLREDUCER. Stage 1 (top) compresses routing descriptions via simulated-oracle-driven delta debugging followed by real-environment validation. Stage 2 (bottom) classifies body content, applies type-specific compression, deduplicates references, and validates through faithfulness and taskbased quality gates with a feedback loop.",
+      "page": 5,
+      "index": 4,
+      "width": 996,
+      "height": 347
+    }
+  ]
+}

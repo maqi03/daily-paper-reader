@@ -1,0 +1,110 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-001.webp",
+      "caption": "Figure 5 | In-conflict rewards cause models to suppress reasoning while maintaining task performance. Training curves (top) and representative completions (bottom) for two in-conflict reward pairs. Left: The length penalty compresses coin-tracking reasoning into terse arrow notation that a monitor cannot parse. Right: The CoT monitor causes the model to produce plausible reasoning that doesn’t mention a backdoor, while the output code still contains a backdoor. For full completions and training curves see appendices E and F.",
+      "page": 11,
+      "index": 1,
+      "width": 984,
+      "height": 603
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-002.webp",
+      "caption": "Figure 11 | We compare two prompt variations for in-context RL in the Heads-And-Tails environment with ’punish string’ CoT reward. We show total reward and monitorability for ICRL with an ’unrestricted’ prompt that instructs the model to keep finding better solutions indefinitely (b), as described in appendix I; and we compare to a ’capped’ version with a prompt that instructs the model to copy the best solution once the maximum reward is achieved. While both versions achieve perfect reward immediately, i.e. avoid saying ’Heads’ and ’Tails’, the ’unrestricted’ prompt results in the model trying to optimize further, which causes monitorability to drop.",
+      "page": 57,
+      "index": 2,
+      "width": 956,
+      "height": 359
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-003.webp",
+      "caption": "Figure 4 | A & B: Empirical monitorability scores match framework predictions. We measure the monitorability of policies trained with different 𝑅cot rewards across our two environments. Bar colors indicate the theoretical classification of each reward pair: In-conflict, Orthogonal, Aligned. Solid bars show token-level RL results; hatched bars show in-context RL results. As predicted by our framework, in-conflict rewards lead to near-zero monitorability, while orthogonal and aligned rewards preserve high monitorability. C & D: In-conflict rewards are harder to learn. We compare the proportion of runs that achieve a score of > 0.8 on both 𝑅cot and 𝑅out across our training runs—we see that it is rarer for in-conflict rewards to be successfully optimized.",
+      "page": 10,
+      "index": 3,
+      "width": 920,
+      "height": 409
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-004.webp",
+      "caption": "Table 2 | Constraint descriptions and reminders for Heads-And-Tails.",
+      "page": 54,
+      "index": 4,
+      "width": 958,
+      "height": 666
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-005.webp",
+      "caption": "Figure 2 | A) Obfuscated reward hacking and non-transparent CoTs. During obfuscated reward hacking the model expresses one thing in the CoT text (reasoning about code), but is actually using the CoT to compute another (its reward hacking strategy). In this case, we say the CoT is “nontransparent”. B) 𝑅cot shapes CoT text, 𝑅out shapes CoT computation. We can separately consider what each reward term acts on, as 𝑅out depends on the computation through the final output, while 𝑅cot acts on the CoT text.",
+      "page": 3,
+      "index": 5,
+      "width": 983,
+      "height": 287
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-006.webp",
+      "caption": "Figure 8 | Qwen-3 Token-Level RL Results. Training curves across Heads-And-Tails (top two rows) and Backdoor-Easy (bottom two rows) environments. Each subplot shows the evolution of 𝑅cot (process reward) and 𝑅out (outcome reward) during training, along with representative Chainof-Thought traces. In-conflict rewards (length penalty, CoT monitor, human preferences) show characteristic drops in monitorability, while aligned rewards maintain transparent reasoning.",
+      "page": 35,
+      "index": 6,
+      "width": 980,
+      "height": 1140
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-007.webp",
+      "caption": "Figure 9 | Gemma-3 Token-Level RL Results. Training curves across Heads-And-Tails (top row and left of second row) and Backdoor-Easy (right of second row and third row) environments. Note that Gemma optimization was more challenging, with several runs failing to converge—all failures occurred with in-conflict rewards, providing additional evidence that learning non-transparent reasoning is difficult.",
+      "page": 36,
+      "index": 7,
+      "width": 980,
+      "height": 846
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-008.webp",
+      "caption": "Figure 6 | Process supervision is aligned in Heads-And-Tails. Our aligned rewards improve outcome performance while not hurting monitorability. Unlike the other experiments, which consider 𝑁 = 6 flips, we track 𝑁 = 42 flips.",
+      "page": 12,
+      "index": 8,
+      "width": 571,
+      "height": 424
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-009.webp",
+      "caption": "Table 4 | ICRL hyperparameters.",
+      "page": 56,
+      "index": 9,
+      "width": 731,
+      "height": 310
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-010.webp",
+      "caption": "Table 3 | Constraint descriptions and reminders for Backdoor-Easy (MBPP).",
+      "page": 56,
+      "index": 10,
+      "width": 935,
+      "height": 486
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-011.webp",
+      "caption": "Figure 10 | In-Context RL Results (Claude Opus 4.5). Training curves using in-context RL across Coin Flip (top two rows) and MBPP (bottom two rows) environments. In-context RL provides a complementary setting to token-level RL, testing whether models can learn non-transparent strategies through prompt-based optimization. Results mirror token-level findings: in-conflict rewards either fail to optimize or cause monitorability degradation, while orthogonal rewards preserve reasoning transparency.",
+      "page": 37,
+      "index": 11,
+      "width": 980,
+      "height": 1138
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-012.webp",
+      "caption": "Figure 3 | Aligned, Orthogonal, and In-conflict rewards. We classify (𝑅cot, 𝑅out) pairs based on the relationship between CoT text which achieves a high 𝑅cot, and CoT computation which achieves a high 𝑅out. In-Conflict: Punishing reward hacking means 𝑅cot leads to CoT text which does not talk about reward hacking, but CoT computations which lead to a high 𝑅out do include text about reward hacking—this is incompatible. Orthogonal: The policy can easily express CoT text about reward hacking while speaking in all caps—CoT text with high 𝑅cot is compatible with expressing 𝑅out computations. Aligned: Punishing incorrect reasoning allows the model to output fully correct code. By assumption, this achieves a higher 𝑅out than the reward hacking strategy. This causes the model to transparently use the computations expressed in its CoT. CoT text with a high 𝑅cot causes computations that achieve a high 𝑅out.",
+      "page": 5,
+      "index": 12,
+      "width": 983,
+      "height": 325
+    },
+    {
+      "url": "assets/figures/arxiv/2603.30036v1/fig-013.webp",
+      "caption": "Figure 7 | Computation graph of an LLM. Adapted from Korbak et al. (2025). We consider the computational graph of the LLM as containing intermediate computations both in its internal activations, and in the tokens of its CoT. We are interested in whether the computational content of the CoT tokens is described in plain natural language.",
+      "page": 16,
+      "index": 13,
+      "width": 837,
+      "height": 569
+    }
+  ]
+}

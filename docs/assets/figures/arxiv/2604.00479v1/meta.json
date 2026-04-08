@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.00479v1/fig-001.webp",
+      "caption": "Figure 1. The failure cases of RL models. We use Vision-R1 [13] as a representative RL model, with its corresponding base model being Qwen2.5-VL-7B [1]. The examples are selected from MathVerse [54] and MathVista [20], respectively. For each question, we set the sampling temperature to 1.0 and generate multiple responses, each of which is displayed in a gray box. Main differences in the proposed reasoning strategies are annotated in blue and pink, while correct and incorrect answers are highlighted in green and red, respectively.",
+      "page": 2,
+      "index": 1,
+      "width": 1032,
+      "height": 420
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00479v1/fig-002.webp",
+      "caption": "Table 1. The evaluation of our method on mathematical benchmarks. We report scores of both open-source and proprietary VLMs. The best and second best results are bolded and underlined, respectively. * indicates the results sourced from the OpenCompass leaderboard.",
+      "page": 7,
+      "index": 2,
+      "width": 1042,
+      "height": 392
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00479v1/fig-003.webp",
+      "caption": "Figure 2. The impact of reasoning diversity on model performance. In (A) and (B), we report acc@k for both RL and base models on established benchmarks, with color intensity decreasing as k = 1, 2, 4. In (C) and (D), we plot relationship between reasoning diversity and the corresponding acc@4 scores. Each point is based on a set of 4 responses, and a regression line is fitted to capture the overall trend.",
+      "page": 3,
+      "index": 3,
+      "width": 1032,
+      "height": 188
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00479v1/fig-004.webp",
+      "caption": "Figure 7. The qualitative analysis. We consider Vision-R1 [13] and MUPO-Thinker as typical GRPO and MUPO models and evaluate on an example from MMStar [5] with greedy decoding. We reorganize responses with numbering and omit special tags for better visualization.",
+      "page": 8,
+      "index": 4,
+      "width": 1029,
+      "height": 213
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00479v1/fig-005.webp",
+      "caption": "Figure 3. The diversity collapse of GRPO. In (A), we plot the evolution of reasoning diversity across training steps. In (B), we present an illustration of policy distribution over training to highlight the contrasting dynamics of convergent and divergent thinking. The gray region denotes rewards associated with different reasoning trajectories, while the blue curve indicates corresponding sampling probabilities.",
+      "page": 4,
+      "index": 5,
+      "width": 1027,
+      "height": 215
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00479v1/fig-006.webp",
+      "caption": "Figure 5. The overview of MUPO. The upper part illustrates the high-level pipeline, where responses are partitioned into multiple groups, and the overall optimization objective is formulated as a composition of multiple GRPO objectives, each corresponding to a group. In the lower part, we present the advantage computation for a group, in which we introduce diversity reward to encourage inter-group separation.",
+      "page": 5,
+      "index": 6,
+      "width": 1032,
+      "height": 490
+    }
+  ]
+}

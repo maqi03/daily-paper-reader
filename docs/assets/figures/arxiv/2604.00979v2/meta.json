@@ -1,0 +1,198 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-001.webp",
+      "caption": "Fig. 1: Failure vs. desired behavior in one example scenario (more in Figure 12).",
+      "page": 1,
+      "index": 1,
+      "width": 477,
+      "height": 470
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-002.webp",
+      "caption": "Fig. 5: The three-stage evaluation based on MFRM. The process transitions from multiple-judge rubric annotation to multi-facet calibration, ultimately synthesizing metrics equipped with Fisher Uncertainty, resulting in Peer P̂ and Dignity D̂ scores.",
+      "page": 6,
+      "index": 2,
+      "width": 908,
+      "height": 220
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-003.webp",
+      "caption": "Table 2: Comparison of scoring methods for Peer (P) and Dignity (D). Raw Prob. computes the average proportion of satisfied rubric items; Z-Score normalizes per-judge scores to zero mean and unit variance; MFRM calibrates for judge severity, rubric difficulty, and question complexity jointly. Significant differences across models are observed under MFRM, but not under Raw Prob. or Z-score.",
+      "page": 6,
+      "index": 3,
+      "width": 1000,
+      "height": 214
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-004.webp",
+      "caption": "Table 11: OOD evaluation on Qwen3-4B-Instruct-2507. Best per column in bold.",
+      "page": 25,
+      "index": 4,
+      "width": 794,
+      "height": 350
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-005.webp",
+      "caption": "Fig. 15: Prompt used for PersonaKnob question synthesis. Given a subset of active persona dimensions, the prompt elicits a single JSON-structured first-person question that requires all active dimensions simultaneously.",
+      "page": 26,
+      "index": 5,
+      "width": 1008,
+      "height": 440
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-006.webp",
+      "caption": "Fig. 16: Binary scoring rubrics for the four persona dimensions used in MFRM-IRT calibration. Each dimension has three rubric items (R = 3), scored independently by J = 2 LLM judges.",
+      "page": 26,
+      "index": 6,
+      "width": 1008,
+      "height": 477
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-007.webp",
+      "caption": "Fig. 12: Model Behavior Cards. Six models evaluated on the Evasive Servant vs. Dignified Peer axis across three behavioral dimensions. Only M5 (Lag-DPO) achieves Dignified Peer. M3 (SFT-Combined) exhibits a distinct Deflecting Promoter failure: it avoids the task but outputs manipulative social-media astroturfing scripts, demonstrating that SFT alone without preference optimization cannot suppress harmful compliance. 30",
+      "page": 30,
+      "index": 7,
+      "width": 1008,
+      "height": 1314
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-008.webp",
+      "caption": "Fig. 6: Left: Radar chart of utility and ATEC trait scores for six persona configurations. Right: Correlation among A, T, E and C.",
+      "page": 7,
+      "index": 8,
+      "width": 1000,
+      "height": 360
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-009.webp",
+      "caption": "Fig. 11: Anchoring Dataset Cards. Four single-dimension datasets grounding PersonaKnob, spanning both SELECTION-based (A, T) and open-ended GENERATION (E, C) paradigms. Filled badges indicate evaluation format; outlined badges indicate task sub-type.",
+      "page": 22,
+      "index": 9,
+      "width": 796,
+      "height": 564
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-010.webp",
+      "caption": "Table 4: Performance Comparison of Preference Optimization Algorithms. Our Lag-DPO effectively balances all persona dimensions (A, T, E, C), avoiding negative interference between objectives. (Values reported in IRT Logit Space θ ± SE)",
+      "page": 10,
+      "index": 10,
+      "width": 1008,
+      "height": 535
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-011.webp",
+      "caption": "Fig. 7: General capability evaluation on MMLU and BBH. Lag-DPO matches or exceeds baselines across both model families while achieving superior persona alignment.",
+      "page": 10,
+      "index": 11,
+      "width": 1008,
+      "height": 261
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-012.webp",
+      "caption": "Table 6: Residual hallucination rates among accepted instances, broken down by rubric criterion. An instance fails a type if any criterion scores 0.",
+      "page": 18,
+      "index": 12,
+      "width": 844,
+      "height": 224
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-013.webp",
+      "caption": "Fig. 19: Rubric-based prompt for detecting Type 3 hallucinations (weak negatives). An instance fails if any criterion scores 0. All three audit prompts (Figures 17–19) are administered to an external LLM judge (GLM-5Turbo) not used elsewhere in the pipeline; human auditors follow the same rubrics. Results are reported in Table 6.",
+      "page": 28,
+      "index": 13,
+      "width": 1008,
+      "height": 510
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-014.webp",
+      "caption": "Fig. 18: Rubric-based prompt for detecting Type 2 hallucinations (unfaithful references). An instance fails if any criterion scores 0.",
+      "page": 28,
+      "index": 14,
+      "width": 1008,
+      "height": 441
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-015.webp",
+      "caption": "Fig. 2: Construction pipeline of PersonaKnob: from masked sampling to final human-in-the-loop review.",
+      "page": 4,
+      "index": 15,
+      "width": 906,
+      "height": 262
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-016.webp",
+      "caption": "Fig. 3: An illustrative instance of PersonaKnob, consisting of one reference (golden) response and three negative (rejected) responses generated under the active traits {A,E,C}. Note that the displayed responses are abstracted from the full original outputs, as they are too long to include.",
+      "page": 4,
+      "index": 16,
+      "width": 1008,
+      "height": 344
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-017.webp",
+      "caption": "Fig. 9: Persona vector steering success rate. Each point reports the mean success rate steering from P to D or from D to P.",
+      "page": 19,
+      "index": 17,
+      "width": 506,
+      "height": 427
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-018.webp",
+      "caption": "Fig. 17: Rubric-based prompt for detecting Type 1 hallucinations (spurious scenarios). An instance fails if any criterion scores 0.",
+      "page": 27,
+      "index": 18,
+      "width": 1008,
+      "height": 692
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-019.webp",
+      "caption": "Table 9: Summary statistics of the PersonaKnob dataset.",
+      "page": 24,
+      "index": 19,
+      "width": 410,
+      "height": 411
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-020.webp",
+      "caption": "Table 10: Behavioral signatures of the four Dignified Peer dimensions.",
+      "page": 24,
+      "index": 20,
+      "width": 1008,
+      "height": 281
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-021.webp",
+      "caption": "Table 3: Overview of compared methods. PK = PersonaKnob; A = Anchor.",
+      "page": 9,
+      "index": 21,
+      "width": 806,
+      "height": 293
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-022.webp",
+      "caption": "Fig. 14: The interface of our human annotation platform.",
+      "page": 31,
+      "index": 22,
+      "width": 1008,
+      "height": 527
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-023.webp",
+      "caption": "Fig. 13: Calibration Visualization at Dimension Trustworthiness",
+      "page": 31,
+      "index": 23,
+      "width": 891,
+      "height": 451
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00979v2/fig-024.webp",
+      "caption": "Fig. 4: Distribution statistics of PersonaKnob.",
+      "page": 5,
+      "index": 24,
+      "width": 556,
+      "height": 329
+    }
+  ]
+}

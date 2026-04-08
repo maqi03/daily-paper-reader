@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.00200v1/fig-001.webp",
+      "caption": "Figure 3: Performance vs.dataset size (N) with T = 1000 over three settings of w. Top: Primal objective sub-optimality. Bottom: Constraint violation.",
+      "page": 20,
+      "index": 1,
+      "width": 979,
+      "height": 360
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00200v1/fig-002.webp",
+      "caption": "Figure 1",
+      "page": 12,
+      "index": 2,
+      "width": 946,
+      "height": 342
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00200v1/fig-003.webp",
+      "caption": "Figure 2: Policy shift",
+      "page": 12,
+      "index": 3,
+      "width": 492,
+      "height": 409
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00200v1/fig-004.webp",
+      "caption": "Table 1: Comparison of RLHF methods.",
+      "page": 2,
+      "index": 4,
+      "width": 952,
+      "height": 215
+    }
+  ]
+}

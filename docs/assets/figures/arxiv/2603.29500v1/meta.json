@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.29500v1/fig-001.webp",
+      "caption": "Figure 1. Pipeline for Process Reward over Structured Formal Intermediates and comparison with Outcome Reward. The process begins with a problem statement (left block) containing multiple propositions (h1–h4) related to individuals (Hattie and Candy). Then, a large language model (LLM) first generates natural language reasoning steps to solve the problem (middle block). The Outcome Reward approach then directly compares the generated answer with the ground truth, assigning a reward of 1 if they match. In contrast, PRoSFI introduces an additional step by generating structured formal intermediates that capture logical dependencies, inferred conclusions, and the application of formal inference rules such as Hypothetical Syllogism and Modus Ponens. These formal representations are then submitted to a Formal Prover, which verifies the logical soundness of the reasoning. In the illustrated example, although the generated answer (“Hattie does not gain community respect” is false) is correct, the formal proof fails verification. As a result, PRoSFI assigns a low reward despite the correct outcome.",
+      "page": 2,
+      "index": 1,
+      "width": 1017,
+      "height": 398
+    },
+    {
+      "url": "assets/figures/arxiv/2603.29500v1/fig-002.webp",
+      "caption": "Table 2. Results on ProverQA Hard and Extra. GPT Soundness values include the difference of each method versus the Outcome-CoT baseline.",
+      "page": 7,
+      "index": 2,
+      "width": 669,
+      "height": 309
+    },
+    {
+      "url": "assets/figures/arxiv/2603.29500v1/fig-003.webp",
+      "caption": "Table 3. Results on Knights and Knaves dataset.",
+      "page": 8,
+      "index": 3,
+      "width": 795,
+      "height": 201
+    },
+    {
+      "url": "assets/figures/arxiv/2603.29500v1/fig-004.webp",
+      "caption": "Figure 4. Left: Confusion matrix of answer correctness vs. reasoning soundness for Outcome-CoT on the ProverQA-hard subset. Right: Corresponding results on the ProverQA-extra subset. The lack of alignment between correct answers and sound reasoning indicates that answer accuracy alone is not a sufficient criterion for judging the quality of reasoning.",
+      "page": 19,
+      "index": 4,
+      "width": 798,
+      "height": 346
+    }
+  ]
+}

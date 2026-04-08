@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.05355v1/fig-001.webp",
+      "caption": "Figure 1: Accuracy versus average chain-of-thought (CoT) length across model sizes. Accuracy is averaged over four representative benchmarks. Compared methods exhibit different accuracy–efficiency trade-offs, with ETR achieving strong accuracy at substantially shorter reasoning lengths.",
+      "page": 1,
+      "index": 1,
+      "width": 420,
+      "height": 324
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05355v1/fig-002.webp",
+      "caption": "Table 1: Evaluation results on four benchmarks using greedy decoding (pass@1). Acc denotes accuracy, Len denotes token length, and CR denotes compression rate. ↑ and ↓ indicate higher- and lower-is-better, respectively. AES is a unified score that jointly accounts for accuracy and efficiency.",
+      "page": 7,
+      "index": 2,
+      "width": 937,
+      "height": 487
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05355v1/fig-003.webp",
+      "caption": "Figure 2: Step-wise entropy dynamics in generated CoTs on the MATH500 dataset (Hendrycks et al., 2024). (Left) A sample response illustrating high step-wise entropy during self-reflection, marked by uncertainty cues (e.g., but, wait, etc.). (Right) Across models, a higher Spearman rank correlation (ρ) between reasoning step index and step-wise entropy indicates persistent entropy growth during reasoning. This is consistently associated with longer outputs and greater token redundancy.",
+      "page": 4,
+      "index": 3,
+      "width": 937,
+      "height": 452
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05355v1/fig-004.webp",
+      "caption": "Table 4: Detaied Configurations for ETR",
+      "page": 12,
+      "index": 4,
+      "width": 415,
+      "height": 594
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05355v1/fig-005.webp",
+      "caption": "Table 3: Training configs for various methods.",
+      "page": 12,
+      "index": 5,
+      "width": 643,
+      "height": 423
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05355v1/fig-006.webp",
+      "caption": "Figure 3: Overview of Entropy Trend Reward (ETR) in RL training. ETR computes step-wise entropy from generated rollouts, aggregates entropy changes with momentum to capture global entropy descent, and provides a reward signal, combined with correctness supervision, to guide policy updates toward more convergent reasoning.",
+      "page": 5,
+      "index": 6,
+      "width": 950,
+      "height": 440
+    }
+  ]
+}

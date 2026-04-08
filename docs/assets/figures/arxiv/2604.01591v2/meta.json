@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-001.webp",
+      "caption": "Table 1: Reasoning performance (pass@4, ↑) across five mathematical reasoning benchmarks. Bold and underline denote the best and second-best results per dataset within each model.",
+      "page": 6,
+      "index": 1,
+      "width": 836,
+      "height": 369
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-002.webp",
+      "caption": "Table 8: Case C summary. Early refinement fixes a concrete derivative mistake; late refinement turns a wandering proof into a short direct argument.",
+      "page": 25,
+      "index": 2,
+      "width": 830,
+      "height": 783
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-003.webp",
+      "caption": "Table 3: A compact comparison of ThinkTwice with related work. We compare whether methods use reinforcement learning, require supervision beyond final-answer correctness, and rely on an additional verifier, teacher, or explicit critique channel. Entries summarize the dominant tendency of each family.",
+      "page": 15,
+      "index": 3,
+      "width": 827,
+      "height": 460
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-004.webp",
+      "caption": "Table 6: Case A summary. The same problem exhibits both early correction and late-stage compression.",
+      "page": 21,
+      "index": 4,
+      "width": 830,
+      "height": 735
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-005.webp",
+      "caption": "Figure 1: (A) Prompt-only reflection can reduce top frontier LLM’s performance on AIME24, indicating brittleness. (B) ThinkTwice compared with existing method families. (C) ThinkTwice addresses these gaps by sequentially training a shared model backbone—first solving, then reflecting—yielding significant gains (+5 points reasoning, +11 points refinement) on AIME with Qwen3-4B.",
+      "page": 2,
+      "index": 5,
+      "width": 824,
+      "height": 290
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-006.webp",
+      "caption": "Table 2: Self-refinement performance (pass@4, ↑) across five mathematical reasoning benchmarks. Bold and underline denote the best and second-best results per dataset within each model. † denotes training-free methods.",
+      "page": 7,
+      "index": 6,
+      "width": 836,
+      "height": 454
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-007.webp",
+      "caption": "Figure 3: Cross-model refinement evaluation (average pass@4, ↑). Rows denote the backbone reasoning model; columns denote the refinement model.",
+      "page": 7,
+      "index": 7,
+      "width": 804,
+      "height": 273
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-008.webp",
+      "caption": "Figure 2: ThinkTwice at a glance.",
+      "page": 3,
+      "index": 8,
+      "width": 742,
+      "height": 367
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-009.webp",
+      "caption": "Table 7: Case B summary. Early refinement completes the coordinate-shoelace derivation; late refinement keeps the method but presents it more cleanly.",
+      "page": 23,
+      "index": 9,
+      "width": 830,
+      "height": 681
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-010.webp",
+      "caption": "Figure 4: Training dynamics of refinement across checkpoints. The vertical dashed lines mark the best checkpoints. Left (a): transition metrics on the training set across checkpoints. Right (b): formatting and length metrics across checkpoints during training. Top: boxedanswer and final-answer marker rates; bottom: average response length for self-refinement on correct-only base solutions.",
+      "page": 8,
+      "index": 10,
+      "width": 818,
+      "height": 265
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-011.webp",
+      "caption": "Figure 6: Reasoning pass@k curves across five mathematical reasoning benchmarks for Qwen3-4B (top) and OLMo3-7B (bottom).",
+      "page": 19,
+      "index": 11,
+      "width": 816,
+      "height": 196
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-012.webp",
+      "caption": "Table 4: Key hyperparameters for ThinkTwice training.",
+      "page": 17,
+      "index": 12,
+      "width": 826,
+      "height": 546
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-013.webp",
+      "caption": "Table 9: Case D summary. A backup geometry example showing early recomputation and late compression.",
+      "page": 27,
+      "index": 13,
+      "width": 830,
+      "height": 577
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01591v2/fig-014.webp",
+      "caption": "Figure 5: Training-time cost and dynamics of ThinkTwice compared with GRPO. * denoted best checkpoint step of models. (a) Mean reward. (b) Response length. (c) Wall-clock time per update. (d) Accumulated training time. (e) Within-checkpoint macro average benchmark accuracy. Solid orange denotes ThinkTwice base updates, solid blue denotes GRPO, and dashed orange denotes ThinkTwice refinement updates when applicable.",
+      "page": 9,
+      "index": 14,
+      "width": 805,
+      "height": 262
+    }
+  ]
+}

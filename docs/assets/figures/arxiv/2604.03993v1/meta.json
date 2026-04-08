@@ -1,0 +1,110 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-001.webp",
+      "caption": "Table 7 Results on Qwen3-4B-Base under 50% noise ratios with different lengths of the early learning stage T. Bold indicates the best.",
+      "page": 25,
+      "index": 1,
+      "width": 981,
+      "height": 334
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-002.webp",
+      "caption": "Table 8 Ablation results on Qwen3-4B-Base under 50% noise ratio. Bold indicates the best.",
+      "page": 25,
+      "index": 2,
+      "width": 981,
+      "height": 212
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-003.webp",
+      "caption": "Table 6 Results on Qwen3-4B-Base under 50% noise ratios with different slope threshold δslope. Bold indicates the best.",
+      "page": 25,
+      "index": 3,
+      "width": 981,
+      "height": 392
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-004.webp",
+      "caption": "Table 1 Results on Qwen3-4B-Base under different noise ratios. Each numerical subscript indicates the absolute improvement or degradation compared with naive GRPO without OLR. Bold indicates the better.",
+      "page": 7,
+      "index": 4,
+      "width": 981,
+      "height": 594
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-005.webp",
+      "caption": "Figure 5 Results obtained with 50% inactive or active noisy labels (800 samples) using the Qwen-3-4B-Base model (Yang et al., 2025). For each sample, we take the majority vote across multiple model rollouts as the model’s prediction. The left and right pairs of columns illustrate the model’s predictions on clean and noisy samples, respectively, under both inactive and active noise. For clean samples, we display the proportion of correct (green) and incorrect (blue) predictions. For noisy samples, we show the proportion of predictions that are correct (green), that match the noisy label (red), or that match neither the true nor the noisy label (blue). The early training phase reveals that the model learns to predict true labels even on noisy examples, indicating a preference for fitting correctly labeled samples and an increasing likelihood of producing correct answers on noisy ones over time.",
+      "page": 22,
+      "index": 5,
+      "width": 984,
+      "height": 229
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-006.webp",
+      "caption": "Figure 2 Early Correctness Coherence. Training accuracy of Qwen3-4B-Base (Yang et al., 2025) under noisy supervision (noise ratio 0.5). For each sample, we take the majority answer as the model’s prediction. Clean and noisy samples exhibit similar learning dynamics early in training but gradually diverge as training progresses. (i) In the initial phase, the accuracy of correct answers from both groups increases steadily, suggesting that the model already contains latent correct answers for noisy samples that are not fully exploited. (ii) In later stages, accuracy on clean samples continues to improve while performance on noisy samples lags behind. Our method, Online Label Refinement (OLR), utilizes this early coherence and significantly improves reasoning performance.",
+      "page": 3,
+      "index": 6,
+      "width": 986,
+      "height": 191
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-007.webp",
+      "caption": "Table 4 Results on Qwen3-8B-Base under 50% noise ratio. Bold indicates the better.",
+      "page": 23,
+      "index": 7,
+      "width": 981,
+      "height": 221
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-008.webp",
+      "caption": "Table 5 Results on Deepseek-R1-Distill-Llama-8B under 50% noise ratio. Bold indicates the better.",
+      "page": 23,
+      "index": 8,
+      "width": 981,
+      "height": 200
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-009.webp",
+      "caption": "Figure 6 Training dynamic of OLR with Qwen3-4B-Base under the inactive noisy (0.5 ratio) scenario.",
+      "page": 23,
+      "index": 9,
+      "width": 984,
+      "height": 502
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-010.webp",
+      "caption": "Table 3 Results on Qwen3-4B-Base under a 50% noise ratio with 4K samples. Bold indicates the better.",
+      "page": 8,
+      "index": 10,
+      "width": 881,
+      "height": 181
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-011.webp",
+      "caption": "Table 2 Results on Qwen3-4B-Base under a 50% noise ratio with different baselines. Each numerical subscript indicates the absolute improvement or degradation compared with naive GRPO. Bold indicates the best in inactive noise scenarios, and underline indicates the best in active noise scenarios.",
+      "page": 8,
+      "index": 11,
+      "width": 981,
+      "height": 471
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-012.webp",
+      "caption": "Figure 4 Results under a 50% noise ratio on Qwen-3-4B-Base.",
+      "page": 9,
+      "index": 12,
+      "width": 975,
+      "height": 246
+    },
+    {
+      "url": "assets/figures/arxiv/2604.03993v1/fig-013.webp",
+      "caption": "Figure 3 Training dynamics of OLR with Qwen3-4B-Base under an active noise setting (noise ratio = 0.5).",
+      "page": 9,
+      "index": 13,
+      "width": 984,
+      "height": 502
+    }
+  ]
+}

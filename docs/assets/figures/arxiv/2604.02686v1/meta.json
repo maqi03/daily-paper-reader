@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.02686v1/fig-001.webp",
+      "caption": "Table 2: Reward scores on the NB-curated evaluation set. For each prompt, we compute the min, mean, and max reward across its 8 rollouts; values are averaged across all 100 prompts based on these per-group statistics. Beat Gold denotes the percentage of rollouts whose reward exceeds the gold answer score.",
+      "page": 7,
+      "index": 1,
+      "width": 826,
+      "height": 290
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02686v1/fig-002.webp",
+      "caption": "Figure 2: Qualitative examples of generated sequences under our attack, presented exactly as decoded by the respective reward model’s tokenizer. Despite receiving anomalously high rewards of +21.38 for the Qwen3-8B RM and +36.75 for the Llama-3.1-8B RM, which far exceed their respective GPT-5 gold scores of +9.44 and +15.06, the outputs degenerate into cross-lingual gibberish, code snippets, and reserved tokenizer artifacts. This demonstrates that the reward models assign extremely high scores to token sequences completely devoid of semantic meaning.",
+      "page": 7,
+      "index": 2,
+      "width": 780,
+      "height": 304
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02686v1/fig-003.webp",
+      "caption": "Figure 3: Impact of response length on reward scores. Responses are truncated at various intervals and evaluated using the target reward models. Despite consisting of highly repetitive patterns, the reward does not scale linearly with length. Instead, both models assign low or negative scores to shorter truncated versions, before exhibiting anomalous reward surges as the sequences approach the maximum length of 2048 tokens.",
+      "page": 8,
+      "index": 3,
+      "width": 814,
+      "height": 284
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02686v1/fig-004.webp",
+      "caption": "Table 1: Prior work on reward model and LLM judge vulnerabilities, categorized by attack method, adversarial content type, and access requirement. Our work is the only approach that leverages RL to discover non-linguistic adversarial content while requiring only blackbox access to the target reward model.",
+      "page": 4,
+      "index": 4,
+      "width": 840,
+      "height": 359
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02686v1/fig-005.webp",
+      "caption": "Figure 4: Training curves of attack policy optimization under token mapping perturbation. Mean and maximum rewards are plotted over training steps. The attack policy initially receives strongly negative rewards, but progressively identifies high-reward patterns and eventually surpasses the GPT-5 reference answers (the horizontal dashed line).",
+      "page": 9,
+      "index": 5,
+      "width": 814,
+      "height": 283
+    }
+  ]
+}

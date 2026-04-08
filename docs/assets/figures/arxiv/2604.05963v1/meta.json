@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.05963v1/fig-001.webp",
+      "caption": "Table 1: Main results. We report pass@k and fixp@k results with k ∈ {1, 5, 10} and p ∈ {1, 1.5, 2}. We evaluate GPT4 and Gemini2.0-flash with prompt engineering, as well as Qwen2.5-Coder-3B and Qwen2.5-Coder-7B under prompt engineering, GRPO, and our EA-GRPO. Bold indicates the best result, and underline indicates the second best in the same model.",
+      "page": 6,
+      "index": 1,
+      "width": 941,
+      "height": 533
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05963v1/fig-002.webp",
+      "caption": "Figure 4: Code repair performance of in-domain and cross-domain. We plot the changes of pass@1 and fix1@1 across training steps, reporting both in-domain and cross-domain performance. (a) In-domain: models are trained on Python data and evaluated on Python code repair; similarly for Verilog. (b) Cross-domain: models trained on Python data are evaluated on Verilog code repair, and vice versa.",
+      "page": 7,
+      "index": 2,
+      "width": 939,
+      "height": 365
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05963v1/fig-003.webp",
+      "caption": "Figure 2: GRPO training with correctness-only rewards. For both Python and Verilog code repair tasks, although performance improves during training, the edit cost increases substantially, leading to a more severe over-editing phenomenon.",
+      "page": 3,
+      "index": 3,
+      "width": 425,
+      "height": 580
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05963v1/fig-004.webp",
+      "caption": "Table 5: Statistics of bug types in the Python and Verilog code repair benchmarks.",
+      "page": 13,
+      "index": 4,
+      "width": 451,
+      "height": 475
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05963v1/fig-005.webp",
+      "caption": "Table 3: RL Parameter Setting. For both the correctness-only reward setting and our PRepair method, we use the same RL hyperparameters to ensure a fair comparison.",
+      "page": 13,
+      "index": 5,
+      "width": 959,
+      "height": 527
+    },
+    {
+      "url": "assets/figures/arxiv/2604.05963v1/fig-006.webp",
+      "caption": "Figure 3: Overview of the PRepair framework. It consists of two stages: Self-Breaking, where the model injects diverse bugs into golden programs to construct high-quality buggy inputs, and Self-Repairing, where the model learns to precise repair these buggy programs via EA-GRPO which uses a dynamic edit-aware reward to encourage minimal yet correct edits.",
+      "page": 4,
+      "index": 6,
+      "width": 943,
+      "height": 359
+    }
+  ]
+}

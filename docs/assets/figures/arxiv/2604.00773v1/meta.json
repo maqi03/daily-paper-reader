@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.00773v1/fig-001.webp",
+      "caption": "Table 4: LoRA/QLoRA optimizer comparison across objectives and profiles. MeanF1 is averaged over runs with fixed (profile, objective, mode, optimizer) across included windows (and schemas).",
+      "page": 11,
+      "index": 1,
+      "width": 714,
+      "height": 663
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00773v1/fig-002.webp",
+      "caption": "Table 3: BERT-family summary across all tested windows: per model/profile, Best F1 is the maximum macro-F1 over windows andMean F1 is the average macro-F1 across windows; optimized denotes temperature-scaled evaluation.",
+      "page": 11,
+      "index": 2,
+      "width": 634,
+      "height": 213
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00773v1/fig-003.webp",
+      "caption": "Table 8: Main cross-family comparison on the shared window set: each row reports the best available run within a method/profile group, with macro/weighted F1 and macro precision/recall shown for direct comparability across XGBoost, encoder baselines, SFT adapters, and preferenceoptimization methods.",
+      "page": 15,
+      "index": 3,
+      "width": 670,
+      "height": 377
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00773v1/fig-004.webp",
+      "caption": "Table 2: Macro- and weighted-F1 comparison of XGBoost and BERT-family models across context windows under vanilla and optimized (temperature-scaled) settings.",
+      "page": 10,
+      "index": 4,
+      "width": 620,
+      "height": 1166
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00773v1/fig-005.webp",
+      "caption": "Table 7: Preference-optimization comparison (DPO, ORPO, KTO) by training profile and adapter mode; N is the number of runs per setting, with Best F1 and Mean F1 reported as maximum and average macro-F1, respectively.",
+      "page": 14,
+      "index": 5,
+      "width": 546,
+      "height": 353
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00773v1/fig-006.webp",
+      "caption": "Table 6: Cell-level SFT sensitivity analysis across profile, objective, adapter mode, output schema, and chunking setup (window/overlap): N denotes completed runs per cell, Mean F1 is the average macro-F1 across those runs, and Best F1 is the within-cell maximum.",
+      "page": 13,
+      "index": 6,
+      "width": 952,
+      "height": 961
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00773v1/fig-007.webp",
+      "caption": "Table 10: Secondary depression-task results derived from joint predictions, showing macro/weighted F1, precision, and recall for the best selected run per family/profile (with the corresponding window).",
+      "page": 17,
+      "index": 7,
+      "width": 935,
+      "height": 377
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00773v1/fig-008.webp",
+      "caption": "Table 9: Secondary anxiety-task results derived from joint predictions, reporting macro/weighted F1, precision, and recall for the best selected run per family/profile (with its corresponding window).",
+      "page": 16,
+      "index": 8,
+      "width": 935,
+      "height": 377
+    }
+  ]
+}
