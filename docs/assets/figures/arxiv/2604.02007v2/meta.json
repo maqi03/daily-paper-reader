@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-001.webp",
+      "caption": "Table 1 Summary of the five training environments used for joint multi-domain RL.",
+      "page": 6,
+      "index": 1,
+      "width": 960,
+      "height": 232
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-002.webp",
+      "caption": "Table 4 Reference Apriel-1.5-OpenReasoner launch configuration using GSPO and DAP.",
+      "page": 15,
+      "index": 2,
+      "width": 826,
+      "height": 300
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-003.webp",
+      "caption": "Table 5 Exact candidate sets used in the hyperparameter sweeps reported in this paper. Domain-rate vectors are ordered as (M/C/L/I/F) = (math, coding, logic, ifeval, function calling).",
+      "page": 15,
+      "index": 3,
+      "width": 936,
+      "height": 277
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-004.webp",
+      "caption": "Table 2 Test accuracy (%) and mean output tokens for Apriel-1.5-OpenReasoner, its fixed-length-penalty counterpart, Apriel-Base, and comparable-scale reasoning models. All models are evaluated under the same configuration with a 32K output-token cap. See Figure 1 for the corresponding accuracy-efficiency scatter plots.",
+      "page": 7,
+      "index": 4,
+      "width": 864,
+      "height": 228
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-005.webp",
+      "caption": "Figure 2 PipelineRL with the multi-domain extensions used in this work. A domain-weighted sampler draws prompts from the five training environments, environment-specific verifiers score the resulting rollouts, and the data flow through the actor, preprocessor, and trainer stages for asynchronous RL post-training.",
+      "page": 3,
+      "index": 5,
+      "width": 986,
+      "height": 395
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-006.webp",
+      "caption": "Figure 6 Step-type distribution for Apriel-Base and Apriel-1.5-OpenReasoner on AIME 2025. Apriel-1.5OpenReasoner produces fewer verification and non-productive steps.",
+      "page": 17,
+      "index": 6,
+      "width": 947,
+      "height": 356
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-007.webp",
+      "caption": "Figure 7 An example reasoning trace from Apriel-Base on a problem from AIME 2025, first split into reasoning steps and then classified into the eight categories defined in Section D. The model output is reformatted for readability.",
+      "page": 17,
+      "index": 7,
+      "width": 986,
+      "height": 556
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-008.webp",
+      "caption": "Figure 3 Average number of reasoning steps per trace (3a) and average number of tokens per step (3b) for AprielBase and Apriel-1.5-OpenReasoner on AIME 2025. The number of steps is comparable, but Apriel-1.5-OpenReasoner expresses each step more concisely.",
+      "page": 9,
+      "index": 8,
+      "width": 955,
+      "height": 319
+    },
+    {
+      "url": "assets/figures/arxiv/2604.02007v2/fig-009.webp",
+      "caption": "Figure 5 Mean reward progress during training for each domain.",
+      "page": 16,
+      "index": 9,
+      "width": 975,
+      "height": 223
+    }
+  ]
+}

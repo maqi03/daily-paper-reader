@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-001.webp",
+      "caption": "Figure 6: Progressive improvement across multiple generation aspects. From left to right: base model, GRPO, +Fixed Decoder, +MTE, and our full model. GRPO leads to unstable optimization, while fixing the decoder improves stability. MTE further enhances visual quality by reducing diffusion-induced stochasticity. Our full model, with consistency-aware token selection, achieves the best results in detail, structure, appearance, counting, and spatial relations.",
+      "page": 7,
+      "index": 1,
+      "width": 901,
+      "height": 752
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-002.webp",
+      "caption": "Figure 11: Failure cases of the Harmon base model. The model occasionally produces invalid or severely degraded images due to an insufficiently trained diffusion head.",
+      "page": 14,
+      "index": 2,
+      "width": 821,
+      "height": 581
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-003.webp",
+      "caption": "Figure 2: (a) Gradient comparison between the end-to-end GRPO baseline and the frozen diffusion head counterpart. The End-to-end baseline introduces \"noisier\" gradients to the AR component, disturbing the training progress. (b) Test set HPS v.s. training iteration. HPS curves show that end-to-end baseline suffers from reward hacking and early saturation. (c) End-to-end training degrades image quality in later stages, which can be addressed by freezing the diffusion head.",
+      "page": 3,
+      "index": 3,
+      "width": 1050,
+      "height": 222
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-004.webp",
+      "caption": "Table 1: Quantitative comparison results on the human preference correlated metrics (HPS, Imagereward, Pickscore and Aesthetic) and T2I-compbench. Our method (\"Ours\") achieves consistent gains across multiple metrics, significantly outperforming the standard GRPO implementation (“+GRPO”) as well as AR and diffusion baselines in visual quality and structural consistency. “spat.\" is short for spatial. †: We observe failure cases in the base model, see Appendix for detailed analysis.",
+      "page": 8,
+      "index": 4,
+      "width": 1048,
+      "height": 320
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-005.webp",
+      "caption": "Figure 7: Ablations of masking ratio, similarity threshold, and diffusion seeds. (a) Visual results under different masking ratios (𝑘) and similarity thresholds (𝜏), showing trade-off between detail and consistency. (b) Larger masking ratios improve stability, with marginal gains when 𝑘 > 0.3. (c) Masking ratio, similarity threshold, and number of diffusion seeds all affect performance.",
+      "page": 8,
+      "index": 5,
+      "width": 1051,
+      "height": 194
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-006.webp",
+      "caption": "Figure 3: The proposed multi-trajectory expectation estimates an uncertainty map by sampling multiple diffusion trajectories during rollout, capturing regions that are most sensitive to diffusion-induced stochasticity. Based on a top-𝑘% uncertainty threshold, our noise-corrected optimization selectively aggregatesmulti-trajectory signals to calibrate the GRPO loss, effectively reducing stochastic noise in gradient estimation and yielding a more reliable optimization direction.",
+      "page": 4,
+      "index": 6,
+      "width": 1048,
+      "height": 266
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-007.webp",
+      "caption": "Figure 8: (a) AR features encode clear structural information, while diffusion features primarily capture fine-grained details. (b) Compared to standard diffusion models, the diffusion head in MAR reconstructs most image content at very early timesteps.",
+      "page": 12,
+      "index": 7,
+      "width": 844,
+      "height": 261
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-008.webp",
+      "caption": "Figure 9: Samples generated with different diffusion trajectories is highly deterministic.",
+      "page": 12,
+      "index": 8,
+      "width": 738,
+      "height": 253
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06966v1/fig-009.webp",
+      "caption": "Figure 13: Visualization.",
+      "page": 16,
+      "index": 9,
+      "width": 1048,
+      "height": 974
+    }
+  ]
+}

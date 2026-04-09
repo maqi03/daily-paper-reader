@@ -1,0 +1,434 @@
+Title: PromptEvolver: Prompt Inversion through Evolutionary Optimization in Natural-Language Space
+
+URL Source: https://arxiv.org/pdf/2604.06061v1
+
+Published Time: Wed, 08 Apr 2026 01:29:41 GMT
+
+Number of Pages: 34
+
+Markdown Content:
+# PromptEvolver: Prompt Inversion through Evolutionary Optimization in Natural-Language Space 
+
+Asaf Buchnick 1 , Aviv Shamsian 1 , Aviv Navon 1 , and Ethan Fetaya 1
+
+Bar-Ilan University, Ramat Gan, Israel 
+
+{buchnia5,aviv.shamsian,aviv.navon,ethan.fetaya}@biu.ac.il 
+
+Abstract. Text-to-image generation has progressed rapidly, but faith-fully generating complex scenes requires extensive trial-and-error to find the exact prompt. In the prompt inversion task, the goal is to recover a textual prompt that can faithfully reconstruct a given target image. Cur-rently, existing methods frequently yield suboptimal reconstructions and produce unnatural, hard-to-interpret prompts that hinder transparency and controllability. In this work, we present PromptEvolver, a prompt in-version approach that generates natural-language prompts while achiev-ing high-fidelity reconstructions of the target image. Our method uses a genetic algorithm to optimize the prompt, leveraging a strong vision-language model to guide the evolution process. Importantly, it works on black-box generation models by requiring only image outputs. Finally, we evaluate PromptEvolver across multiple prompt inversion benchmarks and show that it consistently outperforms competing methods. 
+
+Keywords: Prompt inversion · Text to image generation 
+
+## 1 Introduction 
+
+Text-to-image (T2I) diffusion models [21, 35, 48] have transformed visual con-tent creation, enabling users to generate photorealistic images from natural-language prompts. Yet the quality of the generated image depends critically on the prompt, when even small changes in wording can produce dramatically dif-ferent outputs. In practice, users engage in extensive trial-and-error, manually crafting, adjusting, and iterating on prompts to achieve a desired visual result. This process is time-consuming, and best practices can often change as T2I mod-els evolve. Prompt inversion addresses the reverse process: given a target image, recover a textual prompt that, when fed to a T2I model, faithfully reconstructs that im-age. One application is for image editing [30], where a modified prompt is used to generate targeted changes in the image. This can also help T2I practitioners by generating a prompt to a reference image we wish to generate a variation of. Beyond creative workflows, prompt inversion can enable understanding and au-diting of generative models by revealing what textual descriptions best explain a  
+
+> arXiv:2604.06061v1 [cs.LG] 3 Apr 2026 2A. Buchnick et al.
+
+given output. In [7], the authors also showed that prompt-inversion can be used to help faithful generation. Formally, given a target image I and a T2I model M, the goal is to find a prompt p such that if ˆI is sampled from M(p) then ˆI ≈ I (in some semanti-cally meaningful metric). This is fundamentally challenging for multiple reasons. First, we might not have direct access to the model M, and are just able to call an external service to generate images. Moreover, even when the model is avail-able, computing gradients through the whole generation process is not trivial. Additionally, the optimization is over the complex and discrete space of natural language. Finally, the model is highly sensitive to the prompt, and small changes in wording can lead to drastically different generated images, while semantically equivalent prompts may yield very different visual outputs [9, 29]. Recently, a substantial body of works has tackled prompt inversion through optimization in continuous embedding or latent spaces [11,30,36,46]. While these methods can achieve high-fidelity reconstruction, they suffer from several fun-damental limitations. First, they assume white-box access to the model (e.g., gradients, activations, or parameter updates), which makes them unsuitable for closed-source or API-based models. Second, the recovered representations are not human-readable: they exist as embedding vectors or modified model weights rather than natural-language text, preventing users from understanding, edit-ing, or transferring the result. Third, these methods are inherently tied to the specific model architecture on which they were optimized, and do not gener-alize across different T2I models. Alternative approaches that operate in dis-crete token space [24, 28, 33, 47] have also been proposed recently, yet they still rely on gradient-based optimization through the text encoder, with the result-ing prompts often lacking grammatical coherence and naturalness. Gradient-free methods [15,19,32] avoid the need for model internals, but typically employ single-trajectory search strategies, such as beam search or in-context refinement, that are prone to local optima, limiting their reconstruction quality. Moreover, we found that a simple baseline that queries a powerful vision-language model (VLM) with a straightforward instruction prompt can be on-par or outperform these more complex prompt-optimization approaches. In this work, we present PromptEvolver, a prompt inversion method that overcomes these limitations through evolutionary optimization in natural-language space. Our key insight is that a VLM can serve as both the generator and the refiner of candidate prompts. It produces diverse initial descriptions of the tar-get image, and then acts as the crossover and mutation operator in a genetic algorithm, combining and modifying prompts while directly observing the target image. Unlike embedding-level methods, PromptEvolver operates entirely in the space of human-readable text, producing natural prompts that users can inspect, understand, and edit. Differently from gradient-based discrete methods [33], it requires no access to model internals-only the ability to query the T2I model and observe its output, making it applicable to both open source and black-box mod-PromptEvolver 3
+
+els. Furthermore, in contrast to single-trajectory search, our genetic algorithm performs population-based optimization that preserves diversity across candi-dates. This promotes a broader exploration of the prompt space and reduces the susceptibility to finding a bad local optima. We provide an example of images generated by our recovered prompt vs the VLM-baseline in Fig. 1. As one can see from these examples, both models nicely capture the essence of the original image, but PromptEvolver better captures the fine details, like text in the images, the women age, the number of layers in the bracelet, etc.  
+
+> Original Ours VLM-Base.
+> Fig. 1: Reconstruction comparison : PromptEvolver versus a VLM baseline. We demon-strate the robustness of PromptEvolver to challenging T2I concepts such as colors, counting, object positioning, and camera orientation.
+
+We summarize our contributions as follows: (i) We propose PromptEvolver, the first text-level evolutionary framework for prompt inversion that uses image-aware VLM operators-crossover and mutation conditioned on the target image to evolve natural-language prompts through a genetic algorithm; (ii) We demon-strate that PromptEvolver achieves SoTA results in prompt inversion compared to recent baselines. Our method consistently outperforms the baselines across multiple benchmarks, achieving up to 7.8% improvement in image reconstruc-tion score. 4 A. Buchnick et al. 
+
+## 2 Related Work 
+
+2.1 Prompt Inversion for Text-to-Image Models 
+
+Prompt inversion seeks to recover a textual representation that, when fed to a T2I model, faithfully reconstructs a given target image. A large body of work addresses this problem through gradient-based optimization in continuous em-bedding or latent spaces. Textual Inversion [11] learns a pseudo-word embedding for a particular object by minimizing the denoising loss, with extensions such as P+ [44] and NeTI [1] enriching the representation via per-layer or timestep-dependent conditioning. Although Textual Inversion was introduced for concept personalization, its embedding-optimization objective can be directly applied to single-image reconstruction by optimizing a pseudo-token embedding to repro-duce a target image. Beyond embedding-only inversion, other continuous ap-proaches adapt the generator itself. DreamBooth [36] and Custom Diffusion [20] fine-tune model weights to bind subjects to unique identifiers, while feed-forward encoders such as ELITE [46], E4T [2], and BLIP-Diffusion [22] amortize the cost by mapping images to embeddings in a single forward pass. A parallel line of work inverts images into the noise latent space: DDIM inversion [40] reverses the deterministic sampling ODE, and subsequent methods improve its accu-racy [12, 30, 31, 45], enabling high-fidelity reconstruction and downstream edit-ing [5, 16, 43]. Critically, both embedding-level and latent-space methods are designed pri-marily for object-centric scenarios with a single dominant subject [11, 20, 36], and struggle with cluttered scenes containing multiple subjects, fine-grained spa-tial relationships, and rich stylistic attributes. More recent methods target the discrete token space directly, aiming to recover natural-language prompts via gradient-based optimization. PEZ [47] optimizes one-hot token distributions via projected gradient descent to maximize CLIP similarity between the prompt and target image embeddings. PH2P [28] improves upon PEZ with a delayed projection scheme and timestep-aware optimization, yielding more interpretable prompts. STEPS [33] reformulates the search as sequential probability tensor estimation for more efficient exploration of the combinatorial token space. ED-ITOR [24] initializes embeddings with a captioning model, then refines them in latent space and decodes them to text, achieving strong image similarity and prompt interpretability. Reverse Stable Diffusion [7] takes a supervised ap-proach, training a model on large-scale prompt-image pairs to directly predict the generating prompt. All the above methods require gradient access to the T2I model, model-specific training, or optimization in non-interpretable embedding spaces. In contrast, PromptEvolver operates purely in natural language, needs no gradients or model changes, and produces human-readable prompts. 
+
+2.2 Gradient-free prompt inversion. 
+
+Most relevant to our work are gradient-free methods that produce readable prompts without requiring access to model internals. CLIP Interrogator [32] PromptEvolver 5
+
+combines an image captioning backbone with nearest-neighbor retrieval in the CLIP embedding space. VGD [19] leverages a large language model for autore-gressive prompt generation, incorporating CLIP-score guidance during beam-search decoding to steer each token toward better visual alignment. PRISM [15] uses the in-context learning ability of an LLM to iteratively refine a population of candidate prompts. 
+
+2.3 LLM-guided Evolutionary Prompt Optimization 
+
+Recent work has explored combining LLMs with evolutionary search, including genetic algorithms to automatically optimize discrete, human-readable prompts for downstream tasks. EvoPrompt [14] connects LLMs with evolutionary opera-tors (e.g., mutation and crossover) to iteratively improve a population of candi-date prompts while maintaining linguistic coherence. Complementary directions refine the evolutionary operators or search objective, such as SPRIG [51], which applies an edit-based genetic algorithm to optimize system prompts from struc-tured components. Related approaches also formulate prompt search explicitly as a genetic process guided by model feedback, e.g., Genetic Prompt Search [52], which uses language model probabilities to steer token-level mutations in discrete prompt tuning. These methods demonstrate that evolutionary optimization can effectively explore the combinatorial space of prompts. 
+
+2.4 Vision-Language Models for Image Understanding 
+
+VLMs bridge visual and textual modalities and have become the dominant paradigm for image captioning and visual question answering [25]. BLIP-2 [23] introduces a lightweight Q-Former module that connects a frozen image encoder to a frozen large language model. InstructBLIP [8] extends this framework with instruction-aware visual feature extraction, improving zero-shot generalization. The Qwen-VL family [3] integrates visual perception directly into large lan-guage models, supporting multi-image understanding and grounded generation. VLMs are natural candidates for prompt inversion - given an image, a VLM can generate a rich textual description in a single forward pass. However, a single-shot prompt, no matter how detailed, rarely captures the precise combi-nation of content, style, and composition needed for faithful T2I reconstruction. PromptEvolver addresses this limitation by using the VLM to generate an initial population of diverse T2I prompts, which are then iteratively refined through a genetic algorithm. 
+
+## 3 Method 
+
+Given a text-to-image generation model M, a target image I, and an image-to-image similarity score s, our goal is to find a natural-language prompt p∗ that maximize the similarity s:
+
+p∗ = arg max  
+
+> p
+
+EˆI∼M (p)
+
+s(I, ˆI), (1) 6 A. Buchnick et al.            
+
+> Fig. 2: Overview of PromptEvolver. Given a target image, a VLM generates an initial population of Ndiverse candidate prompts. The evolutionary loop then repeats for T
+> generations: ( A) two parents are selected via tournament selection and combined by the VLM into a child prompt through crossover , conditioned on the target image; ( B) the child optionally undergoes mutation , where the VLM applies targeted edits; ( C) the child prompt is evaluated by generating Kimages via the T2I model and computing the mean image-to-image similarity to the target; ( D) the top-Nindividuals from parents and offspring are retained. After Tgenerations, the highest-fitness prompt and its best reconstruction are returned.
+
+where the expectation is over the stochastic sampling of M. Importantly, un-like image captioning [42], our objective evaluates prompts indirectly , through the images they produce, rather than measuring textual accuracy. While it is desirable for p∗ to remain human-readable, the prompts our method generates are typically more verbose than standard captions, as they must encode the precise visual details needed for faithful reconstruction (see examples in the sup-plementary material). Importantly, we note that PromptEvolver is agnostic to the choice of M and s: it treats the generator as a black box and requires only rendered image output. We optimize the prompt using a genetic algorithm (GA) [41]. An overview of the full pipeline is shown in Fig. 2. The algorithm proceeds as follows: 1. Initialize a diverse population of N candidate prompts by querying a vision-language model (VLM) with the target image. 2. For each generation t = 1 , . . . , T :(a) Crossover : select two parents and use the VLM to combine them into a child prompt while viewing the target image. (b) Mutation : with probability pm, use the VLM to apply targeted edits to the child. (c) Evaluation : generate K random images from the child prompt and compute the mean image-to-image similarity to the target. (d) Selection : Retain the top-N individuals by fitness from the set of par-ents and offsprings. PromptEvolver 7
+
+We now describe each step in detail. 
+
+Initialization. To start the evolutionary search with a diverse yet relevant initial population, we employ verbalized sampling [50]: a single VLM call that receives the target image and a structured analysis template. The template instructs the VLM to first perform a coarse analysis pass: identifying subjects, actions, settings, spatial layout, camera angle, lighting, and style, followed by a fine pass that captures small objects, materials, textures, specific colors, patterns, and atmospheric effects. Based on this two-pass analysis, the VLM is asked to produce N distinct prompts in a single generation call, each approximately 50 -60 
+
+words. To encourage diversity, the VLM is asked that each prompt must open with a different visual element, and vary sentence order and descriptive style (ranging from terse and factual to atmospheric). 
+
+Crossover. Crossover produces a child prompt by combining two parent prompts under the visual guidance of the target image. Parents are selected via tourna-ment selection [13] with tournament size 2: Each parent is chosen by first draw-ing two individuals uniformly at random from the population, and the one with higher fitness is selected. The VLM then receives both parents alongside the target image and follows a structured five-step reasoning process: (1) identify elements shared between the two prompts, which are likely accurate and should be preserved; (2) identify elements that differ ; (3) inspect the target image to determine which variant of each differing element is more faithful, paying special attention to spatial descriptions; (4) combine the shared elements with the most accurate differing elements into a single coherent prompt; (5) ensure the result flows naturally. See full prompts in the supplementary material. By reconciling differences using the target image, crossover acts as a form of visual arbitration :it retains the consensus of the population while resolving disagreements through direct visual verification. We note that we tried adding the image generated by each prompt to the crossover process, but we did not find it to have any positive effect. 
+
+Mutation. With probability pm, the child produced by crossover undergoes mu-tation. The VLM receives the child prompt and the target image, and follows a six-step protocol: (1) compare each claim in the prompt against the image and note inaccuracies; (2) identify important visual elements that are missing; (3) verify the spatial accuracy of object placements; (4) assess whether any de-scriptions are too vague; (5) consider more precise alternatives for key terms; (6) apply 1–3 targeted changes that correct errors, fill gaps, or improve speci-ficity, while leaving already accurate elements untouched. The mutation operator uses a higher sampling temperature ( 0.9) than the crossover step ( 0.7), to en-courage broader exploration of the prompt space. 8 A. Buchnick et al. 
+
+Fitness evaluation. We evaluate each candidate prompt p by generating K im-ages { ˆIk}Kk=1 from M(p) and computing the mean similarity: 
+
+f (p) = 1
+
+K
+
+KX
+
+k=1 
+
+s I, ˆIk
+
+. (2) To avoid redundant computation, we maintain a cache keyed by prompt string, any prompt that reappears across generations (e.g., a parent that survives se-lection) is looked up directly, skipping redundant text-to-image inference. 
+
+Selection. After generating N offspring in each generation, we form a combined pool of 2N individuals (parents and offspring), sort by fitness, and retain the top-N . This strategy guarantees that the best prompt found so far is never lost, while still allowing superior offspring to displace weaker parents. Finally, the prompt that has the best fitness score at the last generation is returned as the algorithms output. We show an example one such iteration in Fig. 3. This prompt is from the leftmost image in Fig. 1 for reference. 
+
+Parent Population 
+
+> A dynamic . . .
+> A daring acrobat per-forms a backflip on a slackline . . .
+> Sunset backlighting . . .
+> Sunlight filters . . . illuminating a slack-liner . . . with . . . warm golden tones.
+
+...
+
+> From a low-angle . . .
+> p1
+> p2
+> p3
+> p4
+> pN
+> A daring acrobat performs a backflip on a slackline, sil-houetted against a sunlit sky with dramatic clouds and lens flare. Sailboats with "460" and red stars are in the foreground, while a tran-quil lake and forested hills form the backdrop. Photo-realistic, cinematic, high-contrast, atmospheric, with warm golden tones.
+
+Crossover 
+
+> A silhouetted slackline ac-robat executes a dynamic backflip against a golden sunset, lens flare piercing through dramatic clouds. Sailboats marked "460" and red stars frame the scene. Behind, a calm lake reflects distant forested hills. Pho-torealistic, cinematic, high-contrast, atmospheric, warm tones, rich detail.
+
+Mutation 
+
+Fig. 3: Prompt evolution flow example in PromptEvolver. A VLM generates an ini-tial population of N candidate prompts. Each generation, two parents (orange) are selected, combined through crossover , and optionally refined via mutation , where all VLM operations are guided by the target image. 
+
+## 4 Experiments 
+
+In this section, we compare PromptEvolver with various methods from the prompt inversion domain. We use a variety of datasets and setups to further PromptEvolver 9
+
+demonstrate the effectiveness of our approach. Our approach was based on Qwen3-VL-Instruct as the VLM, and FLUX.2-klein-4B as our T2I model. Code, further experimental details, further examples of output prompts, and generated images, as well as evaluation of generated prompt naturalness, are provided in the supplementary. 
+
+Baselines. We compare PromptEvolver with natural baselines from recent prompt inversion works. The compared methods include (1) VLM-Baseline, where we utilize Qwen3-VL [4], prompting it to generate relevant texts for the text-to-image model, then select the prompt that produces the highest-scoring images. (2) VGD [19], a gradient-free approach that produces human-readable prompts by using LLM and CLIP score guidance. (3) STEPS [33], reformu-lates discrete prompt optimization as sequential probability tensor estimation to enable efficient search in high-dimensional token space. (4) PEZ [28], which discovers hard prompts by maximizing the cosine similarity between prompt embeddings and target image features in the CLIP latent space. (5) CLIP In-terrogator [32], generates descriptive prompts for an input image by combining image captioning models with the CLIP embedding space. We note that previous methods were trained on different T2I models, and therefore, we cannot compare image quality directly. Instead, we compare faithfulness, how much the gener-ated image matches the target image in the desired score. We also note that the VLM-Baseline and PromptEvolver generate and evaluate the same number of prompts (60 prompts in total, PromptEvolver generates 10 prompts per genera-tion) with the same T2I model with verbalized sampling [50] to ensure diversity. The difference is that the VLM-Baseline generates them all at once (similar to our initialization step), while PromptEvolver generates them iteratively over generations. 
+
+Datasets. To ensure a comprehensive evaluation across datasets with diverse characteristics, we utilize the following datasets: Lexica [39], MS-COCO [26], Celeb-A [27], Flickr8K [17], and LAION-400M [38]. These datasets cover di-verse data distributions, both natural images and AI-generated, and span object-centric scenes to portrait imagery, with varying visual and semantic complexity. We follow [19, 28] and randomly sample 100 images from the test split of each dataset. 
+
+Evaluation. We report standard metrics commonly used in the prompt inver-sion domain. Since our objective is to generate a prompt that reconstructs a given image, we evaluate multiple image-to-image similarity measures. In par-ticular, we report the cosine similarity between image features extracted using several CLIP models. We note that the baselines optimize the CLIP similarity score directly. However, as is common practice, the CLIP model used for evalu-ation is different from the model used for optimization. Additionally, we report the BLIP [22] score, which measures text–image similarity via the normalized L2 distance. Finally, we consider DreamSim [10], a learned perceptual similarity 10 A. Buchnick et al. 
+
+score that embeds both the target and generated images using a fused repre-sentation from pretrained vision models (e.g., CLIP [34], OpenCLIP [18], and DINO [6]) and compares the resulting embeddings to produce a similarity score aligned with human judgments. 
+
+Table 1: Quantitative comparison across datasets. We report CLIP, BLIP and Dream-Sim image-to-image similarities between the original and reconstructed images.                                                                                                                                            
+
+> Lexica COCO CelebA Flickr8K LAION-400M
+> CLIP BLIP DreamSim CLIP BLIP DreamSim CLIP BLIP DreamSim CLIP BLIP DreamSim CLIP BLIP DreamSim PEZ 0.75 0.77 0.70 0.73 0.67 0.66 0.64 0.66 0.68 0.74 0.69 0.66 0.63 0.63 0.63 VGD 0.77 0.78 0.70 0.73 0.68 0.66 0.65 0.68 0.68 0.75 0.72 0.67 0.61 0.60 0.62 CLIP Interrogator 0.79 0.80 0.72 0.74 0.72 0.67 0.68 0.72 0.71 0.78 0.74 0.67 0.66 0.68 0.65 STEPS 0.75 0.78 0.71 0.76 0.70 0.68 0.65 0.68 0.69 0.77 0.72 0.68 0.65 0.66 0.65 VLM-Baseline 0.77 0.85 0.78 0.79 0.85 0.76 0.64 0.79 0.76 0.77 0.85 0.76 0.79 0.84 0.78 PromptEvolver-CLIP 0.82 0.86 0.77 0.83 0.86 0.75 0.69 0.80 0.75 0.82 0.85 0.75 0.84 0.85 0.77 PromptEvolver-BLIP 0.78 0.89 0.77 0.79 0.89 0.76 0.64 0.83 0.75 0.78 0.88 0.76 0.80 0.87 0.78 PromptEvolver-DreamSim 0.78 0.87 0.79 0.79 0.87 0.78 0.65 0.81 0.77 0.78 0.86 0.77 0.80 0.85 0.80
+> PromptEvolver-OpenCLIP 0.79 0.86 0.77 0.80 0.86 0.75 0.65 0.80 0.75 0.79 0.85 0.75 0.81 0.85 0.77
+
+4.1 Generation Results 
+
+We show the experimental results on several benchmarks in Tab. 1. We first ob-serve that the simple VLM-Baseline is on par with or outperforms all previous methods, even on the CLIP score they were directly optimizing. This is prob-ably due to the fact that it has access to a stronger VLM model (Qwen3-VL) that outperforms their VLM/LLM backbone even on a task they were specifi-cally optimized on. We then see that PromptEvolver outperforms this baseline across all datasets and score functions. We also note that VLM-Baseline and PromptEvolver outperform previous approaches on scores they were not specif-ically optimizing. We suspect that this is because it is less reliant on the score function, using it only for selection, and as such, finds solutions that work well on multiple score functions. Despite that, it is still influenced by the target score and, not surprisingly, the best method for each score function is PromptEvolver that optimizes that specific score. This highlights a main benefit of PromptEvolver: it is highly versatile and works well with multiple score functions without any adjustments, training, finetuning, or hyperparameter search. 
+
+4.2 Human Preference Study 
+
+Since the best competitor was the VLM-Baseline, which can also be applied to the same T2I generation model, we compared reconstruction quality through a human preference study. We recruited 94 unique labelers. For each image, the labeler was presented with both reconstructions and asked to select the one that was semantically closer to the original. Complete experimental details are PromptEvolver 11      
+
+> COCO Lexica CelebA LAION-400M Flickr8K Original Ours VLM-Base.
+> Fig. 4: Qualitative comparison across five diverse datasets. Given a target image (top), we show reconstructions from PromptEvolver (middle) and VLM-Baseline (bottom). Our evolutionary approach produces more faithful reconstructions, better preserving scene composition, style, and fine-grained details.
+
+provided in the supplementary material. In total, we aggregated 956 pairwise comparisons, of which 521 favored PromptEvolver and 435 favored the VLM-Baseline. A one-sided binomial test confirms that our method is significantly preferred, with a p-value of 0.003. 
+
+4.3 Qualitative Comparison 
+
+We qualitatively compare PromptEvolver to the strongest baseline, VLM-Baseline. Figure 4 shows one example per dataset. Overall, the baseline often produces a semantically plausible description but drifts from the target in fine details and attribute grounding, while PromptEvolver better preserves identity cues, object structure, and style, resulting in reconstructions that are more faithful to the original. We highlight one illustrative case from Flickr8K. The original image shows a dog swimming in a dark green pool near a waterfall, with an oblique viewpoint and a characteristic spread of surface foam. The baseline changes the scene layout and flips the dog to face away from the waterfall. It also pushes the water color toward a uniform black and fails to reproduce the foam spread accurately. In contrast, PromptEvolver matches the original more closely. It maintains the spatial composition of the dog and the waterfall in the image. Moreover, it recovers the dark green water tone and foam pattern that better resembles the target. 12 A. Buchnick et al. 
+
+Overall, these examples highlight a consistent gap in inversion fidelity -PromptEvolver reconstructs images that are closer to the GT in identity, geom-etry, and fine-grained appearance, whereas the VLM-based baseline often settles for approximate semantics at the expense of precise visual correspondence. 
+
+4.4 Ablation Studies 
+
+We performed ablation studies on the MS-COCO dataset to explore the effect of various parts of our algorithm. In our first experiment, we explore two variations, using our structured prompts vs using minimalistic, simple prompts for the ini-tialization, crossover, and mutations steps. We also explore two different variants of the VLM, Qwen3-VL-8B-Instruct and Qwen3-VL-8B-Thinking. The results in Tab. 2 show that while the structured prompt has a positive effect on the CLIP score, the effect is not strong. We also observe that our structured prompt with the faster Instruct model achieves similar results to the minimal prompt on the thinking variant, which takes, however, more than twice the runtime.                        
+
+> Table 2: Ablation: VLM template style vs. reasoning mode. We compare structured and minimal prompting templates with instruct and thinking VLM variants, reporting CLIP similarity and runtime (seconds per image).
+> Template VLM Variant CLIP ↑Runtime (s) ↓
+> Structured Instruct 0.83 ±0.007 381.18
+> Structured Thinking 0.83 ±0.007 885.6 Minimal Instruct 0.82 ±0.007 420.72 Minimal Thinking 0.83 ±0.007 822.72
+
+In another experiment, we tried giving the crossover VLM the generated images for each parent prompt in order to better guide the generation of the child prompt. As we show in Tab. 3, the effect is minimal, so we use the simpler version that does not ground the generation on parents generated images.     
+
+> Table 3: Ablation: effect of providing generated parent images during crossover. In the default setting, the VLM observes only the target image when combining two parent prompts. We compare this against additionally providing the images generated by each parent prompt. Evaluated with CLIP guidance on 100 random MS-COCO 2017 images.
+> Crossover Input CLIP ↑
+> Target image only (PromptEvolver) 0.829
+> Target image + generated parent images 0.827
+
+We furthermore explore the effect of spatial emphasis in the VLM prompts. We experimented with both the BLIP and CLIP as our target score function, and PromptEvolver 13 
+
+show the results in Tab. 4. Again, we see only very minimal impact, however, we do observe qualitatively that this helps align the generated images better with the target image. It is well attested that CLIP and BLIP struggle with spatial relations [49], and we conjecture that there is an improvement that wasn’t cap-tured by these scores. 
+
+Table 4: Ablation: effect of spatial emphasis in VLM prompts. We compare the default templates against variants that explicitly instruct the VLM to describe object positions and spatial relationships (e.g., “person stands to the right of the car”). Evaluated on 100 random MS-COCO 2017 images with CLIP and BLIP guidance. 
+
+Guidance Spatial Emphasis CLIP ↑ BLIP ↑ OpenCLIP ↑ DreamSim ↑
+
+CLIP Without 0.829 0.859 0.810 0.754 With 0.830 0.861 0.811 0.756 
+
+BLIP Without 0.790 0.885 0.800 0.759 With 0.785 0.887 0.798 0.761 
+
+In our last experiment, we tried varying the mutation rate in order to pro-mote better exploration. Results in Tab. 5 show a slight improvement with a higher mutation rate. Concluding all these ablation studies, we conclude that PromptEvolver is very robust and works well across a wide set of prompts and parameters. 
+
+Table 5: Ablation: effect of mutation rate pm. We vary the probability with which offspring undergo mutation after crossover. The default rate used by PromptEvolver is 
+
+0.1. Evaluated with CLIP guidance on 100 random MS-COCO 2017 images. 
+
+Mutation Rate (pm) CLIP ↑ BLIP ↑ OpenCLIP ↑ DreamSim ↑
+
+0.1 (default) 0.829 0.859 0.810 0.754 0.3 0.831 0.861 0.810 0.754 0.5 0.834 0.861 0.811 0.756 
+
+## 5 Conclusion 
+
+In this work, we tackle the task of prompt inversion and introduce PromptE-volver, a simple approach based on a combination of a genetic algorithm with a strong VLM model. By combining a vision language model to guide a genetic algorithm, our method optimizes natural-language prompts without requiring 14 A. Buchnick et al. 
+
+access to T2I model internals. It is also very versatile and works without any adjustments or fine-tuning on any combination of T2I models and evaluation score functions. We demonstrate its effectiveness across diverse experimental settings and show it is very robust to implementation details. Finally, PromptE-volver produces coherent, human-readable prompts, improving interpretability and facilitating downstream editing. 
+
+## References 
+
+1. Alaluf, Y., Richardson, E., Metzer, G., Cohen-Or, D.: A neural space-time repre-sentation for text-to-image personalization. ACM Transactions on Graphics (TOG) 
+
+42 (6), 1–10 (2023) 2. Arar, M., Gal, R., Atzmon, Y., Chechik, G., Cohen-Or, D., Shamir, A., H. Bermano, A.: Domain-agnostic tuning-encoder for fast personalization of text-to-image models. In: SIGGRAPH Asia 2023 Conference Papers. pp. 1–10 (2023) 3. Bai, J., Bai, S., Yang, S., Wang, S., Tan, S., Wang, P., Lin, J., Zhou, C., Zhou, J.: Qwen-vl: A versatile vision-language model for understanding, localization. Text Reading, and Beyond 2(1), 1 (2023) 4. Bai, S., Cai, Y., Chen, R., Chen, K., Chen, X., Cheng, Z., Deng, L., Ding, W., Gao, C., Ge, C., et al.: Qwen3-vl technical report. arXiv preprint arXiv:2511.21631 (2025) 5. Brack, M., Friedrich, F., Kornmeier, K., Tsaban, L., Schramowski, P., Kersting, K., Passos, A.: Ledits++: Limitless image editing using text-to-image models. In: Pro-ceedings of the IEEE/CVF conference on computer vision and pattern recognition. pp. 8861–8870 (2024) 6. Caron, M., Touvron, H., Misra, I., Jégou, H., Mairal, J., Bojanowski, P., Joulin, A.: Emerging properties in self-supervised vision transformers. In: Proceedings of the IEEE/CVF international conference on computer vision. pp. 9650–9660 (2021) 7. Croitoru, F.A., Hondru, V., Ionescu, R.T., Shah, M.: Reverse stable diffusion: What prompt was used to generate this image? Computer Vision and Image Un-derstanding 249 , 104210 (2024) 8. Dai, W., Li, J., Li, D., Tiong, A., Zhao, J., Wang, W., Li, B., Fung, P.N., Hoi, S.: Instructblip: Towards general-purpose vision-language models with instruction tuning. Advances in neural information processing systems 36 , 49250–49267 (2023) 9. Dehouche, N., Dehouche, K.: What’s in a text-to-image prompt? the potential of stable diffusion in visual arts education. Heliyon 9(6) (2023) 10. Fu, S., Tamir, N., Sundaram, S., Chai, L., Zhang, R., Dekel, T., Isola, P.: Dreamsim: Learning new dimensions of human visual similarity using synthetic data. arXiv preprint arXiv:2306.09344 (2023) 11. Gal, R., Alaluf, Y., Atzmon, Y., Patashnik, O., Bermano, A.H., Chechik, G., Cohen-Or, D.: An image is worth one word: Personalizing text-to-image gener-ation using textual inversion. arXiv preprint arXiv:2208.01618 (2022) 12. Garibi, D., Patashnik, O., Voynov, A., Averbuch-Elor, H., Cohen-Or, D.: Renoise: Real image inversion through iterative noising. In: European Conference on Com-puter Vision. pp. 395–413. Springer (2024) 13. Goldberg, D.E., Deb, K.: A comparative analysis of selection schemes used in genetic algorithms. In: Foundations of genetic algorithms, vol. 1, pp. 69–93. Elsevier (1991) PromptEvolver 15 14. Guo, Q., Wang, R., Guo, J., Li, B., Song, K., Tan, X., Liu, G., Bian, J., Yang, Y.: Connecting large language models with evolutionary algorithms yields powerful prompt optimizers. arXiv preprint arXiv:2309.08532 (2023) 15. He, Y., Robey, A., Murata, N., Jiang, Y., Williams, J., Pappas, G.J., Hassani, H., Mitsufuji, Y., Salakhutdinov, R., Kolter, J.Z.: Automated black-box prompt engi-neering for personalized text-to-image generation. arXiv preprint arXiv:2403.19103 
+
+2(5) (2024) 16. Hertz, A., Mokady, R., Tenenbaum, J., Aberman, K., Pritch, Y., Cohen-Or, D.: Prompt-to-prompt image editing with cross attention control. arXiv preprint arXiv:2208.01626 (2022) 17. Hodosh, M., Young, P., Hockenmaier, J.: Framing image description as a rank-ing task: Data, models and evaluation metrics. Journal of Artificial Intelligence Research 47 , 853–899 (2013) 18. Ilharco, G., Wortsman, M., Wightman, R., Gordon, C., Carlini, N., Taori, R., Dave, A., Shankar, V., Namkoong, H., Miller, J., Hajishirzi, H., Farhadi, A., Schmidt, L.: Openclip (Jul 2021). https://doi.org/10.5281/zenodo.5143773 , https://doi. org/10.5281/zenodo.5143773 , if you use this software, please cite it as below. 19. Kim, D., Bae, M., Shim, K., Shim, B.: Visually guided decoding: Gradient-free hard prompt inversion with language models. arXiv preprint arXiv:2505.08622 (2025) 20. Kumari, N., Zhang, B., Zhang, R., Shechtman, E., Zhu, J.Y.: Multi-concept cus-tomization of text-to-image diffusion. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition. pp. 1931–1941 (2023) 21. Labs, B.F., Batifol, S., Blattmann, A., Boesel, F., Consul, S., Diagne, C., Dockhorn, T., English, J., English, Z., Esser, P., Kulal, S., Lacey, K., Levi, Y., Li, C., Lorenz, D., Müller, J., Podell, D., Rombach, R., Saini, H., Sauer, A., Smith, L.: Flux.1 kontext: Flow matching for in-context image generation and editing in latent space (2025), https://arxiv.org/abs/2506.15742 
+
+22. Li, D., Li, J., Hoi, S.: Blip-diffusion: Pre-trained subject representation for con-trollable text-to-image generation and editing. Advances in Neural Information Processing Systems 36 , 30146–30166 (2023) 23. Li, J., Li, D., Savarese, S., Hoi, S.C.H.: Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In: International Conference on Machine Learning (2023), https://api.semanticscholar.org/ CorpusID:256390509 
+
+24. Li, M., Zhang, G., Wang, Z., Tao, G., Pan, S., Cartwright, R., Zhai, J., Ma, S.: Editor: Effective and interpretable prompt inversion for text-to-image diffusion models. arXiv preprint arXiv:2506.03067 (2025) 25. Li, Z., Wu, X., Du, H., Liu, F., Nghiem, H., Shi, G.: A survey of state of the art large vision language models: Benchmark evaluations and challenges. In: Proceedings of the Computer Vision and Pattern Recognition Conference. pp. 1587–1606 (2025) 26. Lin, T.Y., Maire, M., Belongie, S., Hays, J., Perona, P., Ramanan, D., Dollár, P., Zitnick, C.L.: Microsoft coco: Common objects in context. In: European conference on computer vision. pp. 740–755. Springer (2014) 27. Liu, Z., Luo, P., Wang, X., Tang, X.: Deep learning face attributes in the wild. In: Proceedings of the IEEE international conference on computer vision. pp. 3730– 3738 (2015) 28. Mahajan, S., Rahman, T., Yi, K.M., Sigal, L.: Prompting hard or hardly prompt-ing: Prompt inversion for text-to-image diffusion models. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 6808– 6817 (2024) 16 A. Buchnick et al. 29. Mo, W., Zhang, T., Bai, Y., Su, B., Wen, J.R., Yang, Q.: Dynamic prompt opti-mizing for text-to-image generation. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 26627–26636 (2024) 30. Mokady, R., Hertz, A., Aberman, K., Pritch, Y., Cohen-Or, D.: Null-text inver-sion for editing real images using guided diffusion models. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition. pp. 6038–6047 (2023) 31. Pan, Z., Gherardi, R., Xie, X., Huang, S.: Effective real image editing with acceler-ated iterative diffusion inversion. In: Proceedings of the IEEE/CVF International Conference on Computer Vision. pp. 15912–15921 (2023) 32. pharmapsychotic: CLIP interrogator. https://github.com/pharmapsychotic/ clip-interrogator (2022) 33. Qiu, Y., Wang, A., Li, C., Huang, H., Zhou, G., Zhao, Q.: Steps: sequential prob-ability tensor estimation for text-to-image hard prompt search. In: Proceedings of the Computer Vision and Pattern Recognition Conference. pp. 28640–28650 (2025) 34. Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., et al.: Learning transferable visual models from natural language supervision. In: International conference on machine learning. pp. 8748–8763. PmLR (2021) 35. Rombach, R., Blattmann, A., Lorenz, D., Esser, P., Ommer, B.: High-resolution image synthesis with latent diffusion models. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition. pp. 10684–10695 (2022) 36. Ruiz, N., Li, Y., Jampani, V., Pritch, Y., Rubinstein, M., Aberman, K.: Dream-booth: Fine tuning text-to-image diffusion models for subject-driven generation. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recog-nition. pp. 22500–22510 (2023) 37. Sauer, A., Lorenz, D., Blattmann, A., Rombach, R.: Adversarial diffusion distilla-tion. arXiv preprint arXiv:2311.17042 (2023) 38. Schuhmann, C., Vencu, R., Beaumont, R., Kaczmarczyk, R., Mullis, C., Katta, A., Coombes, T., Jitsev, J., Komatsuzaki, A.: Laion-400m: Open dataset of clip-filtered 400 million image-text pairs. arXiv preprint arXiv:2111.02114 (2021) 39. Shen, X., Qu, Y., Backes, M., Zhang, Y.: Prompt Stealing Attacks Against Text-to-Image Generation Models. In: USENIX Security Symposium (USENIX Security). USENIX (2024) 40. Song, J., Meng, C., Ermon, S.: Denoising diffusion implicit models. arXiv preprint arXiv:2010.02502 (2020) 41. Srinivas, M., Patnaik, L.M.: Genetic algorithms: A survey. computer 27 (6), 17–26 (2002) 42. Stefanini, M., Cornia, M., Baraldi, L., Cascianelli, S., Fiameni, G., Cucchiara, R.: From show to tell: A survey on deep learning-based image captioning. IEEE transactions on pattern analysis and machine intelligence 45 (1), 539–559 (2022) 43. Tumanyan, N., Geyer, M., Bagon, S., Dekel, T.: Plug-and-play diffusion features for text-driven image-to-image translation. In: Proceedings of the IEEE/CVF con-ference on computer vision and pattern recognition. pp. 1921–1930 (2023) 44. Voynov, A., Chu, Q., Cohen-Or, D., Aberman, K.: p+: Extended textual condi-tioning in text-to-image generation. arXiv preprint arXiv:2303.09522 (2023) 45. Wallace, B., Gokul, A., Naik, N.: Edict: Exact diffusion inversion via coupled trans-formations. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition. pp. 22532–22541 (2023) PromptEvolver 17 46. Wei, Y., Zhang, Y., Ji, Z., Bai, J., Zhang, L., Zuo, W.: Elite: Encoding visual concepts into textual embeddings for customized text-to-image generation. In: Proceedings of the IEEE/CVF international conference on computer vision. pp. 15943–15953 (2023) 47. Wen, Y., Jain, N., Kirchenbauer, J., Goldblum, M., Geiping, J., Goldstein, T.: Hard prompts made easy: Gradient-based discrete optimization for prompt tuning and discovery. Advances in Neural Information Processing Systems 36 , 51008–51025 (2023) 48. Xie, E., Chen, J., Chen, J., Cai, H., Tang, H., Lin, Y., Zhang, Z., Li, M., Zhu, L., Lu, Y., et al.: Sana: Efficient high-resolution image synthesis with linear diffusion transformers. arXiv preprint arXiv:2410.10629 (2024) 49. Yuksekgonul, M., Bianchi, F., Kalluri, P., Jurafsky, D., Zou, J.: When and why vision-language models behave like bags-of-words, and what to do about it? In: The Eleventh International Conference on Learning Representations 50. Zhang, J., Yu, S., Chong, D., Sicilia, A., Tomz, M.R., Manning, C.D., Shi, W.: Verbalized sampling: How to mitigate mode collapse and unlock llm diversity. arXiv preprint arXiv:2510.01171 (2025) 51. Zhang, L., Ergen, T., Logeswaran, L., Lee, M., Jurgens, D.: Sprig: Improving large language model performance by system prompt optimization. arXiv preprint arXiv:2410.14826 (2024) 52. Zhao, J., Wang, Z., Yang, F.: Genetic prompt search via exploiting language model probabilities. In: IJCAI. pp. 5296–5305 (2023) 18 A. Buchnick et al. 
+
+## Supplementary Material A Implementation Details 
+
+Across the different experiments of PromptEvolver, we use the following de-faults: N (population size) = 10, T (number of generations) = 5, K (number of images per prompt) = 3, pm = 0 .1 (mutation rate - ratio of mutations to ap-ply per generation). The mutations occur only after a crossover is applied. For VLM-Baseline experiments, we use N = 60 to make sure we evaluate the same number of prompts as we do in the evolution process, T = 0, K = 3, pm = 0 .0
+
+(no mutations). In both settings, we use Qwen3-VL-Instruct as the VLM by default and FLUX.2-klein-4B as our T2I model. Since the CLIP text encoder is a common core component in many T2I models, we enforce that the different VLM outputs be shorter than 77 tokens; otherwise, the models may perform internal truncation, leading to a loss of detail. We enforce this by mentioning "∼50 words" in the VLM instructions, and by manually truncating to 77 tokens (special and content tokens). 
+
+## B VLM Prompt Templates 
+
+We provide the complete VLM prompt templates used by PromptEvolver. Sec-tion B.1 presents the structured templates with step-by-step reasoning scaffold-ing used in all main experiments. Section B.2 introduces the prompt used for crossover grounded in parent images (Tab. 3), while Section B.3 describes the prompts used for VLM inference with spatial emphasis (Tab. 4). Finally, Sec-tion B.4 lists the minimal templates without reasoning, used in the ablation study (Tab. 2). VLM-Baseline experiments used the structured system prompt and the initialization (verbalized sampling) template. In all templates, text in curly braces (e.g., {n} , {prompt_1} ) denotes placeholders filled at runtime. 
+
+B.1 Structured Templates (Default) 
+
+System Prompt. Used as the system message for all VLM calls. 
+
+> You are an expert at generating and refining prompts for text-to-image diffusion models. You will analyze images and evolve prompts to more accurately describe them. Always output your final prompt wrapped in <prompt></prompt> tags. Be specific, vivid, and accurate to what you observe in the image.
+
+Initialization (Verbalized Sampling). Generates the initial population of N di-verse prompts from a single VLM call. PromptEvolver 19 
+
+Generate {n} diverse text-to-image prompts that accurately describe this image. For EACH prompt, follow these analysis steps: 1. Identify the main subject(s) - what is the primary focus? 2. Describe the setting/environment - where is this taking place? 3. Note the composition - how are elements arranged? What perspective? 4. Capture the lighting - what is the light source, quality, mood? 5. Identify the style - is it photorealistic, artistic, rendered, etc.? 6. Add important details - colors, textures, atmosphere, any text visible Combine these observations into a cohesive, detailed prompt. Each prompt should be approximately 50 words - detailed and information-dense. Include all important visual elements -do not omit key subjects, objects, or setting details. Diversity requirements: - Each prompt should emphasize DIFFERENT aspects or perspectives of the image - Vary which details you prioritize (e.g., one focuses on subjects, another on atmosphere) - Use different descriptive styles while maintaining accuracy - Ensure genuine diversity, not just word substitutions For each prompt, provide a probability (0-1) indicating how well it captures the image. The probabilities should sum to approximately 1.0. Output format (output ONLY the prompts, no other text): <prompt probability="0.XX">detailed prompt text here</prompt> <prompt probability="0.XX">detailed prompt text here</prompt> ... 
+
+Crossover. Combines two parent prompts into a child, guided by the target image. 
+
+Please follow these steps to generate a better prompt by combining two existing prompts. Step 1 - Identify SHARED elements between the prompts (these are likely accurate, keep them): Prompt 1: {prompt_1} Prompt 2: {prompt_2} Step 2 - Identify DIFFERENT elements between the two prompts. 20 A. Buchnick et al. 
+
+Step 3 - Looking carefully at the image, determine which of the different elements more accurately describes what you see. Step 4 - Combine the shared elements with the most accurate different elements into a single coherent prompt. Step 5 - Ensure the final prompt flows naturally and maintains consistency. Write a detailed, information-dense prompt of approximately 50 words. Include all important visual elements. Output only the final combined prompt wrapped in <prompt></prompt> tags. 
+
+Mutation. Applies targeted edits to a child prompt, guided by the target image. 
+
+Please follow these steps to improve this prompt by introducing beneficial variations. Current prompt to mutate: {prompt} Step 1 - Evaluate accuracy: Compare each claim in the prompt against the image. Note any inaccuracies. Step 2 - Identify gaps: What important visual elements are missing from the prompt? Step 3 - Assess specificity: Which terms are too vague and could be more precise? Step 4 - Consider alternatives: For key descriptive words, think of synonyms or more evocative alternatives that might better capture the image. Step 5 - Apply mutations: Make 1-3 targeted changes that improve accuracy, add missing details, or enhance descriptions. Do not change elements that are already accurate. Write a detailed, information-dense prompt of approximately 50 words. Include all important visual elements. Output only the mutated prompt wrapped in <prompt></prompt> tags. 
+
+B.2 Crossover with Parent Images (Ablation) 
+
+Crossover. Combines two parent prompts into a child, guided by the target image and two selected images generated by the parent prompts. PromptEvolver 21 
+
+You are given three images and two prompts. Your task is to combine the prompts into one that better reconstructs the reference image. Images (in order): - Image 1: REFERENCE — the target image we want to reconstruct - Image 2: GENERATED from Prompt 1 - Image 3: GENERATED from Prompt 2 Prompt 1: {prompt_1} Prompt 2: {prompt_2} Follow these steps: Step 1 - Visual comparison: Compare Image 2 (generated from Prompt 1) to Image 1 (reference). What does the generation get RIGHT — composition, colors, subjects, style, lighting, details? What does it get WRONG or MISS? Step 2 - Visual comparison: Do the same for Image 3 (generated from Prompt 2) vs Image 1 (reference). Step 3 - Attribute to prompt language: For each visual match or mismatch you identified, trace it back to specific words or phrases in the corresponding prompt. Which prompt phrases led to accurate reconstruction? Which led to errors? Step 4 - Combine: Build a new prompt that: - KEEPS phrases from either prompt that produced accurate visual elements - REPLACES phrases that led to visual errors with the better alternative from the other prompt - Uses ONLY language from the two existing prompts — do not introduce new descriptions Step 5 - Ensure the final prompt is coherent and natural. Write a detailed, information-dense prompt of approximately 50 words. Include all important visual elements. Output only the final combined prompt wrapped in <prompt></prompt> tags. 
+
+B.3 VLM with Spatial Emphasis (Ablation) 
+
+System Prompt. Used as the system message for all VLM calls. 
+
+You are an expert at generating and refining prompts for text-to-image diffusion models. You will analyze images and evolve prompts to more accurately describe them. Always output your final prompt wrapped in <prompt></prompt> tags. Be specific, vivid, and accurate to what you observe in the image. Pay attention to the spatial positioning of objects and subjects — describe where things are located using spatial terms (left/right/center, top/bottom, foreground/background). 22 A. Buchnick et al. 
+
+Initialization (Verbalized Sampling). Generates the initial population of N di-verse prompts from a single VLM call. 
+
+Generate {n} diverse text-to-image prompts that accurately describe this image. For EACH prompt, follow these analysis steps: 1. Identify the main subject(s) - what is the primary focus? 2. Describe the setting/environment - where is this taking place? 3. Note the composition - how are elements arranged? What perspective? 4. Describe the spatial layout - where are subjects positioned (left/right/center, top/bottom, foreground/background)? Include relative positions of objects to each other. 5. Capture the lighting - what is the light source, quality, mood? 6. Identify the style - is it photorealistic, artistic, rendered, etc.? 7. Add important details - colors, textures, atmosphere, any text visible Combine these observations into a cohesive, detailed prompt. Integrate spatial positioning naturally. Each prompt should be approximately 60 words - detailed and information-dense. Include all important visual elements -do not omit key subjects, objects, or setting details. Diversity requirements: - Each prompt should emphasize DIFFERENT aspects or perspectives of the image - Vary which details you prioritize (e.g., one focuses on subjects, another on atmosphere) - Use different descriptive styles while maintaining accuracy - Ensure genuine diversity, not just word substitutions For each prompt, provide a probability (0-1) indicating how well it captures the image. The probabilities should sum to approximately 1.0. Output format (output ONLY the prompts, no other text): <prompt probability="0.XX">detailed prompt text here</prompt> <prompt probability="0.XX">detailed prompt text here</prompt> ... 
+
+Crossover. Combines two parent prompts into a child, guided by the target image. 
+
+Please follow these steps to generate a better prompt by combining two existing prompts. PromptEvolver 23 
+
+Step 1 - Identify SHARED elements between the prompts (these are likely accurate, keep them): Prompt 1: {prompt_1} Prompt 2: {prompt_2} Step 2 - Identify DIFFERENT elements between the two prompts. Step 3 - Looking carefully at the image, determine which of the different elements more accurately describes what you see. Pay special attention to spatial descriptions — if one prompt places a subject "on the left" and another says "in the center", check the image to determine the correct position. Step 4 - Combine the shared elements with the most accurate different elements into a single coherent prompt. Preserve accurate spatial positioning. Step 5 - Ensure the final prompt flows naturally and maintains consistency. Write a detailed, information-dense prompt of approximately 60 words. Include all important visual elements. Output only the final combined prompt wrapped in <prompt></prompt> tags. 
+
+Mutation. Applies targeted edits to a child prompt, guided by the target image. 
+
+Please follow these steps to improve this prompt by introducing beneficial variations. Current prompt to mutate: {prompt} Step 1 - Evaluate accuracy: Compare each claim in the prompt against the image. Note any inaccuracies. Step 2 - Identify gaps: What important visual elements are missing from the prompt? Step 3 - Check spatial accuracy: Are objects described in their correct positions (left/right/center, top/bottom, foreground/background)? Fix any spatial errors and add positioning details where missing. Step 4 - Assess specificity: Which terms are too vague and could be more precise? Step 5 - Consider alternatives: For key descriptive words, think of synonyms or more evocative alternatives that might better capture the image. 24 A. Buchnick et al. 
+
+Step 6 - Apply mutations: Make 1-3 targeted changes that improve accuracy, add missing details, or enhance descriptions. Do not change elements that are already accurate. Integrate spatial information naturally. Write a detailed, information-dense prompt of approximately 60 words. Include all important visual elements. Output only the mutated prompt wrapped in <prompt></prompt> tags. 
+
+B.4 Minimal Templates (Ablation) 
+
+These task-only templates omit the step-by-step reasoning scaffolding and were used in the template ablation study. 
+
+System Prompt. 
+
+Generate text-to-image prompts based on images. Output each prompt in <prompt></prompt> tags. 
+
+Initialization (Verbalized Sampling). 
+
+Generate {n} diverse text-to-image prompts that describe this image. Each prompt should be approximately 50 words. For each prompt, provide a probability (0-1) reflecting how well it captures the image. Probabilities should sum to approximately 1.0. Output format: <prompt probability="0.XX">prompt text</prompt> 
+
+Crossover. 
+
+Combine these two prompts into a single better prompt that more accurately describes the image. Prompt 1: {prompt_1} Prompt 2: {prompt_2} Write approximately 50 words. Output only the result in <prompt></prompt> tags. 
+
+Mutation. PromptEvolver 25 
+
+Improve this prompt so it more accurately describes the image. Current prompt: {prompt} Write approximately 50 words. Output only the improved prompt in <prompt></prompt> tags. 
+
+## C Prompt Evolution Examples 
+
+To demonstrate the effectiveness and necessity of the genetic algorithm in PromptE-volver, we present representative examples of the prompt evolution process. For each example, we show the reference image alongside two reconstructions: one generated from the initial VLM prompt (before evolution) and one from the final evolved prompt (after the full evolutionary process). This side-by-side compari-son highlights how the genetic algorithm refines prompts to capture fine-grained visual details that the initial VLM description misses, leading to substantially more faithful reconstructions. See Fig. C1–C4. 
+
+(a) Reference image (b) Initial generation  
+
+> Initial prompt: Dramatic low-angle shot capturing a person mid-air during a slackline backflip, their silhouette sharply defined against a sunlit sky. Trees on either side frame the action, while sailboats with “460” text glide on a reflective lake. Sun flares and cloud textures add intensity to the adventurous moment.
+
+(c) Evolved reconstruction  
+
+> Evolved prompt: Dramatic low-angle shot of a slackliner mid-backflip, silhouetted against a sun-drenched sky with piercing lens flares and scattered clouds. Framed by dense tree branches, sailboats marked “460” with red star decals glide on a reflective lake, capturing adventurous serenity at golden hour.
+
+Fig. C1: Prompt evolution example (Flickr8K, DreamSim guidance). The evolved prompt adds specific details such as “red star decals” and “golden hour” that improve reconstruction fidelity. 26 A. Buchnick et al. 
+
+(a) Reference image (b) Initial generation 
+
+Initial prompt: Aweathered, multi-layered sign on the left displays “Hamlin’s” above a pig logo, followed by “El Toro” and “Mexican Food” in bold red. To its right, a bright neon sign glows with “Hamlin’s El Toro Mexican Food” in green and magenta, framed by zigzag borders. Both signs stand against a cloudy sky, evoking. 
+
+(c) Evolved reconstruction 
+
+Evolved prompt: 
+
+Photorealistic split-image under a cloudy, diffused sky: Left, rustic “Hamlin’s” sign with pig silhouette, “El Toro” below, and “Mexican Food” plaque; right, glowing neon red sign with green “El Toro,” yellow “Mexican Food,” and purple zigzag border - both evoke nostalgic roadside vintage charm. 
+
+Fig. C2: Prompt evolution example (MS-COCO, CLIP guidance). The initial prompt was truncated by the CLIP truncation mechanism detailed in A. Evolution produces a complete, structured description that better captures both signs. PromptEvolver 27 
+
+(a) Reference image (b) Initial generation 
+
+Initial prompt: Vivid, photorealistic depiction of a food vendor’s grill in an outdoor market. Rows of plump, reddish sausages sizzle under direct sunlight, their surfaces glistening with fat. The green grill contrasts with the red tables and plastic cups in the background, while a person’s arm in orange gloves adds motion and context to the scene. 
+
+(c) Evolved reconstruction 
+
+Evolved prompt: Alow-angle, slightly elevated close-up of dozens of glistening, reddish sausages sizzling in neat rows on a weathered green grill under bright sunlight. Sharp shadows accentuate their curves. Red plastic tables and a gloved hand frame the bustling street food scene, photorealistic and hyper-detailed. 
+
+Fig. C3: Prompt evolution example (MS-COCO, SigLIP guidance). The evolved prompt corrects the camera angle to “low-angle, slightly elevated” and adds texture details like “weathered green grill” and “sharp shadows.” 28 A. Buchnick et al. 
+
+(a) Reference image (b) Initial generation 
+
+Initial prompt: Texture and environment focus: A gritty, realistic depiction of a skip lorry on a muddy construction site. The white DAF truck, branded “Midlothian Skip Hire,” features a blue skip secured by chains. Overcast skies cast flat light, emphasizing worn tires, grime, and the industrial atmosphere of the setting. 
+
+(c) Evolved reconstruction 
+
+Evolved prompt: Aweathered white DAF skip hire truck, branded “Midlothian Skip Hire LTD,” dominates a muddy construction site under overcast skies. Its blue skip, secured with chains, shows wear. Green recycling logos, contact numbers, and license plate “EX52 XRT” are visible. Low-angle shot emphasizes rugged industrial grit and commercial identity. 
+
+Fig. C4: Prompt evolution example (MS-COCO, SigLIP guidance). Evolution recovers fine-grained text details (“LTD,” license plate “EX52 XRT,” “green recycling logos”) absent from the initial prompt. 
+
+## D Failure Cases 
+
+While PromptEvolver achieves strong results overall, we observe characteristic failure modes that highlight limitations of the prompt inversion paradigm. An example is shown in Fig. D5, illustrating cases where VLM-driven reasoning cap-tures plausible visual attributes yet fails to reflect less common but semantically important details. PromptEvolver 29    
+
+> (a) Original (b) Reconstructed
+> Evolved Prompt: Photorealistic, cinematic close-up of a stylish couple at an el-egant indoor soirée: bald man in black tuxedo with burgundy satin lapels, holding a martini, beside a blonde woman in a sleeveless charcoal gown. Soft, dim lighting highlights formal attire. Background: white walls, doorway, shelves. Subdued ele-gance.
+> Fig. D5: Failure case: The T2I model inferred the bowtie correctly without specific mention in the prompt (presumably because of the tuxedo), however, the fact that it is open was not mentioned in any of the prompts throughout the evolution process. We hypothesize that this is due to the fact that the unnatural state of the bowtie receives a lot of human attention, however modern foundational models have a bias towards the more common state.
+
+## E Human Preference Study Details 
+
+This section provides the full experimental protocol for the human preference study summarized in Sec. 4.2. 
+
+Objective. We conducted a two-alternative forced choice (2AFC) study to com-pare the reconstruction quality of PromptEvolver against the VLM-Baseline. For each comparison, an evaluator was shown a reference image alongside two reconstructions (one from each method) and asked to select the one that more faithfully matches the reference. 
+
+Stimuli. We used all 500 images from our evaluation set (100 per dataset: Lex-ica, MS-COCO, CelebA, Flickr8K, and LAION-400M). For each image, the PromptEvolver reconstruction was drawn from one of the four guidance variants (CLIP, BLIP, OpenCLIP-SigLIP, DreamSim), assigned via balanced allocation (125 images per variant, seed 42). For both methods, one of the K=3 generated images was randomly selected per image. 
+
+Platform. The study was implemented as a custom web application using Google Sheets and Google Apps Script. Each evaluator accessed the study via a web link and was identified by their Google account email. The application implemented 30 A. Buchnick et al. 
+
+balanced item assignment: each evaluator was shown 10 comparisons, selected from the items with the fewest existing annotations to ensure even coverage across all 500 image pairs. 
+
+Interface. The evaluation interface displayed the reference image at the top, followed by two reconstructions labeled “Option A” and “Option B” placed side by side below (see Fig. E6). The assignment of PromptEvolver and VLM-Baseline to left/right positions was randomized independently for each comparison. The presentation order of the 10 assigned items was also shuffled per evaluator. Both performed in order to ensure fairness and to ensure no bias is possible. The instruction read: “Task: Compare the two options below to the reference image. Select the one that is closer to / more consistent with the reference.”  
+
+> Fig. E6: Screenshot of the human evaluation interface for a single comparison. The reference image is shown at the top, with two reconstruction options displayed below. Evaluators select the option that more faithfully matches the reference.
+
+Coverage. We recruited 94 unique evaluators. Participants were volunteers and were not compensated. In total, we collected 956 pairwise annotations across 500 image pairs, yielding an average of 1.91 annotations per pair. 
+
+Results. Of the 956 comparisons, 521 (54.5%) favored PromptEvolver and 435 (45.5%) favored the VLM-Baseline. A one-sided binomial test yields p = 0 .003 ,confirming a statistically significant preference for our method. Tab. E1 reports the per-dataset breakdown. PromptEvolver 31 
+
+Table E1: Per-dataset breakdown of the human preference study. We report the num-ber of comparisons favoring PromptEvolver out of the total for each dataset. 
+
+Dataset Ours VLM-Baseline Total Pref. (%) 
+
+Lexica 124 73 197 62.9 CelebA 84 108 192 43.8 Flickr8K 111 85 196 56.6 LAION-400M 106 91 197 53.8 MS-COCO 96 78 174 55.2 
+
+Total 521 435 956 54.5 
+
+Notably, PromptEvolver is preferred on four out of five datasets. The ex-ception is CelebA, where the VLM-Baseline is preferred (43.8% vs. 56.2%). We hypothesize that portrait images, which feature a single dominant subject with relatively uniform composition, are already well-described by a single VLM pass, leaving less room for evolutionary refinement. 
+
+## F Extended Quantitative Results 
+
+In this section we provide additional experiments that complement the main paper due to space constraints. 
+
+F.1 Extended Evaluation with OpenCLIP-SigLIP 
+
+Tab. 1 reports CLIP, BLIP, and DreamSim evaluation metrics. Here we extend the comparison by adding OpenCLIP-SigLIP [18] as a fourth evaluation metric. Tab. F2 reproduces the full table with the additional OpenCLIP column for each dataset. The results confirm that PromptEvolver consistently outperforms all baselines on this metric as well, with the OpenCLIP-guided variant achieving the highest scores. Notably, the strong correlation across all four metrics supports the claim that our method finds prompts that generalize well across different similarity measures, rather than overfitting to a single score function. 
+
+Table F2: Extended quantitative comparison including OpenCLIP-SigLIP evaluation. We report CLIP, BLIP, DreamSim, and OpenCLIP image-to-image similarities between the original and reconstructed images across all five datasets.                                                                                                                                                                                         
+
+> Lexica COCO CelebA Flickr8K LAION-400M
+> CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL PEZ 0.75 0.77 0.70 0.75 0.73 0.67 0.66 0.71 0.64 0.66 0.68 0.67 0.74 0.69 0.66 0.73 0.63 0.63 0.63 0.61 VGD 0.77 0.78 0.70 0.76 0.73 0.68 0.66 0.70 0.65 0.68 0.68 0.67 0.75 0.72 0.67 0.72 0.61 0.60 0.62 0.59 CLIP Interrogator 0.79 0.80 0.72 0.77 0.74 0.72 0.67 0.72 0.68 0.72 0.71 0.70 0.78 0.74 0.67 0.76 0.66 0.68 0.65 0.62 STEPS 0.75 0.78 0.71 0.75 0.76 0.70 0.68 0.73 0.65 0.68 0.69 0.69 0.77 0.72 0.68 0.75 0.65 0.66 0.65 0.63 VLM-Baseline 0.77 0.85 0.78 0.78 0.79 0.85 0.76 0.79 0.64 0.79 0.76 0.72 0.77 0.85 0.76 0.78 0.79 0.84 0.78 0.78 PromptEvolver-CLIP 0.82 0.86 0.77 0.80 0.83 0.86 0.75 0.81 0.69 0.80 0.75 0.73 0.82 0.85 0.75 0.79 0.84 0.85 0.77 0.80 PromptEvolver-BLIP 0.78 0.89 0.77 0.79 0.79 0.89 0.76 0.80 0.64 0.83 0.75 0.73 0.78 0.88 0.76 0.79 0.80 0.87 0.78 0.79 PromptEvolver-DreamSim 0.78 0.87 0.79 0.80 0.79 0.87 0.78 0.80 0.65 0.81 0.77 0.73 0.78 0.86 0.77 0.79 0.80 0.85 0.80 0.79 PromptEvolver-OpenCLIP 0.79 0.86 0.77 0.82 0.80 0.86 0.75 0.83 0.65 0.80 0.75 0.76 0.79 0.85 0.75 0.82 0.81 0.85 0.77 0.82
+
+32 A. Buchnick et al. 
+
+F.2 Alternative T2I Model: SDXL-Turbo 
+
+To demonstrate that PromptEvolver generalizes beyond the FLUX-2-Klein model used in the main experiments, we repeat the full evaluation using SDXL-Turbo [37] as the T2I backbone. SDXL-Turbo is a distilled variant of Stable Diffusion XL that generates images in a single forward pass (1–4 steps), offering a substan-tially different architecture and generation paradigm compared to FLUX. All other settings (VLM, datasets, population size, generations) remain identical to the main experiments. The results are presented in Tab. F3. Despite the architectural differences, PromptEvolver consistently outperforms the VLM-Baseline across all datasets and metrics, confirming that our evolutionary approach is T2I-model agnostic. 
+
+Table F3: Quantitative comparison using SDXL-Turbo as the T2I model. We report CLIP, BLIP, DreamSim, and OpenCLIP image-to-image similarities.                                                                                                         
+
+> Lexica COCO CelebA Flickr8K LAION-400M
+> CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL VLM-Baseline 0.81 0.84 0.75 0.80 0.79 0.79 0.71 0.76 0.68 0.77 0.73 0.70 0.80 0.80 0.71 0.76 0.75 0.77 0.71 0.70 PromptEvolver-CLIP 0.83 0.84 0.76 0.81 0.81 0.81 0.72 0.77 0.70 0.77 0.73 0.70 0.82 0.81 0.71 0.78 0.76 0.77 0.71 0.70 PromptEvolver-BLIP 0.80 0.87 0.76 0.81 0.77 0.83 0.72 0.76 0.66 0.81 0.74 0.71 0.78 0.84 0.72 0.76 0.73 0.81 0.72 0.70 PromptEvolver-DreamSim 0.80 0.85 0.78 0.81 0.77 0.82 0.74 0.76 0.67 0.78 0.75 0.71 0.78 0.81 0.73 0.76 0.73 0.78 0.73 0.71 PromptEvolver-OpenCLIP 0.80 0.85 0.76 0.83 0.78 0.81 0.72 0.79 0.67 0.78 0.74 0.74 0.79 0.80 0.71 0.80 0.74 0.78 0.71 0.74
+
+F.3 Alternative VLM: Qwen-2.5-VL-Instruct 
+
+We further evaluate the robustness of PromptEvolver to the choice of VLM by replacing Qwen3-VL-Instruct with the earlier Qwen-2.5-VL-Instruct [3] model. This tests whether our evolutionary framework relies on a specific VLM’s capa-bilities or generalizes across different VLM backbones. The T2I model (FLUX-2-Klein) and all other settings remain unchanged. Tab. F4 reports the results. PromptEvolver still improves over the VLM-Baseline across all datasets and guidance metrics, demonstrating that the evo-lutionary optimization provides consistent gains regardless of the underlying VLM. Interestingly, comparing with Tab. 1, we observe that the Qwen-2.5-VL baseline already achieves competitive scores on several datasets (e.g., LAION-400M CLIP: 0.82), suggesting that this VLM produces strong initial descriptions. Nevertheless, PromptEvolver consistently pushes these scores higher. PromptEvolver 33 
+
+Table F4: Quantitative comparison using Qwen-2.5-VL-Instruct as the VLM backbone (with FLUX-2-Klein as T2I model). We report CLIP, BLIP, DreamSim, and OpenCLIP image-to-image similarities. 
+
+Lexica COCO CelebA Flickr8K LAION-400M 
+
+CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL VLM-Baseline 0.80 0.85 0.76 0.79 0.81 0.85 0.74 0.79 0.67 0.79 0.74 0.72 0.80 0.85 0.74 0.79 0.82 0.84 0.76 0.78 PromptEvolver-CLIP 0.79 0.84 0.75 0.77 0.82 0.84 0.75 0.80 0.67 0.76 0.72 0.70 0.82 0.84 0.74 0.80 0.82 0.82 0.75 0.77 PromptEvolver-BLIP 0.76 0.87 0.76 0.78 0.79 0.88 0.76 0.79 0.61 0.79 0.72 0.70 0.77 0.87 0.75 0.79 0.78 0.85 0.76 0.76 PromptEvolver-DreamSim 0.76 0.85 0.77 0.77 0.78 0.86 0.77 0.79 0.63 0.77 0.74 0.70 0.77 0.85 0.77 0.79 0.78 0.83 0.78 0.76 PromptEvolver-OpenCLIP 0.77 0.85 0.75 0.80 0.80 0.85 0.75 0.83 0.63 0.76 0.72 0.72 0.78 0.85 0.75 0.83 0.79 0.82 0.75 0.80 
+
+F.4 Cross-Model Prompt Transfer 
+
+A key advantage of PromptEvolver is that it produces natural-language prompts, which are inherently portable across different T2I models. To evaluate this trans-ferability, we take the prompts evolved using FLUX-2-Klein (our default T2I model) and generate images using two alternative models: SD3.5-Turbo and SDXL-Turbo, without any re-optimization . This tests whether prompts opti-mized for one model generalize to others. Tab. F5 reports the results. We compare the VLM-Baseline prompts and each PromptEvolver variant when transferred to each target model. The evolved prompts consistently maintain their advantage over the VLM-Baseline across both target models, confirming that the quality improvements from evolution are not specific to the T2I model used during optimization. 
+
+Table F5: Cross-model prompt transfer: prompts evolved with FLUX-2-Klein are used to generate images with SD3.5-Turbo and SDXL-Turbo without re-optimization. We report CLIP, BLIP, DreamSim, and OpenCLIP image-to-image similarities.                                                                                                                                                                                                             
+
+> Lexica COCO CelebA Flickr8K LAION-400M Target Model Source CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL CLIP BLIP DSim OCL SD3.5-Turbo VLM-Baseline 0.77 0.82 0.74 0.77 0.77 0.83 0.73 0.75 0.62 0.77 0.72 0.66 0.77 0.82 0.72 0.74 0.75 0.79 0.73 0.71 PromptEvolver-CLIP 0.79 0.83 0.74 0.78 0.77 0.82 0.72 0.75 0.63 0.77 0.72 0.67 0.78 0.81 0.72 0.74 0.75 0.79 0.73 0.72 PromptEvolver-BLIP 0.78 0.84 0.74 0.78 0.77 0.83 0.73 0.75 0.62 0.78 0.72 0.67 0.77 0.83 0.72 0.74 0.75 0.80 0.73 0.72 PromptEvolver-DreamSim 0.79 0.84 0.75 0.79 0.77 0.83 0.73 0.75 0.62 0.77 0.72 0.66 0.77 0.82 0.73 0.74 0.75 0.79 0.73 0.72 PromptEvolver-OpenCLIP 0.78 0.83 0.74 0.79 0.77 0.83 0.72 0.76 0.63 0.78 0.72 0.68 0.77 0.82 0.72 0.75 0.75 0.79 0.72 0.72
+> SDXL-Turbo VLM-Baseline 0.77 0.81 0.74 0.78 0.75 0.78 0.71 0.74 0.63 0.76 0.72 0.68 0.76 0.78 0.70 0.73 0.69 0.74 0.69 0.66 PromptEvolver-CLIP 0.79 0.83 0.74 0.79 0.76 0.78 0.70 0.74 0.64 0.76 0.72 0.68 0.76 0.79 0.70 0.74 0.70 0.75 0.69 0.68
+> PromptEvolver-BLIP 0.78 0.83 0.74 0.79 0.75 0.79 0.71 0.74 0.64 0.77 0.72 0.67 0.76 0.80 0.70 0.75 0.69 0.75 0.69 0.67 PromptEvolver-DreamSim 0.78 0.82 0.75 0.79 0.75 0.79 0.71 0.74 0.64 0.76 0.72 0.68 0.76 0.79 0.71 0.74 0.69 0.74 0.69 0.67 PromptEvolver-OpenCLIP 0.78 0.82 0.74 0.79 0.76 0.79 0.71 0.74 0.64 0.77 0.73 0.69 0.76 0.79 0.70 0.75 0.69 0.74 0.69 0.67
+
+F.5 Prompt Naturalness 
+
+To assess the linguistic quality of the evolved prompts, we measure their natural-ness using the negative log-likelihood (NLL) under a pretrained Mistral-7B-v0.3 language model. We chose this model, which is not from the Qwen family, to make sure to not have bias with the VLM language model. Lower NLL indicates more fluent, natural-sounding text. Tab. F6 reports the mean NLL ( ± std) over all 500 evaluation images for each method. Both VLM-Baseline and PromptE-volver produce dramatically more natural prompts (NLL ∼2.8−2.9) compared 34 A. Buchnick et al. 
+
+to all prior methods ( 4.0−7.1). Gradient-based approaches (PEZ: 6.88 , STEPS: 
+
+7.10 ) yield the least natural text, as they optimize in a continuous embedding space and decode to tokens post-hoc. Gradient-free methods (CLIP Interrogator: 
+
+4.05 , VGD: 4.52 ) fare better but still lag far behind. In contrast, PromptEvolver variants show only a modest NLL increase over the VLM-Baseline ( +0 .14 ), con-firming that the evolutionary process preserves prompt fluency while improving reconstruction fidelity.

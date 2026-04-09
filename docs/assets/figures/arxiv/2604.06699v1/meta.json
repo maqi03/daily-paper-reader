@@ -1,0 +1,158 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-001.webp",
+      "caption": "Figure 1: Monolithic prompt optimization vs. aPSF. Top: monolithic API-only prompt optimizers iteratively edit a single prompt. Bottom: aPSF decomposes the prompt into semantic factors and updates selected factors while freezing the rest.",
+      "page": 1,
+      "index": 1,
+      "width": 458,
+      "height": 337
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-002.webp",
+      "caption": "Figure 3: Per-task accuracy on BBH benchmarks. aPSF (red) achieves dominant performance on arithmetic and symbolic reasoning tasks, such as Multistep Arithmetic (0.96) and Boolean Expressions (0.97).",
+      "page": 6,
+      "index": 2,
+      "width": 950,
+      "height": 381
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-003.webp",
+      "caption": "Figure 15: Real-world execution trace of the Error-Guided Factor Selection mechanism. The system identifies that 40% of errors stem from reasoning flaws (SOLVEPROBLEM), correctly prioritizing it over format or understanding issues for this iteration.",
+      "page": 25,
+      "index": 3,
+      "width": 937,
+      "height": 587
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-004.webp",
+      "caption": "Figure 16: Qualitative comparison of reasoning traces. Cases 1 & 2 show aPSF’s ability to handle structured algebraic and number-theoretic reasoning. Case 3 highlights a failure mode where extreme algebraic complexity leads to incorrect simplification, pointing to future directions for tool-augmented factors.",
+      "page": 26,
+      "index": 4,
+      "width": 937,
+      "height": 739
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-005.webp",
+      "caption": "Figure 8: Meta-prompt for Initial-Prompt Analysis. It guides the Architect to preserve the core reasoning style of the user’s input while expanding it into a full factorized program.",
+      "page": 15,
+      "index": 5,
+      "width": 956,
+      "height": 577
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-006.webp",
+      "caption": "Table 13: Original factor names autonomously discovered by aPSF. The terminology adapts to the domain (e.g., Stereochemistry in Chemistry, CalculationExecution in AQUA). Top Factor indicates the component most frequently selected by the error-guided scheduler.",
+      "page": 21,
+      "index": 6,
+      "width": 950,
+      "height": 612
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-007.webp",
+      "caption": "Table 14: Factor structures discovered by aPSF. The factor names (e.g., ComponentAnalysis, CalculationExecution) correspond to the domain-specific terminology cataloged in Appendix K.",
+      "page": 22,
+      "index": 7,
+      "width": 950,
+      "height": 333
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-008.webp",
+      "caption": "Table 7: Top-performing BBH sub-tasks. aPSF demonstrates decisive advantages on arithmetic, boolean logic, and object tracking tasks, validating the efficacy of the FORMAT and RATIONALE factors.",
+      "page": 14,
+      "index": 8,
+      "width": 731,
+      "height": 222
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-009.webp",
+      "caption": "Figure 7: Meta-prompt for From-Scratch Structure Discovery. It enforces a strict four-section output format to ensure reliable parsing of the factor structure.",
+      "page": 14,
+      "index": 9,
+      "width": 956,
+      "height": 592
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-010.webp",
+      "caption": "Figure 11: Meta-prompt for Step 2: Factor Selection. It maps diagnosed errors to specific factors, with historyaware recommendations to encourage balanced exploration when a single factor is repeatedly selected.",
+      "page": 18,
+      "index": 10,
+      "width": 956,
+      "height": 623
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-011.webp",
+      "caption": "Table 17: Summary of evaluation benchmarks. All datasets are publicly available.",
+      "page": 23,
+      "index": 11,
+      "width": 671,
+      "height": 252
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-012.webp",
+      "caption": "Figure 4: Factor selection patterns and performance. (A) Selection rate heatmap grouped by semantic category (original names in Appendix K). (B) Test accuracy and dominant factors per task (color indicates domain).",
+      "page": 8,
+      "index": 12,
+      "width": 950,
+      "height": 356
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-013.webp",
+      "caption": "Figure 2: Overview of aPSF. Given a dataset of sampled examples and an optional initial prompt, aPSF proceeds in two phases. (1) Structure Discovery: the Architect LLM analyzes the task and decomposes the prompt into K semantic factors {Fk}Kk=1 (task-specific factorization, rather than a fixed scaffold). (2) Iterative Factor Optimization: the Worker LLM executes the composed prompt; an evaluator returns scores and representative failure cases, which are summarized into an error diagnosis (e.g., reasoning error: 15 vs 17). Conditioned on the diagnosis, the architect model selects a bottleneck factor for a single-factor update while freezing the remaining factors, yielding attributable, interventional prompt edits and returning the best-performing prompt within Tmax steps.",
+      "page": 4,
+      "index": 13,
+      "width": 950,
+      "height": 350
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-014.webp",
+      "caption": "Table 8: MMLU accuracy (%) across four disciplinary categories. aPSF achieves best overall average (76.29%) with strongest gains on Humanities (+6.18pp) and Other (+1.10pp), though trailing in Social Sciences and STEM. ∆ vs Best Baseline = aPSF’s difference from the strongest non-aPSF baseline in each category (green=aPSF wins, red=aPSF loses). Light blue highlights indicate category winners; purple row emphasizes overall average.",
+      "page": 19,
+      "index": 14,
+      "width": 769,
+      "height": 224
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-015.webp",
+      "caption": "Figure 10: Meta-prompt for Step 1: Open-Ended Error Diagnosis. It enables unbiased identification of root causes and failure mechanisms prior to targeted prompt optimization.",
+      "page": 17,
+      "index": 15,
+      "width": 956,
+      "height": 567
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-016.webp",
+      "caption": "Table 19: Extended efficiency analysis across four datasets. Top: Token consumption (K) at the best validation step. Bottom: Best step number (lower = faster convergence). aPSF consistently reaches peak validation with the fewest tokens and earliest steps.",
+      "page": 24,
+      "index": 16,
+      "width": 411,
+      "height": 511
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-017.webp",
+      "caption": "Table 12: Complete factor selection statistics across all tasks. Test Acc matches the main results using the default configuration (Qwen2.5-7B-Instruct Worker + Qwen3-8B Architect). Val Gain = validation improvement from initial to best; Gen Gap = difference between validation and test accuracy.",
+      "page": 20,
+      "index": 17,
+      "width": 791,
+      "height": 413
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-018.webp",
+      "caption": "Table 1: Test accuracy (%) on math reasoning benchmarks (mean±std over 5 runs; ). Multi = MultiArith; Hard = GSM-Hard. All methods start from the same seed prompt (“Let’s think step by step”). Bold = best; underline = second best. Light blue rows highlight aPSF with gains in green.",
+      "page": 5,
+      "index": 18,
+      "width": 956,
+      "height": 583
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06699v1/fig-019.webp",
+      "caption": "Figure 9: Meta-prompt for Factor-Wise Editing. It provides error analysis as reference while explicitly preventing overfitting through general-purpose constraints.",
+      "page": 16,
+      "index": 19,
+      "width": 956,
+      "height": 573
+    }
+  ]
+}

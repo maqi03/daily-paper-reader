@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.00399v1/fig-001.webp",
+      "caption": "Figure 4: Augmentation Strategy Comparison. When sampling context near a shared centroid, subgraphs often overlap. The",
+      "page": 6,
+      "index": 1,
+      "width": 700,
+      "height": 378
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00399v1/fig-002.webp",
+      "caption": "Figure 5: Average Initialization and Orthogonal Loss. (A) Compared to random initialization, average embedding provides more",
+      "page": 7,
+      "index": 2,
+      "width": 888,
+      "height": 279
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00399v1/fig-003.webp",
+      "caption": "Figure 6: Parameter study: 𝜆 and 𝑝. The heatmaps present the accuracy improvements of CTP over PG-NM across different",
+      "page": 10,
+      "index": 3,
+      "width": 1004,
+      "height": 237
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00399v1/fig-004.webp",
+      "caption": "Figure 7: Parameter study: Number of Downstream Examples. Figures (a) - (e) show the results of varying the number of",
+      "page": 10,
+      "index": 4,
+      "width": 1029,
+      "height": 200
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00399v1/fig-005.webp",
+      "caption": "Figure 2: The Prompting Framework. The overall workflow includes three stages, illustrated with node classification. During",
+      "page": 4,
+      "index": 5,
+      "width": 946,
+      "height": 389
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00399v1/fig-006.webp",
+      "caption": "Table 3",
+      "page": 9,
+      "index": 6,
+      "width": 1029,
+      "height": 332
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00399v1/fig-007.webp",
+      "caption": "Table 2",
+      "page": 9,
+      "index": 7,
+      "width": 1033,
+      "height": 214
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00399v1/fig-008.webp",
+      "caption": "Figure 3: Neighborhood Centroid Collection. This figure illustrates the preprocessing step for clustering node embeddings and",
+      "page": 5,
+      "index": 8,
+      "width": 929,
+      "height": 318
+    }
+  ]
+}

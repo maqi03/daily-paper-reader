@@ -1,0 +1,775 @@
+Title: MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation
+
+URL Source: https://arxiv.org/pdf/2604.06966v1
+
+Published Time: Thu, 09 Apr 2026 01:08:55 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+# MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation 
+
+# Xiaoxiao Ma 
+
+University of Science and Technology of China Hefei, China 
+
+# Jiachen Lei 
+
+AMAP, Alibaba Group Hangzhou, China 
+
+# Tianfei Ren 
+
+University of Science and Technology of China Hefei, China 
+
+# Jie Huang 
+
+University of Science and Technology of China Hefei, China 
+
+# Siming Fu 
+
+Zhejiang University Hangzhou, China 
+
+# Aiming Hao 
+
+AMAP, Alibaba Group Hangzhou, China 
+
+# Jiahong Wu 
+
+AMAP, Alibaba Group Hangzhou, China 
+
+# Xiangxiang Chu 
+
+AMAP, Alibaba Group Hangzhou, China 
+
+# Feng Zhao ∗
+
+University of Science and Technology of China Hefei, China “A cup of coffee on a wooden desk.”    
+
+> “A beach with people and umbrellas .”
+
+GRPO (+Fixed Decoder) Ours (with Stabilized Training Dynamics)            
+
+> Unstable Structure &Details
+> “A blue cube on top of a red sphere.”
+> “A cup of coffee on a wooden desk.”
+> “A beach with people and umbrellas .”
+> “A blue cube on top of a red sphere.”
+> Collapsed Diversity
+> Finer Structure &Details
+> Better Diversity
+
+Our Method Improves Training 
+
+Stability and Peak Reward 
+
+> GRPO
+> peak
+> collapse!
+> +Fixed Decoder
+> Ours
+> Training iteration
+> HPS Reward Score
+
+Figure 1: Stabilizing MAR optimization via improved training dynamics. Left: Compared to GRPO with a fixed decoder, standard optimization suffers from unstable structures, noisy details, and diversity collapse. Middle: Our method achieves stabilized training dynamics, producing more consistent structures, finer details, and improved diversity. Right: Training curves show that ours stabilizes reward dynamics and achieves higher peak performance, avoiding the collapse observed in baseline GRPO. 
+
+## Abstract 
+
+Reinforcement learning (RL) has been successfully applied to au-toregressive (AR) and diffusion models. However, extending RL to hybrid AR–diffusion frameworks remains challenging due to interleaved inference and noisy log-probability estimation. In this work, we study masked autoregressive models (MAR) and show that the diffusion head plays a critical role in training dynamics, often introducing noisy gradients that lead to instability and early performance saturation. To address this issue, we propose a sta-bilized RL framework for MAR. We introduce multi-trajectory ex-pectation (MTE), which estimates the optimization direction by averaging over multiple diffusion trajectories, thereby reducing 
+
+> ∗
+
+Corresponding author. 
+
+diffusion-induced gradient noise. To avoid over-smoothing, we fur-ther estimate token-wise uncertainty from multiple trajectories and apply multi-trajectory optimization only to the top-𝑘 % uncertain tokens. In addition, we introduce a consistency-aware token selec-tion strategy that filters out AR tokens that are less aligned with the final generated content. Extensive experiments across multiple benchmarks demonstrate that our method consistently improves visual quality, training stability, and spatial structure understanding over baseline GRPO and pre-RL models. Our code is available at https://github.com/AMAP-ML/mar-grpo. 
+
+## Keywords 
+
+AR-diffusion hybrid image generation, Text-to-image generation, Reinforcement learning 
+
+> arXiv:2604.06966v1 [cs.CV] 8 Apr 2026 Ma et al.
+
+## 1 Introduction 
+
+Autoregressive models [ 3, 22 , 25 , 43 ] have recently attracted in-creasing attention in text-conditioned image synthesis due to their potential to unify text and image modalities [ 6, 31 , 34 , 36 ]. Among them, MAR has demonstrated strong performance by combining AR generation with continuous latent representations, mitigating the quantization bottleneck introduced by discrete tokenizers. In MAR, the AR transformer predicts continuous latent features in a 
+
+masked autoregressive manner , while a lightweight diffusion head 
+
+is applied at each AR step to refine latents and decode them into high-quality images. This hybrid design alleviates the limitations of discrete tokenization and has been widely explored in image [ 9 ], video [7, 28, 38], and unified generation [14, 27, 32]. Despite these advantages, MAR models still struggle with fine-grained prompt fidelity and visual quality, especially in complex or preference-sensitive scenarios. A well-established approach to address these issues is post-training with reinforcement learning (RL), where models are optimized using preference-based or veri-fiable rewards. In particular, Group Relative Policy Optimization (GRPO) [ 24 ] has shown strong potential in improving both language models [ 4, 5 , 40 ] and visual generative models [ 12 , 19 , 21 , 26 , 30 ]by enabling stable and sample-efficient policy optimization. Nevertheless, to the best of our knowledge, online reinforce-ment learning for the MAR-style hybrid paradigms remains largely unexplored and poses fundamental optimization challenges. First, MAR-style generation involves a complex inference process with multiple rounds of alternating AR and diffusion steps, leading to highly coupled trajectories and non-trivial log-probability estima-tion. Second, the mismatch in parameter scale and complementary roles between large-scale AR transformer and lightweight diffusion head leads to significant instability in RL optimization. As shown in Fig. 2, naively applying vanilla GRPO with end-to-end manner often leads to instable optimization and early performance satura-tion , we attribute it to disparate optimization dynamics inherent in joint AR and diffusion frameworks. To further investigate this issue, given the lightweight nature of diffusion head and its limited role in content generation, we analyze and compare the training dynamics of standard end-to-end GRPO with a variant that fixes diffusion head and optimizes only the AR transformer. As a result, optimizing only the AR component yields more stable and smoother training dynamics than end-to-end optimization, con-sistently improving image quality and prompt-following capability. Interestingly, although the diffusion head primarily refines low-level details of latents produced by the AR model, it has a significant impact on overall training dynamics. We attribute this to the large gradient variance introduced by the stochastic denoising process, where the model must handle samples with different noise levels across multiple timesteps. From this perspective, the diffusion de-coder can be viewed as a conditional decoder that heavily depends on AR latents, while its inherent stochasticity introduces noise into the optimization process. Concretely, during GRPO rollout, given a fixed AR latent, sampling multiple diffusion trajectories and estimating the optimization direction via expectation over these trajectories can significantly improve training stability (See Fig. 5). Based on the above analysis, we propose MAR-GRPO, the first GRPO-based method tailored for the AR–diffusion hybrid paradigm. Specifically, we introduce three key components. (1) We leverage multiple diffusion trajectories obtained during rollout and estimate the optimization direction via expectation over these trajectories, leading to more stable optimization dynamics. (2) Based on token-wise uncertainty from multiple diffusion samples, we apply multi-trajectory estimation only to the top-𝑘 % most uncertain tokens, achieving a better trade-off between stability and computational efficiency with negligible additional overhead due to the lightweight diffusion head. (3) A consistency-aware token selection strategy is applied to filter out tokens whose optimization directions are inconsistent with the final generated content, further improving visual detail and stability. Our contributions are as follows: (1) We present the first GRPO-based framework for masked autoregressive (MAR) models, and identify the diffusion head as a key source of optimization instability in hybrid AR–diffusion architectures. (2) Based on analysis of the training dynamics under this frame-work, we propose multiple trajectory based optimization, which computes expectation of multiple diffusion trajec-tories, reducing diffusion-induced variance and yielding more stable optimization dynamics. (3) Compared to baseline GRPO methods and pre-RL mod-els, our approach achieves consistent improvements across benchmarks on human preference, prompt following, and spatial structure understanding. 
+
+## 2 Related Works 2.1 AR-diffusion Hybrid Paradigms 
+
+Autoregressive (AR) models generate images by predicting tokens sequentially in raster order [ 3, 18 ] or mask-based manner [ 1 ] over a Vector-Quantized (VQ) [ 8 ] discrete space. Such approaches are often limited by the quantization accuracy of the tokenizer, mak-ing it difficult to synthesize high-fidelity images. Mask autoregres-sive (MAR) [ 17 ] models address this issue by decoding AR latents with a lightweight model via flow matching [ 15 ], effectively avoid-ing discrete quantization errors, and their potential has been ex-plored in prior studies. Fluid [ 9] first extends this paradigm to text-conditioned image generation. FAR [ 39 ] explores combining scale-wise autoregressive paradigm [ 23 , 29 ] with diffusion head, while subsequent works such as Harmon [ 32 ] further investigate hy-brid generation for unified understanding and synthesis. NOVA [ 7 ]and VideoMAR [ 38 ] extend MAR to video generation, and [ 45 ]explores acceleration. Notably, NextStep [ 27 ] scales the AR back-bone to a 14 B-parameter transformer, demonstrating the strong scalability of AR-diffusion hybrid paradigm. However, online rein-forcement learning for MAR-based generation remains unexplored. 
+
+## 2.2 RL for Visual Generation 
+
+Motivated by recent advances in Reinforcement Learning with Ver-ifiable Reward (RLVR) for large language models (LLMs) [ 4, 5 , 24 ,40 ], RL-based methods, especially Group Relative Policy Optimiza-tio (GRPO) have been increasingly studied for visual generation. Specifically, for continuous generation with diffusion models, Flow-GRPO [ 19 ] and Dance-GRPO [ 37 ] analyze the challenges of apply-ing GRPO to flow-based models, while subsequent works [ 10 , 16 ]explore time-step-based reward assignment strategies to further MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation 50 150 250 350      
+
+> Training iteration
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Grad Variance
+> Fix head
+> w/o Fix head 50 150 250 350
+> Training iteration
+> 10 4
+> 10 2
+> 10 0
+> 10 2
+> Grad Norm
+
+(a) Effect of freezing diff. head on grad. variance and norm. 50 100 150 200 250 300 350 400  
+
+> training iteration
+> 26.5
+> 27.0
+> 27.5
+> 28.0
+> HPS Score
+> Fix head
+> End-to-end
+
+(b) Benchmarking HPS score. iter400 iter300 iter200 iter100  
+
+> Fixhead  End -to -end
+> Prompt: “ A stylized lemon character wearing sunglasses on a beach.”
+
+(c) Visual impact of diffusion head fixing. 
+
+Figure 2: (a) Gradient comparison between the end-to-end GRPO baseline and the frozen diffusion head counterpart. The End-to-end baseline introduces "noisier" gradients to the AR component, disturbing the training progress. (b) Test set HPS v.s. training iteration. HPS curves show that end-to-end baseline suffers from reward hacking and early saturation. (c) End-to-end training degrades image quality in later stages, which can be addressed by freezing the diffusion head. 
+
+improve training efficiency. For discrete AR models, SimpleAR [ 30 ]and AR-GRPO [ 41 ] provide basic RL baselines, while T2I-R1 [ 12 ]introduces an RL framework augmented with textual chain-of-thought (CoT). Follow-up studies further investigate token-level advantage assignment based on the semantic information encoded in tokens [ 21 , 44 ] for improving efficiency. In addition, works such as Mask-GRPO [ 20 ] and MaskFocus [ 42 ] explore GRPO for mask-based AR generation, and NextFlow [ 26 ] proposes a scale-wise AR generation strategy under the RL framework. 
+
+## 3 Methods 3.1 Preliminaries 
+
+Masked autoregressive models. Given a sequence of tokens 
+
+{𝑥 1, 𝑥 2, ..., 𝑥 𝑛 } where the superscript specifies specific order, it for-mulates the generation problem as multiple next token prediction 
+
+over 𝐾 mask steps: 
+
+𝑝 (𝑋 1, ..., 𝑋 𝐾 ) =
+
+> 𝐾
+
+Ö
+
+> 𝑘 =1
+
+𝑝 (𝑋 𝑘 |𝑋 1, ..., 𝑋 𝑘 −1), (1) where 𝑋 𝑘 = {𝑥 𝑖 , 𝑥 𝑖 +1, ..., 𝑥 𝑗 } is the set of latent tokens generated at the 𝑘 -th mask step, with ∪𝑘 𝑥 𝑘 = {𝑥 1, ..., 𝑥 𝑛 }. MAR contains two model components: an AR model and a diffusion model, which is a light-weight MLP head. The AR model produces a set of con-ditioning vectors 𝑍 𝑘 at the 𝑘 -th mask step by operating on pre-vious tokens: 𝑍 𝑘 = 𝑓 (𝑋 1, ..., 𝑋 𝑘 −1). Subsequently, conditioned on 
+
+𝑍 𝑘 , the diffusion model performs 𝑇 denoising steps to generate the final latent tokens 𝑋 𝑘 . We denote the intermediate diffusion latent at denoising step 𝑡 by 𝑋 𝑘 𝑡 , where 𝑋 𝑘  
+
+> 0
+
+= 𝑋 𝑘 . The AR and diffusion head are trained end to end via simple denoising loss. Let 𝑥 𝑡 = √𝛼𝑥 𝑡 −1 + √1 − 𝛼𝜖 , 𝜖 ∼ N ( 0, I), 𝛼 ∈ 𝑅 and 𝑡 ∈ [ 0,𝑇 ],
+
+𝑥 0 ∼ 𝑝 𝑑𝑎𝑡𝑎 (𝑥 ), 𝑥 𝑇 ∼ N ( 0, I) denote the forward process. The de-noising loss can be written as: 
+
+L𝑀𝐴𝑅 = E𝜖,𝑡 
+
+
+
+∥𝜖 − 𝜖 𝜃 (𝑥 𝑡 | 𝑡, 𝑧 )∥ 2
+
+
+
+. (2) We omit the superscript of AR output token 𝑧 for simplicity. The sampling process typically proceeds through alternating rounds between AR model and diffusion head. Specifically, the diffusion head generates refined tokens conditioned on current AR outputs, after which the AR model predicts the next set of tokens based on those refined by diffusion head. 
+
+Group Relative Policy Optimization . GRPO updates image gen-eration models through an iterative generate–evaluate–update pro-cedure. In each optimization step, given prompt 𝑐 , the policy pro-duces a group of images {𝑜 1, ..., 𝑜 𝐺 }, where we retain all interme-diate sampling states. Subsequently, the policy 𝜋 𝜃 is optimized by maximizing the following objective: 
+
+JGRPO (𝜃 ) = E    
+
+> 𝑐,𝑖 ∈ [ 1,𝐺 ],𝑘 ∈ [ 1,𝐾 ]
+
+"
+
+min 
+
+
+
+𝑟 𝑖,𝑘 (𝜃 ) ˆ𝐴 𝑖 , clip 𝜖 (𝑟 𝑖,𝑘 (𝜃 )) ˆ𝐴 𝑖 
+
+
+
+− 𝛽 𝐷 KL 
+
+ 𝜋 𝜃 ∥ 𝜋 ref 
+
+#
+
+,
+
+(3) where 𝑟 is the importance ratio, clip 𝜖 (𝑟 𝑖,𝑘 (𝜃 )) = clip  𝑟 𝑖,𝑘 (𝜃 ), 1−𝜀, 1+
+
+𝜀 , ˆ𝐴 𝑖 , commonly known as the advantage, is a scalar value assigned to each sample. In our case, the importance ratio 𝑟 is defined at each AR mask step 𝑘 over the corresponding diffusion-generated latent tokens 𝑋 𝑘 𝑖 of sample 𝑜 𝑖 . Specifically, the ratio is defined as: 
+
+𝑟 𝑖,𝑘 (𝜃 ) = 𝜋 𝜃 (𝑋 𝑘 𝑖 |𝑋 1: 𝑘 −1         
+
+> 𝑖 ;𝑐 )
+> 𝜋 𝜃 old (𝑋 𝑘 𝑖 |𝑋 1: 𝑘 −1
+> 𝑖 ;𝑐 )
+
+. (4) Here, 𝜋 𝜃 is the current policy and 𝜋 𝜃 old is the sampling policy from the previous GRPO optimization step. Since MAR generates each token group 𝑋 𝑘 through an iterative diffusion process, the policy likelihood is further decomposed into the full denoising trajectory. Given the tokens 𝑋 1: 𝑘 derived from history steps, the probability of generated 𝑋 𝑘 is: 
+
+𝜋 (𝑋 𝑘 | 𝑋 1: 𝑘 −1; 𝑐 ) ≈ 
+
+> 𝑇
+
+Ö
+
+> 𝑡 =1
+
+𝑝 𝜃 (𝑋 𝑘 𝑡 −1 | 𝑋 𝑘 𝑡 , 𝑍 𝑘 ), (5) where each transition 𝑝 𝜃 (𝑋 𝑘 𝑡 −1 | 𝑋 𝑘 𝑡 , 𝑍 𝑘 ) is parameterized by the dif-fusion head. The advantage ˆ𝐴 𝑖 is calculated on normalized rewards within each sample group: 
+
+ˆ𝐴 𝑖 = 𝑅 𝑖 − mean ({ 𝑅 𝑖 }𝐺 𝑖 =1)
+
+std ({ 𝑅 𝑖 }𝐺 𝑖 =1) . (6) Here, 𝑅 𝑖 = R ( 𝑜 𝑖 , 𝑐 ) is reward (e.g, HPS or CLIP score) of sample 
+
+𝑜 𝑖 assigned by the reward model R, which acts as a metric for evaluation the quality of images during rollout. Ma et al. AR Latents z              
+
+> Multi -Seed Diffusion Sampling GRPO Loss with Multi-tra j
+> Diffusion head
+> Seed 1,2,3
+> Top 𝑘%
+> Mask 𝑀
+> Uncertainty
+> 𝑢 =𝑠𝑡𝑑 𝑥 $:#
+> “Input a prompt.”
+> AR
+> Transformer
+> Fixed Trainable
+> Unmasked
+> (Low -uncertainty)
+> Masked
+> (High -uncertainty)
+> Averaged from Seeds
+> ℓ(,&
+> (%)1
+> 𝑆 E
+> #*%
+> +
+> ℓ(,&
+> (#)
+> =ℓ(,&=+⋅𝑀 (⋅1−𝑀 (
+> ectory
+
+Figure 3: The proposed multi-trajectory expectation estimates an uncertainty map by sampling multiple diffusion trajectories during rollout, capturing regions that are most sensitive to diffusion-induced stochasticity. Based on a top-𝑘 % uncertainty threshold, our noise-corrected optimization selectively aggregates multi-trajectory signals to calibrate the GRPO loss, effectively reducing stochastic noise in gradient estimation and yielding a more reliable optimization direction. 
+
+## 3.2 Analysis & Motivation 
+
+A simple RL baseline for optimizing MAR. Due to the absence of an existing GRPO baseline for MAR, we first describe a simple baseline approach to clarify how GRPO methods for diffusion mod-els like Flow-GRPO [ 19 ] or DanceGRPO [ 37 ] can be adapted to optimize MAR models. As described in Sec. 3.1, MAR generates samples by interleaving the sequential prediction of autoregressive models with the itera-tive denoising characteristic of diffusion models. This interleaved, multi-step sampling process generates a rich set of intermediate activations, which are retained to facilitate subsequent policy gradi-ent computations. As a result, computing the GRPO over the entire sampling trajectory is computationally expensive. As indicated in (5) , since the joint likelihood of the Markovian trajectory factorizes into independent transition probabilities, the global objective decomposes into a sum of step-wise losses. This al-lows us to optimize the model via stochastic approximation. Specif-ically, we approximate 𝜋 (𝑋 𝑘 | 𝑋 1: 𝑘 −1; 𝑐 ) by randomly selecting a subset of AR mask steps and denoising timesteps along the entire sampling trajectory {𝑋 1, ..., 𝑋 𝐾 }. As a result, the importance ratio and KL regularization term are computed on the selected subsets. Let ℓ (𝜃 ) = min  𝑟 𝑖,𝑚 (𝜃 ) ˆ𝐴 𝑖 , clip 𝜀 (𝑟 𝑖,𝑚 (𝜃 )) ˆ𝐴 𝑖 
+
+ denote the step-wise term in Eq. (3) , where 𝑚 indexes a selected AR mask step. The objective JGRPO becomes: 
+
+JGRPO (𝜃 ) = E
+
+ 1
+
+|M||T | ∑︁ 𝑚 ∈ M ∑︁ 𝑡 ∈ T 
+
+ℓ (𝜃 )
+
+
+
+. (7) During training, following Sec. 3.1, for each selected AR step 𝑚 ,we compute the corresponding latent 𝑧 𝑚 conditioned on {𝑧 𝑚 −1, 𝑥 𝑡 +1 }
+
+collected from the rollout stage at diffusion timestep 𝑡 , and evaluate log-probabilities over the selected diffusion timesteps. The loss is computed over all tokens predicted at the current step, rather than only those accepted at subsequent AR steps, which improves token utilization and training efficiency. 
+
+Analysis on the baseline training dynamics. Optimizing MAR under RL introduces a coupled optimization between the AR model and the diffusion head. Since AR latents do not admit explicit likeli-hoods, gradients must be propagated through the diffusion head along the denoising trajectory. This induces a deep and stochastic gradient path, where diffusion noise is accumulated and backprop-agated to the AR model. Combined with the parameter scale mis-match between the large AR backbone and the lightweight diffusion head, such coupling can lead to amplified and unstable updates. Specifically, based on GRPO baseline settings, we optimize the MAR model end-to-end and analyze the training dynamics. We reveal that diffusion head impact the training stability as indicated by a large gradient variance and norm. As displayed in Fig. 2a, during training, the gradient of the baseline model fluctuates inten-sively, with its norm consistently increasing, showing the training is quite unstable. As a result, the human preference score (HPS) of the baseline model declines noticeably after 250 training iterations on HPSv2 benchmark prompts, see Fig. 2b. We speculate two underlying factors contributing to the train-ing instability: (1) Non-stationary reward signal. Due to the coupled optimization between the AR model and the diffusion head, the effective mapping from AR latents to final outputs con-tinuously changes during training. This makes the reward signal non-stationary, leading to ambiguous credit assignment for the AR model. (2) Denoising-induced gradient variance. The policy gradient is propagated through the diffusion head, which serves as a stochastic decoder from AR latents to image space. Different noise realizations can lead to inconsistent outputs and rewards for the same latent, resulting in high-variance and potentially ampli-fied gradients received by the AR model. Below, we verify these hypotheses and address the instability with simple yet effective strategies with negligible computational overhead. 
+
+## 3.3 Expectation of Diffusion Trajectories for Stabilized MAR Optimization 
+
+Diffusion head amplifies gradient noise. As discussed in Sec. 3.2, the coupled optimization between the AR model and the diffusion head introduces non-stationarity in the reward signal, making credit assignment difficult. From an optimization perspective, updating the diffusion head continuously changes the mapping from AR latents to final outputs, resulting in a moving target for the AR MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation 
+
+model. Consequently, the AR model cannot reliably attribute re-ward variations to its own token predictions, leading to unstable optimization dynamics. Fixing the diffusion head effectively removes this source of non-stationarity by stabilizing the transformation from AR latents to image space. This provides the AR model with a consistent optimiza-tion target and enables more reliable policy updates. In addition, it eliminates gradient perturbations introduced by updates to the diffusion parameters, leaving only the inherent stochasticity of the denoising process. Empirically, we observe that freezing the diffusion head leads to significantly more stable training dynam-ics compared to end-to-end optimization. As shown in Fig. 2a and Fig. 2b, the gradient statistics become smoother and the reward improves consistently over training. We also explore reducing the learning rate of the diffusion head as a softer alternative. However, even small updates to the diffusion head introduce noticeable disturbances to AR policy learning, sug-gesting that the optimization is highly sensitive to changes in the diffusion mapping. Therefore, fixing the diffusion head provides a simple yet effective way to stabilize MAR optimization. 
+
+Reducing gradient variance with multi-trajectory estimation. 
+
+Even though we obtain a more stationary optimize signal by fixing the diffusion head in RL, the randomness of the diffusion head itself will still affect the optimization process. From a reinforcement learning perspective, stable policy opti-mization relies on low-variance gradient estimates. However, in MAR, the policy is implicitly defined through a diffusion-based de-coder, where the likelihood is computed along stochastic denoising trajectories. This induces a noisy gradient estimator, as the same AR latent can correspond to multiple possible decoded outputs under different noise realizations. In this sense, the diffusion head defines a conditional distribution over outputs given AR latents, rather than a deterministic mapping. Directly using a single trajectory therefore leads to a high-variance estimate of the policy likelihood. Interestingly, we observe that diffusion trajectories conditioned on the same AR latents tend to produce highly similar latent struc-tures, indicating that the semantic content is largely determined by the AR model, while the diffusion head primarily refines low-level details. As a result, variations across diffusion trajectories mainly reflect stochastic decoding noise rather than meaningful differences in generation. This suggests that averaging over multiple trajecto-ries can effectively reduce estimation noise without significantly altering the underlying data distribution (See Fig. 5). Specifically, we replace the single-trajectory likelihood with an expectation over multiple diffusion trajectories conditioned on the same AR latents: 
+
+ˆ𝜋 (𝑋 𝑘 𝑖 | 𝑋 1: 𝑘 −1 
+
+> 𝑖
+
+, 𝑐 ) ≈ E𝜖 
+
+h 𝑇 Ö
+
+> 𝑡 =1
+
+𝑝 𝜃 (𝑋 𝑘 𝑖,𝑡 −1 | 𝑋 𝑘 𝑖,𝑡 , 𝑍 𝑘 𝑖 )
+
+i
+
+. (8) We approximate this expectation using 𝑆 diffusion trajectories con-ditioned on the same 𝑍 𝑘 𝑖 . This formulation can be interpreted as a variance-reduced estimator of the policy likelihood under diffusion stochasticity, leading to a more stable and reliable optimization direction. 
+
+Improving training efficiency via diffusion decoder uncer-tainty. While multi-trajectory estimation reduces gradient variance and stabilizes training, applying it uniformly to all tokens may be Uncertainty  Map  Selected Mask 
+
+> 0
+> 1
+
+Figure 4: Visualization of estimated uncertainty and corre-sponding uncertainty maps (bottom) with generated images (top). We highlight top 30% most uncertain regions for clarity. 
+
+inefficient and can limit peak performance. Averaging over mul-tiple trajectories may introduce a smoothing effect that weakens informative gradients. This suggests that diffusion-induced uncertainty is not uniformly distributed: stochasticity tends to concentrate in regions with am-biguous semantics or fine-grained structures, while other regions remain relatively stable. To capture this property, we estimate a token-wise uncertainty map using the variance across multiple diffusion trajectories: 
+
+𝑢 𝑖 = std  𝑥 1: 𝑆 𝑖 
+
+, (9) where 𝑥 1: 𝑆 𝑖 denotes the predictions at position 𝑖 from 𝑆 trajectories. High values of 𝑢 𝑖 indicate positions that are sensitive to diffusion stochasticity and thus prone to noisy gradient estimation. Based on this observation, we apply multi-trajectory estima-tion selectively. Specifically, we construct a binary mask 𝑀 𝑖 by selecting the top-𝑘 % tokens with highest uncertainty from 𝑢 𝑖 , and apply expectation-based estimation only to these positions, while retaining the standard single-trajectory objective for the rest: 
+
+JGRPO (𝜃 ) = E
+
+h
+
+𝑀 𝑖 · 1
+
+𝑆 
+
+> 𝑆
+
+∑︁ 
+
+> 𝑠 =1
+
+ℓ (𝑠 ) + ( 1 − 𝑀 𝑖 ) · ℓ (1) − 𝛽𝐷 KL 
+
+i
+
+. (10) As shown in Fig. 4, we visualize several cases of critic tokens. High-uncertainty tokens are highlighted in yellow, and we observe that regions with rich structural information tend to exhibit higher variance. This yields a selective variance reduction scheme that mitigates noise in uncertain regions while preserving sharp and informative gradients in stable regions. As a result, our method improves training stability without sacrificing peak performance. 
+
+## 3.4 Consistency-Aware Token Selection 
+
+Beyond log-probability estimation in the diffusion head, the AR model also plays a critical role in RL optimization. In particular, among the tokens generated during rollout, not all tokens con-tribute positively to the final generation. Indiscriminately optimiz-ing over all tokens may therefore introduce noise and degrade training efficiency. To address this, we assess the consistency of AR predictions across masking steps and selectively include tokens that positively contribute to the final output. For AR step 𝑚 , let 𝑥 𝑚  
+
+> 0
+
+denote the Ma et al. 
+
+Algorithm 1 GRPO with proposed multi-trajectory expectation from diffusion decoder 
+
+Require: Selected AR mask step 𝑘 , AR latent 𝑍 𝑘 𝑖 , sampled diffusion trajectories {𝑋 𝑘, (𝑠 ) 
+
+> 𝑖,𝑡
+
+}𝑆 𝑠 =1, selected diffusion steps T , number of trajectories 
+
+𝑆 , uncertainty ratio 𝑘 %
+
+Ensure: Uncertainty-aware GRPO loss for optimization  
+
+> 1:
+
+Sample 𝑆 diffusion trajectories conditioned on the same AR latent 𝑍 𝑘 𝑖 . 
+
+> 2:
+
+for selected AR mask steps 𝑘 ∈ M do  
+
+> 3:
+
+Compute token-wise uncertainty 𝑢 𝑘 𝑖 following Eq. (9).  
+
+> 4:
+
+Construct binary mask 𝑀 𝑘 𝑖 by selecting the top-𝑘 % tokens according to 𝑢 𝑘 𝑖 . 
+
+> 5:
+
+for selected diffusion steps 𝑡 ∈ T do  
+
+> 6:
+
+Compute step-wise losses ℓ (𝑠 ) 
+
+> 𝑖,𝑘,𝑡
+
+using Eq. (4), Eq. (5), and Eq. (6).  
+
+> 7:
+
+Aggregate the uncertainty-aware loss according to Eq. (10).  
+
+> 8:
+
+end for  
+
+> 9:
+
+end for  
+
+> 10:
+
+Update the policy based on Eq. (10). 50 150 250 350         
+
+> Training iteration
+> 10 5
+> 10 4
+> KL Divergence
+> Multi-seed
+> w/o Multi-seed 50 150 250 350
+> Training iteration
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> 10 1
+> 10 2
+> Grad norm
+
+Figure 5: Compared to GRPO with fixed diffusion head, incor-porating multi-seed trajectory expectation further corrects the optimization direction, leading to better training dynam-ics (smoother KL loss growth and lower, more stable gradient norms in later stages). 
+
+predicted diffusion latent at step 𝑚 , and 𝑋 −10 denote the final diffu-sion latent obtained from the complete AR latents. For each spatial token (we omit index 𝑗 for simplicity), we define sim (𝑚 ) as the cosine similarity between the corresponding tokens in 𝑥 𝑚  
+
+> 0
+
+and 𝑋 −10 .We use the change in similarity between consecutive AR steps as a criterion for token selection. Specifically, we construct a token-wise binary mask 𝜅 (𝑚 ) for each AR step: 
+
+𝜅 (𝑚 ) = I[Δsim (𝑚 ) > 𝜏 ] , (11) where Δsim (𝑚 ) = sim (𝑚 ) − sim (𝑚 − 1), I[·] denotes the indi-cator function, and 𝜏 is a predefined similarity threshold. Here, 
+
+𝜅 (𝑚 ) ∈ { 0, 1} indicates whether a token at step 𝑚 participates in policy optimization. Accordingly, the loss term ℓ𝑚,𝑡 in Eq. (10) is weighted by 𝜅 (𝑚 ) , yielding 𝜅 (𝑚 ) ℓ𝑚,𝑡 , so that only tokens with con-sistent improvements are emphasized during optimization. 
+
+## 4 Experiments 
+
+Training setup . We choose NOVA [ 7] and Harmon [ 32 ] as our base models and adopt their default sampling settings in our experiments. Specifically, for NOVA, we use a classifier-free guidance (CFG) scale of 5, 64 AR sampling steps, and 25 diffusion sampling steps. We use the official 0.6B model trained at 512 × 512 resolution. For Harmon, we use CFG = 3, 64 AR sampling steps, and replace the original 100 -step diffusion sampler with a 25 -step DDIM sampler for efficiency, which has negligible impact on evaluation results. Following [ 42 ], we improve the AR sampling by identifying tokens that may hinder optimization via consistency-aware token selection (see Appendix for details). We ablate this design later. For GRPO training, we build upon T2I-R1 [ 12 ], using a batch size of 3, group size 4 and 𝛽 =0.01 for KL regularization. To balance train-ing cost and performance, we randomly sample 12 masking steps and 10 diffusion steps from each rollout for policy optimization. Additional experiment details are provided in the Appendix. 
+
+Training Data & reward . Following T2I-R1 [ 12 ], we train the model using short prompts that cover both single-object and multi-object scenarios, including compositional relationships such as object positions and counts. Such prompt design simplifies the gen-eration space while emphasizing key aspects of visual reasoning, enabling more effective learning of spatial and numerical relation-ships. Moreover, it has been shown to improve aesthetic quality as well as spatial and numerical coherence in multi-object generation, making it particularly suitable for RL-based optimization. We evaluate the models on preference-related metrics including HPS [ 33 ] and ImageReward, as well as on T2I-CompBench [ 11 ], which focuses on spatial and compositional reasoning. For prefer-ence metrics, we report results from models trained with the HPS reward. For T2I-CompBench, we follow T2I-R1 and adopt a mixed reward consisting of HPS, GIT, and GroundingDINO. 
+
+## 4.1 Main Results among Metrics 
+
+We evaluate the proposed method on human preference bench-marks, including HPS [ 33 ], ImageReward [ 35 ], PickScore [ 13 ], and Aesthetic Score, as well as on spatially correlated benchmarks such as T2I-CompBench [11]. 
+
+Human preference. We evaluate models trained with HPS re-ward on preference-related metrics. As shown in Fig. 6 and Table 1, compared to the original pre-RL base model and baseline GRPO, the proposed method with fixing diffusion head, multiple diffusion trajectories and consistency token selection achieves significant improvements in both quantitative metrics and visual quality. Moreover, compared to baseline GRPO with fixed diffusion de-coder, our approach yields a more stable RL process (See Fig. 1 and Fig. 5). Consequently, the post-RL model improves aesthetic quality while preserving image fidelity and structural consistency, thereby mitigating reward hacking to a certain extent. MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation Base Mode l GRPO +Sim (Ours)      
+
+> Four chairs and one
+> giraffe provided
+> seating at the zoo .
+> The black camera was
+> next to the white
+> tripod.
+
++Fix Decoder +MTE      
+
+> A stylized haunted
+> house with symmetri -
+> cal structure and
+> detailed design.
+> A realistic portrait
+> of a man sitting at a
+> table with bottles .
+> A colorful lizard
+> wearing sunglasses,
+> highly detailed .
+> [Detail Fidelity ]
+> [Structural Consistency]
+> [Facial & Appearance]
+> [Count & Layout]
+> [Spatial Relation]
+
+Figure 6: Progressive improvement across multiple generation aspects. From left to right: base model, GRPO, +Fixed Decoder, +MTE, and our full model. GRPO leads to unstable optimization, while fixing the decoder improves stability. MTE further enhances visual quality by reducing diffusion-induced stochasticity. Our full model, with consistency-aware token selection, achieves the best results in detail, structure, appearance, counting, and spatial relations. Spatial-correlated metrics. Beyond visual quality metrics, we further evaluate the proposed method on its ability to improve spatially correlated accuracy in image generation. Results on T2I-CompBench indicate that our approach produces more accurate and structurally consistent image content compared to both the base model and the GRPO baseline. As illustrated in Fig. 6 and Table 1, the generated images exhibit more precise object boundaries, finer local details, and a clearer understanding of spatial relationships, such as relative positions and object arrangements. In contrast, although the GRPO baseline improves generation accuracy over the base model to some extent, it often introduces noticeable degradation in visual quality. As shown in Fig. 6, issues such as less coherent room layouts, distorted spatial configurations, and unnatural texture colors can be observed, and performance on certain evaluation categories even slightly decreases. These results suggest that our method better balances spatial reasoning and visual fidelity during RL optimization. 
+
+## 4.2 Ablations & Discussions 
+
+We evaluate the effects of proposed loss estimation with multi-diffusion trajectory expectation (“+MTE"), and consistency-aware token selection (“+Sim") on NOVA with the HPS reward, and pro-vide vanilla GRPO (“GRPO") and GRPO with fixing the diffusion decoder (“+Fix Decoder") as comparison, results are as summarized in Table 2. We analyze the impact of each component below. 
+
+Loss estimation with multi-trajectory expectation. By lever-aging expectation of multiple diffusion trajectories with different random seeds, we obtain a more reliable estimate of diffusion log-probabilities, thereby mitigating the adverse impact of diffusion stochasticity on AR policy optimization. This leads to a more stable optimization process and improved policy learning. The quantita-tive results in Table 2 and Fig. 6 further demonstrate the effective-ness and superiority of the proposed approach. We further analyze training dynamics by visualizing the KL loss and gradient norms. As illustrated in Fig. 5, compared to the base-line, RL with multiple diffusion trajectories yields smaller gradient Ma et al. 
+
+Table 1: Quantitative comparison results on the human preference correlated metrics (HPS, Imagereward, Pickscore and Aes-thetic) and T2I-compbench. Our method ("Ours") achieves consistent gains across multiple metrics, significantly outperforming the standard GRPO implementation (“+GRPO”) as well as AR and diffusion baselines in visual quality and structural consistency. “spat." is short for spatial. †: We observe failure cases in the base model, see Appendix for detailed analysis. 
+
+Model Param Preference T2I-compbench HPS ImgRwd Pickscore Aesthetic Color Shape Texture 2d-spat. 3d-spat. Numeracy Complex SD3 2B 30.22 0.95 22.41 5.90 0.8094 0.5864 0.7297 0.3219 0.4044 0.6078 0.3780 FLUX.1-dev 12B 31.35 1.10 22.77 6.27 0.7407 0.5718 0.6922 0.2863 0.3866 0.6185 -Sana-1.5 1.6B 30.36 1.01 22.60 6.07 0.7625 0.5426 0.6761 0.3814 0.4088 0.6110 0.3727 LlamaGen 0.8b 23.92 -0.38 20.50 5.21 0.2996 0.3212 0.3888 0.1004 0.1530 0.2747 0.2501 Show-o 1.3B 27.98 0.86 22.00 5.90 0.7327 0.5264 0.6815 0.3697 0.3996 0.6209 0.3572 Janus-Pro 7B 28.64 0.76 21.83 5.68 0.6355 0.3494 0.4929 0.1931 0.3279 0.4423 0.3566 NOVA 0.6B 26.76 0.44 21.57 5.79 0.6907 0.5489 0.6712 0.2983 0.3886 0.5933 0.3510 +GRPO - 27.57 0.38 21.51 5.78 0.6721 0.5392 0.6690 0.3069 0.3984 0.5970 0.3484 Ours - 29.35 0.64 21.69 6.01 0.7176 0.5780 0.6980 0.3306 0.4046 0.6027 0.3575 
+
+Harmon † 1.5B 25.76 0.15 21.35 5.66 0.6396 0.4104 0.5547 0.3153 0.3723 0.5551 0.2871 +GRPO - 29.15 0.62 21.70 5.93 0.7408 0.4952 0.6135 0.3484 0.4140 0.6008 0.3208 Ours - 29.57 0.65 21.80 5.95 0.7416 0.4993 0.6267 0.3547 0.4207 0.6096 0.3302 𝒌 = 0.1 𝒌 = 0.3 𝒌 = 0.7 𝒌 = 0.9          
+
+> Masking Ratio Sim Threshold  𝝉 =-0.8 𝝉 =-0.4 𝝉 = 0.0 𝝉 = 0.2
+
+(a) Visual of Mask Ratio & Sim Thresh. 0.1    
+
+> 0.5 0.7 0.9
+> Masking Ratio
+> 0.3
+
+(b) Training curves of masking ratios. -0.8 -0.4 -0.2 0.0 0.2          
+
+> 28.5
+> 29.0
+> 29.5
+> HPS
+> Sim Threshold
+> 10 30 50 70 90
+> 28.2
+> 28.6
+> 28.9
+> 29.2
+> Masking Ratio
+> 1257
+> 28.6
+> 28.9
+> 29.2
+> 29.5 Seed Number
+
+(c) Ablations on HPS performance. 
+
+Figure 7: Ablations of masking ratio, similarity threshold, and diffusion seeds. (a) Visual results under different masking ratios (𝑘 ) and similarity thresholds ( 𝜏 ), showing trade-off between detail and consistency. (b) Larger masking ratios improve stability, with marginal gains when 𝑘 > 0.3. (c) Masking ratio, similarity threshold, and number of diffusion seeds all affect performance. Table 2: Quantitative results on human preference metrics. Compared to vanilla GRPO and its fixed-decoder variant (“+Fix Decoder”), our method, which incorporates multi-trajectory expectation (“+MTE”) and consistency-aware to-ken selection (“+Sim”), achieves improved performance. Due to the instability of the baseline methods, we report peak performance for “GRPO” and “+Fix Decoder”, where “*” in-dicates the best achieved performance during training. 
+
+HPS Aes. Shape Texture 2d-spat. NOVA 26.76 5.79 0.5489 0.6712 0.2983 GRPO* 27.57 5.78 0.5392 0.6690 0.3069 +Fix Decoder* 28.65 5.83 0.5495 0.6801 0.3134 +MTE 29.06 5.90 0.5752 0.6945 0.3289 +Sim (Ours) 29.35 6.01 0.5780 0.6980 0.3306 
+
+norms and a more moderate increase in KL loss in later training stages, indicating more reliable log-probability estimation. This reduces gradient noise and better preserves the model distribution during optimization. 
+
+Top-𝑘 % ratio of selected tokens. We further analyze the effect of masking ratio 𝑘 % in Sec. 3.3 on training performance. We ob-serve that an excessively high masking ratio leads to over-smoothed training gradients, which slows down RL optimization, whereas an overly low masking ratio results in inaccurate log-probability esti-mation, causing model to collapse at an early stage of training. As shown in Fig. 7, evaluating on different masking ratios shows that a 𝑘 ≈ 30% provides a good balance between training efficiency and stability. In addition, Fig. 7b shows that when more than 30% of to-kens are selected for multi-trajectory estimation, further increasing number of tokens brings no significant performance gain. 
+
+Number of trajectories. The number of sampled diffusion tra-jectories also influences RL performance. Using more diffusion samples provides a more accurate and noise-robust estimate of the diffusion log-probability, thereby improving training stability and final performance. However, excessively many trajectories can over-smooth the optimization gradients. As shown in Fig. 7c, per-formance improves as the number of trajectories increases within a moderate range (e.g., < 5 diffusion samples), but saturates and may even degrade when too many trajectories are used, indicating a trade-off between variance reduction and optimization sharpness. 
+
+Similarity threshold 𝜏 . We further study the effect of the threshold 
+
+𝜏 used for consistency-aware token selection. Increasing 𝜏 discards more tokens and focuses optimization on fewer ones. As shown in Fig. 7a and Fig. 7c, setting 𝜏 = 0 yields the best performance, aligns with the intuition that each AR step should progressively move closer to the final image, while overly restrictive token selection may hinder efficiency. MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation 
+
+## 5 Conclusion 
+
+In this paper, we study reinforcement learning for MAR models and identify the diffusion head as a key bottleneck, as its stochasticity amplifies gradient variance and destabilizes optimization. We ad-dress this with multi-trajectory expectation (MTE), which reduces diffusion-induced noise, and a consistency-aware token selection strategy that mitigates over-smoothing by focusing on informative tokens. Together, they form a noise-corrected GRPO framework that stabilizes training and improves performance. Importantly, due to the lightweight nature of the diffusion head, our method introduces negligible additional training overhead. Empirically, our approach consistently outperforms strong RL baselines on human preference and spatial-compositional benchmarks. This work pro-vides an RL framework and analysis for the AR–diffusion hybrid paradigm, paving the way for further research in this direction. 
+
+## References 
+
+[1] Jinbin Bai, Tian Ye, Wei Chow, Enxin Song, Qing-Guo Chen, Xiangtai Li, Zhen Dong, Lei Zhu, and Shuicheng Yan. 2024. Meissonic: Revitalizing masked gener-ative transformers for efficient high-resolution text-to-image synthesis. In The Thirteenth International Conference on Learning Representations .[2] Jiuhai Chen, Zhiyang Xu, Xichen Pan, Yushi Hu, Can Qin, Tom Goldstein, Lifu Huang, Tianyi Zhou, Saining Xie, Silvio Savarese, Le Xue, Caiming Xiong, and Ran Xu. 2025. BLIP3-o: A Family of Fully Open Unified Multimodal Models-Architecture, Training and Dataset. arXiv:2505.09568 [cs.CV] https://arxiv.org/ abs/2505.09568 [3] Xiaokang Chen, Zhiyu Wu, Xingchao Liu, Zizheng Pan, Wen Liu, Zhenda Xie, Xingkai Yu, and Chong Ruan. 2025. Janus-pro: Unified multimodal understanding and generation with data and model scaling. arXiv preprint arXiv:2501.17811 
+
+(2025). [4] Xiangxiang Chu, Hailang Huang, Xiao Zhang, Fei Wei, and Yong Wang. 2026. Gpg: A simple and strong reinforcement learning baseline for model reasoning. 
+
+ICLR (2026). [5] DeepSeek-AI, Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, Xiaokang Zhang, Xingkai Yu, Yu Wu, Z. F. Wu, Zhibin Gou, Zhihong Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu, Bing Xue, Bingxuan Wang, Bochao Wu, Bei Feng, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenyu Zhang, Chong Ruan, Damai Dai, Deli Chen, Dongjie Ji, Erhang Li, Fangyun Lin, Fucong Dai, Fuli Luo, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, Han Bao, Hanwei Xu, Haocheng Wang, Honghui Ding, Huajian Xin, Huazuo Gao, Hui Qu, Hui Li, Jianzhong Guo, Jiashi Li, Jiawei Wang, Jingchang Chen, Jingyang Yuan, Junjie Qiu, Junlong Li, J. L. Cai, Jiaqi Ni, Jian Liang, Jin Chen, Kai Dong, Kai Hu, Kaige Gao, Kang Guan, Kexin Huang, Kuai Yu, Lean Wang, Lecong Zhang, Liang Zhao, Litong Wang, Liyue Zhang, Lei Xu, Leyi Xia, Mingchuan Zhang, Minghua Zhang, Minghui Tang, Meng Li, Miaojun Wang, Mingming Li, Ning Tian, Panpan Huang, Peng Zhang, Qiancheng Wang, Qinyu Chen, Qiushi Du, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, R. J. Chen, R. L. Jin, Ruyi Chen, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shengfeng Ye, Shiyu Wang, Shuiping Yu, Shunfeng Zhou, Shuting Pan, S. S. Li, Shuang Zhou, Shaoqing Wu, Shengfeng Ye, Tao Yun, Tian Pei, Tianyu Sun, T. Wang, Wangding Zeng, Wanjia Zhao, Wen Liu, Wenfeng Liang, Wenjun Gao, Wenqin Yu, Wentao Zhang, W. L. Xiao, Wei An, Xiaodong Liu, Xiaohan Wang, Xiaokang Chen, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xinyu Yang, Xinyuan Li, Xuecheng Su, Xuheng Lin, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xiaowen Sun, Xiaoxiang Wang, Xinnan Song, Xinyi Zhou, Xianzu Wang, Xinxia Shan, Y. K. Li, Y. Q. Wang, Y. X. Wei, Yang Zhang, Yanhong Xu, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi Yu, Yichao Zhang, Yifan Shi, Yiliang Xiong, Ying He, Yishi Piao, Yisong Wang, Yixuan Tan, Yiyang Ma, Yiyuan Liu, Yongqiang Guo, Yuan Ou, Yuduan Wang, Yue Gong, Yuheng Zou, Yujia He, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang Zhou, Y. X. Zhu, Yanhong Xu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Ying Tang, Yukun Zha, Yuting Yan, Z. Z. Ren, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhicheng Ma, Zhigang Yan, Zhiyu Wu, Zihui Gu, Zijia Zhu, Zijun Liu, Zilin Li, Ziwei Xie, Ziyang Song, Zizheng Pan, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, and Zhen Zhang. 2025. DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning. arXiv:2501.12948 [cs.CL] https://arxiv.org/abs/2501.12948 [6] Chaorui Deng, Deyao Zhu, Kunchang Li, Chenhui Gou, Feng Li, Zeyu Wang, Shu Zhong, Weihao Yu, Xiaonan Nie, Ziang Song, Guang Shi, and Haoqi Fan. 2025. Emerging Properties in Unified Multimodal Pretraining. arXiv preprint arXiv:2505.14683 (2025). [7] Haoge Deng, Ting Pan, Haiwen Diao, Zhengxiong Luo, Yufeng Cui, Huchuan Lu, Shiguang Shan, Yonggang Qi, and Xinlong Wang. 2024. Autoregressive video generation without vector quantization. arXiv preprint arXiv:2412.14169 (2024). [8] Patrick Esser, Robin Rombach, and Bjorn Ommer. 2021. Taming transformers for high-resolution image synthesis. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition . 12873–12883. [9] Lijie Fan, Tianhong Li, Siyang Qin, Yuanzhen Li, Chen Sun, Michael Rubinstein, Deqing Sun, Kaiming He, and Yonglong Tian. 2024. Fluid: Scaling autoregres-sive text-to-image generative models with continuous tokens. arXiv preprint arXiv:2410.13863 (2024). [10] Xiaoxuan He, Siming Fu, Yuke Zhao, Wanli Li, Jian Yang, Dacheng Yin, Fengyun Rao, and Bo Zhang. 2025. TempFlow-GRPO: When Timing Matters for GRPO in Flow Models. arXiv:2508.04324 [cs.CV] https://arxiv.org/abs/2508.04324 [11] Kaiyi Huang, Kaiyue Sun, Enze Xie, Zhenguo Li, and Xihui Liu. 2023. T2i-compbench: A comprehensive benchmark for open-world compositional text-to-image generation. Advances in Neural Information Processing Systems 36 (2023), 78723–78747. [12] Dongzhi Jiang, Ziyu Guo, Renrui Zhang, Zhuofan Zong, Hao Li, Le Zhuo, Shilin Yan, Pheng-Ann Heng, and Hongsheng Li. 2025. T2i-r1: Reinforcing image generation with collaborative semantic-level and token-level cot. arXiv preprint arXiv:2505.00703 (2025). [13] Yuval Kirstain, Adam Polyak, Uriel Singer, Shahbuland Matiana, Joe Penna, and Omer Levy. 2023. Pick-a-pic: An open dataset of user preferences for text-to-image generation. Advances in neural information processing systems 36 (2023), 36652–36663. [14] Siqi Kou, Jiachun Jin, Zhihong Liu, Chang Liu, Ye Ma, Jian Jia, Quan Chen, Peng Jiang, and Zhijie Deng. 2024. Orthus: Autoregressive interleaved image-text generation with modality-specific heads. arXiv preprint arXiv:2412.00127 (2024). [15] Black Forest Labs. 2024. FLUX. https://github.com/black-forest-labs/flux. [16] Junzhe Li, Yutao Cui, Tao Huang, Yinping Ma, Chun Fan, Miles Yang, and Zhao Zhong. 2026. MixGRPO: Unlocking Flow-based GRPO Efficiency with Mixed ODE-SDE. arXiv:2507.21802 [cs.AI] https://arxiv.org/abs/2507.21802 [17] Tianhong Li, Yonglong Tian, He Li, Mingyang Deng, and Kaiming He. 2024. Autoregressive image generation without vector quantization. Advances in Neural Information Processing Systems 37 (2024), 56424–56445. [18] Dongyang Liu, Shitian Zhao, Le Zhuo, Weifeng Lin, Yu Qiao, Hongsheng Li, and Peng Gao. 2024. Lumina-mgpt: Illuminate flexible photorealistic text-to-image generation with multimodal generative pretraining. arXiv preprint arXiv:2408.02657 (2024). [19] Jie Liu, Gongye Liu, Jiajun Liang, Yangguang Li, Jiaheng Liu, Xintao Wang, Pengfei Wan, Di Zhang, and Wanli Ouyang. 2025. Flow-grpo: Training flow matching models via online rl. arXiv preprint arXiv:2505.05470 (2025). [20] Yifu Luo, Xinhao Hu, Keyu Fan, Haoyuan Sun, Zeyu Chen, Bo Xia, Tiantian Zhang, Yongzhe Chang, and Xueqian Wang. 2025. Reinforcement Learning Meets Masked Generative Models: Mask-GRPO for Text-to-Image Generation. arXiv:2510.13418 [cs.CV] https://arxiv.org/abs/2510.13418 [21] Xiaoxiao Ma, Haibo Qiu, Guohui Zhang, Zhixiong Zeng, Siqi Yang, Lin Ma, and Feng Zhao. 2025. STAGE: Stable and Generalizable GRPO for Autoregressive Image Generation. arXiv:2509.25027 [cs.CV] https://arxiv.org/abs/2509.25027 [22] Xiaoxiao Ma, Feng Zhao, Pengyang Ling, Haibo Qiu, Zhixiang Wei, Hu Yu, Jie Huang, Zhixiong Zeng, and Lin Ma. 2025. Towards Better & Faster Autoregressive Image Generation: From the Perspective of Entropy. arXiv:2510.09012 [cs.CV] https://arxiv.org/abs/2510.09012 [23] Xiaoxiao Ma, Mohan Zhou, Tao Liang, Yalong Bai, Tiejun Zhao, Huaian Chen, and Yi Jin. 2024. Star: Scale-wise text-to-image generation via auto-regressive representations. arXiv e-prints (2024), arXiv–2406. [24] Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, Y. K. Li, Y. Wu, and Daya Guo. 2024. DeepSeek-Math: Pushing the Limits of Mathematical Reasoning in Open Language Models. arXiv:2402.03300 [cs.CL] https://arxiv.org/abs/2402.03300 [25] Peize Sun, Yi Jiang, Shoufa Chen, Shilong Zhang, Bingyue Peng, Ping Luo, and Zehuan Yuan. 2024. Autoregressive model beats diffusion: Llama for scalable image generation. arXiv preprint arXiv:2406.06525 (2024). [26] Shikun Sun, Liao Qu, Huichao Zhang, Yiheng Liu, Yangyang Song, Xian Li, Xu Wang, Yi Jiang, Daniel K. Du, Xinglong Wu, and Jia Jia. 2026. VAR RL Done Right: Tackling Asynchronous Policy Conflicts in Visual Autoregressive Generation. arXiv:2601.02256 [cs.CV] https://arxiv.org/abs/2601.02256 [27] NextStep Team, Chunrui Han, Guopeng Li, Jingwei Wu, Quan Sun, Yan Cai, Yuang Peng, Zheng Ge, Deyu Zhou, Haomiao Tang, et al . 2025. Nextstep-1: Toward autoregressive image generation with continuous tokens at scale. arXiv preprint arXiv:2508.10711 (2025). [28] Hansi Teng, Hongyu Jia, Lei Sun, Lingzhi Li, Maolin Li, Mingqiu Tang, Shuai Han, Tianning Zhang, WQ Zhang, Weifeng Luo, et al . 2025. MAGI-1: Autoregressive Video Generation at Scale. arXiv preprint arXiv:2505.13211 (2025). [29] Keyu Tian, Yi Jiang, Zehuan Yuan, Bingyue Peng, and Liwei Wang. 2024. Visual autoregressive modeling: Scalable image generation via next-scale prediction. 
+
+Advances in neural information processing systems 37 (2024), 84839–84865. Ma et al. 
+
+[30] Junke Wang, Zhi Tian, Xun Wang, Xinyu Zhang, Weilin Huang, Zuxuan Wu, and Yu-Gang Jiang. 2025. Simplear: Pushing the frontier of autoregressive visual generation through pretraining, sft, and rl. arXiv preprint arXiv:2504.11455 (2025). [31] Chengyue Wu, Xiaokang Chen, Zhiyu Wu, Yiyang Ma, Xingchao Liu, Zizheng Pan, Wen Liu, Zhenda Xie, Xingkai Yu, Chong Ruan, and Ping Luo. 2024. Janus: Decoupling Visual Encoding for Unified Multimodal Understanding and Genera-tion. arXiv:2410.13848 [cs.CV] https://arxiv.org/abs/2410.13848 [32] Size Wu, Wenwei Zhang, Lumin Xu, Sheng Jin, Zhonghua Wu, Qingyi Tao, Wentao Liu, Wei Li, and Chen Change Loy. 2025. Harmonizing visual represen-tations for unified multimodal understanding and generation. arXiv preprint arXiv:2503.21979 (2025). [33] Xiaoshi Wu, Yiming Hao, Keqiang Sun, Yixiong Chen, Feng Zhu, Rui Zhao, and Hongsheng Li. 2023. Human preference score v2: A solid benchmark for evaluat-ing human preferences of text-to-image synthesis. arXiv preprint arXiv:2306.09341 
+
+(2023). [34] Jinheng Xie, Weijia Mao, Zechen Bai, David Junhao Zhang, Weihao Wang, Kevin Qinghong Lin, Yuchao Gu, Zhijie Chen, Zhenheng Yang, and Mike Zheng Shou. 2024. Show-o: One single transformer to unify multimodal understanding and generation. arXiv preprint arXiv:2408.12528 (2024). [35] Jiazheng Xu, Xiao Liu, Yuchen Wu, Yuxuan Tong, Qinkai Li, Ming Ding, Jie Tang, and Yuxiao Dong. 2024. Imagereward: Learning and evaluating human prefer-ences for text-to-image generation. Advances in Neural Information Processing Systems 36 (2024). [36] Ryan Xu, Dongyang Jin, Yancheng Bai, Rui Lan, Xu Duan, Lei Sun, and Xiangx-iang Chu. 2025. Scalar: Scale-wise controllable visual autoregressive learning. 
+
+arXiv preprint arXiv:2507.19946 (2025). [37] Zeyue Xue, Jie Wu, Yu Gao, Fangyuan Kong, Lingting Zhu, Mengzhao Chen, Zhiheng Liu, Wei Liu, Qiushan Guo, Weilin Huang, and Ping Luo. 2025. Dance-GRPO: Unleashing GRPO on Visual Generation. arXiv:2505.07818 [cs.CV] https://arxiv.org/abs/2505.07818 [38] Hu Yu, Biao Gong, Hangjie Yuan, DanDan Zheng, Weilong Chai, Jingdong Chen, Kecheng Zheng, and Feng Zhao. 2025. VideoMAR: Autoregressive Video Generatio with Continuous Tokens. arXiv preprint arXiv:2506.14168 (2025). [39] Hu Yu, Hao Luo, Hangjie Yuan, Yu Rong, and Feng Zhao. 2025. Frequency Autore-gressive Image Generation with Continuous Tokens. arXiv:2503.05305 [cs.CV] https://arxiv.org/abs/2503.05305 [40] Qiying Yu, Zheng Zhang, Ruofei Zhu, Yufeng Yuan, Xiaochen Zuo, Yu Yue, Weinan Dai, Tiantian Fan, Gaohong Liu, Lingjun Liu, et al . 2025. Dapo: An open-source llm reinforcement learning system at scale. arXiv preprint arXiv:2503.14476 
+
+(2025). [41] Shihao Yuan, Yahui Liu, Yang Yue, Jingyuan Zhang, Wangmeng Zuo, Qi Wang, Fuzheng Zhang, and Guorui Zhou. 2025. AR-GRPO: Training Autoregres-sive Image Generation Models via Reinforcement Learning. arXiv preprint arXiv:2508.06924 (2025). [42] Guohui Zhang, Hu Yu, Xiaoxiao Ma, Yaning Pan, Hang Xu, and Feng Zhao. 2025. MaskFocus: Focusing Policy Optimization on Critical Steps for Masked Image Generation. arXiv:2512.18766 [cs.CV] https://arxiv.org/abs/2512.18766 [43] Guohui Zhang, Hu Yu, Xiaoxiao Ma, JingHao Zhang, Yaning Pan, Mingde Yao, Jie Xiao, Linjiang Huang, and Feng Zhao. 2025. Group Critical-token Policy Optimization for Autoregressive Image Generation. arXiv:2509.22485 [cs.CV] https://arxiv.org/abs/2509.22485 [44] Guohui Zhang, Hu Yu, Xiaoxiao Ma, JingHao Zhang, Yaning Pan, Mingde Yao, Jie Xiao, Linjiang Huang, and Feng Zhao. 2025. Group Critical-token Policy Optimization for Autoregressive Image Generation. arXiv:2509.22485 [cs.CV] https://arxiv.org/abs/2509.22485 [45] Zhen Zou, Xiaoxiao Ma, Jie Huang, Zichao Yu, and Feng Zhao. 2025. Fast-ARDiff: An Entropy-informed Acceleration Framework for Continuous Space Autoregressive Generation. arXiv:2512.08537 [cs.CV] https://arxiv.org/abs/2512. 08537 MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation 
+
+## A Additional Description of Methods A.1 GRPO Optimization for Diffusion Models 
+
+For diffusion models, each denoising step defines a Gaussian posterior transition 𝑝 𝜃 (x𝑡 −1 | x𝑡 , ˆx0) = N ( 𝝁 𝜃 , 𝚺 𝑡 ), the posterior is fully determined by the current latent x𝑡 and the predicted clean latent ˆx0. Specifically, the posterior mean 𝝁 𝜃 (x𝑡 , ˆx0, 𝑡 ) and variance 𝚺 𝑡 are computed from (x𝑡 , ˆx0). The per-timestep log-probability used by our diffusion head is then given by 
+
+log 𝑝 𝜃 (x𝑡 −1 | x𝑡 , ˆx0) = − 12
+
+ ∥x𝑡 −1 − 𝝁 𝜃 ∥2
+
+𝚺 𝑡 
+
++ log (2𝜋 𝚺 𝑡 )
+
+
+
+. (12) We denote log 𝑝 𝜃 (x𝑖,𝑡 −1 | x𝑖,𝑡 , ˆx𝑖, 0) as log 𝑝 𝜃,𝑡 . Accordingly, the importance ratio is computed as: 
+
+𝑟 𝑖 (𝜃 ) = exp 
+
+∑︁ 
+
+> 𝑡
+
+  log 𝑝 𝜃,𝑡 − log 𝑝 𝜃 old ,𝑡 
+
+
+
+, (13) For the KL regularization term, we follow the approximation used in prior diffusion-GRPO implementations and employ a Taylor approxima-tion under the fixed-variance Gaussian parameterization above. This gives the following lightweight surrogate: 
+
+𝐷 KL = 1
+
+𝑇 ∑︁ 𝑡 
+
+
+
+exp  𝝁 ref ,𝑡 − 𝝁 𝜃,𝑡 
+
+ −  𝝁 ref ,𝑡 − 𝝁 𝜃,𝑡 
+
+ − 1
+
+
+
+. (14) 
+
+## A.2 Full Description of Our Proposed Method 
+
+Algorithm 2 Uncertainty-Aware GRPO for Hybrid AR–Diffusion Models 
+
+Require: Reference policy 𝜋 ref , prompt dataset {𝑐 }, group size 𝐺 , selected AR mask steps M, selected diffusion steps T , number of diffusion trajectories 𝑆 , uncertainty ratio 𝑘 %
+
+Ensure: Optimized policy 𝜋 𝜃  
+
+> 1:
+
+Initialize training policy 𝜋 𝜃 ← 𝜋 ref  
+
+> 2:
+
+while not converged do  
+
+> 3:
+
+Set rollout policy 𝜋 𝜃 old ← 𝜋 𝜃  
+
+> 4:
+
+for each sampled prompt 𝑐 do  
+
+> 5:
+
+Sample 𝐺 rollouts {𝑜 𝑖 }𝐺 𝑖 =1 ∼ 𝜋 𝜃 old (· | 𝑐 ) and compute group-normalized advantages { ˆ𝐴 𝑖 }𝐺 𝑖 =1 
+
+> 6:
+
+for each sample 𝑖 and each selected mask step 𝑘 ∈ M do  
+
+> 7:
+
+Compute AR latent 𝑍 𝑘 𝑖 from previous latent tokens 𝑋 1: 𝑘 −1 
+
+> 𝑖
+> 8:
+
+Sample 𝑆 diffusion trajectories {𝑋 𝑘, (𝑠 ) 
+
+> 𝑖,𝑡
+
+}𝑆 𝑠 =1 conditioned on the same 𝑍 𝑘 𝑖  
+
+> 9:
+
+Compute token-wise uncertainty map 𝑢 𝑘 𝑖 via the standard deviation across {𝑋 𝑘, (𝑠 ) 
+
+> 𝑖, 0
+
+}𝑆 𝑠 =1 
+
+> 10:
+
+Construct binary mask 𝑀 𝑘 𝑖 by selecting the top-𝑘 % tokens from 𝑢 𝑘 𝑖  
+
+> 11:
+
+for each selected diffusion step 𝑡 ∈ T do  
+
+> 12:
+
+Compute step-wise loss ℓ (𝑠 ) 
+
+> 𝑖,𝑘,𝑡
+
+for each trajectory 𝑠 using Eq. (4) and Eq. (5)  
+
+> 13:
+
+Aggregate the uncertainty-aware loss according to Eq. (10)  
+
+> 14:
+
+end for  
+
+> 15:
+
+end for  
+
+> 16:
+
+Update 𝜋 𝜃 using the GRPO objective in Eq. (10) over all selected (𝑖, 𝑘, 𝑡 ) 
+
+> 17:
+
+end for  
+
+> 18:
+
+end while  
+
+> 19:
+
+return 𝜋 𝜃 
+
+## A.3 Additional Visualization Analysis of Latents 
+
+Analysis of AR & diffusion latents. As shown in Fig. 8, AR latents encode clear structural information, whereas diffusion latents contain more fine-grained details and noise. Moreover, the diffusion head reconstructs most image content at very early timesteps, differing from standard diffusion models. 
+
+Samples generated with different diffusion trajectories. Conditioned on the same AR latents, varying the random seed during sampling yields diffusion latents and generated images that are highly consistent, as illustrated in Fig. 9. Ma et al. PCA of AR PCA of diff. Feat of diff. 
+
+> (a) Feat. of AR & diff.
+
+t=1000 t=920 t=808 t=305 t=9 
+
+SDv3 
+
+MAR (b) Predicted images during sampling. 
+
+Figure 8: (a) AR features encode clear structural information, while diffusion features primarily capture fine-grained details. (b) Compared to standard diffusion models, the diffusion head in MAR reconstructs most image content at very early timesteps. Images Diff.  Latents      
+
+> Seed1 Seed2 Seed3 Seed4 Seed5 Seed6
+
+Figure 9: Samples generated with different diffusion trajectories is highly deterministic. 
+
+## B Detailed Experimental Setup 
+
+We report detailed training configurations, including learning rates and the number of training steps used for evaluation. For the baseline GRPO, due to its training instability, we select the checkpoint that achieves the best reward during training. In contrast, our method is evaluated using a fixed checkpoint specified in advance. Additionally, since the diffusion head of Harmon is insufficiently trained, we perform a brief warm-up stage before RL optimization. Specifically, we fix the AR component and fine-tune the diffusion head for 400 steps with a learning rate of 1 × 10 −6, followed by the corresponding RL training (for fair comparison, we also conduct a 400 steps finetuning on diffusion head in baseline GRPO). Detailed numerical settings are provided in Tables 3 and 4. 
+
+Table 3: Training hyperparameters for NOVA. 
+
+Baseline Ours Reward func HPS Mixed HPS Mixed Learning-rate 1e-6 (2e-6 collapsed) 2e-6 Training Steps best ( ∼250) best ( ∼400) 500 800 Beta 0.01 0.01 Inner loop 1 1
+
+## C Additional Visualizations & Analysis C.1 Additional Experiments on Training Dynamics 
+
+In the main text, we demonstrate that fixing the diffusion head yields more stable training than end to end RL optimization. This design is also simpler, as it avoids complex multi stage procedures and delicate learning rate tuning while still providing consistent performance improvements. Here we further investigate different training schemes for model components to better understand why fixing the diffusion head and training only the AR module is necessary for stable GRPO optimization. All experiments are conducted on a simple GRPO baseline to avoid confounding effects from additional techniques such as multi seed strategies. MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation 
+
+Table 4: Training hyperparameters for Harmon. 
+
+Baseline Ours Reward func HPS Mixed HPS Mixed Learning-rate 1e-6 1e-6 Training Steps best ( ∼300) best ( ∼800) 500 800 Beta 0.01 0.01 Inner loop 1 10 100 200 300 400 500 600 
+
+Training iteration 
+
+> 0.22
+> 0.24
+> 0.26
+> 0.28
+> 0.30
+> 0.32
+> 0.34
+> HPS Reward Score  train diff head
+> train AR
+
+Figure 10: Training dynamics when fixing the AR module and tuning the diffusion head only. Although the reward can improve slightly at the beginning, it drops quickly afterward, indicating that optimizing the diffusion head alone is unstable and does not provide reliable gains for MAR post-training. Training with tuning head only. As shown in Fig. 10, we also test the alternative strategy of fixing the AR module and fine tuning the diffusion head. However, the diffusion head is highly unstable during RL optimization and easily collapses, making it difficult to obtain additional gains through diffusion head tuning alone. Even in the Harmon model, we report that the diffusion head must first be fine tuned to avoid poor initial performance in experiments. After reaching a reasonable level, further tuning often leads to degradation, while tuning the AR module instead yields more consistent improvements. 
+
+## C.2 Explanation of Why Finetuning on Diffusion Head of Harmon is Needed 
+
+For Harmon, we observe that the base model occasionally fails to produce valid images in certain cases (see Fig. 11), indicating insufficient training of the diffusion head. To address this issue, we first apply a short-stage refinement that updates only the diffusion head (approximately 400 steps), after which the model is able to generate reasonable images. This suggests that the observed failure modes primarily stem from an undertrained diffusion head rather than from the RL algorithm itself. We therefore adopt this lightweight pre-refinement as a practical initialization before RL, which can be viewed as a form of task-specific SFT to avoid sub-optimal GRPO caused by a poorly calibrated diffusion component. 
+
+## D Limitations & Future Works D.1 Limitations 
+
+Although the proposed method substantially improves the stability and performance ceiling of RL training for MAR models, several limitations remain: 
+
+Performance gains vary across different base models. In our experiments, we observe that the improvement brought by the RL framework differs depending on the underlying model. This is likely due to the discrepancies in diffusion head architectures and pretraining data distributions. In particular, the improvement on Harmon is noticeably smaller than that on NOVA, and the exact cause of this phenomenon remains unclear. 
+
+Multiple diffusion trajectories. The additional diffusion head trajectories are generated by running the diffusion head multiple times with different random seeds after obtaining the full AR latent. This procedure may partially break the causal sampling process, potentially leading to suboptimal RL optimization. Moreover, although the extra forward passes of the diffusion head introduce negligible training time overhead, they may still increase the memory consumption during training. Ma et al. The colorful balloons floated near the shiny silver    
+
+> airplane .
+> The black sofa on the left of the white coffee table .The black suitcase was next to the brown briefcase .The blue bowl was on top of the white placemat .
+> The blue cylinder was balanced on the edge of the
+> yellow hexagon and the green diamond .The blue mug is on top of the green coaster .
+
+Figure 11: Failure cases of the Harmon base model. The model occasionally produces invalid or severely degraded images due to an insufficiently trained diffusion head. 
+
+## D.2 Future Works 
+
+In this work, we investigate the GRPO strategy for MAR models. Building upon our findings, several directions deserve further exploration in future work: 
+
+Critic tokens. MAR models involve multiple interleaved AR and diffusion steps during generation. Consequently, identifying the most informative steps or tokens may be particularly important for effective RL optimization. A potential direction is to selectively apply RL signals to a subset of AR or diffusion steps, which may lead to more stable and efficient training. Exploring token- or step-level credit assignment in such hybrid generation processes remains an interesting direction for future work. 
+
+Video generation. Recently, AR–diffusion hybrid frameworks have also been widely adopted in video generation. Due to limited computa-tional resources, we do not explore GRPO-based post-training for video models in this work. Extending our framework to video generation, where temporal dynamics introduce additional challenges, is a promising direction for future research. 
+
+Larger diffusion head. Recent unified multimodal generative models tend to employ larger diffusion heads within AR–diffusion hybrid architectures, such as BLIP-3o [ 2]. The RL behavior of such models may differ substantially from the lightweight diffusion-head setting studied in this work. Investigating RL optimization strategies for models with larger diffusion modules is another important direction for future exploration. 
+
+## E Additional Visualization 
+
+We further present qualitative comparisons of NOVA and Harmon before and after GRPO training to demonstrate the advantage of our method over the Baseline GRPO. As shown in Fig. 12– 13, benefiting from improved optimization stability and better preservation of the model’s original distribution, our RL-enhanced results exhibit noticeably richer details, more stable structures, and more coherent content compared to Baseline GRPO. MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation Base Model Baseline GRPO Ours Base Model Baseline GRPO Ours 
+
+Figure 12: Visualization. Ma et al. Base Model Baseline GRPO Ours Base Model Baseline GRPO Ours 
+
+Figure 13: Visualization.

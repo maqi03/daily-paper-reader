@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.00523v1/fig-001.webp",
+      "caption": "Table 1. Key notation used throughout the paper",
+      "page": 3,
+      "index": 1,
+      "width": 470,
+      "height": 467
+    }
+  ]
+}

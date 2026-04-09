@@ -1,0 +1,685 @@
+Title: Unlocking Prompt Infilling Capability for Diffusion Language Models
+
+URL Source: https://arxiv.org/pdf/2604.03677v1
+
+Published Time: Tue, 07 Apr 2026 00:35:49 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+Preprint. Under review. 
+
+# Unlocking Prompt Infilling Capability for Diffusion Lan-guage Models 
+
+Yoshinari Fujinuma ∗
+
+Patronus AI 
+
+Keisuke Sakaguchi 
+
+Tohoku University, RIKEN 
+
+## Abstract 
+
+Masked diffusion language models (dLMs) generate text through bidirec-tional denoising, yet this capability remains locked for infilling prompts. This limitation is an artifact of the current supervised finetuning (SFT) convention of applying response-only masking. To unlock this capability, we extend full-sequence masking during SFT, where both prompts and responses are masked jointly. Once unlocked, the model infills masked portions of a prompt template conditioned on few-shot examples. We show that such model-infilled prompts match or surpass manually designed tem-plates, transfer effectively across models, and are complementary to existing prompt optimization methods. Our results suggest that training practices, not architectural limitations, are the primary bottleneck preventing masked diffusion language models from infilling effective prompts. 
+
+§ Code Models 
+
+## 1 Introduction 
+
+Masked diffusion language models (dLMs) (Lou et al., 2024; Sahoo et al., 2024; Nie et al., 2025; Ye et al., 2025) generate text through iterative bidirectional denoising, progressively unmasking tokens across the entire sequence. Unlike autoregressive models that generate strictly left-to-right, dLMs can fill in any masked position conditioned on all surrounding context. This infilling capability is a defining advantage of dLMs. Yet current dLMs cannot fully exploit this advantage. Models such as LLaDA (Nie et al., 2025) and Dream (Ye et al., 2025) are supervised-fine-tuned with response-only masking: prompts remain fully visible while only responses are masked and denoised. As a result, these models are trained to denoise responses given clean prompts but never trained to denoise prompts. This is not an architectural limitation but a training one: the bidirectional architecture already supports prompt-side denoising, yet response-only masking during SFT withholds the necessary training signal. We address this gap with a simple modification: full-sequence masking during SFT , where both prompts and responses are masked. This single change unlocks a model capability that we leverage for a practical application: prompt infilling . Given a prompt template with masked regions and a few labeled examples as context, the dLM denoises the masked tokens to produce a complete, task-adapted prompt (Figure 1). The resulting prompts match or surpass manually designed templates, transfer across models, and complement existing prompt optimization methods. Our main contributions are: • We identify that response-only masking during SFT creates a training-inference gap that prevents prompt infilling, and introduce full-sequence masking during SFT as the key ingredient to address this limitation. 
+
+> ∗
+
+Correspondence to fujinumay@gmail.com 
+
+1
+
+> arXiv:2604.03677v1 [cs.CL] 4 Apr 2026
+
+Preprint. Under review. It takes 2/2=1 bolt of            
+
+> white fiber [...]
+> #### 3
+> You are math student ... Q. Janet's
+> ducks lay 16 eggs per day. [...] How
+> much rs' market?
+> [MASK] [MASK] [MASK] ... Q. Janet's
+> ducks lay 16 eggs per day. [...] How
+> much rs' market?
+> Masked and Infilled Tokens
+> given Prompt Template
+> Few-shots and
+> Generated Responses
+> Create Infilled
+> Prompts
+> Here's a numerical problem for a
+> student to solve. Q. James decides to
+> run 3 sprints 3 times a week. He runs
+> ...
+> Gather Few-
+> shot Examples
+> Respond with
+> the best Infilled
+> Prompt
+> Validate Infilled
+> Prompts
+> He sprints 3*3=9 times.
+> So he runs 9*60=540
+> meters
+> #### 540
+> or
+> Here's a numerical problem for a
+> student to solve Q. A robe takes 2
+> bolts of blue fiber and half ...
+> [MASK] [MASK] [MASK] ... Q. A robe
+> takes 2 bolts of blue fiber and half ...
+> Janet sells 16 - 3 - 4 = 9
+> duck eg. [...]
+> #### 18
+> It takes 2/2=1 bolt of white
+> fiber [...]
+> #### 3
+
+# 1. 
+
+# 2. 
+
+# 3. 
+
+# 4.   
+
+> You are math student ... Q. Janet's
+> ducks lay 16 eggs per day. [...] How
+> much rs' market?
+> Here's a numerical problem for a
+> student to solve. Q. A robe takes 2
+> bolts of blue fiber and half ...
+> or
+> Janet sells 16 - 3 - 4 = 9
+> duck eg. [...]
+> #### 18
+> It takes 2/2=1 bolt of white
+> fiber [...]
+> #### 3
+> Inference  Training
+
+Current: Response-only Masking  Proposed: Full Sequence Masking               
+
+> 3...
+> Natalia ?[MASK] ... ####
+> He sprints 3*3=9 times.
+> So he runs 9*60=540
+> meters
+> #### 540
+> Natalia
+> May
+> May
+> Nataila ...
+> ?#### Nataila ... 3...
+> Natalia ?[MASK] ... #### Nataila ...
+> ?#### Nataila ...
+> [MASK]
+> Natalia May
+
+Figure 1: Overview of the prompt infilling procedure and the change in training. (1) Gather few-shot examples with prompt templates and reference responses. (2) A diffusion LM (dLM) infills masked tokens in the prompt template, conditioned on the reference responses. (3) Validate infilled prompts by generating responses across all few-shot examples using either a dLM or an LLM. (4) The best infilled prompt is used for final inference on all inputs. • We introduce a prompt infilling procedure protocol during inference time where in-filled prompts match or surpass manually designed templates on multiple datasets, and that these prompts transfer effectively across models. • We show that infilled prompts are complementary to existing prompt optimization methods, yielding further gains when combined. 
+
+## 2 Background and Motivation 
+
+We first review how masked diffusion language models operate (§2.1), then analyze the training-inference gap occurring during SFT stage that prevents prompt infilling (§2.2), and discuss related work (§2.3). 
+
+2.1 Masked Diffusion Language Models 
+
+Diffusion models generate text by learning to reverse a noising process (Ho et al., 2020; Song et al., 2021). Consider a sequence X = ( P, R) where P represents the prompt and 
+
+R the response tokens in X. We denote Xt as the sequence at diffusion timestep t, where 
+
+t = 0 represents clean text and increasing t corresponds to higher noise i.e., more number of masked tokens. Starting from clean text X0 = ( P0, R0), the forward diffusion process adds noise to create masked versions Xt at t (Austin et al., 2021; Sahoo et al., 2024). The model estimates P(X0|Xt) i.e., the probability of recovering clean text from any masked version. During pre-training, models can learn to denoise arbitrary portions of a sequence: 
+
+P(X0|Xt) = P(P0, R0|Pt, Rt) (1) 2Preprint. Under review. where both prompts and responses may be masked. This bidirectional capability distin-guishes diffusion models from autoregressive approaches and aligns them with masked language models like BERT (Devlin et al., 2019) and T5 (Raffel et al., 2020), which also perform bidirectional reconstruction. However, diffusion models iterate through multiple denoising steps rather than predicting masked tokens in a single step. This requires the model to encounter diverse masking patterns during training, including when only prompts are masked i.e., Xtp = ( Pt, R0), only responses are masked i.e., Xtr = ( P0, Rt), or both are partially masked. 
+
+2.2 The Training-Inference Gap for Prompt Infilling 
+
+Diffusion models possess an infilling capability: they can denoise and reconstruct any masked portion of a sequence given surrounding context (Sahoo et al., 2024; Donahue et al., 2020). This bidirectionality naturally extends to prompt infilling, i.e., when prompt tokens are masked, the model can infill prompts conditioned on desired responses. This capability resembles span corruption in T5 (Raffel et al., 2020) and infilling in encoder-decoder models (Wang et al., 2022), but leverages diffusion’s iterative refinement process. However, current SFT practices in LLaDA (Nie et al., 2025) and Dream (Ye et al., 2025) prevent this capability. During standard SFT, only response tokens are subject to masking while prompts remain completely clean. The model learns to denoise responses given clean prompts, but never encounters scenarios where prompt tokens require denoising. This is a training limitation, not an architectural one: the bidirectional architecture supports prompt infilling, but response-only SFT never provides the necessary training signal (see Appendix G for formal details). 
+
+2.3 Related Work Infilling With Diffusion Language Models DDOT (Zhang et al., 2025) addresses flexible-length text infilling in discrete diffusion models through optimal transport coupling. While DDOT focuses on architectural improvements, our work addresses a training limitation: response-only masking during SFT prevents prompt infilling regardless of architecture. 
+
+Automated Prompt Optimization Prompt engineering is crucial for eliciting desired LLM behaviors (Liu et al., 2023a), but manual engineering is labor-intensive and requires expertise. This has motivated automated approaches: APE (Zhou et al., 2022) generates prompts through iterative refinement, while OPRO (Yang et al., 2024) treats prompt optimization as a meta-learning problem. More recently, DSPy (Khattab et al., 2024) provides a framework for compiling declarative language model calls into self-improving pipelines, with methods like GEPA (Agrawal et al., 2025) using evolutionary search with frontier models (e.g., GPT-4.1) for prompt optimization. Chain-of-thought prompting (Kojima et al., 2022; Wei et al., 2022) show that well-crafted prompts significantly improve reasoning performance. However, existing prompt optimization approaches are designed to generate prompts externally with autoregressive models. In contrast, our work enables diffusion models to infer prompts internally from few-shot examples, leveraging inherent infilling capability rather than using larger external models for prompt optimization. Moreover, we show that our infilling approach is complementary to prompt optimization methods (§5), where infilling can further enhance prompts already optimized. 
+
+## 3 Train with Full Sequence Masking, Infer with Prompt Infilling 
+
+To address the training-inference gap identified above, we introduce full-sequence masking during SFT to unlock prompt infilling (§3.1). We also describe an optional response-only masking refinement step (§3.1) and the inference procedure for prompt infilling (§3.2). 3Preprint. Under review. 
+
+3.1 Full-Sequence Masking SFT 
+
+In contrast to applying masking only to responses during SFT, we introduce full-sequence masking that masks the entire sequence X = ( P, R). For each training example, we sample a masking ratio t ∼ U(0, 1 ) and randomly select ⌊t × | X|⌋ tokens from the sequence to mask, exposing the model to diverse corruption patterns including prompt-only, response-only, and full-sequence masking. The training loss follows the pretraining phase of LLaDA (Nie et al., 2025), applying cross-entropy loss over all masked tokens: 
+
+Lfull-seq = −E
+
+"
+
+1
+
+|Mt| ∑
+
+> i∈Mt
+
+log P(Xi
+
+> 0
+
+|Xit)
+
+#
+
+(2) where Mt = {i : Xit = [Mask] } is the set of all masked positions. This objective enables the model to unmask arbitrary tokens in both prompts and responses. 
+
+Optional: Response-Only Masking Refinement After full-sequence masking, an optional second fine-tuning stage using response-only masking can improve results on some datasets. This specializes the model for standard generation while preserving prompt infilling capa-bilities from full-sequence masking. Following Lou et al. (2024) and Nie et al. (2025), this stage uses cross-entropy loss over masked response tokens (Eq. 5 in Appendix G). We show in our experiments that full-sequence masking is crucial on diverse benchmarks, while this refinement step provides additional gains on some tasks. 
+
+3.2 Prompt Infilling during Inference 
+
+At inference time, we leverage the bidirectional denoising capability learned during full-sequence masking (Figure 1). Given few-shot examples with a response R0 and a partially masked prompt template Pt, the model infills the masked portions to produce a complete prompt. After multiple prompt candidates are produced, those are validated across all few-shot examples to select the best one. This infilled prompt is then fixed and reused for all test examples. Figure 1 provides the procedural details. This enables infilling prompts from desired responses without manual prompt engineering. For example, when evaluating with LLM-as-a-Judge on a new dataset with different score scales, the model can infer appropriate scoring rubrics from few-shot examples. The infilled prompt is produced once and then applied to all inputs, making the cost of infilling amortized. 
+
+3.3 Empirical Evidence for the Training-Inference Gap 
+
+To confirm that the training-inference gap identified in §2.2 prevents prompt infilling in practice, we evaluate publicly available checkpoints on GSM8K (Cobbe et al., 2021) with three settings: (1) zero-shot prompting, (2) 16-shot in-context learning (ICL), and (3) infilling the first 128 tokens using few-shot examples. Table 1 shows that prompt infilling with public checkpoints consistently hurts performance: LLaDA drops from 73.1% (ICL) to 64.8%, and Dream drops from 79.3% to 54.3%. Despite strong base performance, these models lack the capability for effective prompt infilling without full-sequence masking during SFT. For example, the public checkpoint produces the following infilled prompt, where most of the masked region is filled with end-of-text tokens rather than meaningful content. 
+
+## 4 Evaluating Full-Sequence Masking SFT 
+
+We now evaluate whether full-sequence masking during SFT unlocks prompt infilling capability on LLM-as-a-Judge. LLM-as-a-Judge presents a complementary challenge: long, multi-section prompts with task descriptions, scoring rubrics, reference answers, and format specifications. 4Preprint. Under review.                
+
+> Model Prompt #Shots EM
+> LLaDA “Q: ... A: ...” 070.8 +ICL 16 73.1
+> +Prepend Infilled Tokens 16 69.8 Dream “Q: ... A: ...” 081.0
+> +ICL 16 79.3 +Prepend Infilled Tokens 16 54.3
+
+Table 1: GSM8K results on public checkpoints (no fine-tuning). In both models, infilled prompts with the publicly available checkpoints decreases the exact match (EM) score (%). 
+
+Infilled Prompt with Public LLaDA                      
+
+> <|endoftext|><|endoftext|><|endoftext|>[...]<|endoftext|><|endoftext|> Q: Jay &Gloria were hosting a4th of July party at their house. Jay invited 22 people and Gloria invited 36. They wanted to buy small American flags for everyone. The craft store was having a sale on small flags, 5 flags for $1.00. If they wanted all of their guests to have a flag and they also wanted 1 flag each, how much would they spend at the craft store? A:
+
+Figure 2: Example prompt with infilled tokens using the public LLaDA checkpoint (LLaDA-8B-Instruct ) on GSM8K. All masked prefix tokens are filled with EOS tokens, confirming the training-inference gap for prompt infilling. 
+
+4.1 Setup Models We evaluate two masked diffusion language models: LLaDA-8B-Instruct (Nie et al., 2025) and Dream-v0-Instruct-7B (Ye et al., 2025). 
+
+Training Configurations We compare three training approaches: (1) Response-Only Masking (RO) : following the standard practice in current diffusion language models; (2) 
+
+Full-Sequence Masking (FS) : both prompts and completions are subject to masking, en-abling the model to learn prompt denoising; (3) Full-Sequence + Response-Only (FS+RO) :full-sequence masking followed by response-only masking refinement. We also evaluate public checkpoints ( None ) without additional fine-tuning as a baseline. 
+
+Data and Prompt Templates We fine-tune on Feedback Collection (Kim et al., 2023) and evaluate on two human annotated datasets: SummEval (Fabbri et al., 2021) and BigGen-Bench (Kim et al., 2025). We compare three prompt templates: Judge (from Feedback Collection (Kim et al., 2023)), G-Eval (Liu et al., 2023b), and C-gen (Claude-generated), a baseline prompt generated by Claude. We further experiment with more templates in §5.3. 
+
+4.2 LLM-as-a-Judge Results 
+
+Table 2 shows the LLM judge results on SummEval dataset. A key observation is that the ability to infer and generate float numbers (e.g., score ranges like 1.0-5.0, Figure 2) is a critical contributor to correlation with human judgment. Comparing different training strategies across LLaDA models reveals a clear progression: the public checkpoint achieves near-zero correlation with Judge Infill (.087 Spearman), RO improves to .477, and full-sequence masking (FS) reaches .490, confirming that it is essential for developing prompt infilling capabilities. Adding response-only refinement (FS+RO) achieves .535 on this dataset, showing that the optional second stage can provide further gains without sacrificing the learned prompt infilling abilities. Notably, RO training shows inconsistent infilling performance across prompt types, with high variance in some settings (e.g., C-gen Infill: 5Preprint. Under review. 
+
+LLaDA Train Prompt Pear. Spear. Kend. 
+
+None G-eval .397 .000 .289 .000 .217 .000 
+
+C-gen .465 .000 .439 .000 .339 .000 
+
+C-gen Infill -.005 .043 -.013 .065 -.009 .044 
+
+Judge .308 .000 .336 .000 .261 .000 
+
+Judge Infill .050 .063 .087 .069 .064 .053 
+
+RO G-Eval .418 .000 .482 .000 .373 .000 
+
+C-gen .454 .002 .491 .002 .399 .002 
+
+C-gen Infill .038 .025 .058 .048 .042 .034 
+
+Judge .484 .000 .495 .000 .391 .000 
+
+Judge Infill .516 .024 .504 .015 .396 .009 
+
+FS G-Eval .453 .004 .436 .004 .346 .003 
+
+C-gen .376 .000 .404 .000 .322 .000 
+
+C-gen Infill .317 .009 .345 .013 .275 .010 
+
+Judge .447 .000 .481 .000 .385 .000 
+
+Judge Infill .320 .257 .465 .044 .369 .035 
+
+FS+RO G-Eval .386 .000 .480 .000 .380 .000 
+
+C-gen .432 .000 .449 .000 .359 .000 
+
+C-gen Infill .209 .103 .159 .106 .128 .083 
+
+Judge .500 .000 .507 .000 .404 .000 
+
+Judge Infill .546 .013 .535 .007 .423 .006 
+
+Dream Train Prompt Pear. Spear. Kend. 
+
+None G-eval .247 .014 .231 .030 .184 .025 
+
+C-gen .292 .020 .279 .023 .225 .019 
+
+C-gen Infill .149 .157 .143 .172 .112 .136 
+
+Judge .192 .001 .181 .013 .136 .008 
+
+Judge Infill .153 .069 .160 .069 .122 .050 
+
+RO G-Eval .323 .019 .323 .011 .248 .008 
+
+C-gen .264 .006 .261 .005 .201 .004 
+
+C-gen Infill .247 .264 .200 .318 .151 .249 
+
+Judge .285 .029 .322 .013 .255 .011 
+
+Judge Infill .260 .050 .267 .068 .205 .053 
+
+FS G-Eval .206 .271 .338 .055 .264 .042 
+
+C-gen .317 .079 .361 .003 .277 .001 
+
+C-gen Infill .344 .100 .328 .104 .258 .081 
+
+Judge .244 .022 .230 .028 .180 .022 
+
+Judge Infill .220 .023 .216 .019 .167 .011 
+
+FS+RO G-Eval .312 .029 .314 .027 .244 .022 
+
+C-gen .326 .016 .346 .030 .266 .024 
+
+C-gen Infill .461 .019 .454 .011 .344 .008 
+
+Judge .227 .011 .222 .007 .173 .007 
+
+Judge Infill .368 .047 .381 .028 .300 .021 
+
+Table 2: Model performance comparison with different prompting strategies on SummEval dataset. Bold indicates best performance within each model; underline indicates best prompt per (Model, Train) setup. 
+
+Original Score Rubric 
+
+###Score Rubrics: [Overall Quality: [...]] Score 1: Very poor overall [...] Score 2: Poor overall [...] Score 3: Moderate overall [...] Score 4: Good overall [...] Score 5: Excellent overall [...] 
+
+Infilled Score Rubric 
+
+###Score Rubrics: [Overall Quality: [...]] Score 1: Score of 1.0 Score 2: Score of 1.2 Score 3: Score of 1.8 Score 4: Score of 4.8 Score 5: Score of 5.0 
+
+Figure 3: Example of a score rubric with infilled tokens by the model (right) and original score rubric (left). The model replaces descriptions with non-uniform score values (e.g., 1.2, 1.8, 4.8) inferred from few-shot examples, encouraging float score outputs which results in better human correlation. .058 ±.048 ), suggesting that response-only masking alone is insufficient training for robust prompt infilling. The effectiveness of different prompt templates varies significantly across training stages. For LLaDA with FS+RO training, the Judge template consistently outperforms both G-Eval and C-gen prompts, achieving 0.535 Spearman correlation with infilling compared to 0.480 (G-Eval) and 0.449 (C-gen). This superiority likely stems from the Judge template’s structured format with explicit task descriptions, scoring rubrics, and reference answers i.e., components that align naturally with the bidirectional denoising patterns learned during full-sequence masking. In contrast, Dream models show more varied behavior: while FS+RO Dream achieves strong performance with C-gen Infill (.454 Spearman), its Judge Infill performance (.381) lags behind LLaDA, suggesting potential differences in how the two base models internalize structured prompt formats during training (we further analyze this via diffusion perplexity in §4.3). The consistent improvement of infilled prompts over oracle prompts in well-trained models (e.g., LLaDA FS+RO: Judge Infill .535 vs. Judge 6Preprint. Under review.                               
+
+> Train Pear. ↑Spear. ↑Kend. ↑PPL ↓
+> Public -.007 .044 .078 .058 .068 .050 7.40 RO .205 .072 .406 .091 .168 .079 7.14 FS .312 .013 .548 .026 .263 .014 3.73
+> FS+RO .259 .039 .525 .049 .210 .043 3.78 (a) BigGen-Bench (Judge Infill)
+> Train Judge PPL ↓C-gen PPL ↓
+> Public 11.49 9.18 RO 13.13 9.82 FS 5.10 12.10 FS+RO 4.92 11.63 (b) SummEval PPL by template
+
+Table 3: Diffusion perplexity analysis with LLaDA. (a) BigGen-Bench results using Judge Infill prompt across finetuning stages. PPL: diffusion perplexity with gold responses. Full-sequence masking (FS) achieves best performance with lowest variance and lowest per-plexity. (b) Diffusion perplexity ( ↓) on SummEval with gold responses ( [RESULT] {score })using finetuned and non-finetuned variants of LLaDA-8B-Instruct. oracle .507) validates that prompt infilling can discover task-specific optimizations beyond manually designed templates. 
+
+BigGen-Bench Evaluation To further validate generalization beyond SummEval dataset, we evaluate on BigGen-Bench (Kim et al., 2025), a more challenging benchmark with 2,780 diverse LLM-as-a-Judge examples. Table 3a shows results using LLaDA models with the infilled judge template. The public checkpoint achieves near-zero correlation (.078 Spearman, .068 Kendall’s tau), showing that prompt infilling capability does not emerge from architectural design alone but requires explicit training with full-sequence masking during SFT. Interestingly, on BigGen-Bench, FS achieves the strongest performance (.548 Spearman) with lowest variance ( ±.026), surpassing FS+RO (.525). This contrasts with SummEval where FS+RO was optimal. The superior FS performance suggests that for this more diverse benchmark, prompt denoising capability is most critical, while RO may introduce overfitting to specific response patterns. The substantially lower variance of FS indicates more robust generalization. RO shows performance (.406) significantly better than the public checkpoint but weaker than FS models, confirming that response-only masking provides insufficient signal for robust prompt infilling. 
+
+4.3 Diffusion Perplexity Analysis on Different Prompt Templates and Finetuning 
+
+To understand why different prompt templates are optimal on SummEval dataset, we evaluate test set perplexity using the diffusion perplexity (PPL) metric from Sahoo et al. (2024), which measures model fit via the negative evidence lower bound (NELBO). See Appendix B for the formal definition. 
+
+Diffusion Perplexity on SummEval Table 3b shows diffusion perplexity on SummEval evaluation prompts appended with gold-standard responses ( [RESULT] {score }) using human annotations. FS and FS+RO checkpoints, which were trained on the Judge template format, achieve substantially lower perplexity on Judge-template prompts (5.10 and 4.92) but higher perplexity on C-gen-template prompts (12.10 and 11.63). Conversely, the Public and RO models show lower perplexity on C-gen-template prompts (9.18 and 9.82) but higher on Judge-template prompts (11.49 and 13.13). This confirms the template-dependent evaluation results observed in Table 2. 
+
+Diffusion Perplexity on BigGen-Bench The PPL column in Table 3a extends this analysis to BigGen-Bench. The same pattern holds: FS and FS+RO achieve substantially lower perplexity (3.73 and 3.78) than Public and RO (7.40 and 7.14), confirming that full-sequence masking is the critical factor. FS achieves slightly lower perplexity than FS+RO, consistent with its stronger evaluation performance. Both FS models achieve lower perplexity on BigGen-Bench than on SummEval (4.92–5.10), likely reflecting the greater diversity of BigGen-Bench prompts. 7Preprint. Under review. 0 500 1000 1500 2000 2500 3000 3500 
+
+> Prompt Length (tokens)
+> 70
+> 71
+> 72
+> 73
+> 74
+> 75
+> 76
+> 77
+> 78
+> Exact Match (%)
+> 0-shot
+> ICL
+> 1-shot
+> ICL
+> 2-shot
+> ICL
+> 4-shot
+> ICL
+> 8-shot
+> ICL
+> 16-shot
+> Infilled
+> FS+RO
+
+(a) Prompt transfer results on GSM8K using LLaDA public checkpoints with the prompt tem-plate “Q: {question } A: {answer }” from Kojima et al. (2022) for in-context learning (ICL). None FS RO 
+
+> Finetuning
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> Spearman Correlation
+> Infilled by same model
+> Infilled by FS+RO, then transferred
+
+(b) Prompt transfer on SummEval using LLaDA models trained with different masking strategies. The transferred infilled prompt improves Public and RO models. 
+
+Figure 4: Prompt transfer experiments. (a) GSM8K: infilled prompts achieve higher accuracy with fewer tokens than ICL. (b) SummEval: infilled prompts transfer across LLaDA variants with different training configurations. 
+
+## 5 Diffusion LM as a Prompt Proposal Model for other LMs 
+
+To evaluate whether infilled prompts generalize across 1) models with the same architecture but with different finetuned checkpoints (§5.1, §5.2) and 2) to different models (§5.3), we use the infilled prompt from FS+RO during validation and evaluate with other models. 
+
+5.1 Compressing Prompts 
+
+Figure 4a shows the effectiveness of prompt transfer on GSM8K. The FS+RO trained model achieves 76.4% exact match accuracy using inferred prompts, outperforming standard 16-shot in-context learning (73.1%) while requiring fewer tokens (315.8 vs. 3333.8). This re-duction in prompt length with improved performance validates that full-sequence masking enables models to distill essential reasoning patterns from few-shot examples into compact, transferable prompts. We observe similar trends on Dream as well (Appendix H). Notably, the public checkpoint’s infilling attempt achieves only 64.8%, confirming that effective prompt infilling requires exposure to full-sequence masking during SFT. 
+
+5.2 Prompt Transfer on LLM-as-a-Judge 
+
+Figure 4b presents cross-model prompt transfer results using the FS+RO infilled prompt. When transferred to RO, it achieves .511 Spearman, surpassing RO’s own self-infilling baseline (.465), showing that a stronger infilling model can produce prompts that benefit weaker models. The FS model achieves .429 with the transferred prompt, slightly below its self-infilling performance (.487), suggesting some loss when transferring across training configurations. The public checkpoint improves from .087 (self-infilling) to .288 with the transferred prompt, a substantial gain but still well below trained models, indicating that while optimized prompts help, the receiving model’s training still matters. These findings suggest that prompts inferred from models trained with full-sequence masking can effectively transfer to other models. 
+
+5.3 Compare and Combine with Prompt Optimization for Autoregressive Models 
+
+Automatic prompt optimization methods improve prompts through iterative search over candidate rewrites. However, these approaches rewrite whole prompt: each iteration proposes an entirely new prompt, lacking a mechanism for localized, surgical edits to specific sections (e.g., modifying only the scoring rubric while preserving the task description). In contrast, diffusion-based infilling can mask and refine a targeted region of the prompt while keeping the surrounding context intact, making the two approaches complementary. 8Preprint. Under review.                                              
+
+> Eval Model Method Proposal Pear. Spear. Kend.
+> Prometheus 8x7B Baseline –.428 .000 .410 .000 .372 .000
+> COPRO 8x7B .465 .098 .447 .073 .355 .061
+> + Infill LLaDA 8B .539 .020 .490 .010 .394 .011
+> GEPA 8x7B .377 .169 .356 .147 .330 .136
+> + Infill LLaDA 8B .401 .148 .391 .133 .315 .108
+> Prometheus 13B Baseline –.271 .000 .248 .000 .216 .000
+> COPRO Llama 8B .312 .040 .306 .028 .235 .023
+> + Infill LLaDA 8B .314 .039 .318 .022 .243 .017
+> GEPA Llama 8B .131 .030 .117 .046 .104 .041
+> GEPA Qwen 14B .132 .069 .126 .069 .114 .061
+
+Table 4: Effect of LLaDA infilling on COPRO and GEPA prompts across Prometheus models (8x7B v2.0 and 13B v1.0) on SummEval (16-shot). Infilling improves both methods, but is far more effective on COPRO: variance largely drops (.073 → .010) while GEPA barely changes (.147 → .133). COPRO + Infill on 8x7B achieves the best result overall. Since the structure of prompts produced by these optimization methods is unknown, we use sliding-window (SW) infilling, which masks and infills tokens in the prompt in successive windows and selects the best validated prompt (see Appendix E for configuration details). We evaluate on Prometheus-8x7B v2.0 (Kim et al., 2024) and Prometheus-13B v1.0 (Kim et al., 2023) as the autoregressive judge models. We compare and combine with the following prompt optimization approaches using DSPy (Khattab et al., 2024): 
+
+GEPA (Agrawal et al., 2025) is a evolutionary prompt optimization method. It maintains a population of candidate prompts and iteratively generates new variants through mutation and crossover operations, using a frontier model (e.g., GPT-4.1) as the proposal model. Candidates are evaluated on a training set and selected based on task performance. GEPA rewrites prompts holistically at each generation step which can hurt the task accuracy. 
+
+COPRO (Opsahl-Ong et al., 2024; Khattab et al., 2024) extends OPRO (Yang et al., 2024) to multi-stage settings. It 1) generates multiple prompt variations using an LLM, 2) evaluates each candidate on training data, 3) uses the best candidates to generate improved versions, and 4) repeats for a fixed number of iterations. Unlike GEPA’s population-based evolution-ary search, COPRO follows a single hill-climbing trajectory. Like GEPA, COPRO rewrites prompts in their entirety at each step. 
+
+Infilling Effectiveness Combined with Prompt Optimization Table 4 compares the effect of LLaDA infilling on COPRO- and GEPA-optimized prompts across Prometheus evaluation models. Infilling consistently improves both methods on 8x7B, but with different variance: COPRO + Infill reduces standard deviation (.073 → .010) while GEPA + Infill barely changes it (.147 → .133). This gap arises because of relatively smaller number of shots (i.e., 16-shots) compared to the experiment setting in Agrawal et al. (2025), and as a result, COPRO’s hill-climbing produces prompts amenable to targeted refinement, whereas GEPA can produce overfitted prompts that infilling cannot fully rescue due to smaller number of shots (e.g., one GEPA offset collapses from .455 to .188). On 13B, GEPA degrades below baseline regardless of reflection model, while COPRO + Infill still improves by +.070. Across both eval models, infilling can improve the quality of the base prompt. 
+
+## 6 Conclusion 
+
+We identified a limitation in current widely-used masked diffusion language models: response-only masking during supervised fine-tuning constrains their infilling capabil-ities for prompts, despite their bidirectional architecture theoretically supporting such operations. We show that this is due to training practices that never expose models to prompt infilling. To address this training limitation, we applied full-sequence masking 9Preprint. Under review. during SFT, where both prompts and responses are masked. This simple change to the training paradigm unlocks prompt infilling capabilities that were architecturally possible but never learned. Our results show that the training paradigm, not architectural limitations, is the primary bottleneck for prompt infilling in diffusion models. This finding has broader implications: many capabilities we assume require architectural innovations may simply require exposure to appropriate training signals. 
+
+## References 
+
+Lakshya A Agrawal, Shangyin Tan, Dilara Soylu, Noah Ziems, Rishi Khare, Krista Opsahl-Ong, Arnav Singhvi, Herumb Shandilya, Michael J Ryan, Meng Jiang, Christopher Potts, Koushik Sen, Alexandros G. Dimakis, Ion Stoica, Dan Klein, Matei Zaharia, and Omar Khattab. Gepa: Reflective prompt evolution can outperform reinforcement learning, 2025. URL https://arxiv.org/abs/2507.19457 .Jacob Austin, Daniel D Johnson, Jonathan Ho, Daniel Tarlow, and Rianne van den Berg. Structured denoising diffusion models in discrete state-spaces. In Advances in Neural Information Processing Systems , volume 34, pp. 17981–17993, 2021. URL https://arxiv. org/abs/2107.03006 .Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. Training verifiers to solve math word problems, 2021. URL 
+
+https://arxiv.org/abs/2110.14168 .Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. BERT: Pre-training of deep bidirectional transformers for language understanding. In Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers) , pp. 4171–4186, 2019. URL 
+
+https://arxiv.org/abs/1810.04805 .Chris Donahue, Mina Lee, and Percy Liang. Enabling language models to fill in the blanks. In Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics , pp. 2492–2501, 2020. URL https://arxiv.org/abs/2005.05339 .Alexander R. Fabbri, Wojciech Kry ´sci ´nski, Bryan McCann, Caiming Xiong, Richard Socher, and Dragomir Radev. Summeval: Re-evaluating summarization evaluation. Transactions of the Association for Computational Linguistics , 9:391–409, 04 2021. ISSN 2307-387X. doi: 10.1162/tacl a 00373. URL https://doi.org/10.1162/tacl a 00373 .Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffusion probabilistic models. In 
+
+Advances in Neural Information Processing Systems , volume 33, pp. 6840–6851, 2020. URL 
+
+https://arxiv.org/abs/2006.11239 .Yichen Jiang, Shikha Bordia, Zheng Zhong, Charles Dognin, Maneesh Singh, and Mohit Bansal. HoVer: A dataset for many-hop fact extraction and claim verification. In Trevor Cohn, Yulan He, and Yang Liu (eds.), Findings of the Association for Computational Linguistics: EMNLP 2020 , pp. 3441–3460, Online, November 2020. Association for Computational Linguistics. doi: 10.18653/v1/2020.findings-emnlp.309. URL https://aclanthology. org/2020.findings-emnlp.309/ .Omar Khattab, Arnav Singhvi, Paridhi Maheshwari, Zhiyuan Zhang, Keshav Santhanam, Sri Vardhamanan, Saiful Haq, Ashutosh Sharma, Thomas T. Joshi, Hanna Moazam, Heather Miller, Matei Zaharia, and Christopher Potts. Dspy: Compiling declarative language model calls into self-improving pipelines. In The Twelfth International Conference on Learning Representations , 2024. URL https://openreview.net/forum?id=sY4VZ0pFSo .Seungone Kim, Jamin Shin, Yejin Cho, Joel Jang, Shayne Longpre, Hwaran Lee, Sangdoo Yun, Seongjin Shin, Sungdong Kim, James Thorne, and Minjoon Seo. Prometheus: Inducing fine-grained evaluation capability in language models, 2023. 10 Preprint. Under review. Seungone Kim, Juyoung Suk, Shayne Longpre, Bill Yuchen Lin, Jamin Shin, Sean Welleck, Graham Neubig, Moontae Lee, Kyungjae Lee, and Minjoon Seo. Prometheus 2: An open source language model specialized in evaluating other language models. In Yaser Al-Onaizan, Mohit Bansal, and Yun-Nung Chen (eds.), Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing , pp. 4334–4353, Miami, Florida, USA, November 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024. emnlp-main.248. URL https://aclanthology.org/2024.emnlp-main.248/ .Seungone Kim, Juyoung Suk, Ji Yong Cho, Shayne Longpre, Chaeeun Kim, Dongkeun Yoon, Guijin Son, Yejin Cho, Sheikh Shafayat, Jinheon Baek, Sue Hyun Park, Hyeonbin Hwang, Jinkyung Jo, Hyowon Cho, Haebin Shin, Seongyun Lee, Hanseok Oh, Noah Lee, Namgyu Ho, Se June Joo, Miyoung Ko, Yoonjoo Lee, Hyungjoo Chae, Jamin Shin, Joel Jang, Seonghyeon Ye, Bill Yuchen Lin, Sean Welleck, Graham Neubig, Moontae Lee, Kyungjae Lee, and Minjoon Seo. The BiGGen bench: A principled benchmark for fine-grained evaluation of language models with language models. In Luis Chiruzzo, Alan Ritter, and Lu Wang (eds.), Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pp. 5877–5919, Albuquerque, New Mexico, April 2025. Association for Computational Linguistics. ISBN 979-8-89176-189-6. doi: 10.18653/v1/2025.naacl-long. 303. URL https://aclanthology.org/2025.naacl-long.303/ .Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yutaka Matsuo, and Yusuke Iwasawa. Large language models are zero-shot reasoners. Advances in neural information processing systems , 35:22199–22213, 2022. Pengfei Liu, Weizhe Yuan, Jinlan Fu, Zhengbao Jiang, Hiroaki Hayashi, and Graham Neubig. Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing. ACM Computing Surveys , 55(9):1–35, 2023a. doi: 10.1145/3560815. URL https://arxiv.org/abs/2107.13586 .Yang Liu, Dan Iter, Yichong Xu, Shuohang Wang, Ruochen Xu, and Chenguang Zhu. G-eval: NLG evaluation using gpt-4 with better human alignment. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pp. 2511–2522, 2023b. doi: 10.18653/v1/2023.emnlp-main.153. URL https://aclanthology.org/2023.emnlp-main. 153/ .Aaron Lou, Chenlin Meng, and Stefano Ermon. Discrete diffusion modeling by estimating the ratios of the data distribution, 2024. URL https://arxiv.org/abs/2310.16834 . ICML 2024 Best Paper. Shen Nie, Fengqi Zhu, Zebin You, Xiaolu Zhang, Jingyang Ou, Jun Hu, Jun Zhou, Yankai Lin, Ji-Rong Wen, and Chongxuan Li. Large language diffusion models, 2025. URL 
+
+https://arxiv.org/abs/2502.09992 .Krista Opsahl-Ong, Michael J Ryan, Josh Purtell, David Broman, Christopher Potts, Matei Zaharia, and Omar Khattab. Optimizing instructions and demonstrations for multi-stage language model programs. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing , pp. 9340–9366, 2024. doi: 10.18653/v1/2024.emnlp-main.525. URL https://aclanthology.org/2024.emnlp-main.525/ .Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and Peter J Liu. Exploring the limits of transfer learning with a unified text-to-text transformer. Journal of Machine Learning Research , 21(140):1–67, 2020. URL https://arxiv.org/abs/1910.10683 .Subham Sekhar Sahoo, Marianne Arriola, Yair Schiff, Aaron Gokaslan, Edgar Marroquin, Justin T Chiu, Alexander Rush, and Volodymyr Kuleshov. Simple and effective masked diffusion language models, 2024. URL https://arxiv.org/abs/2406.07524 .Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Abhishek Kumar, Stefano Ermon, and Ben Poole. Score-based generative modeling through stochastic differential equations. In International Conference on Learning Representations , 2021. URL https://arxiv.org/abs/ 2011.13456 .11 Preprint. Under review. Yizhong Wang, Yeganeh Kordi, Swaroop Mishra, Alisa Liu, Noah A Smith, Daniel Khashabi, and Hannaneh Hajishirzi. Self-instruct: Aligning language models with self-generated instructions, 2022. URL https://arxiv.org/abs/2212.10560 .Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-thought prompting elicits reasoning in large language models. In Advances in Neural Information Processing Systems , volume 35, pp. 24824–24837, 2022. URL https://arxiv.org/abs/2201.11903 .Chengrun Yang, Xuezhi Wang, Yifeng Lu, Hanxiao Liu, Quoc V Le, Denny Zhou, and Xinyun Chen. Large language models as optimizers. In The Twelfth International Conference on Learning Representations , 2024. URL https://openreview.net/forum?id=Bb4VGOWELI .Jiacheng Ye, Zhihui Xie, Lin Zheng, Jiahui Gao, Zirui Wu, Xin Jiang, Zhenguo Li, and Lingpeng Kong. Dream 7b: Diffusion large language models, 2025. URL https://arxiv. org/abs/2508.15487 .Andrew Zhang, Anushka Sivakumar, Chia-Wei Tang, and Chris Thomas. Flexible-length text infilling for discrete diffusion models. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing , Suzhou, China, November 2025. Association for Computational Linguistics. URL https://aclanthology.org/2025.emnlp-main.1597/ .Yongchao Zhou, Andrei Ioan Muresanu, Ziwen Han, Keiran Paster, Silviu Pitis, Harris Chan, and Jimmy Ba. Large language models are human-level prompt engineers, 2022. URL 
+
+https://arxiv.org/abs/2211.01910 .
+
+## A Full Prompt Transfer Results Public FS RO       
+
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> Correlation
+> Pearson
+> Infilled by same model
+> Infilled by FS+RO, then transferred
+> Public FS RO
+> Training
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7 Spearman
+> Infilled by same model
+> Infilled by FS+RO, then transferred
+> Public FS RO
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7 Kendall
+> Infilled by same model
+> Infilled by FS+RO, then transferred
+
+Figure 5: Full prompt transfer evaluation on SummEval using LLaDA models trained with different configurations (mean ± std), showing Pearson, Spearman, and Kendall correlations. Baseline results from Table 2 showing Judge Infilled prompts results across different training stages. The transferred prompt improves on Public and RO models showing that the infilled prompts transfer across different LLaDA variants. 
+
+## B Diffusion Perplexity Definition 
+
+Following Sahoo et al. (2024), we denote σ(t) as the noise schedule controlling the mask tokens in a sequence at timestep t: higher values of σ correspond to more aggressive masking. We denote αt = exp (−σ(t)) as the probability of a token remaining unmasked at time t (i.e., the survival probability), where α′
+
+t represents the time derivative of αt. Diffusion perplexity (PPL) is defined using the negative evidence lower bound (NELBO) for a sequence X1: L of length L by PPL (X) = exp (LNELBO /L) (3) NELBO for a sequence X1: L of length L is: 
+
+LNELBO = −E
+
+Z t=1
+
+t=0
+
+α′
+
+t
+
+1 − αtL
+
+# ∑
+
+i=1
+
+log P(Xit|Xi
+
+0)dt (4) 12 Preprint. Under review. where α′ 
+
+> t
+> 1−αt
+
+weights each timestep loss, equivalent to weighted version of Eq. (2). In practice, we compute a Monte Carlo estimate bLNELBO by sampling timesteps and compute diffusion perplexity PPL as exp ( bLNELBO /L). To compute bLNELBO , we sample t ∼ U(0, 1 ) with the noise schedule σ(t) = tσmax where σmax is set to 10. 
+
+## C Training Hyperparameters 
+
+Table 5 summarizes the training hyperparameters for full-sequence masking (FS) and conventional response masking (RO). 
+
+Hyperparameter Value 
+
+Learning rate (LLaDA) 1 × 10 −5
+
+Learning rate (Dream) 2 × 10 −6
+
+LR schedule Cosine decay Batch size (LLaDA) 1 (32 grad. accum. steps) Batch size (Dream) 2 (64 grad. accum. steps) Training epochs (FS) 8Training epochs (RO) 4Warmup 500 steps (linear) Optimizer AdamW ( β1 = 0.9, β2 = 0.999, ϵ = 10 −8)Weight decay 0.01 Gradient clipping Max norm 1.0 Table 5: Training hyperparameters for full-sequence masking (FS) and response-only mask-ing (RO). 
+
+## D Inference Configuration 
+
+Table 6 summarizes the inference configuration. 
+
+Parameter Value 
+
+Diffusion steps 128 Response length 128 Temperature (LLaDA) 0.8 Temperature (Dream) 0.1 Table 6: Inference configuration. 
+
+## E Sliding-Window Infilling Configuration 
+
+For combining prompt infilling with prompt optimization methods (§5.3), we use sliding-window (SW) infilling since the structure of optimized prompts is unknown. The sliding window moves across the prompt, masking and infilling tokens in successive windows, and selects the best validated prompt. We tuned the window size, stride, and mask size on the validation set. The best performing configuration is window = 8 tokens, stride = 4 tokens, and mask = 8 tokens. 
+
+## F Dataset Statistics 
+
+We provide detailed statistics for all datasets used in our experiments: 13 Preprint. Under review. 
+
+Training Data We fine-tune models on Feedback Collection (Kim et al., 2023), which contains 95,000 train examples and 5,000 dev examples for LLM-as-a-Judge tasks. Each example includes an instruction, response, reference answer, evaluation criteria, and score descriptions. We use the train split for both FS and RO fine-tuning. 
+
+Evaluation Datasets 
+
+• GSM8K (Cobbe et al., 2021): Grade school math reasoning dataset with 7,099 train examples, 374 validation examples, and 1,319 test examples. • HoVer (Jiang et al., 2020): Multi-hop fact verification dataset. We use a subset for evaluation with 3 hops and 7 documents per search, averaging results over 3 runs with 16 few-shot examples. • SummEval (Fabbri et al., 2021): Summarization evaluation dataset with human annotations, containing 160 dev examples and 1,440 test examples. We evaluate on the test set containing multiple summarization systems’ outputs across different source documents. • BigGen-Bench (Kim et al., 2025): Large-scale benchmark for generative tasks with 2,780 diverse LLM-as-a-Judge evaluation examples. We use this for out-of-domain evaluation to test generalization. 
+
+## G The Training-Inference Gap: Formal Details 
+
+During supervised fine-tuning, given a prompt-response pair X0 = ( P0, R0), a masking ratio t is sampled uniformly from the interval (0, 1 ] i.e., t ∼ U(0, 1 ]. Given the sampled ratio t, each token Ri 
+
+> 0
+
+in the response is independently masked with probability t. This produces a masked response at time t i.e., Rt where, in expectation, a fraction t of tokens are replaced with the mask token. Within a single training step, all tokens share the same masking probability t.The prompt P0 remains completely clean: Xtr = ( P0, Rt) where P0 is never masked. The SFT training objective becomes: 
+
+LSFT = −E
+
+ 1
+
+|MRt | ∑
+
+> i∈MRt
+
+log P(Xi
+
+> 0
+
+|Xitr )
+
+ (5) where MRt = {i : Rit = [M] } denotes the set of masked token positions in the response at t.This asymmetric masking means the model learns: 
+
+P(R0|P0, Rt) (response denoising) (6) but never experiences: 
+
+P(P0|Pt, R0) (prompt denoising) (7) The bidirectional denoising architecture theoretically supports P(P0|Pt, R0), but response-only SFT never provides the necessary training signal. 
+
+## H Additional GSM8K Results 
+
+Figure 6 shows the performance-efficiency trade-off for Dream’s public checkpoint across different prompting strategies. 
+
+## I HoVer Results 
+
+HoVer (Jiang et al., 2020) requires multi-hop claim verification through iterative retrieval and reasoning, aligning naturally with diffusion models’ progressive refinement. The task involves three retrieval hops (initial evidence, refined queries, final verification) followed 14 Preprint. Under review. 0 500 1000 1500 2000 2500 3000 3500 4000 
+
+> Prompt Length (tokens)
+> 78
+> 79
+> 80
+> 81
+> 82
+> Exact Match (%)
+> 0-shot
+> 2-shot
+> 8-shot
+> 16-shot
+> Infilled
+> (Transfer)
+
+Figure 6: GSM8K exact match rate vs. prompt length for Dream public checkpoint. The infilled prompt (red star) achieves the best exact match accuracy (81.3%) with only 463 tokens on average, outperforming all in-context learning approaches while using significantly fewer tokens than 8-shot (2117 tokens) and 16-shot (4169 tokens) configurations. by classification (SUPPORTED/REFUTED/NOT ENOUGH INFO). Each hop contains maskable prompt components: query generation instructions, summarization strategies, and evidence aggregation rules. Table 7 shows that full-sequence masking (FS) substantially improves label accuracy to 0.550, outperforming the public checkpoint baseline (0.435) by 11.5 percentage points and confirming that full-sequence masking during SFT is essential for unlocking prompt infilling capabilities. Adding response-only refinement (FS+RO) further improves accuracy to 0.604, suggesting that on this dataset the optional second stage provides additional benefit. Unlike GSM8K’s potentially memorized patterns, HoVer’s task-specific query generation and evidence aggregation provide a stronger test of genuine prompt infilling capabilities. 
+
+Model Recall F1 Label Acc 
+
+LLaDA (Public) .560 .002 .268 .001 .435 .010 
+
+LLaDA (FS) .556 .001 .279 .001 .550 .003 
+
+LLaDA (RO) .533 .001 .163 .001 .503 .013 
+
+LLaDA (FS+RO) .547 .001 .211 .000 .604 .014 
+
+Table 7: HoVer few-shot evaluation results (mean ± std over 3 runs). Public: no additional training. 15 Preprint. Under review. 
+
+## J Prompt Templates 
+
+J.1 Original Feedback Collection Prompt Original Feedback Collection Prompt 
+
+###Task Description: An instruction (might include an Input inside it), a response to evaluate, areference answer that gets a score of 5, and a score rubric representing aevaluation criteria are given. 1. Write a detailed feedback that assess the quality of the response strictly based on the given score rubric, not evaluating in general. 2. After writing a feedback, write a score that is an integer between 1 and 5. You should refer to the score rubric. 3. The output format should look as follows: ‘‘Feedback: (write a feedback for criteria) [RESULT] (an integer number between 1 and 5)’’ 4. Please do not generate any other opening, closing, and explanations. ###The instruction to evaluate: 
+
+{orig instruction }
+
+###Response to evaluate: 
+
+{orig response }
+
+###Reference Answer (Score 5): 
+
+{orig reference answer }
+
+###Score Rubrics: [ {orig criteria }]Score 1: {orig score1 description }
+
+Score 2: {orig score2 description }
+
+Score 3: {orig score3 description }
+
+Score 4: {orig score4 description }
+
+Score 5: {orig score5 description }
+
+###Feedback: 
+
+J.2 Partially Masked Prompt Partially Masked Prompt: Task & Score 
+
+[Mask] [Mask] [Mask] [Mask] [Mask] [Mask] [Mask] [Mask]... ###The instruction to evaluate: 
+
+{orig instruction }
+
+###Response to evaluate: 
+
+{orig response }
+
+###Reference Answer (Score 5): 
+
+{orig reference answer }
+
+###Score Rubrics: [ {orig criteria }]Score [Mask] [Mask]... Score [Mask] [Mask]... Score [Mask] [Mask]... Score [Mask] [Mask]... Score [Mask] [Mask]... ###Feedback: 
+
+16 Preprint. Under review. 
+
+J.3 Example Infilled Prompt 
+
+The following shows an example prompt after infilling by LLaDA. The task description and score rubric (previously masked) have been infilled from few-shot examples. Note the non-integer score for Score 4 (4.2), which the model inferred from the few-shot examples: 
+
+Infilled Prompt Example 
+
+###Task Description: An instruction (might include an Input inside it), a response to evaluate, areference answer that gets a score of 5, and a score rubric representing aevaluation criteria are given. 1. Write a detailed feedback that assess the quality of the response strictly based on the given score rubric, not evaluating in general. 2. After writing a feedback, write a score that is a integer number between 1 and 5. 3. The output format should look as follows: ‘‘Feedback: (write a feedback for criteria) [RESULT] ( integer number between 1 and 5)’’ ###The instruction to evaluate: 
+
+{orig instruction }
+
+###Response to evaluate: 
+
+{orig response }
+
+###Reference Answer (Score 5): 
+
+{orig reference answer }
+
+###Score Rubrics: [Overall Quality: The overall quality of the summary considering all aspects including coherence, consistency, fluency, and relevance.] Score 1: Score of 1.0 Score 2: Score of 1.2 Score 3: Score of 1.8 Score 4: Score of 4.8 Score 5: Score of 5.0 ###Feedback: 
+
+J.4 C-gen Template for SummEval 
+
+This is the C-gen template used for SummEval evaluation: 17 Preprint. Under review. 
+
+C-Gen Prompt Template for SummEval                      
+
+> Please evaluate the following summary based on the given source text and reference summary. Source Text:
+> {source }
+> Reference Summary:
+> {reference }
+> Summary to Evaluate:
+> {system output }
+> Evaluation Criterion: Overall Quality: The overall quality of the summary considering all aspects including coherence, consistency, fluency, and relevance. Rate the overall quality of the summary on a scale of 1-5, where 1 is very poor and 5 is excellent. Provide your evaluation and end with [RESULT] followed by your numerical score (1-5).
+
+## K Potential Risks and Prompt Leakage 
+
+While our approach enables beneficial applications such as prompt optimization and adap-tation, we acknowledge potential risks associated with prompt infilling capabilities. One concern is prompt leakage: malicious actors could potentially use prompt infilling to reverse-engineer proprietary prompts from observed model outputs. If a model can infer optimal prompts from responses, the same capability could theoretically be exploited to extract confidential prompt engineering strategies from commercial systems by observing their outputs. This risk is particularly relevant for systems that rely on prompt secrecy as part of their intellectual property or competitive advantage. Future work should investigate defensive mechanisms such as prompt obfuscation techniques, watermarking strategies, or access control policies to mitigate unauthorized prompt extraction while preserving the benefits of prompt infilling for legitimate use cases. 
+
+## L Information About Use of LLMs 
+
+In preparing this manuscript, we used Claude Code for two purposes: (1) revising and edit-ing the manuscript text, including improving clarity, fixing grammatical errors, and refining technical descriptions, and (2) generating and debugging code for running experiments, creating plots, and processing experimental results. 18

@@ -1,0 +1,110 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-001.webp",
+      "caption": "Figure 1: An example of CQR. Green and blue represent the key information for retrieval that was omitted in Q3.",
+      "page": 1,
+      "index": 1,
+      "width": 448,
+      "height": 429
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-002.webp",
+      "caption": "Table 1: Evaluation results of various retrieval system types on the test sets of TopiOCQA and QReCC, where all reported values of the baselines originated from their papers.",
+      "page": 6,
+      "index": 2,
+      "width": 933,
+      "height": 538
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-003.webp",
+      "caption": "Figure 6: The prompt used to construct the response preference data based on retrieval.",
+      "page": 15,
+      "index": 3,
+      "width": 461,
+      "height": 554
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-004.webp",
+      "caption": "Figure 7: The trend of R@100 on TopiOCQA with the change in the number of sampled candidate rewritten queries.",
+      "page": 15,
+      "index": 4,
+      "width": 410,
+      "height": 309
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-005.webp",
+      "caption": "Figure 2: An overview of MSPA-CQR, including the two stages of Multi-Faceted Preference Data Construction and Prefix-Guided Multi-Faceted Preference Optimization.",
+      "page": 3,
+      "index": 5,
+      "width": 941,
+      "height": 536
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-006.webp",
+      "caption": "Table 15: A case study on QReCC.",
+      "page": 18,
+      "index": 6,
+      "width": 458,
+      "height": 644
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-007.webp",
+      "caption": "Table 14: A case study on QReCC.",
+      "page": 18,
+      "index": 7,
+      "width": 461,
+      "height": 831
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-008.webp",
+      "caption": "Table 6: Zero-shot retrieval performances under the dense retrieval (ANCE).",
+      "page": 13,
+      "index": 8,
+      "width": 943,
+      "height": 346
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-009.webp",
+      "caption": "Figure 4: A comparison of the linguistic features of rewritten queries generated under three preference guides. “N-grams div.” refers to the diversity of n-grams (n = 2), and “Edit dist.” refers to the Levenshtein distance.",
+      "page": 8,
+      "index": 9,
+      "width": 449,
+      "height": 730
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-010.webp",
+      "caption": "Table 13: A case study on TopiOCQA.",
+      "page": 17,
+      "index": 10,
+      "width": 458,
+      "height": 831
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-011.webp",
+      "caption": "Figure 9: A case of merging multiple rewritten queries into a single query.",
+      "page": 17,
+      "index": 11,
+      "width": 461,
+      "height": 383
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-012.webp",
+      "caption": "Table 4: A case study on TopiOCQA, where “Rank” refers to the ranking of the retrieved gold passage, and “Not Found” means that there is no gold passage in the top-100 retrieved passages.",
+      "page": 9,
+      "index": 12,
+      "width": 458,
+      "height": 563
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06771v1/fig-013.webp",
+      "caption": "Figure 8: The trend of MRR on TopiOCQA with the change in the number of sampled candidate rewritten queries.",
+      "page": 16,
+      "index": 13,
+      "width": 407,
+      "height": 312
+    }
+  ]
+}

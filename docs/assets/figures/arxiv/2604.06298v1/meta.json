@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-001.webp",
+      "caption": "Figure 7: Reward Standard Deviation: Right (GSM8K): Variance decreases significantly as training progresses (from ∼ 1.8 to ∼ 0.6), indicating the models are converging on high-confidence solutions. Left (MATH): Variance remains high and volatile for the 0.5B and 1.5B models, suggesting they are relying on stochastic exploration (”guessing”) rather than settling on stable reasoning paths.",
+      "page": 15,
+      "index": 1,
+      "width": 818,
+      "height": 256
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-002.webp",
+      "caption": "Figure 6: Reward Mean Trajectories. Left/Center: On the MATH datasets (L1-L5 and L1L3), the 3B model (Green) demonstrates steady monotonic improvement. In contrast, the 0.5B model (Orange) exhibits a flat or noisy trajectory, indicating an inability to consistently optimize the complex reasoning objective. Right: On the GSM8K dataset, all models—including the 0.5B converge reliably, confirming that the instability is specific to the difficulty of the task relative to model capacity.",
+      "page": 14,
+      "index": 2,
+      "width": 818,
+      "height": 255
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-003.webp",
+      "caption": "Table 4: Impact of Filtering Hard Data. Accuracy (%) when trained on Full Data (MATH L1–L5) vs. Easy Data (MATH L1–L3).",
+      "page": 13,
+      "index": 3,
+      "width": 827,
+      "height": 524
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-004.webp",
+      "caption": "Table 5: Cross-Domain Transfer Analysis. Accuracy (%) comparing models trained on GSM8K, MATH (L1-L5), and MATH (L1-L3), evaluated by subject and difficulty.",
+      "page": 13,
+      "index": 4,
+      "width": 827,
+      "height": 523
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-005.webp",
+      "caption": "Figure 2: Difficulty-stratified MATH accuracy for base and GRPO-tuned models. GRPO trained on full data (L1–L5) performs similarly to GRPO trained on L1–L3, suggesting limited benefit from including higher-difficulty problems (especially for smaller models).",
+      "page": 4,
+      "index": 5,
+      "width": 810,
+      "height": 262
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-006.webp",
+      "caption": "Figure 3: Cross-dataset generalization under GRPO. Accuracy on the Numerical subset of MATH for 0.5B/1.5B/3B models trained with GRPO on (i) MATH L1–L3, (ii) MATH L1–L5, and (iii) GSM8K.",
+      "page": 4,
+      "index": 6,
+      "width": 483,
+      "height": 254
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-007.webp",
+      "caption": "Figure 4: Answer Extraction Failure Rate vs. Difficulty (MATH Full). Percentage of generations without a parsable <answer>...</answer> span. Failures increase with difficulty; the 1.5B model spikes at Level 5 (18.1%), while 3B remains more stable (13.3%).",
+      "page": 12,
+      "index": 7,
+      "width": 743,
+      "height": 391
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-008.webp",
+      "caption": "Figure 5: Average Completion Tokens vs. Difficulty (MATH Full). Generation length increases with difficulty across model sizes (approaching ∼400 tokens at L5 for 1.5B/3B), indicating sustained reasoning effort even when answer extraction fails.",
+      "page": 12,
+      "index": 8,
+      "width": 743,
+      "height": 348
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06298v1/fig-009.webp",
+      "caption": "Figure 10: Training dynamics for the size-matched Random 45% control experiment. (a) Mean Reward trajectory. (b) Reward Standard Deviation. The volatile reward and persistently high variance further illustrate the destabilizing effect of hard samples under a reduced step count.",
+      "page": 16,
+      "index": 9,
+      "width": 816,
+      "height": 331
+    }
+  ]
+}

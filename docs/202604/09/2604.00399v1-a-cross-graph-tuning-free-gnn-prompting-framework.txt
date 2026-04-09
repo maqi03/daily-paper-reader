@@ -1,0 +1,622 @@
+Title: A Cross-graph Tuning-free GNN Prompting Framework
+
+URL Source: https://arxiv.org/pdf/2604.00399v1
+
+Published Time: Thu, 02 Apr 2026 00:32:09 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# A Cross-graph Tuning-free GNN Prompting Framework 
+
+## Yaqi Chen a, Shixun Huang a,∗, Ryan Twemlow a, Lei Wang a, John Le a, Sheng Wang b, Willy Susilo a,Jun Yan a and Jun Shen a
+
+> a
+
+University of Wollongong, Northfields Avenue, Gwynneville, 2500, NSW, Australia 
+
+> b
+
+Wuhan University, No. 299, Luojia Hill, Wuhan, 430072, Hubei, China 
+
+A R T I C L E I N F O 
+
+Keywords :Graph neural networks (GNNs) Prompt learning Web graphs Few-shot learning Node classification Link prediction 
+
+A B S T R A C T 
+
+GNN prompting aims to adapt models across tasks and graphs without requiring extensive retraining. However, most existing graph prompt methods still require task-specific parameter updates and face the issue of generalizing across graphs, limiting their performance and undermining the core promise of prompting. In this work, we introduce a Cross-graph Tuning-free Prompting Framework ( CTP ), which supports both homogeneous and heterogeneous graphs, can be directly deployed to unseen graphs without further parameter tuning, and thus enables a plug-and-play GNN inference engine. Extensive experiments on few-shot prediction tasks show that, compared to SOTAs, CTP achieves an average accuracy gain of 30.8% and a maximum gain of 54%, confirming its effectiveness and offering a new perspective on graph prompt learning. 
+
+## 1. Introduction 
+
+Graph Neural Networks (GNNs) possess strong rela-tional modeling capabilities, supporting applications that span across social networks, knowledge bases, biological systems, and recommender engines (Zhou et al., 2020; Hamilton et al., 2017; Zeng et al., 2020; He et al., 2020). However, their practical deployment remains limited. Most existing GNNs are developed under a graph-specific setting, where a model is trained and evaluated on different splits of the same graph rather than transferred to unseen graphs. This setting is often unrealistic in practice, where downstream graphs may vary substantially in structure, semantics, and even graph type. In addition, many existing approaches depend on supervised signals or task-specific labels during training, which reduces their scalability and limits their ap-plicability in label-scarce real-world scenarios. Even when transferred to a new graph, these methods often require additional fine-tuning or downstream adaptation, resulting in considerable computational cost and reduced usability. Therefore, a practically useful graph learning framework should not only generalize across graphs, but also reduce dependence on labeled data during training and avoid task-specific re-optimization during deployment. To overcome these limitations, existing studies have mainly followed two paradigms: pre-train and fine-tune 
+
+and prompt learning . The pre-train and fine-tune paradigm leverages large-scale graph information to learn transferable representations, which are then adapted to downstream tasks through task-specific fine-tuning (Hu et al., 2020; Hu* et al., 2020; Xie et al., 2022b; Subramonian, 2021). Although fine-tuning avoids training from scratch, it still requires updating GNN parameters for new tasks or graphs, limiting scalabil-ity. In contrast, prompt learning , inspired by NLP prompts that use task descriptions and exemplar outputs to guide model inference, extends this paradigm to the graph domain 
+
+> ∗
+
+Corresponding author  
+
+> shixunh@uow.edu.au
+
+(S. Huang) LLM 
+
+Politics 
+
+> Example
+> NLP Prompt
+> Graph Prompt
+> Prompting
+> Framework
+> Practical GNN prompting challenges to be addressed by our work:
+> Prohibitive Tuning Cost
+> Cross-graph Generalization
+> Adaptation to diverse tasks and graph types
+> An analogy between GNN prompts and NLP prompts
+> Query
+> Label Node
+> Sentence: "The stock market saw a sharp increase."
+> Label: Finance."
+> Examples
+> Sentence: "The team scored two goals in 3 minutes."
+> Label: Sports."
+> Query
+> ？
+> Input Graph
+> Sentence: "The government annouced new policies to
+> reduce carbon emissions."
+> Label: ?
+
+？
+
+Figure 1: An analogy between GNN and NLP prompts 
+
+(Figure 1). Since graphs lack the sequential semantics that naturally guide prompt design in text, researchers resort to introducing small learnable components, called graph prompts, attached to a frozen GNN backbone to encode task-specific signals (Liu et al., 2023b; Sun et al., 2023, 2022; Fang et al., 2023; Li et al., 2024b). These tuning-dependent prompts are typically imple-mented as trainable tokens or answer-function modules. By tuning their parameters, the prompts either adapt a frozen GNN backbone to downstream objectives or transform un-seen inputs to better align with the pretrained model. Al-though this strategy substantially alleviates the heavy cost of full-model fine-tuning, it still relies on downstream pa-rameter updates and therefore falls short of truly plug-and-play deployment. Moreover, many existing graph prompting Page 1 of 12 
+
+> arXiv:2604.00399v1 [cs.LG] 1 Apr 2026
+
+methods are trained or adapted with task-specific supervi-sion, and are often evaluated within the same graph or a single graph type, leaving their self-supervised capability and cross-graph generalization largely underexplored. 
+
+The Research Gaps . Despite the growing progress of graph prompt learning, existing methods still fall short of sup-porting a truly general and deployment-ready prompting paradigm. We summarize the main research gaps as follows. 
+
+• Gap 1: Over-reliance on prompt tuning. Unlike conven-tional NLP prompts (Brown et al., 2020; Liu et al., 2023a), which function as an interface between the task and the pretrained model rather than as an additional trainable module, many existing graph prompting meth-ods (Liu et al., 2023b; Sun et al., 2022; Fang et al., 2023; Sun et al., 2023) deviate from this original motivation. In-stead of using prompts purely as task reformulation, they often introduce trainable prompt tokens, prompt struc-tures, or answer-function modules that must be optimized for each downstream task. As a result, these approaches increases training cost and reduces the efficiency and simplicity advantages of prompting, and falls short of the truly plug-and-play usage that prompting is intended to enable. 
+
+• Gap 2: Over-reliance on task-specific supervised signals .Some existing graph prompting approaches (Wu et al., 2020; Zhou et al., 2020; Hamilton et al., 2017; Zeng et al., 2020; Vashishth et al., 2020; Veličković et al., 2018; He et al., 2020) depend on labeled signals (e.g., node labels), either to optimize prompts directly or to adapt prompt-related components for specific tasks (e.g., node classifi-cation). Such reliance on supervision weakens their appli-cability in real-world graph domains, where high-quality labels are often scarce, expensive, or unavailable. More importantly, it leaves open the question of whether graph prompting can be developed in a fully self-supervised manner while retaining strong transferability across tasks. 
+
+• Gap 3: Transductive limitation . Many prior studies (Liu et al., 2023b; Yang et al., 2024; Sun et al., 2022) assess graph prompting in a same-graph setting, where training and evaluation are conducted on different splits of a single graph. Although this protocol is convenient for bench-marking, it does not reflect realistic deployment scenarios, where the pretrained model is expected to generalize inductively to entirely unseen graphs. 
+
+• Gap 4: Limited support for diverse graph types . Current graph prompting methods (Yu et al., 2024; Sun et al., 2023) are typically developed for only one graph type, such as homogeneous graphs or knowledge graphs, rather than a unified setting covering both homogeneous and heterogeneous graphs. This limitation restricts their appli-cability in real-world scenarios where graph data exhibit diverse structural and semantic properties. 
+
+Our goal . To address the above limitations, we design a 
+
+self-supervised , tuning-free , and inductive GNN prompting framework that generalizes across both homogeneous and 
+
+heterogeneous graphs for fundamental tasks, including node classification and link prediction. Inspired by the in-context meta learning paradigm (Dong et al., 2024; Min et al., 2022; Huang et al., 2023), we leverage an unsupervised prompting framework which unifies the pretraining task and downstream tasks into one single task. This unified representation enables a single model to handle diverse graph tasks without additional tuning, regardless of graph size. In this framework, a prompt graph is first constructed to contextualize input nodes and edges by incorporating both prompt examples and query instances, which are con-nected through label nodes to establish direct prompt–query interactions. A GNN is then pretrained on these prompt graphs, where attention mechanisms facilitate information propagation, enabling strong out-of-the-box performance across downstream tasks. The in-context learning objec-tive includes a self-supervised neighbor-matching task that predicts the neighborhood structure of each node or edge, thereby promoting effective relational reasoning. In sum-mary, we make the following contributions: 
+
+• We introduce our Cross-graph Tuning-free Prompt-ing Framework ( CTP ) that addresses key research gaps in GNN prompt learning. It is trained in a self-supervised manner and can be directly deployed to unseen graphs and tasks without parameter tuning. 
+
+• In this framework, we propose a self-supervised prompt sampling strategy, a structure-aware contextualiza-tion mechanism that jointly models prompt examples and query instances by leveraging multiple structural properties to enhance inductive generalization, and an effective training objective for capturing diverse relational patterns and improving task flexibility. 
+
+• Extensive experiments demonstrate that our frame-work consistently outperforms baseline methods on few-shot prediction tasks across both homogeneous and heterogeneous graphs. Compared with state-of-the-art approaches, it achieves an average improve-ment of 30.8% and a maximum gain of 54%, while exhibiting the relatively low performance variance. 
+
+## 2. Related Work 
+
+Pre-training and fine-tuning. To alleviate label scarcity and improve generalization, graph models commonly adopt a pre-train fine-tune paradigm: a self-supervised pre-training stage captures transferable structural regularities, followed by light supervision on the downstream task. Typical pretext families include autoencoding (e.g., marginalized graph autoencoders) (Wang et al., 2017), masked/component mod-eling and multi-level strategies that jointly pre-train node-and graph-level objectives (Hu* et al., 2020), and graph con-trastive learning at node/graph levels (e.g., DGI (Veličković et al., 2019), InfoGraph (Sun et al., 2019), GraphCL (You et al., 2020)). Large-scale molecular pretraining with graph 
+
+> Page 2 of 12
+
+Transformers (e.g., GROVER (Rong et al., 2020)) fur-ther shows the benefit of rich self-supervision before task-specific fine-tuning. While effective, this pipeline still up-dates backbone parameters per task/domain and can struggle when task distributions diverge from pretext objectives. 
+
+Meta in-context learning. Meta in-context learning (meta-ICL) provides a tuning-free route to downstream adapta-tion: the model is meta-trained to adapt in the forward pass from few-shot prompts, so test-time weight updates are unnecessary (Min et al., 2022). Prior work shows (i) large language models already perform few- or zero-shot ICL by conditioning on exemplars (Brown et al., 2020; Li et al., 2024a), and meta-training further strengthens such behavior across diverse tasks (Min et al., 2022); and (ii) ICL can be interpreted as gradient descent executed inside the forward computation (Von Oswald et al., 2023; Akyürek et al., 2023) or as implicit Bayesian updating driven by coherent task priors (Xie et al., 2022a). In GNN, related meta-learning ideas have been explored for cross-graph few-shot generalization (Huang and Zitnik, 2020; Zhou et al., 2019). 
+
+Graph Prompt Learning . Instead of fully fine-tuning all model weights (Sun et al., 2024), graph prompt learning aims to bridge the gap between pretraining and down-stream objectives by conditioning a pretrained GNN on task-relevant prompt signals. Early prompt-based graph methods still required updating substantial portions of the GNN backbone, making them more akin to lightweight fine-tuning rather than true prompting (Hu* et al., 2020; Rong et al., 2020). Later works moved toward prompt-tuning , where the backbone is frozen and only prompt-related parameters are optimized. For example, GPF (Hu et al., 2020) learns universal prompt features appended to node inputs, while GraphPrompt (Liu et al., 2023b) unify pretraining and down-stream tasks through a shared template and inject learnable prompts at the readout layer or throughout the encoder. GraphPro (Yang et al., 2024) combines structural prompts for recommendation, HGPrompt (Yu et al., 2024) further extends this line to both homogeneous and heterogeneous graphs via a dual-template design, and EdgePrompt (Fu et al., 2025) explores a different design choice by learning edge prompts and incorporating them through message passing. More recently, LEAP (Xu et al., 2024) strengthens the universality perspective of graph prompt tuning and uses actor-critic reinforcement learning to select nodes and edit prompts for better generalization. However, despite their different prompt designs, these methods still require prompt optimization on downstream tasks, and thus remain fundamentally tuning-dependent. Another line of work incorporates meta-learning into graph prompting to improve prompt initialization and adap-tation. All-In-One (Sun et al., 2023) reformulates node-, edge-, and graph-level tasks into a unified graph-level prompting format and meta-learns prompt initialization across tasks, improving transferability but still requiring per-task prompt tuning. PRODIGY (Huang et al., 2023) takes a more decisive step toward tuning-free graph in-context learning by introducing an explicit prompt graph that connects support examples, queries, and label nodes, and by meta-training a GNN to solve downstream tasks in context without any parameter updates at test time. To the best of our knowledge, it is the first graph frame-work to clearly realize the tuning-free prompting paradigm on unseen graphs, demonstrating effective transfer across both citation networks and knowledge graphs. However, the current framework does not fully exploit its potential. Random sampling and augmentation may introduce noise and distort structural patterns, while weak modeling of inter-label relationships can blur class boundaries. This leaves room for improving how information is organized and reused across tasks. GraphPrompter (Lv et al., 2025) extends the PRODIGY-style framework with multi-stage prompt generation, selection, and augmentation, reducing noisy prompts and improving accuracy on diverse downstream graphs. However, its performance gains stem from more sophisticated learned optimisation components rather than from eliminating the dependence on supervised training signals. In contrast, our goal is not only to improve graph in-context performance, but also to establish a framework that is fully self-supervised during pretraining, tuning-free at deployment, and applicable across different tasks and graph types under a unified formulation. Beyond prompting, recent work on fully-inductive graph generalization also highlights the importance of transferring to unseen graphs. GraphAny (Zhao et al., 2025) defines a fully-inductive setting in which test graphs may have new structures, feature spaces, and label spaces, and proposes an analytical inference scheme with learned inductive attention for arbitrary graphs. This setting is closely related to our cross-graph motivation. However, GraphAny is not a self-supervised prompting framework; it learns from labeled nodes and focuses specifically on node classification rather than unified prompting across graph types and task forms. Overall, despite recent progress, several notable limita-tions remain. Most existing approaches still require down-stream prompt optimisation, many rely on supervised adap-tation rather than fully self-supervised training, and support across diverse graph types is fragmented. These challenges motivate our work, which aims to address the unresolved gaps in prior studies. 
+
+## 3. Preliminaries 
+
+Unified Formulation of Node and Link Classification . Let 
+
+ = ( , , ) be a graph, where each edge 𝑒 = ( 𝑢, 𝑟, 𝑣 ) ∈ 
+
+connects two nodes 𝑢, 𝑣 ∈  via relation 𝑟 ∈ . Let 
+
+denote a set of 𝑚 classes. We treat node classification and link prediction as a unified task. Specifically, depending on the task, we define  as a set of individual nodes or node pairs from . For each 𝑥 ∈ , 𝑥 contains a single node (i.e., 
+
+|𝑥 | = 1 ) for node classification, whereas for link prediction, 
+
+𝑥 contains the two endpoints of a potential edge (i.e., |𝑥 | =
+
+> Page 3 of 12
+
+Example and Query Collection  Context Construction 
+
+and Augmentation  Prompt Graph Learning 
+
+> Augmented Node
+> ?
+> ?
+> Label
+> Example
+> Nodes
+> Query
+> Nodes
+> Example Context Node
+> Query Context Node
+> Label Node
+> Query
+> context
+> T or F?
+> T
+> F
+> Example
+> context
+> T or F?
+> Augment
+> Augment
+> Augment
+> Augment
+> Augment
+> Augment
+> Context Embedding
+> Initialization
+> Prompt Graph Learning
+> Input Graph
+> ?
+> ?
+
+Section 4.2  Section 4.3  Section 4.4 Figure 2: The Prompting Framework. The overall workflow includes three stages, illustrated with node classification. During example and query collection, example and query nodes are sampled for each class. Then each sampled node’s context is constructed and augmented from its neighborhood. Finally a prompt graph is built, with context nodes initialized using their contextual embeddings. A learning process refines all node embeddings and all learned parameters will be directly used on unseen test graphs without any further update. 
+
+2). Each input 𝑥 is assigned with a label 𝑐 ∈  and each sample is then represented as a tuple (𝑥, 𝑐 ).
+
+Inductive, Few-shot, Tuning-free Prompting . For an 𝑚 -way, 𝑠 -shot episode, we construct a support set 𝑒𝑥 ={( 𝑥 𝑖 , 𝑐 𝑖 )} 𝑠 ⋅𝑚 𝑖 =1 containing exactly 𝑠 labeled examples per class, and a query set 𝑞𝑢 = {( 𝑥 𝑗 , 𝑐 𝑗 )} 𝑛 ⋅𝑚 𝑗 =1 with 𝑛 queries per class. We focus on the inductive setting in this paper, the pretrained model in the source graph will be directly applied to a different downstream graph without updating any learnable parameters (including prompts). 
+
+## 4. Methodology 
+
+In this section, we first provide an overview of the prompt learning framework (inspired by Huang et al. (2023)) in Section 4.1, followed by our key optimisations within its core components in Sections 4.2–4.4. 
+
+4.1. The Prompt Learning Framework Overview 
+
+Our framework (illustrated in Figure 2) comprises three fundamental components, each described in detail below. 
+
+• Example and Query Collection . During pre-training, the process begins by sampling a set of neighbor-hoods, with each neighborhood representing a pseudo class (i.e., a self-supervised signal). From each neigh-borhood, a small number of examples and queries (belonging to the same class) are sampled to construct the example set and query set. In the testing phase, we have an entirely new input graph and the collected examples and queries have external class labels (e.g., node category labels and edge type labels). When the downstream task is edge type classification, each example or query contains two nodes. 
+
+• Context Construction and Augmentation . Although example and query nodes are defined, each node alone lacks sufficient context for effective learning. To ad-dress this, local neighborhoods are used to provide contextual information. To mitigate the issue of lim-ited information, an augmentation step inspired by contrastive learning is applied during pre-training. It corrupts the context of example and query nodes via node dropping and feature masking , enhancing robustness to structural and attribute variations. 
+
+• Prompt Graph Learning via Edge Type Prediction . To enable tuning-free adaptation, a prompt graph been introduced. It contains context nodes (examples and queries) initialized via GNN 𝑖𝑛𝑖𝑡 using neighborhood aggregation, and label nodes initialized by standard methods. A separate model GNN 𝑟𝑒𝑓 refines all em-beddings. The prompt graph formulates classification as an edge type prediction task: an edge between a context node and a label node is labeled True if they belong to the same class. Both GNNs are trained only during pretraining and reused directly during testing. 
+
+4.2. Representative Example and Query Collection for Pretraining 
+
+In the self-supervised setting, labels are assigned by neighborhood, with example and query nodes in the same neighborhood sharing a label. The selection of neighbor-hoods is determined by the neighborhood centroids being sampled. Unless otherwise specified, all centroids in the following sections refer to neighborhood centroids. Centroid sampling is therefore crucial, as the chosen centroids should ideally cover all classes. However, without access to true 
+
+Page 4 of 12 Example Node    
+
+> Query Node
+> C. Example and Query Collection
+> and Context Construction
+> Neighborhood Centroid
+> Distant nodes ( )with similar
+> neighborhoods are mapped to
+> similar embeddings.
+> A. Self-supervised Embedding Generation B. Neighborhood Centroids Collection via
+> Clustering and Random Sampling
+> Clustering
+> Cluster
+> Cluster Cluster
+> Neighborhood-Similarity-
+> Aware Embedding
+> ?
+> ?
+> Neighborhood
+> Neighborhood
+> Collect Cluster Center and
+> Randome Centroid
+
+Figure 3: Neighborhood Centroid Collection. This figure illustrates the preprocessing step for clustering node embeddings and selecting centroids. (A) Initially, node embeddings are generated by a self-supervised GNN, enabling them to capture neighborhood similarity in the graph. (B) The embeddings are then clustered, and the cluster center nodes together with some randomly sampled nodes are collected to form the neighborhood centroid candidate set. (C) Each centroid represents a class, and example and query nodes are subsequently sampled from the local neighborhood of each centroid for context construction. Unless otherwise specified, all centroids in the following sections refer to neighborhood centroids. 
+
+labels, direct sampling is infeasible. A common workaround is random centroid sampling (Huang et al., 2023). But, due to the non-uniform degree distributions of graphs, this method tends to oversample nodes from dense regions, leading to under-representation of small classes in sparse regions and loss of valuable samples. To address this issue, we introduce a collection strategy driven by neighborhood similarity. As a preprocessing step, we first generate node embeddings using a self-supervised GNN, which capture neighborhood similarity. That is, nodes with similar local structures obtain similar representations even if they are far apart in the graph. We then cluster these embeddings to form similarity-aware groups and select cluster centers as centroid candidates, reducing the risk of missing rare patterns. Figure 3 illustrates our approach. We use a spatial GNN 𝑝𝑟𝑒 for local aggregation to cap-ture low-order topological information with a random-walk based objective function to capture higher-order informa-tion. The result embedding set 𝑝𝑟𝑒 contains embeddings (with 𝑑 dimensions) of all nodes from the input graph 𝑖𝑛𝑝𝑢𝑡 :
+
+𝑝𝑟𝑒 = GNN 𝑝𝑟𝑒 (𝑖𝑛𝑝𝑢𝑡 ; 𝜃 𝑝𝑟𝑒 ), (1) 
+
+(𝐡 𝑝𝑟𝑒 𝑢 ) = − log (𝜎 (𝐡 𝑝𝑟𝑒 𝑢 
+
+> T
+
+𝐡 𝑝𝑟𝑒 𝑣 )) − 𝑄 𝔼 𝑣 𝑛 ∼𝑃 𝑛 (𝑣 )
+
+[
+
+log (𝜎 (− 𝐡 𝑝𝑟𝑒 𝑢 
+
+> T
+
+𝐡 𝑝𝑟𝑒 𝑛 ))]
+
+,
+
+(2) where GNN 𝑝𝑟𝑒 can be any spatial-based GNN (e.g., Graph-SAGE), 𝜃 𝑝𝑟𝑒 refer to learnable parameters, 𝐡 𝑝𝑟𝑒 𝑢 is the em-bedding of node 𝑢 , node 𝑣 is a positive sample co-occuring in the same random walk as 𝑖 , 𝑄 defines the number of negative samples and negative sample node 𝑛 is drawn from the negative sampling distribution 𝑃 𝑛 .To leverage these embeddings, we cluster them (e.g., using 𝑘 -means) based on semantic and structural similarity. Instead of performing k-means for every batch using all available points, we perform a one-time k-means clustering with a substantially large k. Each batch then sample nodes from these precomputed clusters. This strategy captures finer intra-class variations and substructures, balancing granular-ity and computational efficiency. However, in sparse graph regions, pure clustering may still overlook rare patterns. Supplementing the clusters with randomly sampled nodes fills these coverage gaps and miti-gates clustering bias, providing a more comprehensive train-ing sample. To ensure representativeness and diversity, a centroid set  is constructed for all 𝑏 batches and used throughout training. Specifically, a centroid set consists of m-ways per batch, i.e.,  = { 𝑜 𝑖 }𝑚 ×𝑏 𝑖 =1 . It consists of cluster centers and randomly sampled nodes: 
+
+ = K−Means (𝑝𝑟𝑒 , 𝑘 ) ∪ RandomSample (𝑝𝑟𝑒 , ||−𝑘 ),
+
+(3) where 𝑘 = ⌊𝛼 ⋅ ||⌋ , and 𝛼 ∈ [0 , 1] . Here, K−Means 
+
+runs on embeddings and returns the corresponding nodes, so 𝑘 cluster centers are obtained via 𝑘 -means, while the remaining centroids are sampled uniformly at random. For each centroid 𝑜 , we extract its ℎ-hops neighborhood to obtain the centroid subgraph 𝑜 = ( 𝑜 , 𝑜 , 𝑜 ). Each 𝑜 
+
+corresponds to a class 𝑐 ∈ . From every 𝑜 , we uniformly sample 𝑠 example nodes to form the subset 𝑒𝑥 𝑜 and 𝑛 query nodes to form the subset 𝑞𝑢 𝑜 . All nodes drawn from the same 𝑜 share same label 𝑐 ∈  also align to the class. The example set ( 𝑒𝑥 𝑜 ) and query set ( 𝑞𝑢 𝑜 ) gathered from certain 
+
+𝑜 to represent class 𝑐 can be represented as: 
+
+𝑒𝑥 𝑐 = { ( 𝑥 𝑖 , 𝑐 ) ||| 𝑥 𝑖 ∈ 𝑒𝑥 𝑜 , 𝑜 ⇔ 𝑐 ∈ },
+
+𝑞𝑢 𝑐 = { ( 𝑥 𝑗 , 𝑐 ) ||| 𝑥 𝑗 ∈ 𝑞𝑢 𝑜 , 𝑜 ⇔ 𝑐 ∈ }.
+
+(4) 
+
+Page 5 of 12 Centroid 
+
+> Example/Query Node
+> Candidate Node
+> Protected Node
+> Structural
+> Consistency
+> Structural
+> Diversity
+
+Augmentation Strategy Comparison     
+
+> ✅
+> ❌✅
+> ❌✅
+> ✅
+> Original Independent
+> Overly Balanced
+
+Neighborhood of Certain Centroid and 
+
+Correspond Example/Query Nodes    
+
+> C
+> Structural
+> Integrity ✅❌✅
+> Centroid Subgraph Context Subgraph
+> Overly
+> Conservative
+
+Figure 4: Augmentation Strategy Comparison . When sampling context near a shared centroid, subgraphs often overlap. The 
+
+Overly Independent Approach augments all nodes, including overlapping ones, which disrupts structural consistency and integrity. The Overly Conservative Approach blocks augmentation in these regions, reducing structural diversity. Our Balanced Approach 
+
+selectively limits augmentation in overlapping areas, preserving consistency while ensuring sufficient diversity and integrity. 
+
+By incorporating the example-node subsets and query-node subsets from all subgraphs yields the example and query sets ex and 𝑞𝑢 , respectively. 
+
+4.3. Context Construction with Structural Diversity, Consistency and Integrity 
+
+For each input 𝑥 , we extract its neighborhood within certain hops (specified in the parameter settings) to form a context graph. These subgraphs preserve the local structural and relational information around each selected node, serv-ing as the input for pretraining. In few-shot settings, the number of available context graphs is limited, which may cause the model to overfit spe-cific features and hinder generalization. Data augmentation is commonly used to address this. In our case, context graphs are labeled based on samples from the same 𝑜 , which must remain small to avoid noise. Thus, context graphs with the same label exhibit significant overlap. Under this setup, applying augmentation independently 
+
+to each context graph (Huang et al., 2023) would be a natural solution. This approach may produce samples with struc-tural diversity . However, it often compromises structural consistency and structural integrity . Regarding structural consistency : due to the fact that nodes and patterns are shared across different context graphs, independent augmentations may modify shared nodes or pattern in some graphs but not others. As a result, augmentation misleads the model by introducing conflicting or corrupted information. For 
+
+structural integrity : since we rely on 𝑜 to identify class semantics, and the overlapping regions are typically centered around the centroid itself, excessive augmentation in these areas may disrupt critical structural patterns and undermine the underlying semantic cues essential for classification. Thus, such an overly independent approach can degrade performance by injecting spurious variations or disrupting critical structural patterns necessary for effective represen-tation learning. To mitigate these issues, one might avoid augmenta-tion in overlapping regions entirely. However, this overly conservative approach is suboptimal. Overlapping regions often cover a large portion of context graphs; blocking them reduces augmentation diversity. To strike a good balance among structural diversity, con-sistency and integrity, we propose a Balanced augmentation strategy, illustrated in Figure 4. Let 𝑜 denote all nodes in 
+
+𝑜 . The key idea is to protect a subset of these nodes from augmentation. We define: 
+
+𝑜 = { 𝑜 } ∪ 𝑒𝑥 𝑜 ∪ 𝑞𝑢 𝑜 ∪ 𝑟𝑒𝑚𝑎𝑖𝑛 𝑜 , (5) here, remain  
+
+> 𝑜
+
+denotes the set of nodes in 𝑜 after removing the centroid 𝑜 as well as the sampled sets 𝑒𝑥 𝑜 and 𝑞𝑢 𝑜 . Then we separate the nodes to be preserved into protect  
+
+> 𝑜
+
+:
+
+protect  
+
+> 𝑜
+
+= { 𝑜 } ∪ 𝑒𝑥 𝑜 ∪ 𝑞𝑢 𝑜 ∪ (𝑝 ), (6) where 𝑝 ⊂ 𝑟𝑒𝑚𝑎𝑖𝑛 𝑜 contains a fraction 𝑝 of the nodes in 
+
+𝑟𝑒𝑚𝑎𝑖𝑛 𝑜 . Nodes in protect  
+
+> 𝑜
+
+are exempt from augmentation. For every input 𝑥 from 𝑒𝑥 𝑜 ∪ 𝑞𝑢 𝑜 , its context graph is defined as con  
+
+> 𝑥
+
+= ( con  
+
+> 𝑥
+
+, con  
+
+> 𝑥
+
+, con  
+
+> 𝑥
+
+). A candidate node set 
+
+candidate  
+
+> 𝑥
+
+⊂ con  
+
+> 𝑥
+
+is subject to augmentation operations and consists of all nodes in con  
+
+> 𝑥
+
+except those in protect  
+
+> 𝑜
+
+.
+
+candidate  
+
+> 𝑥
+
+= 𝑐𝑜𝑛 𝑥 ⧵ protect  
+
+> 𝑜
+
+. (7) Then, two corruption methods, namely node dropping and feature masking, are applied to each context subgraph 
+
+𝑐𝑜𝑛 𝑥 . These methods are restricted to the node set 𝑐𝑎𝑛𝑑𝑖𝑑𝑎𝑡𝑒 𝑥 
+
+producing an augmented context subgraph ̃ 𝑐𝑜𝑛 𝑥 .
+
+Page 6 of 12 A. Embedding Initilaization:  Random VS Average   
+
+> Cross-Entropy Loss
+> It aligns node and label
+> embeddings but ignores
+> inter-label relationships.
+> ✅
+> ❌
+> Random Initialization
+> The initial embeddings may
+> misalign with node semantics,
+> reducing training efficiency.
+> Average Initialization
+> Initializing with the average
+> yields embeddings more
+> aligned with node semantics.
+> Orthogonal Loss.
+> It penalizes label similarity and
+> enhances inter-label distinction.
+
+B. Embedding Refine: CE With Orthogonal Loss 
+
+> class
+> margins
+> more
+> distinctable
+> Label Embedding Example Node Embeddings
+
+Figure 5: Average Initialization and Orthogonal Loss. (A) Compared to random initialization, average embedding provides more context-related label representations. (B) Cross-entropy aligns labels with nodes but neglects inter-label relations, often leading to unclear boundaries. Orthogonal loss mitigates this by encouraging label separation. 
+
+With the augmented context-graph ̃ 𝑐𝑜𝑛 𝑥 for each 𝑥 , the first step in constructing the prompt graph is passing aug-mented context graphs through GNN 𝑖𝑛𝑖𝑡 (e.g., GCN (Kipf and Welling, 2016) or GAT (Veličković et al., 2018)) to gen-erate node embeddings. Embeddings derived from context-graph for each 𝑥 in 𝑒𝑥 become example context nodes 𝐡 𝑒𝑥 𝑥 ,while those from 𝑞𝑢 become query context nodes 𝐡 𝑞𝑢 𝑥 .
+
+𝐡 𝑒𝑥 𝑥 = GNN 𝑖𝑛𝑖𝑡 (̃con  
+
+> 𝑥
+
+), 𝑥 ∈ ex ,
+
+𝐡 𝑞𝑢 𝑥 = GNN 𝑖𝑛𝑖𝑡 (̃con  
+
+> 𝑥
+
+), 𝑥 ∈ qu . (8) For link–prediction task, the input 𝑥 contains two target nodes 𝑣 1 and 𝑣 2. To align the size of input, the neigh-bor nodes of each target are first gathered into a context subgraph, and embeddings 𝐡 𝑖 are generated for all nodes within this subgraph. A second aggregation is then applied to the target nodes 𝑣 1, 𝑣 2 in 𝑥 to obtain 𝐡 𝑣 1 and 𝐡 𝑣 2 . Max pooling across the entire subgraph yields 𝐡 max . These three embeddings are concatenated and passed through a linear projection layer to restore 𝑑 dimension. 
+
+𝐡 𝑥 = 𝑊 ⊤(𝐡 𝑣 1 ‖ 𝐡 𝑣 2 ‖ 𝐡 max 
+
+) + 𝑏, (𝑣 1, 𝑣 2) ∈ 𝑒𝑥 or 𝑞𝑢 , (9) where 𝑊 ∈ 3𝑑 ×𝑑 is a learnable weight matrix and 𝑏 is the learnable bias. A common practice is to initialize each label node with a random vector (Huang et al., 2023). However, without contextual information, the resulting embeddings remain difficult to differentiate, even with prolonged train-ing. Instead, we initialize the corresponding label node 𝐡 𝑙𝑎𝑏𝑒𝑙 𝑐 
+
+by averaging the embeddings of examples belonging to the same class as below. This context-aware initialization po-tentially positions the label embedding nearer to its optimal representation, leading to more efficient training. 
+
+𝐡 𝑙𝑎𝑏𝑒𝑙 𝑐 = 1
+
+|𝑒𝑥 𝑐 |∑
+
+> 𝑥 ∈𝑒𝑥 𝑐
+
+𝐡 𝑒𝑥 𝑥 . (10) 
+
+4.4. Discriminative Prompt Graph Learning 
+
+The prompt graph is constructed by linking these initial-ized example nodes, query nodes, and label nodes as shown in Figure 2. From the prompt graph perspective, example node embeddings 𝐡 𝑒𝑥 provides contextual information for label node embedding 𝐡 𝑙𝑎𝑏𝑒𝑙 . Finally the example set 𝑒𝑥 
+
+and query set 𝑞𝑢 for label 𝑐 can be refined by an attention-based GNN 𝑟𝑒𝑓 (Veličković et al., 2018), with edge labels modulating the attention weights. The task for training is to predict the label of each query node. To this end, classification logits 𝐳 𝑥,𝑐 for input 𝑥 and label 𝑐 are computed as the cosine similarity between each query embedding 𝐡 𝑞𝑢 𝑥 and label embedding 𝐡 𝑙𝑎𝑏𝑒𝑙 𝑐 :
+
+𝐳 𝑥,𝑐 = cos _sim( 𝐡 𝑞𝑢 𝑥 , 𝐡 𝑙𝑎𝑏𝑒𝑙 𝑐 𝑥 ), 𝑐 ∈ . (11) To encourage each 𝐡 𝑙𝑎𝑏𝑒𝑙 to be closer to embeddings of its own class 𝑐 and more distant from those of other classes, the model minimizes the Cross-Entropy (CE) loss 𝑐𝑒 :
+
+𝑐𝑒 = − ∑
+
+> 𝑥
+
+log exp (𝐳 𝑥,𝑐 
+
+)∑
+
+> 𝑐 𝑖 ∈
+
+exp (𝐳 𝑥,𝑐 𝑖 
+
+) . (12) While the generated labels align the pre-train and down-stream dataset (Huang et al., 2023), those labels lack inher-ent features, and the tendency of GNNs to capture shared structures causes them to become similar (Bo et al., 2021), making the CE objective alone insufficient to enforce clear inter-class margins. To prevent label embedding collapse, we introduce an orthogonal loss 𝑜𝑟𝑡ℎ alongside CE. Orthog-onal loss 𝑜𝑟𝑡ℎ explicitly discourages alignment between la-bel embeddings. We normalize each label embedding 𝐡 𝑙𝑎𝑏𝑒𝑙 𝑐 𝑖 
+
+to 𝓁 𝑐 𝑖 , then compute its dot product with all others—large projections indicate near-parallel directions and potential class overlap. 𝑜𝑟𝑡ℎ penalizes these projections, pushing label embeddings toward mutual orthogonality while pre-serving their individual norms, as shown in Figure 5. 
+
+𝑜𝑟𝑡ℎ = ∑
+
+> 𝑖 ≠𝑗
+
+(𝓁 ⊤𝑐 𝑖 𝓁 𝑐 𝑗 
+
+)2. (13) Taken together, our training objective combines the cross-entropy loss 𝑐𝑒 with orthogonal loss 𝑜𝑟𝑡ℎ , weighted 
+
+Page 7 of 12 by a balancing coefficient 𝜆 . Enable the model to learn label representations that are both well aligned with their queries and mutually distinctive, resulting in more discriminative and generalisable classification. We retain the attribute pre-diction loss as an auxiliary objective. During M ASK NODE 
+
+augmentation on each augmented graph ̃ 𝑐𝑜𝑛 𝑥 , we mask a subset of node attributes 𝐹 𝑣 . An MLP takes the learned node embeddings 𝐸 𝑣 to predict the masked attributes, and we add a mean squared error (MSE) reconstruction loss as an auxiliary augmentation term: 
+
+attr (̃ 𝑐𝑜𝑛 𝑥 ) = 1
+
+|𝑥 |∑
+
+> 𝑣 ∈𝑥
+
+MSE (𝐹 𝑣 , MLP( 𝐸 𝑣 )) , (14) where 𝐷 denotes the index set of nodes whose attributes are masked by M ASK NODE .The loss sums the squared similarities of every label pair, and minimising 𝑜𝑟𝑡ℎ drives these similarities toward zero, forcing different label embeddings toward mutual orthogo-nality and thereby preserving clear inter-class margins that the cosine-based CE loss alone cannot guarantee. 
+
+ = 𝑐𝑒 + 𝜆 𝑜𝑟𝑡ℎ + attr (̃ 𝑐𝑜𝑛 𝑥 ). (15) 
+
+## 5. Experiment 
+
+5.1. Experimental Setup 
+
+Evaluation Tasks . We conduct experiments on two types of tasks: node classification and link prediction . The node classification task is performed on homogeneous citation graphs, while the link prediction task is carried out on a heterogeneous knowledge graphs. To evaluate the cross-dataset inductive ability, we construct experiments with separate training and downstream datasets for both tasks. Unlike settings where training and evaluation are performed on different splits of the same graph, our training and down-stream datasets are entirely distinct graphs, each with its own structure, label space, and feature distribution. All training is conducted in a self-supervised few-shot setting. The training task is formulated as an 𝑚 -way classification problem to identify the class of each input among 𝑚 candidate classes. During sample collection, we sample 3 examples and 4 queries for each class (ways) from the training dataset to construct the support and query sets, respectively. Training is then performed using these sets. The model is frozen after training, and no parameter updates are performed during downstream. In downstream evaluation, to simulate realistic deployment scenarios with limited labeled data, we provide 
+
+𝑘 labeled examples per class (way) all drawn from the training split of each downstream datasets. Unless otherwise specified, 𝑘 = 3 in all experiments. In node classification, we sample nodes into example and query sets to predict query labels in the downstream dataset. In the link prediction task, we sample triples consisting of two nodes and the edge between them. The goal is to predict the edge type. 
+
+Datasets . For the node classification task, we pre-train the model on a sampled subset of MAG240M (Hu et al., 2021)                      
+
+> Table 1
+> Dataset statistics
+> Dataset # Nodes # Edges # Classes
+> MAG240M 122M 1.3B 153 Wiki 4.8M 5.9M 639 arXiv 169K 1.2M 40 ConceptNet 791K 2.5M 14 FB15K-237 15K 268K 200 NELL 69K 181K 291
+
+and evaluate cross-graph transfer on arXiv (Hu et al., 2020). For the link prediction task, we pre-train on Wiki (Xiong et al., 2018) and test on three knowledge graphs: Concept-Net (Speer et al., 2017), FB15K-237 (Xiong et al., 2018) and NELL (Xiong et al., 2018). This design allows us to examine both homogeneous graph transfer and heteroge-neous transfer under a unified evaluation framework. Dataset statistics are summarized in Table 1. We construct a subset of MAG240M mainly for computational feasibility and to better support an inductive evaluation setting in a more accessible hardware environment. The subset is generated by a controlled neighborhood-expansion procedure: starting from sampled seed nodes, we iteratively collect their local neighbors while bounding the hop range, the number of neighbors per hop, and the total number of nodes in each sampled subgraph. This preserves representative local struc-ture and semantic context while keeping preprocessing and training costs manageable. 
+
+Baselines . Given the limited research on tuning-free prompts that operate on both homogeneous and heterogeneous graphs, we first compare our method CTP with the only exist-ing method of this kind, PRODIGY (Huang et al., 2023). Specifically, we adopt PG-NM , the self-supervised variant, as a baseline. We also include its strongest baseline, a 
+
+Contrastive approach which leverages node IDs as pseudo-labels and applies data augmentation to construct positive and negative pairs, with inference performed via average-based nearest neighbors. In addition, we also include four widely used prompt-based baselines: All in One (Sun et al., 2023), GPPT (Sun et al., 2022), GraphPrompt (Liu et al., 2023b) and Graph Prompter (Lv et al., 2025). To simulate realistic self-supervised scenarios, all methods are evaluated without post-pretraining prompt tuning or supervised signals for downstream tasks. We include all baselines in the node classification experiments. For link prediction, All-in-One, GPPT, and GraphPrompt are not considered, as these meth-ods are not designed for heterogeneous graph scenarios. 
+
+Parameter Settings . In MAG240M, ArXiv, and Wiki, we extracted 2-hop neighborhood to capture richer structural and semantic context, while for ConceptNet, NELL, and FB15K-237, 1-hop neighborhood is sufficient due to their denser connectivity patterns. Our model architecture was implemented with an input feature dimension of 768 and an embedding dimension of 256. The GNN backbone consisted of one graph convolutional layer, followed by one meta-layer for higher-level representation learning. For optimization, 
+
+> Page 8 of 12
+
+Table 2 
+
+Node Classification Accuracy ( ±std) on Arxiv. This table shows the accuracy and standard deviation in arXiv, in 5 settings of {3,5,10,20,40} ways (number of classes). All trained on the same 20M-node subgraph, and evaluated on Arxiv. 
+
+Way CTP PG-NM Contrastive Graph Prompter All In One GPPT GraphPrompt 3 66.09 (±0.08) 56.82 (±0.08) 56.01 (±0.09) 48.40 (±0.17) 25.16 (±0.27) 30.53 (±0.28) 42.31 (±0.24) 
+
+5 52.61 (±0.06) 42.50 (±0.06) 41.18 (±0.07) 32.61 (±0.12) 27.06 (±0.11) 22.62 (±0.13) 19.93 (±0.08) 
+
+10 36.94 (±0.04) 28.62 (±0.04) 27.35 (±0.04) 19.17 (±0.07) 9.75 (±0.05) 11.28 (±0.04) 10.92 (±0.07) 
+
+20 24.03 (±0.02) 18.34 (±0.02) 17.39 (±0.02) 11.89 (±0.04) 7.91 (±0.10) 4.97 (±0.10) 4.55 (±0.03) 
+
+40 16.37 (±0.01) 10.63 (±0.01) 10.79 (±0.01) 5.97 (±0.02) 2.22 (±0.03) 1.57 (±0.01) 3.17 (±0.03) 
+
+Table 3 
+
+Link Prediction Accuracy ( ±std) on ConceptNet, FB15K-237, and NELL. The table reports test accuracy(%) and standard deviation of CTP and 2 baselines, all trained on Wiki and evaluated on these 3 graphs. 
+
+Dataset Way CTP PG-NM Contrastive Graph Prompter ConceptNet 4 46.3 (±0.14) 46.94 (±0.61) 44.01 (±0.61) 44.06 (±0.15) 
+
+FB15K-237 5 83.66 (±0.11) 80.35 (±0.57) 81.35 (±0.58) 82.34 (±0.07) 
+
+10 73.23 (±0.10) 71.68 (±0.45) 70.88 (±0.48) 50.71 (±0.06) 
+
+20 62.91 (±0.07) 59.90 (±0.35) 59.80 (±0.35) 35.74 (±0.04) 
+
+40 47.96 (±0.05) 46.82 (±0.21) 49.39 (±0.23) 27.63 (±0.03) 
+
+NELL 5 84.32 (±0.12) 82.39 (±0.53) 83.38 (±0.50) 89.8 (±0.06) 
+
+10 76.53 (±0.10) 75.14 (±0.43) 74.54 (±0.46) 72.00 (±0.06) 
+
+20 66.28 (±0.07) 65.68 (±0.34) 65.68 (±0.34) 56.84 (±0.04) 
+
+40 54.20 (±0.05) 54.91 (±0.22) 56.70 (±0.23) 45.53 (±0.04) 
+
+we employed optimizer with a learning rate of 1 × 10 −3 ,weight decay of 1 × 10 −3 , and dropout rate of 0. Each model was trained with a batch size of 5 for a total of 12 epochs. Regarding few-shot task configuration, we used a 3-way, 3-shot, 4-query setup during training, allowing the model to learn transferable representations under a constrained super-vision setting. In each batch, we sampled 10 centroids to rep-resent the local neighborhood prototypes. Unless otherwise specified, this configuration remained consistent across all experiments to ensure comparability among methods. 
+
+Environments . All experiments were conducted with a sin-gle NVIDIA RTX A5000 GPU (24 GB). The complete implementation details, along with parameter definitions and scripts for data preprocessing, are provided in our codebase for full reproducibility. Our implementation is available at 
+
+https://zenodo.org/records/17290794 .
+
+5.2. Results 
+
+Exp 1 – Results on Node Classification Tasks. Ta-ble 2 shows that CTP achieves the best accuracy across all settings.In comparison with the second-best performing baseline, PG-NM, it improves performance by +9.27% ,
+
++10.11% , +8.32% , +5.69% , and +5.74% on 3-, 5-, 10-, 20-, and 40-way tasks, respectively. In particular, CTP reaches 
+
+16.37% in the 40-way case, compared with 10.63% for PG-NM. It also maintains consistently low standard deviations, indicating strong stability across different difficulty levels. Among the baselines, the Contrastive approach remains competitive with PG-NM and even slightly outperforms it in the 40-way setting. Moreover, we observe that these 
+
+Table 4 
+
+Ablation study of the three optimization components, example and query collection (O1), context construction (O2), and the graph learning objective (O3), on Arxiv.                                                   
+
+> Way PG-NM O1 O1+O2 O1+O3 O1+O2+O3 356.82 (±0.08) 61.84 (±0.08) 61.47 (±0.08) 60.20 (±0.08) 66.16 (±0.08)
+> 542.50 (±0.06) 47.59 (±0.06) 48.09 (±0.06) 46.63 (±0.06) 52.53 (±0.06)
+> 10 28.62 (±0.04) 31.96 (±0.04) 32.69 (±0.04) 32.23 (±0.04) 36.93 (±0.04)
+> 20 18.34 (±0.02) 20.90 (±0.02) 21.63 (±0.02) 21.53 (±0.02) 24.03 (±0.02)
+> 40 10.63 (±0.01) 14.18 (±0.01) 13.61 (±0.01) 13.42 (±0.01) 16.37 (±0.01)
+
+baselines exhibit a more pronounced performance drop as the number of classes increases, underscoring the advantage of our method in more challenging scenarios. 
+
+Exp 2 – Results on Link Prediction Tasks . We further evaluate link prediction, training on Wiki and testing on ConceptNet, FB15K-237, and NELL. This setting involves heterogeneous graphs and cross-graph transfer, making it substantially more challenging. As shown in Table 3, shows that CTP consistently delivers strong and stable performance across all datasets and settings, achieving clear improve-ments over baselines in most cases. On FB15K-237, CTP outperforms the next best method by +3.31% , +1.55% ,and +3.01% in 5-, 10-, and 20-way settings, respectively, and maintains smaller performance drops as task difficulty increases. On NELL, CTP achieves gains of +1.39% and 
+
++0.60% in 10- and 20-way, while remaining competitive in other settings. On ConceptNet (4-way), CTP still im-proves over Contrastive and Graph Prompter by +2.29% and 
+
+Page 9 of 12 (a) 3-Ways (b) 5-Ways (c) 10-Ways (d) 20-Ways (e) 40-Ways                        
+
+> Figure 6: Parameter study: 𝜆 and 𝑝 . The heatmaps present the accuracy improvements of CTP over PG-NM across different combinations of 𝜆 (between [0 .1,0.5] ) and 𝑝 (under 3-, 5-, 10-, 20-, and 40-way). In each cell, the top value reports the accuracy of CTP for the corresponding parameter setting, while the value in parentheses shows the difference (i.e., CTP accuracy minus PG-NM accuracy). Darker red shades indicate larger accuracy gains.
+> (a) 3-Ways (b) 5-Ways (c) 10-Ways (d) 20-Ways (e) 40-Ways
+> Figure 7: Parameter study: Number of Downstream Examples. Figures (a) - (e) show the results of varying the number of downstream examples {0 ,3,5,7,10 ,15 ,20} across different way settings, with the blue line representing CTP and the orange line representing PG-NM. As the number of ways increases and the task becomes more challenging, CTP consistently achieves larger improvements over the baseline across all shot settings, demonstrating both superior and more stable performance.
+
++2.24% , respectively. Overall, these results demonstrate the effectiveness and strong generalization ability of CTP. 
+
+Exp 3 – Ablation Study. Table 4 presents an evaluation of the three optimization components: example and query collection (Section 4.2), context construction (Section 4.3), and the graph learning objective (Section 4.4), denoted as O1, O2, and O3, respectively. When a specific optimization is omitted (e.g., O2 in the combination O1+O3), the corre-sponding functionality is replaced by the native implemen-tation (Huang et al., 2023). Each optimization component provides notable performance improvements when applied individually or in partial combinations. However, their com-bined application often results in a much more substantial gain, indicating that their effects are synergistic, with the greatest benefits emerging from their joint use. 
+
+Exp 4 – Parameter Study: 𝜆 and 𝑝 . During training, CTP introduces two parameters: the orthogonal loss weight 𝜆 and the protection ratio 𝑝 used in augmentation. We conduct experiments to examine their impact on performance, ex-ploring values in the range [0 .1, 0.5] under all way settings using a node classification task, with training on MAG240M and evaluation downstream on Arxiv. Figure 6 illustrates the accuracy improvements of CTP over PG-NM, where darker red shades indicate larger accuracy gains. The results show that CTP outperforms PG-NM across all 𝜆 and 𝑝 
+
+combinations and under every way setting, highlighting its robustness and stability against varying parameter choices. 
+
+Exp 5 – Parameter Study: Number of Examples. The pa-rameter examined here is the number of examples provided in the downstream task. Varying the size of these example sets can influence performance. We evaluate across all way settings by providing the trained model with 0, 3, 5, 7, 10, 15, and 20 examples. As shown in Figure 7, CTP consistently outperforms PG-NM across all configurations. The perfor-mance gap widens as the number of ways increases: while PG-NM degrades sharply, CTP remains stable, confirming its robustness to task difficulty and limited supervision. 
+
+## 6. Conclusion and Future Work 
+
+We present CTP, one of the first tuning-free GNN prompting frameworks. Pre-trained once on a single source graph, CTP can be directly applied to unseen graphs without param-eter update, enabling seamless adaptation to both node-and edge-level tasks. Extensive experiments show that CTP achieves robust performance across diverse graph types and surpasses existing prompt-based baselines in both accuracy and stability. Looking ahead, we aim to extend CTP to graph-level and dynamic-graph tasks. These directions position CTP as a general and adaptive framework for graph learning. 
+
+## Acknowledgement 
+
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors. 
+
+> Page 10 of 12
+
+## References 
+
+Akyürek, E., Schuurmans, D., Andreas, J., Ma, T., and Zhou, D. (2023). What learning algorithm is in-context learning? investigations with linear models. In The Eleventh International Conference on Learning Representations . https://openreview.net/forum?id=0g0X4H8yN4I .Bo, D., Wang, X., Shi, C., and Shen, H. (2021). Beyond low-frequency information in graph convolutional networks. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 35, pages 3950– 3957. https://arxiv.org/abs/2101.00797 .Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhari-wal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D., Wu, J., Winter, C., Hesse, C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I., and Amodei, D. (2020). Language models are few-shot learners. In Larochelle, H., Ranzato, M., Hadsell, R., Balcan, M., and Lin, H., editors, Advances in Neural Informa-tion Processing Systems , volume 33, pages 1877–1901. Curran Asso-ciates, Inc. https://proceedings.neurips.cc/paper_files/paper/2020/ file/1457c0d6bfcb4967418bfb8ac142f64a-Paper.pdf .Dong, Q., Li, L., Dai, D., Zheng, C., Ma, J., Li, R., Xia, H., Xu, J., Wu, Z., Chang, B., Sun, X., Li, L., and Sui, Z. (2024). A survey on in-context learning. In Al-Onaizan, Y., Bansal, M., and Chen, Y.-N., editors, Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing , pages 1107–1128, Miami, Florida, USA. Association for Computational Linguistics. https://aclanthology.org/ 2024.emnlp-main.64/ .Fang, T., Zhang, Y. M., Yang, Y., Wang, C., and CHEN, L. (2023). Univer-sal prompt tuning for graph neural networks. In Thirty-seventh Confer-ence on Neural Information Processing Systems . https://openreview. net/forum?id=0LmWBhIYLi .Fu, X., He, Y., and Li, J. (2025). Edge prompt tuning for graph neural networks. In The Thirteenth International Conference on Learning Representations . https://openreview.net/forum?id=92vMaHotTM .Hamilton, W., Ying, Z., and Leskovec, J. (2017). Inductive representation learning on large graphs. In Advances in Neural Information Processing Systems , volume 30. Curran Associates, Inc. https://proceedings.neurips.cc/paper/2017/hash/ 5dd9db5e033da9c6fb5ba837a7ebea9-Abstract.html .He, X., Deng, K., Wang, X., Li, Y., Zhang, Y., and Wang, M. (2020). Lightgcn: Simplifying and powering graph convolution network for recommendation. In Proceedings of the 43rd International ACM SIGIR Conference on Research and Development in Information Retrieval ,SIGIR ’20, page 639–648, New York, NY, USA. Association for Com-puting Machinery. https://dl.acm.org/doi/10.1145/3397271.3401063 .Hu, W., Fey, M., Ren, H., Nakata, M., Dong, Y., and Leskovec, J. (2021). OGB-LSC: A large-scale challenge for machine learning on graphs. In Thirty-fifth Conference on Neural Information Processing Systems Datasets and Benchmarks Track (Round 2) . https://openreview.net/ forum?id=qkcLxoC52kL .Hu, W., Fey, M., Zitnik, M., Dong, Y., Ren, H., Liu, B., Catasta, M., and Leskovec, J. (2020). Open graph benchmark: Datasets for machine learning on graphs. In Advances in Neural Information Processing Systems , volume 33. Curran Associates, Inc. https://papers.neurips. cc/paper/2020/file/fb60d411a5c5b72b2e7d3527cfc84fd0-Paper.pdf .Hu*, W., Liu*, B., Gomes, J., Zitnik, M., Liang, P., Pande, V., and Leskovec, J. (2020). Strategies for pre-training graph neural networks. In Interna-tional Conference on Learning Representations . https://openreview. net/forum?id=HJlWWJSFDH .Hu, Z., Dong, Y., Wang, K., Chang, K.-W., and Sun, Y. (2020). Gpt-gnn: Generative pre-training of graph neural networks. In Proceedings of the 26th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining , KDD ’20, page 1857–1867, New York, NY, USA. Association for Computing Machinery. https://doi.org/10.1145/ 3394486.3403237 .Huang, K. and Zitnik, M. (2020). Graph meta learning via local sub-graphs. In Proceedings of the 34th International Conference on Neural Information Processing Systems , NIPS ’20, Red Hook, NY, USA. Cur-ran Associates Inc. https://proceedings.neurips.cc/paper/2020/file/ 412604be30f701b1b1e3124c252065e6-Paper.pdf .Huang, Q., Ren, H., Chen, P., Kržmanc, G., Zeng, D., Liang, P. S., and Leskovec, J. (2023). Prodigy: Enabling in-context learning over graphs. 
+
+Advances in Neural Information Processing Systems , 36:16302–16317. 
+
+> https://doi.org/10.52202/075280-0718
+
+.Kipf, T. N. and Welling, M. (2016). Semi-supervised classification with graph convolutional networks. arXiv preprint arXiv:1609.02907 . https: //doi.org/10.48550/arXiv.1609.02907 .Li, G., Wang, P., Liu, J., Guo, Y., Ji, K., Shang, Z., and Xu, Z. (2024a). Meta in-context learning makes large language models better zero and few-shot relation extractors. In Proceedings of the Thirty-Third International Joint Conference on Artificial Intelligence , IJCAI ’24. https://doi.org/ 10.24963/ijcai.2024/702 .Li, S., Han, X., and Bai, J. (2024b). Adaptergnn: Parameter-efficient fine-tuning improves generalization in gnns. In Proceedings of the ACM Web Conference 2024 . Association for Computing Machinery. https: //dl.acm.org/doi/10.1609/aaai.v38i12.29264 .Liu, P., Yuan, W., Fu, J., Jiang, Z., Hayashi, H., and Neubig, G. (2023a). Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing. ACM computing surveys , 55(9):1–35. . Liu, Z., Yu, X., Fang, Y., and Zhang, X. (2023b). Graphprompt: Uni-fying pre-training and downstream tasks for graph neural networks. In Proceedings of the ACM Web Conference 2023 , WWW ’23, page 417–428, New York, NY, USA. Association for Computing Machinery. 
+
+> https://doi.org/10.1145/3543507.3583386
+
+.Lv, R., Zhang, Z., Zhang, K., Liu, Q., Gao, W., Liu, J., Yan, J., Yue, L., and Yao, F. (2025). Graphprompter: Multi-stage adaptive prompt opti-mization for graph in-context learning. In 2025 IEEE 41st International Conference on Data Engineering (ICDE) , pages 3917–3930. IEEE. 
+
+> https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=11113174
+
+.Min, S., Lewis, M., Zettlemoyer, L., and Hajishirzi, H. (2022). MetaICL: Learning to learn in context. In Carpuat, M., de Marneffe, M.-C., and Meza Ruiz, I. V., editors, Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies , pages 2791–2809, Seattle, United States. Association for Computational Linguistics. https:// aclanthology.org/2022.naacl-main.201/ .Rong, Y., Bian, Y., Xu, T., Xie, W., Wei, Y., Huang, W., and Huang, J. (2020). Self-supervised graph transformer on large-scale molecular data. In Proceedings of the 34th International Conference on Neural Information Processing Systems , NIPS ’20, Red Hook, NY, USA. Cur-ran Associates Inc. https://proceedings.neurips.cc/paper/2020/file/ 94aef38441efa3380a3bed3faf1f9d5d-Paper.pdf .Speer, R., Chin, J., and Havasi, C. (2017). Conceptnet 5.5: An open multilingual graph of general knowledge. In Proceedings of the Thirty-First AAAI Conference on Artificial Intelligence . AAAI Press. https: //dl.acm.org/doi/10.5555/3298023.3298212 .Subramonian, A. (2021). Motif-driven contrastive learning of graph representations. Proceedings of the AAAI Conference on Artificial Intelligence , 35(18):15980–15981. https://ojs.aaai.org/index.php/ AAAI/article/view/17986 .Sun, F.-Y., Hoffman, J., Verma, V., and Tang, J. (2019). Infograph: Unsupervised and semi-supervised graph-level representation learning via mutual information maximization. In International Conference on Learning Representations . https://openreview.net/pdf?id=r1lfF2NYvH .Sun, M., Zhou, K., He, X., Wang, Y., and Wang, X. (2022). Gppt: Graph pre-training and prompt tuning to generalize graph neural networks. In Proceedings of the 28th ACM SIGKDD Conference on Knowledge Discovery and Data Mining , KDD ’22, page 1717–1727, New York, NY, USA. Association for Computing Machinery. https://doi.org/10.1145/ 3534678.3539249 .Sun, X., Cheng, H., Li, J., Liu, B., and Guan, J. (2023). All in one: Multi-task prompting for graph neural networks. In Proceedings of the 29th ACM SIGKDD Conference on Knowledge Discovery and Data Mining , KDD ’23, page 2120–2131, New York, NY, USA. Association for Computing Machinery. https://doi.org/10.1145/3580305.3599256 .
+
+Page 11 of 12 Sun, X., Zhang, J., Wu, X., Cheng, H., Xiong, Y., and Li, J. (2024). Graph prompt learning: A comprehensive survey and beyond. IEEE Transactions on Knowledge and Data Engineering . https://dl.acm.org/ doi/10.1145/3589334.3645685 .Vashishth, S., Sanyal, S., Nitin, V., and Talukdar, P. (2020). Composition-based multi-relational graph convolutional networks. In International Conference on Learning Representations . https://openreview.net/ forum?id=BylA_C4tPr .Veličković, P., Cucurull, G., Casanova, A., Romero, A., Liò, P., and Bengio, Y. (2018). Graph attention networks. In International Conference on Learning Representations . https://doi.org/10.48550/arXiv.1710.10903 .Veličković, P., Fedus, W., Hamilton, W. L., Liò, P., Bengio, Y., and Hjelm, R. D. (2019). Deep graph infomax. In International Confer-ence on Learning Representations . https://openreview.net/forum?id= rklz9iAcKQ .Von Oswald, J., Niklasson, E., Randazzo, E., Sacramento, J. a., Mordvint-sev, A., Zhmoginov, A., and Vladymyrov, M. (2023). Transformers learn in-context by gradient descent. In Proceedings of the 40th International Conference on Machine Learning , ICML’23. JMLR.org. https://dl. acm.org/doi/10.5555/3618408.3619872 .Wang, C., Pan, S., Long, G., Zhu, X., and Jiang, J. (2017). Mgae: Marginalized graph autoencoder for graph clustering. In Proceedings of the 2017 ACM on Conference on Information and Knowledge Man-agement , CIKM ’17, page 889–898, New York, NY, USA. Association for Computing Machinery. https://doi.org/10.1145/3132847.3132967 .Wu, Z., Pan, S., Chen, F., Long, G., Zhang, C., and Yu, P. S. (2020). A comprehensive survey on graph neural networks. 
+
+IEEE transactions on neural networks and learning systems ,32(1):4–24. https://researchers.mq.edu.au/en/publications/ a-comprehensive-survey-on-graph-summarization-with-graph-neural-n/ .Xie, S. M., Raghunathan, A., Liang, P., and Ma, T. (2022a). An explanation of in-context learning as implicit bayesian inference. In International Conference on Learning Representations . https://openreview.net/pdf? id=RdJVFCHjUMI .Xie, Y., Xu, Z., and Ji, S. (2022b). Self-supervised representation learning via latent graph prediction. https://openreview.net/forum?id= Da3ZcbjRWy .Xiong, W., Yu, M., Chang, S., Guo, X., and Wang, W. Y. (2018). One-shot relational learning for knowledge graphs. In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing .Association for Computational Linguistics. https://aclanthology.org/ D18-1223/ .Xu, J., Chen, Z., Yang, S., Li, J., Wang, H., Li, Y., and Ngai, E. C. H. (2024). Learning and editing universal graph prompt tuning via reinforcement learning. In Proceedings of the ACM Web Conference 2024 . Association for Computing Machinery. https://arxiv.org/abs/2512.08763 .Yang, Y., Xia, L., Luo, D., Lin, K., and Huang, C. (2024). Graphpro: Graph pre-training and prompt learning for recommendation. In Proceedings of the ACM Web Conference 2024 , WWW ’24, page 3690–3699, New York, NY, USA. Association for Computing Machinery. https://doi. org/10.1145/3589334.3645546 .You, Y., Chen, T., Sui, Y., Chen, T., Wang, Z., and Shen, Y. (2020). Graph contrastive learning with augmentations. In Ad-vances in Neural Information Processing Systems , volume 33. Cur-ran Associates, Inc. https://proceedings.nips.cc/paper/2020/file/ 3fe230348e9a12c13120749e3f9fa4cd-Paper.pdf .Yu, X., Fang, Y., Liu, Z., and Zhang, X. (2024). Hgprompt: bridging homogeneous and heterogeneous graphs for few-shot prompt learning. In Proceedings of the Thirty-Eighth AAAI Conference on Artificial Intelligence and Thirty-Sixth Conference on Innovative Applications of Artificial Intelligence and Fourteenth Symposium on Educational Advances in Artificial Intelligence , AAAI’24/IAAI’24/EAAI’24. AAAI Press. https://doi.org/10.1609/aaai.v38i15.29596 .Zeng, H., Zhou, H., Srivastava, A., Kannan, R., and Prasanna, V. (2020). Graphsaint: Graph sampling based inductive learning method. In Inter-national Conference on Learning Representations . https://openreview. net/pdf?id=BJe8pkHFwS .Zhao, J., Zhu, Z., Galkin, M., Mostafa, H., Bronstein, M. M., and Tang, J. (2025). Fully-inductive node classification on arbitrary graphs. In 
+
+The Thirteenth International Conference on Learning Representations .
+
+> https://openreview.net/forum?id=1Qpt43cqhg
+
+.Zhou, F., Cao, C., Zhang, K., Trajcevski, G., Zhong, T., and Geng, J. (2019). Meta-gnn: On few-shot node classification in graph meta-learning. In 
+
+Proceedings of the 28th ACM International Conference on Information and Knowledge Management , CIKM ’19, page 2357–2360, New York, NY, USA. Association for Computing Machinery. https://doi.org/10. 1145/3357384.3358106 .Zhou, J., Cui, G., Hu, S., Zhang, Z., Yang, C., Liu, Z., Wang, L., Li, C., and Sun, M. (2020). Graph neural networks: A review of methods and applications. AI open , 1:57–81. https://www.sciencedirect.com/ science/article/pii/S2666651021000012 .
+
+Page 12 of 12

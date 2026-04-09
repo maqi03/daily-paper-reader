@@ -1,0 +1,2584 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-04-09T20:11:35.670336+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 3,
+    "deep_divecandidates": 86,
+    "deep_cap": 8,
+    "deep_selected": 48,
+    "quick_candidates": 120,
+    "quick_skim_target": 13,
+    "quick_selected": 13
+  },
+  "deep_dive": [
+    {
+      "id": "2604.00248v1",
+      "source": "arxiv",
+      "title": "REM-CTX: Automated Peer Review via Reinforcement Learning with Auxiliary Context",
+      "abstract": "Most automated peer review systems rely on textual manuscript content alone, leaving visual elements such as figures and external scholarly signals underutilized. We introduce REM-CTX, a reinforcement-learning system that incorporates auxiliary context into the review generation process via correspondence-aware reward functions. REM-CTX trains an 8B-parameter language model with Group Relative Policy Optimization (GRPO) and combines a multi-aspect quality reward with two correspondence rewards that explicitly encourage alignment with auxiliary context. Experiments on manuscripts across Computer, Biological, and Physical Sciences show that REM-CTX achieves the highest overall review quality among six baselines, outperforming other systems with substantially larger commercial models, and surpassing the next-best RL baseline across both quality and contextual grounding metrics. Ablation studies confirm that the two correspondence rewards are complementary: each selectively improves its targeted correspondence reward while preserving all quality dimensions, and the full model outperforms all partial variants. Analysis of training dynamics reveals that the criticism aspect is negatively correlated with other metrics during training, suggesting that future studies should group multi-dimension rewards for review generation.",
+      "authors": [
+        "Pawin Taechoyotin",
+        "Daniel E. Acuna"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-03-31T21:19:05+00:00",
+      "link": "https://arxiv.org/pdf/2604.00248v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "trains an 8B-parameter language model with Group Relative Policy Optimization (GRPO)",
+      "llm_evidence_cn": "使用组相对策略优化 (GRPO) 训练 8B 参数语言模型",
+      "llm_evidence": "使用组相对策略优化 (GRPO) 训练 8B 参数语言模型",
+      "canonical_evidence": "使用组相对策略优化 (GRPO) 训练 8B 参数语言模型",
+      "llm_tldr_en": "Applies GRPO with correspondence-aware reward functions for automated peer review generation.",
+      "llm_tldr_cn": "将 GRPO 与对应感知奖励函数结合，用于自动化同行评审生成。",
+      "llm_tldr": "将 GRPO 与对应感知奖励函数结合，用于自动化同行评审生成。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00698v1",
+      "source": "arxiv",
+      "title": "Learning to Hint for Reinforcement Learning",
+      "abstract": "Group Relative Policy Optimization (GRPO) is widely used for reinforcement learning with verifiable rewards, but it often suffers from advantage collapse: when all rollouts in a group receive the same reward, the group yields zero relative advantage and thus no learning signal. For example, if a question is too hard for the reasoner, all sampled rollouts can be incorrect and receive zero reward. Recent work addresses this issue by adding hints or auxiliary scaffolds to such hard questions so that the reasoner produces mixed outcomes and recovers a non-zero update. However, existing hints are usually fixed rather than adapted to the current reasoner, and a hint that creates learning signal under the hinted input does not necessarily improve the no-hint policy used at test time. To this end, we propose Hint Learning for Reinforcement Learning (HiLL), a framework that jointly trains a hinter policy and a reasoner policy during RL. For each hard question, the hinter generates hints online conditioned on the current reasoner's incorrect rollout, allowing hint generation to adapt to the reasoner's evolving errors. We further introduce hint reliance, which measures how strongly correct hinted trajectories depend on the hint. We derive a transferability result showing that lower hint reliance implies stronger transfer from hinted success to no-hint success, and we use this result to define a transfer-weighted reward for training the hinter. Therefore, HiLL favors hints that not only recover informative GRPO groups, but also produce signals that are more likely to improve the original no-hint policy. Experiments across multiple benchmarks show that HiLL consistently outperforms GRPO and prior hint-based baselines, demonstrating the value of adaptive and transfer-aware hint learning for RL. The code is available at https://github.com/Andree-9/HiLL.",
+      "authors": [
+        "Yu Xia",
+        "Canwen Xu",
+        "Zhewei Yao",
+        "Julian McAuley",
+        "Yuxiong He"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-01T09:58:08+00:00",
+      "link": "https://arxiv.org/pdf/2604.00698v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "addressing advantage collapse in Group Relative Policy Optimization (GRPO)",
+      "llm_evidence_cn": "解决组相对策略优化 (GRPO) 中的优势崩溃问题",
+      "llm_evidence": "解决组相对策略优化 (GRPO) 中的优势崩溃问题",
+      "canonical_evidence": "解决组相对策略优化 (GRPO) 中的优势崩溃问题",
+      "llm_tldr_en": "Introduces adaptive hinting to prevent advantage collapse in GRPO for reinforcement learning.",
+      "llm_tldr_cn": "引入自适应提示以防止强化学习中 GRPO 的优势崩溃。",
+      "llm_tldr": "引入自适应提示以防止强化学习中 GRPO 的优势崩溃。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01499v1",
+      "source": "arxiv",
+      "title": "Matching Accuracy, Different Geometry: Evolution Strategies vs GRPO in LLM Post-Training",
+      "abstract": "Evolution Strategies (ES) have emerged as a scalable gradient-free alternative to reinforcement learning based LLM fine-tuning, but it remains unclear whether comparable task performance implies comparable solutions in parameter space. We compare ES and Group Relative Policy Optimization (GRPO) across four tasks in both single-task and sequential continual-learning settings. ES matches or exceeds GRPO in single-task accuracy and remains competitive sequentially when its iteration budget is controlled. Despite this similarity in task performance, the two methods produce markedly different model updates: ES makes much larger changes and induces broader off-task KL drift, whereas GRPO makes smaller, more localized updates. Strikingly, the ES and GRPO solutions are linearly connected with no loss barrier, even though their update directions are nearly orthogonal. We develop an analytical theory of ES that explains all these phenomena within a unified framework, showing how ES can accumulate large off-task movement on weakly informative directions while still making enough progress on the task to match gradient-based RL in downstream accuracy. These results show that gradient-free and gradient-based fine-tuning can reach similarly accurate yet geometrically distinct solutions, with important consequences for forgetting and knowledge preservation. The source code is publicly available: https://github.com/Bhoy1/ESvsGRPO.",
+      "authors": [
+        "William Hoy",
+        "Binxu Wang",
+        "Xu Pan"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-02T00:16:48+00:00",
+      "link": "https://arxiv.org/pdf/2604.01499v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Comparison of Evolution Strategies and Group Relative Policy Optimization (GRPO)",
+      "llm_evidence_cn": "进化策略与组相对策略优化 (GRPO) 的比较",
+      "llm_evidence": "进化策略与组相对策略优化 (GRPO) 的比较",
+      "canonical_evidence": "进化策略与组相对策略优化 (GRPO) 的比较",
+      "llm_tldr_en": "Compares Evolution Strategies and GRPO in LLM post-training, analyzing performance and parameter space updates.",
+      "llm_tldr_cn": "对比了LLM后训练中的进化策略与GRPO，分析了任务性能与参数空间更新的差异。",
+      "llm_tldr": "对比了LLM后训练中的进化策略与GRPO，分析了任务性能与参数空间更新的差异。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01591v1",
+      "source": "arxiv",
+      "title": "ThinkTwice: Jointly Optimizing Large Language Models for Reasoning and Self-Refinement",
+      "abstract": "We introduce ThinkTwice, a simple two-phase framework that jointly optimizes LLMs to solve reasoning problems and refine the answers, based on Group Relative Policy Optimization (GRPO). In each pair of training steps, ThinkTwice first optimizes the model on solving reasoning problems, then optimizes it on refining its own solutions to the same problems, using the same binary correctness reward in both phases without correctness signals or critique annotations. Across five mathematical reasoning benchmarks and two model families including Qwen3-4B and Olmo3-7B, ThinkTwice substantially improves both reasoning and refinement performance over competitive online policy optimization baselines. Specifically, on Qwen3-4B, ThinkTwice outperforms GRPO on AIME by 5 percentage points before refinement and by 11.5 points after one self-refinement step, measured by pass@4. Analysis of the training dynamics of ThinkTwice reveals an implicit rectify-then-fortify curriculum: refinement predominantly corrects errors early in training and naturally shifts toward preserving already-correct solutions as the model improves, yielding a more rectified reward signal. Our work establishes joint training of reasoning and self-refinement as a principled and effective methodology for RLVR.",
+      "authors": [
+        "Difan Jiao",
+        "Qianfeng Wen",
+        "Blair Yang",
+        "Zhenwei Tang",
+        "Ashton Anderson"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-02T04:02:04+00:00",
+      "link": "https://arxiv.org/pdf/2604.01591v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "joint optimization for reasoning and refinement using GRPO",
+      "llm_evidence_cn": "使用GRPO进行推理和自我优化的联合优化",
+      "llm_evidence": "使用GRPO进行推理和自我优化的联合优化",
+      "canonical_evidence": "使用GRPO进行推理和自我优化的联合优化",
+      "llm_tldr_en": "A framework using GRPO to jointly optimize LLMs for solving reasoning problems and self-refinement.",
+      "llm_tldr_cn": "一种利用GRPO联合优化大模型推理与自我修正能力的框架。",
+      "llm_tldr": "一种利用GRPO联合优化大模型推理与自我修正能力的框架。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02288v1",
+      "source": "arxiv",
+      "title": "Unifying Group-Relative and Self-Distillation Policy Optimization via Sample Routing",
+      "abstract": "Reinforcement learning with verifiable rewards (RLVR) has become a standard paradigm for post-training large language models. While Group Relative Policy Optimization (GRPO) is widely adopted, its coarse credit assignment uniformly penalizes failed rollouts, lacking the token-level focus needed to efficiently address specific deviations. Self-Distillation Policy Optimization (SDPO) addresses this by providing denser, more targeted logit-level supervision that facilitates rapid early improvement, yet it frequently collapses during prolonged training. We trace this late-stage instability to two intrinsic flaws: self-distillation on already-correct samples introduces optimization ambiguity, and the self-teacher's signal reliability progressively degrades. To resolve these issues, we propose Sample-Routed Policy Optimization (SRPO), a unified on-policy framework that routes correct samples to GRPO's reward-aligned reinforcement and failed samples to SDPO's targeted logit-level correction. SRPO further incorporates an entropy-aware dynamic weighting mechanism to suppress high-entropy, unreliable distillation targets while emphasizing confident ones. Evaluated across five benchmarks and two model scales, SRPO achieves both the rapid early improvement of SDPO and the long-horizon stability of GRPO. It consistently surpasses the peak performance of both baselines, raising the five-benchmark average on Qwen3-8B by 3.4% over GRPO and 6.3% over SDPO, while simultaneously yielding moderate response lengths and lowering per-step compute cost by up to 17.2%.",
+      "authors": [
+        "Gengsheng Li",
+        "Tianyu Yang",
+        "Junfeng Fang",
+        "Mingyang Song",
+        "Mao Zheng",
+        "Haiyun Guo",
+        "Dan Zhang",
+        "Jinqiao Wang",
+        "Tat-Seng Chua"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-04-02T17:29:18+00:00",
+      "link": "https://arxiv.org/pdf/2604.02288v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "unifying Group-Relative Policy Optimization (GRPO) and self-distillation",
+      "llm_evidence_cn": "统一组相对策略优化 (GRPO) 与自我蒸馏",
+      "llm_evidence": "统一组相对策略优化 (GRPO) 与自我蒸馏",
+      "canonical_evidence": "统一组相对策略优化 (GRPO) 与自我蒸馏",
+      "llm_tldr_en": "Combines GRPO and SDPO via sample routing to improve token-level credit assignment and stability.",
+      "llm_tldr_cn": "通过样本路由统一GRPO和SDPO，改进了Token级的信用分配并增强了训练稳定性。",
+      "llm_tldr": "通过样本路由统一GRPO和SDPO，改进了Token级的信用分配并增强了训练稳定性。",
+      "llm_tags": [
+        "query:rm-opt:composite"
+      ],
+      "matched_query_tag": "query:rm-opt:composite",
+      "matched_query_text": "Papers central to 搜索Reward Model优化相关的论文，配合DPO、GRPO训练, especially work that connects or combines: Reward Model optimization and training techniques; Direct Preference Optimization for LLM alignment; Group Relative Policy Optimization in reinforcement learning; Preference learning algorithms for reward models; Reward shaping and scaling for stable training; Iterative Direct Preference Optimization methods; Optimization strategies for Reward Models in DPO and GRPO frameworks; Recent advances in reward model training for preference alignment; Integrating reward model improvements with direct preference optimization; Comparative study of reward modeling in RLHF and DPO variants.",
+      "matched_requirement_id": "req-composite-rm-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02721v1",
+      "source": "arxiv",
+      "title": "GrandCode: Achieving Grandmaster Level in Competitive Programming via Agentic Reinforcement Learning",
+      "abstract": "Competitive programming remains one of the last few human strongholds in coding against AI. The best AI system to date still underperforms the best humans competitive programming: the most recent best result, Google's Gemini~3 Deep Think, attained 8th place even not being evaluated under live competition conditions. In this work, we introduce GrandCode, a multi-agent RL system designed for competitive programming. The capability of GrandCode is attributed to two key factors: (1) It orchestrates a variety of agentic modules (hypothesis proposal, solver, test generator, summarization, etc) and jointly improves them through post-training and online test-time RL; (2) We introduce Agentic GRPO specifically designed for multi-stage agent rollouts with delayed rewards and the severe off-policy drift that is prevalent in agentic RL. GrandCode is the first AI system that consistently beats all human participants in live contests of competitive programming: in the most recent three Codeforces live competitions, i.e., Round~1087 (Mar 21, 2026), Round~1088 (Mar 28, 2026), and Round~1089 (Mar 29, 2026), GrandCode placed first in all of them, beating all human participants, including legendary grandmasters. GrandCode shows that AI systems have reached a point where they surpass the strongest human programmers on the most competitive coding tasks.",
+      "authors": [
+        "DeepReinforce Team",
+        "Xiaoya Li",
+        "Xiaofei Sun",
+        "Guoyin Wang",
+        "Songqiao Su",
+        "Chris Shum",
+        "Jiwei Li"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-03T04:26:56+00:00",
+      "link": "https://arxiv.org/pdf/2604.02721v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "introduces Agentic GRPO specifically designed for multi-stage RL",
+      "llm_evidence_cn": "引入了专门为多阶段强化学习设计的Agentic GRPO",
+      "llm_evidence": "引入了专门为多阶段强化学习设计的Agentic GRPO",
+      "canonical_evidence": "引入了专门为多阶段强化学习设计的Agentic GRPO",
+      "llm_tldr_en": "Introduces Agentic GRPO to improve multi-agent modules in competitive programming through reinforcement learning.",
+      "llm_tldr_cn": "引入Agentic GRPO，通过强化学习提升竞赛编程中的多智能体模块性能。",
+      "llm_tldr": "引入Agentic GRPO，通过强化学习提升竞赛编程中的多智能体模块性能。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02795v1",
+      "source": "arxiv",
+      "title": "Rubrics to Tokens: Bridging Response-level Rubrics and Token-level Rewards in Instruction Following Tasks",
+      "abstract": "Rubric-based Reinforcement Learning (RL) has emerged as a promising approach for aligning Large Language Models (LLMs) with complex, open-domain instruction following tasks. However, existing methods predominantly rely on response-level rewards, introducing severe reward sparsity and reward ambiguity problems. To address these issues, we propose Rubrics to Tokens (RTT), a novel rubric-based RL framework that bridges coarse response-level scores and fine-grained token-level credit assignment. RTT introduces a Token-Level Relevance Discriminator to predict which tokens in the response are responsible for a specific constraint, and optimizes the policy model via RTT-GRPO, which integrates response-level and token-level advantages within a unified framework. Furthermore, when transitioning from one-dimensional, outcome-level reward to three-dimensional reward space in the token-level rubric-based RL, we propose a novel group normalization method, called Intra-sample Token Group Normalization, to accommodate this shift. Extensive experiments and benchmarks demonstrate that RTT consistently outperforms other baselines in both instruction- and rubric-level accuracy across different models.",
+      "authors": [
+        "Tianze Xu",
+        "Yanzhao Zheng",
+        "Pengrui Lu",
+        "Lyumanshan Ye",
+        "Yong Wu",
+        "Zhentao Zhang",
+        "Yuanqiang Yu",
+        "Chao Ma",
+        "Jihuai Zhu",
+        "Pengfei Liu",
+        "Baohua Dong",
+        "Hangcheng Zhu",
+        "Ruohui Huang",
+        "Gang Yu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-04-03T07:02:57+00:00",
+      "link": "https://arxiv.org/pdf/2604.02795v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "optimizes policy model via RTT-GRPO and token-level credit assignment",
+      "llm_evidence_cn": "通过 RTT-GRPO 和标记级信用分配优化策略模型",
+      "llm_evidence": "通过 RTT-GRPO 和标记级信用分配优化策略模型",
+      "canonical_evidence": "通过 RTT-GRPO 和标记级信用分配优化策略模型",
+      "llm_tldr_en": "Proposes RTT-GRPO to bridge response-level rubrics and token-level rewards for better alignment.",
+      "llm_tldr_cn": "提出 RTT-GRPO 框架，将响应级规则与标记级奖励结合以优化对齐效果。",
+      "llm_tldr": "提出 RTT-GRPO 框架，将响应级规则与标记级奖励结合以优化对齐效果。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02869v1",
+      "source": "arxiv",
+      "title": "Multi-Turn Reinforcement Learning for Tool-Calling Agents with Iterative Reward Calibration",
+      "abstract": "Training tool-calling agents with reinforcement learning on multi-turn tasks remains challenging due to sparse outcome rewards and difficult credit assignment across conversation turns. We present the first application of MT-GRPO (Multi-Turn Group Relative Policy Optimization) combined with GTPO (Generalized Token-level Policy Optimization) for training a tool-calling agent on realistic customer service tasks with an LLM-based user simulator. Through systematic analysis of training rollouts, we discover that naively designed dense per-turn rewards degrade performance by up to 14 percentage points due to misalignment between reward discriminativeness and advantage direction. We introduce Iterative Reward Calibration, a methodology for designing per-turn rewards using empirical discriminative analysis of rollout data, and show that our GTPO hybrid advantage formulation eliminates the advantage misalignment problem. Applied to the Tau-Bench airline benchmark, our approach improves Qwen3.5-4B from 63.8 percent to 66.7 percent (+2.9pp) and Qwen3-30B-A3B from 58.0 percent to 69.5 percent (+11.5pp) -- with the trained 4B model exceeding GPT-4.1 (49.4 percent) and GPT-4o (42.8 percent) despite being 50 times smaller, and the 30.5B MoE model approaching Claude Sonnet 4.5 (70.0 percent). To our knowledge, these are the first published RL training results on Tau-Bench. We release our code, reward calibration analysis, and training recipes.",
+      "authors": [
+        "Wachiravit Modecrua",
+        "Krittanon Kaewtawee",
+        "Krittin Pachtrachai",
+        "Touchapon Kraisingkorn"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-03T08:36:03+00:00",
+      "link": "https://arxiv.org/pdf/2604.02869v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Multi-Turn Group Relative Policy Optimization (MT-GRPO) and reward calibration",
+      "llm_evidence_cn": "多轮组相对策略优化 (MT-GRPO) 与奖励校准",
+      "llm_evidence": "多轮组相对策略优化 (MT-GRPO) 与奖励校准",
+      "canonical_evidence": "多轮组相对策略优化 (MT-GRPO) 与奖励校准",
+      "llm_tldr_en": "Applies MT-GRPO and iterative reward calibration to improve tool-calling agents in multi-turn RL tasks.",
+      "llm_tldr_cn": "将MT-GRPO与迭代奖励校准结合，解决了多轮工具调用任务中的奖励稀疏与对齐问题。",
+      "llm_tldr": "将MT-GRPO与迭代奖励校准结合，解决了多轮工具调用任务中的奖励稀疏与对齐问题。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.04142v1",
+      "source": "arxiv",
+      "title": "OP-GRPO: Efficient Off-Policy GRPO for Flow-Matching Models",
+      "abstract": "Post training via GRPO has demonstrated remarkable effectiveness in improving the generation quality of flow-matching models. However, GRPO suffers from inherently low sample efficiency due to its on-policy training paradigm. To address this limitation, we present OP-GRPO, the first Off-Policy GRPO framework tailored for flow-matching models. First, we actively select high-quality trajectories and adaptively incorporate them into a replay buffer for reuse in subsequent training iterations. Second, to mitigate the distribution shift introduced by off-policy samples, we propose a sequence-level importance sampling correction that preserves the integrity of GRPO's clipping mechanism while ensuring stable policy updates. Third, we theoretically and empirically show that late denoising steps yield ill-conditioned off-policy ratios, and mitigate this by truncating trajectories at late steps. Across image and video generation benchmarks, OP-GRPO achieves comparable or superior performance to Flow-GRPO with only 34.2% of the training steps on average, yielding substantial gains in training efficiency while maintaining generation quality.",
+      "authors": [
+        "Liyu Zhang",
+        "Kehan Li",
+        "Tingrui Han",
+        "Tao Zhao",
+        "Yuxuan Sheng",
+        "Shibo He",
+        "Chao Li"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-05T15:00:29+00:00",
+      "link": "https://arxiv.org/pdf/2604.04142v1",
+      "tags": [
+        "keyword:RM OPT",
+        "query:RM OPT"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Off-Policy GRPO framework for flow-matching models",
+      "llm_evidence_cn": "针对流匹配模型的离策GRPO框架",
+      "llm_evidence": "针对流匹配模型的离策GRPO框架",
+      "canonical_evidence": "针对流匹配模型的离策GRPO框架",
+      "llm_tldr_en": "Introduces OP-GRPO to improve sample efficiency of Group Relative Policy Optimization using a replay buffer.",
+      "llm_tldr_cn": "提出了OP-GRPO框架，通过经验回放池和重要性采样显著提升了GRPO的采样效率。",
+      "llm_tldr": "提出了OP-GRPO框架，通过经验回放池和重要性采样显著提升了GRPO的采样效率。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.04869v1",
+      "source": "arxiv",
+      "title": "Optimizing LLM Prompt Engineering with DSPy Based Declarative Learning",
+      "abstract": "Large Language Models (LLMs) have shown strong performance across a wide range of natural language processing tasks; however, their effectiveness is highly dependent on prompt design, structure, and embedded reasoning signals. Conventional prompt engineering methods largely rely on heuristic trial-and-error processes, which limits scalability, reproducibility, and generalization across tasks. DSPy, a declarative framework for optimizing text-processing pipelines, offers an alternative approach by enabling automated, modular, and learnable prompt construction for LLM-based systems.This paper presents a systematic study of DSPy-based declarative learning for prompt optimization, with emphasis on prompt synthesis, correction, calibration, and adaptive reasoning control. We introduce a unified DSPy LLM architecture that combines symbolic planning, gradient free optimization, and automated module rewriting to reduce hallucinations, improve factual grounding, and avoid unnecessary prompt complexity. Experimental evaluations conducted on reasoning tasks, retrieval-augmented generation, and multi-step chain-of-thought benchmarks demonstrate consistent gains in output reliability, efficiency, and generalization across models. The results show improvements of up to 30 to 45% in factual accuracy and a reduction of approximately 25% in hallucination rates. Finally, we outline key limitations and discuss future research directions for declarative prompt optimization frameworks.",
+      "authors": [
+        "Shiek Ruksana",
+        "Sailesh Kiran Kurra",
+        "Thipparthi Sanjay Baradwaj"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-06T17:17:57+00:00",
+      "link": "https://arxiv.org/pdf/2604.04869v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "automated, modular, and learnable prompt construction using DSPy",
+      "llm_evidence_cn": "使用 DSPy 进行自动化、模块化和可学习的提示词构建",
+      "llm_evidence": "使用 DSPy 进行自动化、模块化和可学习的提示词构建",
+      "canonical_evidence": "使用 DSPy 进行自动化、模块化和可学习的提示词构建",
+      "llm_tldr_en": "Systematically studies DSPy-based declarative learning for automated prompt optimization.",
+      "llm_tldr_cn": "系统研究了基于 DSPy 声明式学习的自动化提示词优化方法。",
+      "llm_tldr": "系统研究了基于 DSPy 声明式学习的自动化提示词优化方法。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05355v1",
+      "source": "arxiv",
+      "title": "ETR: Entropy Trend Reward for Efficient Chain-of-Thought Reasoning",
+      "abstract": "Chain-of-thought (CoT) reasoning improves large language model performance on complex tasks, but often produces excessively long and inefficient reasoning traces. Existing methods shorten CoTs using length penalties or global entropy reduction, implicitly assuming that low uncertainty is desirable throughout reasoning. We show instead that reasoning efficiency is governed by the trajectory of uncertainty. CoTs with dominant downward entropy trends are substantially shorter. Motivated by this insight, we propose Entropy Trend Reward (ETR), a trajectory-aware objective that encourages progressive uncertainty reduction while allowing limited local exploration. We integrate ETR into Group Relative Policy Optimization (GRPO) and evaluate it across multiple reasoning models and challenging benchmarks. ETR consistently achieves a superior accuracy-efficiency tradeoff, improving DeepSeek-R1-Distill-7B by 9.9% in accuracy while reducing CoT length by 67% across four benchmarks. Code is available at https://github.com/Xuan1030/ETR",
+      "authors": [
+        "Xuan Xiong",
+        "Huan Liu",
+        "Li Gu",
+        "Zhixiang Chi",
+        "Yue Qiu",
+        "Yuanhao Yu",
+        "Yang Wang"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-07T02:53:36+00:00",
+      "link": "https://arxiv.org/pdf/2604.05355v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "integrate Entropy Trend Reward into Group Relative Policy Optimization (GRPO)",
+      "llm_evidence_cn": "将熵趋势奖励集成到组相对策略优化 (GRPO) 中",
+      "llm_evidence": "将熵趋势奖励集成到组相对策略优化 (GRPO) 中",
+      "canonical_evidence": "将熵趋势奖励集成到组相对策略优化 (GRPO) 中",
+      "llm_tldr_en": "Proposes Entropy Trend Reward (ETR) within the GRPO framework to improve CoT reasoning efficiency.",
+      "llm_tldr_cn": "在GRPO框架下提出熵趋势奖励（ETR），以提高思维链推理的效率。",
+      "llm_tldr": "在GRPO框架下提出熵趋势奖励（ETR），以提高思维链推理的效率。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05489v1",
+      "source": "arxiv",
+      "title": "SCMAPR: Self-Correcting Multi-Agent Prompt Refinement for Complex-Scenario Text-to-Video Generation",
+      "abstract": "Text-to-Video (T2V) generation has benefited from recent advances in diffusion models, yet current systems still struggle under complex scenarios, which are generally exacerbated by the ambiguity and underspecification of text prompts. In this work, we formulate complex-scenario prompt refinement as a stage-wise multi-agent refinement process and propose SCMAPR, i.e., a scenario-aware and Self-Correcting Multi-Agent Prompt Refinement framework for T2V prompting. SCMAPR coordinates specialized agents to (i) route each prompt to a taxonomy-grounded scenario for strategy selection, (ii) synthesize scenario-aware rewriting policies and perform policy-conditioned refinement, and (iii) conduct structured semantic verification that triggers conditional revision when violations are detected. To clarify what constitutes complex scenarios in T2V prompting, provide representative examples, and enable rigorous evaluation under such challenging conditions, we further introduce {T2V-Complexity}, which is a complex-scenario T2V benchmark consisting exclusively of complex-scenario prompts. Extensive experiments on 3 existing benchmarks and our T2V-Complexity benchmark demonstrate that SCMAPR consistently improves text-video alignment and overall generation quality under complex scenarios, achieving up to 2.67\\% and 3.28 gains in average score on VBench and EvalCrafter, and up to 0.028 improvement on T2V-CompBench over 3 State-Of-The-Art baselines.",
+      "authors": [
+        "Chengyi Yang",
+        "Pengzhen Li",
+        "Jiayin Qi",
+        "Aimin Zhou",
+        "Ji Wu",
+        "Ji Liu"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.MA"
+      ],
+      "published": "2026-04-07T06:33:01+00:00",
+      "link": "https://arxiv.org/pdf/2604.05489v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT",
+        "query:RM OPT"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Self-Correcting Multi-Agent Prompt Refinement",
+      "llm_evidence_cn": "自纠正多智能体提示词精炼",
+      "llm_evidence": "自纠正多智能体提示词精炼",
+      "canonical_evidence": "自纠正多智能体提示词精炼",
+      "llm_tldr_en": "Proposes a multi-agent framework for automatic prompt refinement in complex text-to-video scenarios.",
+      "llm_tldr_cn": "提出一种多智能体框架，用于复杂文本生成视频场景下的自动提示词精炼。",
+      "llm_tldr": "提出一种多智能体框架，用于复杂文本生成视频场景下的自动提示词精炼。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.06298v1",
+      "source": "arxiv",
+      "title": "Limits of Difficulty Scaling: Hard Samples Yield Diminishing Returns in GRPO-Tuned SLMs",
+      "abstract": "Recent alignment work on Large Language Models (LLMs) suggests preference optimization can improve reasoning by shifting probability mass toward better solutions. We test this claim in a resource-constrained setting by applying GRPO with LoRA to SLMs (up to 3B) for math reasoning on GSM8K and MATH datasets with difficulty-stratified analyses. As problem difficulty increases, accuracy plateaus, revealing a capacity boundary: GRPO primarily reshapes output preferences without reliably improving hardest-tier solving. Consistent with this, training GRPO only on lower-difficulty problems matches full-dataset accuracy across difficulty tiers while using only ~45% training steps, indicating diminishing returns from harder samples in this regime. We also find a cross-dataset generalization effect: GSM8K-trained GRPO achieves higher accuracy on the numeric subset of MATH than MATH-trained GRPO, exceeding it by ~5% at 1.5B and by ~3% at 3B. We show that the best achievable gains depend strongly on the base model's prior reasoning competence and the dataset's difficulty profile.",
+      "authors": [
+        "Suraj Yadav",
+        "Siddharth Yadav",
+        "Parth Goyal"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-07T17:22:18+00:00",
+      "link": "https://arxiv.org/pdf/2604.06298v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "applying GRPO to SLMs for math reasoning alignment",
+      "llm_evidence_cn": "将GRPO应用于小语言模型的数学推理对齐",
+      "llm_evidence": "将GRPO应用于小语言模型的数学推理对齐",
+      "canonical_evidence": "将GRPO应用于小语言模型的数学推理对齐",
+      "llm_tldr_en": "Investigates the limits of GRPO-tuned small language models on difficulty-stratified math tasks.",
+      "llm_tldr_cn": "研究了GRPO微调的小语言模型在不同难度数学任务上的性能极限。",
+      "llm_tldr": "研究了GRPO微调的小语言模型在不同难度数学任务上的性能极限。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.06699v1",
+      "source": "arxiv",
+      "title": "Adaptive Prompt Structure Factorization: A Framework for Self-Discovering and Optimizing Compositional Prompt Programs",
+      "abstract": "Automated prompt optimization is crucial for eliciting reliable reasoning from large language models (LLMs), yet most API-only prompt optimizers iteratively edit monolithic prompts, coupling components and obscuring credit assignment, limiting controllability, and wasting tokens. We propose Adaptive Prompt Structure Factorization (aPSF), an API-only framework (prompt-in/text-out; no access to model internals) that uses an Architect model to discover task-specific prompt structures as semantic factors. aPSF then performs interventional, single-factor updates: interventional factor-level scoring estimates each factor's marginal contribution via validation-performance changes, and error-guided factor selection routes updates to the current dominant failure source for more sample-efficient optimization. Across multiple advanced reasoning benchmarks, aPSF outperforms strong baselines including principle-aware optimizers, improving accuracy by up to +2.16 percentage points on average, and reduces optimization cost by 45--87% tokens on MultiArith while reaching peak validation in 1 step.",
+      "authors": [
+        "Haoyue Liu",
+        "Zhichao Wang",
+        "Yongxin Guo",
+        "Haoran Shou",
+        "Xiaoying Tang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-04-08T05:25:40+00:00",
+      "link": "https://arxiv.org/pdf/2604.06699v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Automated prompt optimization and structure factorization",
+      "llm_evidence_cn": "自动提示词优化与结构分解",
+      "llm_evidence": "自动提示词优化与结构分解",
+      "canonical_evidence": "自动提示词优化与结构分解",
+      "llm_tldr_en": "Proposes aPSF for self-discovering and optimizing compositional prompt structures in LLMs.",
+      "llm_tldr_cn": "提出aPSF框架，通过结构分解和干预性更新实现大模型提示词的自动发现与优化。",
+      "llm_tldr": "提出aPSF框架，通过结构分解和干预性更新实现大模型提示词的自动发现与优化。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.07343v1",
+      "source": "arxiv",
+      "title": "Personalized RewardBench: Evaluating Reward Models with Human Aligned Personalization",
+      "abstract": "Pluralistic alignment has emerged as a critical frontier in the development of Large Language Models (LLMs), with reward models (RMs) serving as a central mechanism for capturing diverse human values. While benchmarks for general response quality are prevalent, evaluating how well reward models account for individual user preferences remains an open challenge. To bridge this gap, we introduce Personalized RewardBench, a novel benchmark designed to rigorously assess reward models' capacity to model personalized preferences. We construct chosen and rejected response pairs based on strict adherence to (or violation of) user-specific rubrics, ensuring that preference distinctions are uniquely tailored to the individual. In particular, human evaluations confirm that the primary discriminative factor between pairs is strictly personal preference, with both responses maintaining high general quality (e.g., correctness, relevance and helpfulness). Extensive testing reveals that existing state-of-the-art reward models struggle significantly with personalization, peaking at an accuracy of just 75.94%. Crucially, because an effective reward model benchmark should predict a reward model's performance on downstream tasks, we conduct experiments demonstrating that our benchmark exhibits a significantly higher correlation with downstream performance in both Best-of-N (BoN) sampling and Proximal Policy Optimization (PPO) compared to existing baselines. These findings establish Personalized RewardBench as a robust and accurate proxy for evaluating reward models' performance in downstream applications.",
+      "authors": [
+        "Qiyao Ma",
+        "Dechen Gao",
+        "Rui Cai",
+        "Boqi Zhao",
+        "Hanchu Zhou",
+        "Junshan Zhang",
+        "Zhe Zhao"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-04-08T17:55:00+00:00",
+      "link": "https://arxiv.org/pdf/2604.07343v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "evaluating reward model accuracy and consistency with personalized preferences",
+      "llm_evidence_cn": "评估奖励模型在个性化偏好下的准确性与一致性",
+      "llm_evidence": "评估奖励模型在个性化偏好下的准确性与一致性",
+      "canonical_evidence": "评估奖励模型在个性化偏好下的准确性与一致性",
+      "llm_tldr_en": "Introduces Personalized RewardBench to evaluate how well reward models align with diverse individual user preferences.",
+      "llm_tldr_cn": "引入Personalized RewardBench，用于评估奖励模型与多样化个人偏好的对齐程度。",
+      "llm_tldr": "引入Personalized RewardBench，用于评估奖励模型与多样化个人偏好的对齐程度。",
+      "llm_tags": [
+        "query:rm-trn"
+      ],
+      "matched_query_tag": "query:rm-trn",
+      "matched_query_text": "how to evaluate reward model accuracy and consistency",
+      "matched_requirement_id": "req-18",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00280v1",
+      "source": "arxiv",
+      "title": "VeriAct: Beyond Verifiability -- Agentic Synthesis of Correct and Complete Formal Specifications",
+      "abstract": "Formal specifications play a central role in ensuring software reliability and correctness. However, automatically synthesizing high-quality formal specifications remains a challenging task, often requiring domain expertise. Recent work has applied large language models to generate specifications in Java Modeling Language (JML), reporting high verification pass rates. But does passing a verifier mean that the specification is actually correct and complete? In this work, we first conduct a comprehensive evaluation comparing classical and prompt-based approaches for automated JML specification synthesis. We then investigate whether prompt optimization can push synthesis quality further by evolving prompts through structured verification feedback. While optimization improves verifier pass rates, we find a clear performance ceiling. More critically, we propose Spec-Harness, an evaluation framework that measures specification correctness and completeness through symbolic verification, revealing that a large fraction of verifier-accepted specifications, including optimized ones, are in fact incorrect or incomplete, over- or under-constraining both inputs and outputs in ways invisible to the verifier. To push beyond this ceiling, we propose VeriAct, a verification-guided agentic framework that iteratively synthesizes and repairs specifications through a closed loop of LLM-driven planning, code execution, verification, and Spec-Harness feedback. Our experiments on two benchmark datasets show that VeriAct outperforms both prompt-based and prompt-optimized baselines, producing specifications that are not only verifiable but also correct and complete.",
+      "authors": [
+        "Md Rakib Hossain Misu",
+        "Iris Ma",
+        "Cristina V. Lopes"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.AI"
+      ],
+      "published": "2026-03-31T22:12:15+00:00",
+      "link": "https://arxiv.org/pdf/2604.00280v1",
+      "tags": [
+        "keyword:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "prompt optimization for evolving formal specification synthesis",
+      "llm_evidence_cn": "用于演化形式化规范生成的提示词优化",
+      "llm_evidence": "用于演化形式化规范生成的提示词优化",
+      "canonical_evidence": "用于演化形式化规范生成的提示词优化",
+      "llm_tldr_en": "Investigates prompt optimization to improve the quality of automated formal specification synthesis.",
+      "llm_tldr_cn": "研究了如何通过提示词优化来提升自动化形式化规范生成的质量。",
+      "llm_tldr": "研究了如何通过提示词优化来提升自动化形式化规范生成的质量。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00479v1",
+      "source": "arxiv",
+      "title": "All Roads Lead to Rome: Incentivizing Divergent Thinking in Vision-Language Models",
+      "abstract": "Recent studies have demonstrated that Reinforcement Learning (RL), notably Group Relative Policy Optimization (GRPO), can intrinsically elicit and enhance the reasoning capabilities of Vision-Language Models (VLMs). However, despite the promise, the underlying mechanisms that drive the effectiveness of RL models as well as their limitations remain underexplored. In this paper, we highlight a fundamental behavioral distinction between RL and base models, where the former engages in deeper yet narrow reasoning, while base models, despite less refined along individual path, exhibit broader and more diverse thinking patterns. Through further analysis of training dynamics, we show that GRPO is prone to diversity collapse, causing models to prematurely converge to a limited subset of reasoning strategies while discarding the majority of potential alternatives, leading to local optima and poor scalability. To address this, we propose Multi-Group Policy Optimization (MUPO), a simple yet effective approach designed to incentivize divergent thinking across multiple solutions, and demonstrate its effectiveness on established benchmarks. Project page: https://xytian1008.github.io/MUPO/",
+      "authors": [
+        "Xinyu Tian",
+        "Shu Zou",
+        "Zhaoyuan Yang",
+        "Mengqi He",
+        "Peter Tu",
+        "Jing Zhang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-01T04:52:21+00:00",
+      "link": "https://arxiv.org/pdf/2604.00479v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "analysis of Group Relative Policy Optimization (GRPO) training dynamics",
+      "llm_evidence_cn": "分析GRPO训练动态及其局限性",
+      "llm_evidence": "分析GRPO训练动态及其局限性",
+      "canonical_evidence": "分析GRPO训练动态及其局限性",
+      "llm_tldr_en": "Investigates GRPO in Vision-Language Models, highlighting its tendency toward diversity collapse.",
+      "llm_tldr_cn": "研究了视觉语言模型中的GRPO，指出了其容易导致多样性崩溃的问题。",
+      "llm_tldr": "研究了视觉语言模型中的GRPO，指出了其容易导致多样性崩溃的问题。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00558v1",
+      "source": "arxiv",
+      "title": "STAR: Mitigating Cascading Errors in Spatial Reasoning via Turn-point Alignment and Segment-level DPO",
+      "abstract": "Structured spatial navigation is a core benchmark for Large Language Models (LLMs) spatial reasoning. Existing paradigms like Visualization-of-Thought (VoT) are prone to cascading errors in complex topologies. To solve this, we propose STAR, a two-stage framework grounded on topological anchors, and introduce the RedMaze-23K dataset with human-inspired turnpoint annotations. The first stage uses supervised fine-tuning to help models internalize spatial semantics and prune redundant paths. The second adopts Spatial-aware Segment-level Direct Preference Optimization (SDPO) to refine self-correction in long-horizon navigation. Experiments show STAR achieves state-of-the-art performance among open-source models: its 32B variant outperforms DeepSeek-V3 (29.27% vs. 25.00%) and reaches 82.4% of GPT-4's performance.",
+      "authors": [
+        "Pukun Zhao",
+        "Longxiang Wang",
+        "Chen Chen",
+        "Peicheng Wang",
+        "Fanqing Zhou",
+        "Runze Li",
+        "Haojian Huang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-01T07:02:37+00:00",
+      "link": "https://arxiv.org/pdf/2604.00558v1",
+      "tags": [
+        "keyword:RM OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "segment-level Direct Preference Optimization (SDPO) for refinement",
+      "llm_evidence_cn": "用于细化的分段级直接偏好优化 (SDPO)",
+      "llm_evidence": "用于细化的分段级直接偏好优化 (SDPO)",
+      "canonical_evidence": "用于细化的分段级直接偏好优化 (SDPO)",
+      "llm_tldr_en": "Introduces STAR and segment-level DPO to mitigate cascading errors in spatial reasoning tasks.",
+      "llm_tldr_cn": "引入 STAR 框架和分段级 DPO，旨在减少空间推理任务中的级联错误。",
+      "llm_tldr": "引入 STAR 框架和分段级 DPO，旨在减少空间推理任务中的级联错误。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Direct Preference Optimization for LLM alignment",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00901v1",
+      "source": "arxiv",
+      "title": "Experience as a Compass: Multi-agent RAG with Evolving Orchestration and Agent Prompts",
+      "abstract": "Multi-agent Retrieval-Augmented Generation (RAG), wherein each agent takes on a specific role, supports hard queries that require multiple steps and sources, or complex reasoning. Existing approaches, however, rely on static agent behaviors and fixed orchestration strategies, leading to brittle performance on diverse, multi-hop tasks. We identify two key limitations: the lack of continuously adaptive orchestration mechanisms and the absence of behavior-level learning for individual agents. To this end, we propose HERA, a hierarchical framework that jointly evolves multi-agent orchestration and role-specific agent prompts. At the global level, HERA optimizes query-specific agent topologies through reward-guided sampling and experience accumulation. At the local level, Role-Aware Prompt Evolution refines agent behaviors via credit assignment and dual-axes adaptation along operational and behavioral principles, enabling targeted, role-conditioned improvements. On six knowledge-intensive benchmarks, HERA achieves an average improvement of 38.69\\% over recent baselines while maintaining robust generalization and token efficiency. Topological analyses reveal emergent self-organization, where sparse exploration yields compact, high-utility multi-agent networks, demonstrating both efficient coordination and robust reasoning.",
+      "authors": [
+        "Sha Li",
+        "Naren Ramakrishnan"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-01T13:45:52+00:00",
+      "link": "https://arxiv.org/pdf/2604.00901v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "jointly evolves multi-agent orchestration and role-specific agent prompts",
+      "llm_evidence_cn": "联合演化多智能体编排和特定角色提示词",
+      "llm_evidence": "联合演化多智能体编排和特定角色提示词",
+      "canonical_evidence": "联合演化多智能体编排和特定角色提示词",
+      "llm_tldr_en": "HERA framework optimizes multi-agent RAG by evolving agent topologies and prompts through reward-guided sampling.",
+      "llm_tldr_cn": "HERA 框架通过奖励引导的采样，联合优化多智能体 RAG 的编排逻辑与提示词。",
+      "llm_tldr": "HERA 框架通过奖励引导的采样，联合优化多智能体 RAG 的编排逻辑与提示词。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00979v2",
+      "source": "arxiv",
+      "title": "Dual Optimal: Make Your LLM Peer-like with Dignity",
+      "abstract": "Current aligned language models exhibit a dual failure mode we term the Evasive Servant: they sycophantically validate flawed user beliefs while deflecting responsibility with boilerplate disclaimers. We propose the Dignified Peer framework, which counters servility with anti-sycophancy and trustworthiness, and mitigates evasiveness through empathy and creativity. Realizing this agent requires overcoming significant challenges in data supervision, objective collapse, and evaluation bias. We address these issues by introducing the PersonaKnob dataset which features a compositional partial order structure of multiple persona preference. This data is utilized alongside a tolerant constrained Lagrangian DPO algorithm that dynamically balances all persona dimensions to prevent behavioral collapse. Additionally, we employ a psychometrically calibrated Item Response Theory evaluation protocol to disentangle latent model persona capability from confounders like judge biases. Extensive empirical studies demonstrate that our approach successfully build a LLM agent with both dignity and peer.",
+      "authors": [
+        "Xiangqi Wang",
+        "Yue Huang",
+        "Haomin Zhuang",
+        "Kehan Guo",
+        "Xiangliang Zhang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-04-01T14:48:44+00:00",
+      "link": "https://arxiv.org/pdf/2604.00979v2",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "query:RM OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "constrained Lagrangian DPO algorithm for persona preference alignment",
+      "llm_evidence_cn": "用于人格偏好对齐的受限拉格朗日DPO算法",
+      "llm_evidence": "用于人格偏好对齐的受限拉格朗日DPO算法",
+      "canonical_evidence": "用于人格偏好对齐的受限拉格朗日DPO算法",
+      "llm_tldr_en": "Introduces a DPO variant to balance multiple persona dimensions and prevent objective collapse.",
+      "llm_tldr_cn": "引入了一种DPO变体，用于平衡多个人格维度并防止目标崩溃。",
+      "llm_tldr": "引入了一种DPO变体，用于平衡多个人格维度并防止目标崩溃。",
+      "llm_tags": [
+        "query:rm-opt:composite"
+      ],
+      "matched_query_tag": "query:rm-opt:composite",
+      "matched_query_text": "Papers central to 搜索Reward Model优化相关的论文，配合DPO、GRPO训练, especially work that connects or combines: Reward Model optimization and training techniques; Direct Preference Optimization for LLM alignment; Group Relative Policy Optimization in reinforcement learning; Preference learning algorithms for reward models; Reward shaping and scaling for stable training; Iterative Direct Preference Optimization methods; Optimization strategies for Reward Models in DPO and GRPO frameworks; Recent advances in reward model training for preference alignment; Integrating reward model improvements with direct preference optimization; Comparative study of reward modeling in RLHF and DPO variants.",
+      "matched_requirement_id": "req-composite-rm-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01312v1",
+      "source": "arxiv",
+      "title": "Preference learning in shades of gray: Interpretable and bias-aware reward modeling for human preferences",
+      "abstract": "Learning human preferences in language models remains fundamentally challenging, as reward modeling relies on subtle, subjective comparisons or shades of gray rather than clear-cut labels. This study investigates the limits of current approaches and proposes a feature-augmented framework to better capture the multidimensional nature of human judgment. Using the Anthropic HHRLHF dataset, we evaluate ten diverse large language models LLMs under a standard pairwise preference setting, where baseline performance remains below 0.74 ROC AUC, highlighting the difficulty of the task. To address this, we enrich textual representations with interpretable signals: response length, refusal indicators, toxicity scores and prompt response semantic similarity, enabling models to explicitly capture key aspects of helpfulness, safety and relevance. The proposed hybrid approach yields consistent improvements across all models, achieving up to 0.84 ROC AUC and significantly higher pairwise accuracy, with DeBERTav3Large demonstrating the best performance. Beyond accuracy, we integrate SHAP and LIME to provide fine-grained interpretability, revealing that model decisions depend on contextualized safety and supportive framing rather than isolated keywords. We further analyze bias amplification, showing that while individual features have weak marginal effects, their interactions influence preference learning.",
+      "authors": [
+        "Simona-Vasilica Oprea",
+        "Adela Bâra"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-04-01T18:26:16+00:00",
+      "link": "https://arxiv.org/pdf/2604.01312v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "interpretable and bias-aware reward modeling for human preferences",
+      "llm_evidence_cn": "针对人类偏好的可解释且具有偏见意识的奖励建模",
+      "llm_evidence": "针对人类偏好的可解释且具有偏见意识的奖励建模",
+      "canonical_evidence": "针对人类偏好的可解释且具有偏见意识的奖励建模",
+      "llm_tldr_en": "Proposes a feature-augmented framework to improve reward model interpretability and handle bias in preference data.",
+      "llm_tldr_cn": "提出一种特征增强框架，旨在提高奖励模型的可解释性并处理偏好数据中的偏见。",
+      "llm_tldr": "提出一种特征增强框架，旨在提高奖励模型的可解释性并处理偏好数据中的偏见。",
+      "llm_tags": [
+        "query:rm-trn"
+      ],
+      "matched_query_tag": "query:rm-trn",
+      "matched_query_text": "reward model training architecture and methodology",
+      "matched_requirement_id": "req-16",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01591v2",
+      "source": "arxiv",
+      "title": "ThinkTwice: Jointly Optimizing Large Language Models for Reasoning and Self-Refinement",
+      "abstract": "We introduce ThinkTwice, a simple two-phase framework that jointly optimizes LLMs to solve reasoning problems and refine the answers, based on Group Relative Policy Optimization (GRPO). In each pair of training steps, ThinkTwice first optimizes the model on solving reasoning problems, then optimizes it on refining its own solutions to the same problems, using the same binary correctness reward in both phases without correctness signals or critique annotations. Across five mathematical reasoning benchmarks and two model families including Qwen3-4B and Olmo3-7B, ThinkTwice substantially improves both reasoning and refinement performance over competitive online policy optimization baselines. Specifically, on Qwen3-4B, ThinkTwice outperforms GRPO on AIME by 5 percentage points before refinement and by 11.5 points after one self-refinement step, measured by pass@4. Analysis of the training dynamics of ThinkTwice reveals an implicit rectify-then-fortify curriculum: refinement predominantly corrects errors early in training and naturally shifts toward preserving already-correct solutions as the model improves, yielding a more rectified reward signal. Our work establishes joint training of reasoning and self-refinement as a principled and effective methodology for RLVR.",
+      "authors": [
+        "Difan Jiao",
+        "Qianfeng Wen",
+        "Blair Yang",
+        "Zhenwei Tang",
+        "Ashton Anderson"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-02T04:02:04+00:00",
+      "link": "https://arxiv.org/pdf/2604.01591v2",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "jointly optimizes LLMs for reasoning and refinement based on GRPO",
+      "llm_evidence_cn": "基于GRPO联合优化LLM的推理和自我改进能力",
+      "llm_evidence": "基于GRPO联合优化LLM的推理和自我改进能力",
+      "canonical_evidence": "基于GRPO联合优化LLM的推理和自我改进能力",
+      "llm_tldr_en": "ThinkTwice uses GRPO to jointly optimize reasoning and self-refinement without extra annotations.",
+      "llm_tldr_cn": "ThinkTwice利用GRPO在无需额外标注的情况下联合优化推理与自我改进。",
+      "llm_tldr": "ThinkTwice利用GRPO在无需额外标注的情况下联合优化推理与自我改进。",
+      "llm_tags": [
+        "query:rm-opt:composite"
+      ],
+      "matched_query_tag": "query:rm-opt:composite",
+      "matched_query_text": "Papers central to 搜索Reward Model优化相关的论文，配合DPO、GRPO训练, especially work that connects or combines: Reward Model optimization and training techniques; Direct Preference Optimization for LLM alignment; Group Relative Policy Optimization in reinforcement learning; Preference learning algorithms for reward models; Reward shaping and scaling for stable training; Iterative Direct Preference Optimization methods; Optimization strategies for Reward Models in DPO and GRPO frameworks; Recent advances in reward model training for preference alignment; Integrating reward model improvements with direct preference optimization; Comparative study of reward modeling in RLHF and DPO variants.",
+      "matched_requirement_id": "req-composite-rm-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01787v1",
+      "source": "arxiv",
+      "title": "DEFT: Distribution-guided Efficient Fine-Tuning for Human Alignment",
+      "abstract": "Reinforcement Learning from Human Feedback (RLHF), using algorithms like Proximal Policy Optimization (PPO), aligns Large Language Models (LLMs) with human values but is costly and unstable. Alternatives have been proposed to replace PPO or integrate Supervised Fine-Tuning (SFT) and contrastive learning for direct fine-tuning and value alignment. However, these methods still require voluminous data to learn preferences and may weaken the generalization ability of LLMs. To further enhance alignment efficiency and performance while mitigating the loss of generalization ability, this paper introduces Distribution-guided Efficient Fine-Tuning (DEFT), an efficient alignment framework incorporating data filtering and distributional guidance by calculating the differential distribution reward based on the output distribution of language model and the discrepancy distribution of preference data. A small yet high-quality subset is filtered from the raw data using a differential distribution reward, which is then incorporated into existing alignment methods to guide the model's output distribution. Experimental results demonstrate that the methods enhanced by DEFT outperform the original methods in both alignment capability and generalization ability, with significantly reduced training time.",
+      "authors": [
+        "Liang Zhu",
+        "Feiteng Fang",
+        "Yuelin Bai",
+        "Longze Chen",
+        "Zhexiang Zhang",
+        "Minghuan Tan",
+        "Min Yang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-04-02T08:55:53+00:00",
+      "link": "https://arxiv.org/pdf/2604.01787v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "efficient alignment framework for human alignment and preference learning",
+      "llm_evidence_cn": "用于人类对齐和偏好学习的高效对齐框架",
+      "llm_evidence": "用于人类对齐和偏好学习的高效对齐框架",
+      "canonical_evidence": "用于人类对齐和偏好学习的高效对齐框架",
+      "llm_tldr_en": "Introduces DEFT, an efficient alignment framework using distributional guidance to improve RLHF efficiency.",
+      "llm_tldr_cn": "引入DEFT框架，利用分布引导提高RLHF的对齐效率和性能。",
+      "llm_tldr": "引入DEFT框架，利用分布引导提高RLHF的对齐效率和性能。",
+      "llm_tags": [
+        "query:rm-opt:composite"
+      ],
+      "matched_query_tag": "query:rm-opt:composite",
+      "matched_query_text": "Papers central to 搜索Reward Model优化相关的论文，配合DPO、GRPO训练, especially work that connects or combines: Reward Model optimization and training techniques; Direct Preference Optimization for LLM alignment; Group Relative Policy Optimization in reinforcement learning; Preference learning algorithms for reward models; Reward shaping and scaling for stable training; Iterative Direct Preference Optimization methods; Optimization strategies for Reward Models in DPO and GRPO frameworks; Recent advances in reward model training for preference alignment; Integrating reward model improvements with direct preference optimization; Comparative study of reward modeling in RLHF and DPO variants.",
+      "matched_requirement_id": "req-composite-rm-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01837v1",
+      "source": "arxiv",
+      "title": "PLOT: Enhancing Preference Learning via Optimal Transport",
+      "abstract": "Preference learning in Large Language Models (LLMs) has advanced significantly, yet existing methods remain limited by modest performance gains, high computational costs, hyperparameter sensitivity, and insufficient modeling of global token-level relationships. We introduce PLOT, which enhances Preference Learning in fine-tuning-based alignment through a token-level loss derived from Optimal Transport. By formulating preference learning as an Optimal Transport Problem, PLOT aligns model outputs with human preferences while preserving the original distribution of LLMs, ensuring stability and robustness. Furthermore, PLOT leverages token embeddings to capture semantic relationships, enabling globally informed optimization. Experiments across two preference categories - Human Values and Logic & Problem Solving - spanning seven subpreferences demonstrate that PLOT consistently improves alignment performance while maintaining fluency and coherence. These results substantiate optimal transport as a principled methodology for preference learning, establishing a theoretically grounded framework that provides new insights for preference learning of LLMs.",
+      "authors": [
+        "Liang Zhu",
+        "Yuelin Bai",
+        "Xiankun Ren",
+        "Jiaxi Yang",
+        "Lei Zhang",
+        "Feiteng Fang",
+        "Hamid Alinejad-Rokny",
+        "Minghuan Tan",
+        "Min Yang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-04-02T09:51:56+00:00",
+      "link": "https://arxiv.org/pdf/2604.01837v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "enhances Preference Learning via Optimal Transport token-level loss",
+      "llm_evidence_cn": "通过最优传输标记级损失增强偏好学习",
+      "llm_evidence": "通过最优传输标记级损失增强偏好学习",
+      "canonical_evidence": "通过最优传输标记级损失增强偏好学习",
+      "llm_tldr_en": "Proposes PLOT to improve LLM alignment using token-level relationships and Optimal Transport.",
+      "llm_tldr_cn": "提出 PLOT，利用标记级关系和最优传输改进大语言模型的对齐。",
+      "llm_tldr": "提出 PLOT，利用标记级关系和最优传输改进大语言模型的对齐。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Preference learning algorithms for reward models",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02007v2",
+      "source": "arxiv",
+      "title": "Apriel-1.5-OpenReasoner: RL Post-Training for General-Purpose and Efficient Reasoning",
+      "abstract": "Building general-purpose reasoning models using reinforcement learning with verifiable rewards (RLVR) across diverse domains has been widely adopted by frontier open-weight models. However, their training recipes and domain mixtures are often not disclosed. Joint optimization across domains poses significant challenges: domains vary widely in rollout length, problem difficulty and sample efficiency. Further, models with long chain-of-thought traces increase inference cost and latency, making efficiency critical for practical deployment. We present Apriel-1.5-OpenReasoner, trained with a fully reproducible multi-domain RL post-training recipe on Apriel-Base, a 15B-parameter open-weight LLM, across five domains using public datasets: mathematics, code generation, instruction following, logical puzzles and function calling. We introduce an adaptive domain sampling mechanism that preserves target domain ratios despite heterogeneous rollout dynamics, and a difficulty-aware extension of the standard length penalty that, with no additional training overhead, encourages longer reasoning for difficult problems and shorter traces for easy ones. Trained with a strict 16K-token output budget, Apriel-1.5-OpenReasoner generalizes to 32K tokens at inference and improves over Apriel-Base on AIME 2025, GPQA, MMLU-Pro, and LiveCodeBench while producing 30-50% shorter reasoning traces. It matches strong open-weight models of similar size at lower token cost, thereby pushing the Pareto frontier of accuracy versus token budget.",
+      "authors": [
+        "Rafael Pardinas",
+        "Ehsan Kamalloo",
+        "David Vazquez",
+        "Alexandre Drouin"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-02T13:10:27+00:00",
+      "link": "https://arxiv.org/pdf/2604.02007v2",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "RL post-training with verifiable rewards (RLVR) for reasoning models",
+      "llm_evidence_cn": "针对推理模型的使用可验证奖励 (RLVR) 的强化学习后训练",
+      "llm_evidence": "针对推理模型的使用可验证奖励 (RLVR) 的强化学习后训练",
+      "canonical_evidence": "针对推理模型的使用可验证奖励 (RLVR) 的强化学习后训练",
+      "llm_tldr_en": "Presents a reproducible multi-domain RL post-training recipe for reasoning models using verifiable rewards.",
+      "llm_tldr_cn": "展示了一种可重复的多领域强化学习后训练方案，利用可验证奖励提升推理模型性能。",
+      "llm_tldr": "展示了一种可重复的多领域强化学习后训练方案，利用可验证奖励提升推理模型性能。",
+      "llm_tags": [
+        "query:rm-opt:composite"
+      ],
+      "matched_query_tag": "query:rm-opt:composite",
+      "matched_query_text": "Papers central to 搜索Reward Model优化相关的论文，配合DPO、GRPO训练, especially work that connects or combines: Reward Model optimization and training techniques; Direct Preference Optimization for LLM alignment; Group Relative Policy Optimization in reinforcement learning; Preference learning algorithms for reward models; Reward shaping and scaling for stable training; Iterative Direct Preference Optimization methods; Optimization strategies for Reward Models in DPO and GRPO frameworks; Recent advances in reward model training for preference alignment; Integrating reward model improvements with direct preference optimization; Comparative study of reward modeling in RLHF and DPO variants.",
+      "matched_requirement_id": "req-composite-rm-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02507v1",
+      "source": "arxiv",
+      "title": "Reinforcement Learning from Human Feedback: A Statistical Perspective",
+      "abstract": "Reinforcement learning from human feedback (RLHF) has emerged as a central framework for aligning large language models (LLMs) with human preferences. Despite its practical success, RLHF raises fundamental statistical questions because it relies on noisy, subjective, and often heterogeneous feedback to learn reward models and optimize policies. This survey provides a statistical perspective on RLHF, focusing primarily on the LLM alignment setting. We introduce the main components of RLHF, including supervised fine-tuning, reward modeling, and policy optimization, and relate them to familiar statistical ideas such as Bradley-Terry-Luce (BTL) model, latent utility estimation, active learning, experimental design, and uncertainty quantification. We review methods for learning reward functions from pairwise preference data and for optimizing policies through both two-stage RLHF pipelines and emerging one-stage approaches such as direct preference optimization. We further discuss recent extensions including reinforcement learning from AI feedback, inference-time algorithms, and reinforcement learning from verifiable rewards, as well as benchmark datasets, evaluation protocols, and open-source frameworks that support RLHF research. We conclude by highlighting open challenges in RLHF. An accompanying GitHub demo https://github.com/Pangpang-Liu/RLHF_demo illustrates key components of the RLHF pipeline.",
+      "authors": [
+        "Pangpang Liu",
+        "Chengchun Shi",
+        "Will Wei Sun"
+      ],
+      "primary_category": "stat.ML",
+      "categories": [
+        "stat.ML",
+        "cs.LG"
+      ],
+      "published": "2026-04-02T21:04:17+00:00",
+      "link": "https://arxiv.org/pdf/2604.02507v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "survey on reward modeling and preference alignment",
+      "llm_evidence_cn": "奖励建模与偏好对齐的综述",
+      "llm_evidence": "奖励建模与偏好对齐的综述",
+      "canonical_evidence": "奖励建模与偏好对齐的综述",
+      "llm_tldr_en": "Provides a statistical survey of RLHF, covering reward modeling, policy optimization, and preference learning.",
+      "llm_tldr_cn": "从统计学角度综述RLHF，涵盖奖励建模、策略优化和偏好学习等核心组件。",
+      "llm_tldr": "从统计学角度综述RLHF，涵盖奖励建模、策略优化和偏好学习等核心组件。",
+      "llm_tags": [
+        "query:rm-trn:composite"
+      ],
+      "matched_query_tag": "query:rm-trn:composite",
+      "matched_query_text": "Papers central to reward model训练, especially work that connects or combines: reward model training architecture and methodology; best practices for training reward models in RLHF; how to evaluate reward model accuracy and consistency; reward model architecture and loss function implementation; handling noise and bias in preference datasets.",
+      "matched_requirement_id": "req-composite-rm-trn",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02585v1",
+      "source": "arxiv",
+      "title": "Mitigating LLM biases toward spurious social contexts using direct preference optimization",
+      "abstract": "LLMs are increasingly used for high-stakes decision-making, yet their sensitivity to spurious contextual information can introduce harmful biases. This is a critical concern when models are deployed for tasks like evaluating teachers' instructional quality, where biased assessment can affect teachers' professional development and career trajectories. We investigate model robustness to spurious social contexts using the largest publicly available dataset of U.S. classroom transcripts (NCTE) paired with expert rubric scores. Evaluating seven frontier and open-weight models across seven categories of spurious contexts -- including teacher experience, education level, demographic identity, and sycophancy-inducing framings -- we find that irrelevant contextual information can shift model predictions by up to 1.48 points on a 7-point scale, with larger models sometimes exhibiting greater sensitivity despite higher predictive accuracy. Mitigations using prompts and standard direct preference optimization (DPO) prove largely insufficient. We propose **Debiasing-DPO**,, a self-supervised training method that pairs neutral reasoning generated from the query alone, with the model's biased reasoning generated with both the query and additional spurious context. We further combine this objective with supervised fine-tuning on ground-truth labels to prevent losses in predictive accuracy. Applied to Llama 3B \\& 8B and Qwen 3B \\& 7B Instruct models, Debiasing-DPO reduces bias by 84\\% and improves predictive accuracy by 52\\% on average. Our findings from the educational case study highlight that robustness to spurious context is not a natural byproduct of model scaling and that our proposed method can yield substantial gains in both accuracy and robustness for prompt-based prediction tasks.",
+      "authors": [
+        "Hyunji Nam",
+        "Dorottya Demszky"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-02T23:42:20+00:00",
+      "link": "https://arxiv.org/pdf/2604.02585v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "mitigating LLM biases using direct preference optimization",
+      "llm_evidence_cn": "使用直接偏好优化（DPO）减轻LLM偏差",
+      "llm_evidence": "使用直接偏好优化（DPO）减轻LLM偏差",
+      "canonical_evidence": "使用直接偏好优化（DPO）减轻LLM偏差",
+      "llm_tldr_en": "Uses DPO to improve LLM robustness against spurious social contexts and biases in decision-making.",
+      "llm_tldr_cn": "使用DPO提高LLM对虚假社会背景和决策偏差的鲁棒性。",
+      "llm_tldr": "使用DPO提高LLM对虚假社会背景和决策偏差的鲁棒性。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Direct Preference Optimization for LLM alignment",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02621v1",
+      "source": "arxiv",
+      "title": "Reinforcement Learning-based Knowledge Distillation with LLM-as-a-Judge",
+      "abstract": "Reinforcement Learning (RL) has been shown to substantially improve the reasoning capability of small and large language models (LLMs), but existing approaches typically rely on verifiable rewards, hence ground truth labels. We propose an RL framework that uses rewards from an LLM that acts as a judge evaluating model outputs over large amounts of unlabeled data, enabling label-free knowledge distillation and replacing the need of ground truth supervision. Notably, the judge operates with a single-token output, making reward computation efficient. When combined with verifiable rewards, our approach yields substantial performance gains across math reasoning benchmarks. These results suggest that LLM-based evaluators can produce effective training signals for RL fine-tuning.",
+      "authors": [
+        "Yiyang Shen",
+        "Lifu Tu",
+        "Weiran Wang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-04-03T01:23:04+00:00",
+      "link": "https://arxiv.org/pdf/2604.02621v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "LLM-as-a-judge for reward computation in reinforcement learning",
+      "llm_evidence_cn": "在强化学习中使用LLM作为裁判进行奖励计算",
+      "llm_evidence": "在强化学习中使用LLM作为裁判进行奖励计算",
+      "canonical_evidence": "在强化学习中使用LLM作为裁判进行奖励计算",
+      "llm_tldr_en": "Uses an LLM-as-a-judge to provide rewards for label-free knowledge distillation and reasoning improvement.",
+      "llm_tldr_cn": "利用LLM作为裁判为无标签知识蒸馏和推理能力提升提供奖励信号。",
+      "llm_tldr": "利用LLM作为裁判为无标签知识蒸馏和推理能力提升提供奖励信号。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Recent advances in reward model training for preference alignment",
+      "matched_requirement_id": "req-13",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02766v1",
+      "source": "arxiv",
+      "title": "Random Is Hard to Beat: Active Selection in online DPO with Modern LLMs",
+      "abstract": "Modern LLMs inherit strong priors from web-scale pretraining, which can limit the headroom of post-training data-selection strategies. While Active Preference Learning (APL) seeks to optimize query efficiency in online Direct Preference Optimization (DPO), the inherent richness of on-policy candidate pools often renders simple Random sampling a surprisingly formidable baseline. We evaluate uncertainty-based APL against Random across harmlessness, helpfulness, and instruction-following settings, utilizing both reward models and LLM-as-a-judge proxies. We find that APL yields negligible improvements in proxy win-rates compared to Random. Crucially, we observe a dissociation where win-rate improves even as general capability -- measured by standard benchmarks -- degrades. APL fails to mitigate this capability collapse or reduce variance significantly better than random sampling. Our findings suggest that in the regime of strong pre-trained priors, the computational overhead of active selection is difficult to justify against the ``cheap diversity'' provided by simple random samples. Our code is available at https://github.com/BootsofLagrangian/random-vs-apl.",
+      "authors": [
+        "Giyeong Oh",
+        "Junghyun Lee",
+        "Jaehyun Park",
+        "Youngjae Yu",
+        "Wonho Bae",
+        "Junhyug Noh"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-04-03T06:24:11+00:00",
+      "link": "https://arxiv.org/pdf/2604.02766v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Active Preference Learning in online Direct Preference Optimization (DPO)",
+      "llm_evidence_cn": "在线直接偏好优化（DPO）中的主动偏好学习",
+      "llm_evidence": "在线直接偏好优化（DPO）中的主动偏好学习",
+      "canonical_evidence": "在线直接偏好优化（DPO）中的主动偏好学习",
+      "llm_tldr_en": "Evaluates active data selection strategies in online DPO, finding random sampling is a strong baseline.",
+      "llm_tldr_cn": "评估了在线DPO中的主动数据选择策略，发现随机采样是一个非常强劲的基准。",
+      "llm_tldr": "评估了在线DPO中的主动数据选择策略，发现随机采样是一个非常强劲的基准。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Direct Preference Optimization for LLM alignment",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02986v1",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Advantage Sign Robustness",
+      "abstract": "Reward models (RMs) used in reinforcement learning from human feedback (RLHF) are vulnerable to reward hacking: as the policy maximizes a learned proxy reward, true quality plateaus or degrades. We make the assumption that reward hacking is often caused by flipped advantage signs: instead of reducing the likelihood of a bad response, a flipped sign causes the update to increase it. By considering an adversarial perturbation in the RM parameter space, we can derive a certified sign-preservation radius, which is the smallest perturbation that can flip the advantage sign during policy optimization. Based on this formulation, we propose Sign-Certified Policy Optimization (SignCert-PO), down-weighting non-robust completions in the policy gradient update. Unlike prior approaches that require multiple RMs or access to the RM training data, SignCert-PO is lightweight and operates purely at the policy optimization stage using only the RM parameters and on-policy completions. On TL;DR summarization and AlpacaFarm benchmarks, SignCert-PO consistently achieves a better win rate than baselines and reduces reward hacking.",
+      "authors": [
+        "Shinnosuke Ono",
+        "Johannes Ackermann",
+        "Soichiro Nishimori",
+        "Takashi Ishida",
+        "Masashi Sugiyama"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-03T11:45:16+00:00",
+      "link": "https://arxiv.org/pdf/2604.02986v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "mitigating reward hacking in RLHF via advantage sign robustness in reward models",
+      "llm_evidence_cn": "通过奖励模型中的优势符号鲁棒性减轻RLHF中的奖励欺骗",
+      "llm_evidence": "通过奖励模型中的优势符号鲁棒性减轻RLHF中的奖励欺骗",
+      "canonical_evidence": "通过奖励模型中的优势符号鲁棒性减轻RLHF中的奖励欺骗",
+      "llm_tldr_en": "Proposes SignCert-PO to mitigate reward hacking by ensuring robustness against RM parameter perturbations.",
+      "llm_tldr_cn": "提出SignCert-PO，通过确保奖励模型参数扰动下的符号鲁棒性来减轻奖励欺骗问题。",
+      "llm_tldr": "提出SignCert-PO，通过确保奖励模型参数扰动下的符号鲁棒性来减轻奖励欺骗问题。",
+      "llm_tags": [
+        "query:rm-opt:composite"
+      ],
+      "matched_query_tag": "query:rm-opt:composite",
+      "matched_query_text": "Papers central to 搜索Reward Model优化相关的论文，配合DPO、GRPO训练, especially work that connects or combines: Reward Model optimization and training techniques; Direct Preference Optimization for LLM alignment; Group Relative Policy Optimization in reinforcement learning; Preference learning algorithms for reward models; Reward shaping and scaling for stable training; Iterative Direct Preference Optimization methods; Optimization strategies for Reward Models in DPO and GRPO frameworks; Recent advances in reward model training for preference alignment; Integrating reward model improvements with direct preference optimization; Comparative study of reward modeling in RLHF and DPO variants.",
+      "matched_requirement_id": "req-composite-rm-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.03677v1",
+      "source": "arxiv",
+      "title": "Unlocking Prompt Infilling Capability for Diffusion Language Models",
+      "abstract": "Masked diffusion language models (dLMs) generate text through bidirectional denoising, yet this capability remains locked for infilling prompts. This limitation is an artifact of the current supervised finetuning (SFT) convention of applying response-only masking. To unlock this capability, we extend full-sequence masking during SFT, where both prompts and responses are masked jointly. Once unlocked, the model infills masked portions of a prompt template conditioned on few-shot examples. We show that such model-infilled prompts match or surpass manually designed templates, transfer effectively across models, and are complementary to existing prompt optimization methods. Our results suggest that training practices, not architectural limitations, are the primary bottleneck preventing masked diffusion language models from infilling effective prompts",
+      "authors": [
+        "Yoshinari Fujinuma",
+        "Keisuke Sakaguchi"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-04-04T10:26:36+00:00",
+      "link": "https://arxiv.org/pdf/2604.03677v1",
+      "tags": [
+        "keyword:PR OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "automatic prompt infilling and generation matching manual templates",
+      "llm_evidence_cn": "自动提示词填充与生成，效果匹配人工模板",
+      "llm_evidence": "自动提示词填充与生成，效果匹配人工模板",
+      "canonical_evidence": "自动提示词填充与生成，效果匹配人工模板",
+      "llm_tldr_en": "Unlocks prompt infilling in diffusion language models to automatically generate high-quality prompt templates.",
+      "llm_tldr_cn": "解锁扩散语言模型的提示词填充能力，以自动生成高质量的提示词模板。",
+      "llm_tldr": "解锁扩散语言模型的提示词填充能力，以自动生成高质量的提示词模板。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "state of the art methods for automatic prompt generation",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.04247v1",
+      "source": "arxiv",
+      "title": "Combee: Scaling Prompt Learning for Self-Improving Language Model Agents",
+      "abstract": "Recent advances in prompt learning allow large language model agents to acquire task-relevant knowledge from inference-time context without parameter changes. For example, existing methods (like ACE or GEPA) can learn system prompts to improve accuracy based on previous agent runs. However, these methods primarily focus on single-agent or low-parallelism settings. This fundamentally limits their ability to efficiently learn from a large set of collected agentic traces. It would be efficient and beneficial to run prompt learning in parallel to accommodate the growing trend of learning from many agentic traces or parallel agent executions. Yet without a principled strategy for scaling, current methods suffer from quality degradation with high parallelism. To improve both the efficiency and quality of prompt learning, we propose Combee, a novel framework to scale parallel prompt learning for self-improving agents. Combee speeds up learning and enables running many agents in parallel while learning from their aggregate traces without quality degradation. To achieve this, Combee leverages parallel scans and employs an augmented shuffle mechanism; Combee also introduces a dynamic batch size controller to balance quality and delay. Evaluations on AppWorld, Terminal-Bench, Formula, and FiNER demonstrate that Combee achieves up to 17x speedup over previous methods with comparable or better accuracy and equivalent cost.",
+      "authors": [
+        "Hanchen Li",
+        "Runyuan He",
+        "Qizheng Zhang",
+        "Changxiu Ji",
+        "Qiuyang Mang",
+        "Xiaokun Chen",
+        "Lakshya A Agrawal",
+        "Wei-Liang Liao",
+        "Eric Yang",
+        "Alvin Cheung",
+        "James Zou",
+        "Kunle Olukotun",
+        "Ion Stoica",
+        "Joseph E. Gonzalez"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-04-05T20:07:48+00:00",
+      "link": "https://arxiv.org/pdf/2604.04247v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "scaling prompt learning for self-improving agents",
+      "llm_evidence_cn": "为自我改进智能体扩展提示词学习",
+      "llm_evidence": "为自我改进智能体扩展提示词学习",
+      "canonical_evidence": "为自我改进智能体扩展提示词学习",
+      "llm_tldr_en": "Introduces Combee, a framework for parallel and scalable prompt learning from agentic traces.",
+      "llm_tldr_cn": "提出Combee框架，实现了从大量智能体轨迹中进行并行且可扩展的提示词学习。",
+      "llm_tldr": "提出Combee框架，实现了从大量智能体轨迹中进行并行且可扩展的提示词学习。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.04379v1",
+      "source": "arxiv",
+      "title": "Reinforce to Learn, Elect to Reason: A Dual Paradigm for Video Reasoning",
+      "abstract": "Video reasoning has advanced with large multimodal models (LMMs), yet their inference is often a single pass that returns an answer without verifying whether the reasoning is evidence-aligned. We introduce Reinforce to Learn, Elect to Reason (RLER), a dual paradigm that decouples learning to produce evidence from obtaining a reliable answer. In RLER-Training, we optimize the policy with group-relative reinforcement learning (RL) and 3 novel task-driven rewards: Frame-sensitive reward grounds reasoning on explicit key frames, Think-transparency reward shapes readable and parsable reasoning traces, and Anti-repetition reward boosts information density. These signals teach the model to emit structured, machine-checkable evidence and potentiate reasoning capabilities. In RLER-Inference, we apply a train-free orchestrator that generates a small set of diverse candidates, parses their answers and cited frames, scores them by evidence consistency, confidence, transparency, and non-redundancy, and then performs a robust evidence-weighted election. This closes the loop between producing and using evidence, improving reliability and interpretability without enlarging the model. We comprehensively evaluate RLER against various open-source and RL-based LMMs on 8 representative benchmarks. RLER achieves state of the art across all benchmarks and delivers an average improvement of 6.3\\% over base models, while using on average 3.1 candidates per question, indicating a favorable balance between compute and quality. The results support a simple thesis: making evidence explicit during learning and electing by evidence during inference is a robust path to trustworthy video reasoning.",
+      "authors": [
+        "Songyuan Yang",
+        "Weijiang Yu",
+        "Jilin Ma",
+        "Ziyu Liu",
+        "Guijian Tang",
+        "Wenjing Yang",
+        "Huibin Tan",
+        "Nong Xiao"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-06T03:01:52+00:00",
+      "link": "https://arxiv.org/pdf/2604.04379v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "optimize policy with group-relative reinforcement learning",
+      "llm_evidence_cn": "使用组相对强化学习优化策略",
+      "llm_evidence": "使用组相对强化学习优化策略",
+      "canonical_evidence": "使用组相对强化学习优化策略",
+      "llm_tldr_en": "Introduces RLER using group-relative RL and task-driven rewards to improve video reasoning evidence alignment.",
+      "llm_tldr_cn": "引入 RLER，利用组相对强化学习和任务驱动奖励来改进视频推理的证据对齐。",
+      "llm_tldr": "引入 RLER，利用组相对强化学习和任务驱动奖励来改进视频推理的证据对齐。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.04410v1",
+      "source": "arxiv",
+      "title": "Relative Density Ratio Optimization for Stable and Statistically Consistent Model Alignment",
+      "abstract": "Aligning language models with human preferences is essential for ensuring their safety and reliability. Although most existing approaches assume specific human preference models such as the Bradley-Terry model, this assumption may fail to accurately capture true human preferences, and consequently, these methods lack statistical consistency, i.e., the guarantee that language models converge to the true human preference as the number of samples increases. In contrast, direct density ratio optimization (DDRO) achieves statistical consistency without assuming any human preference models. DDRO models the density ratio between preferred and non-preferred data distributions using the language model, and then optimizes it via density ratio estimation. However, this density ratio is unstable and often diverges, leading to training instability of DDRO. In this paper, we propose a novel alignment method that is both stable and statistically consistent. Our approach is based on the relative density ratio between the preferred data distribution and a mixture of the preferred and non-preferred data distributions. Our approach is stable since this relative density ratio is bounded above and does not diverge. Moreover, it is statistically consistent and yields significantly tighter convergence guarantees than DDRO. We experimentally show its effectiveness with Qwen 2.5 and Llama 3.",
+      "authors": [
+        "Hiroshi Takahashi",
+        "Tomoharu Iwata",
+        "Atsutoshi Kumagai",
+        "Sekitoshi Kanai",
+        "Masanori Yamada",
+        "Kosuke Nishida",
+        "Kazutoshi Shinoda"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "cs.CL",
+        "stat.ML"
+      ],
+      "published": "2026-04-06T04:21:24+00:00",
+      "link": "https://arxiv.org/pdf/2604.04410v1",
+      "tags": [
+        "keyword:RM OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "direct density ratio optimization for model alignment",
+      "llm_evidence_cn": "用于模型对齐的直接密度比优化",
+      "llm_evidence": "用于模型对齐的直接密度比优化",
+      "canonical_evidence": "用于模型对齐的直接密度比优化",
+      "llm_tldr_en": "Proposes DDRO for statistically consistent model alignment without assuming specific preference models.",
+      "llm_tldr_cn": "提出了DDRO用于统计一致的模型对齐，无需假设特定的偏好模型。",
+      "llm_tldr": "提出了DDRO用于统计一致的模型对齐，无需假设特定的偏好模型。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Direct Preference Optimization for LLM alignment",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.04852v1",
+      "source": "arxiv",
+      "title": "Strengthening Human-Centric Chain-of-Thought Reasoning Integrity in LLMs via a Structured Prompt Framework",
+      "abstract": "Chain-of-Thought (CoT) prompting has been used to enhance the reasoning capability of LLMs. However, its reliability in security-sensitive analytical tasks remains insufficiently examined, particularly under structured human evaluation. Alternative approaches, such as model scaling and fine-tuning can be used to help improve performance. These methods are also often costly, computationally intensive, or difficult to audit. In contrast, prompt engineering provides a lightweight, transparent, and controllable mechanism for guiding LLM reasoning. This study proposes a structured prompt engineering framework designed to strengthen CoT reasoning integrity while improving security threat and attack detection reliability in local LLM deployments. The framework includes 16 factors grouped into four core dimensions: (1) Context and Scope Control, (2) Evidence Grounding and Traceability, (3) Reasoning Structure and Cognitive Control, and (4) Security-Specific Analytical Constraints. Rather than optimizing the wording of the prompt heuristically, the framework introduces explicit reasoning controls to mitigate hallucination and prevent reasoning drift, as well as strengthening interpretability in security-sensitive contexts. Using DDoS attack detection in SDN traffic as a case study, multiple model families were evaluated under structured and unstructured prompting conditions. Pareto frontier analysis and ablation experiments demonstrate consistent reasoning improvements (up to 40% in smaller models) and stable accuracy gains across scales. Human evaluation with strong inter-rater agreement (Cohen's k > 0.80) confirms robustness. The results establish structured prompting as an effective and practical approach for reliable and explainable AI-driven cybersecurity analysis.",
+      "authors": [
+        "Jiling Zhou",
+        "Aisvarya Adeseye",
+        "Seppo Virtanen",
+        "Antti Hakkala",
+        "Jouni Isoaho"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-04-06T16:53:52+00:00",
+      "link": "https://arxiv.org/pdf/2604.04852v1",
+      "tags": [
+        "keyword:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "structured prompt engineering framework for reasoning integrity",
+      "llm_evidence_cn": "用于提升推理完整性的结构化提示词工程框架",
+      "llm_evidence": "用于提升推理完整性的结构化提示词工程框架",
+      "canonical_evidence": "用于提升推理完整性的结构化提示词工程框架",
+      "llm_tldr_en": "Proposes a structured prompt framework to improve the reliability and integrity of Chain-of-Thought reasoning.",
+      "llm_tldr_cn": "提出了一种结构化提示词框架，以提高思维链推理的可靠性和完整性。",
+      "llm_tldr": "提出了一种结构化提示词框架，以提高思维链推理的可靠性和完整性。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.04894v1",
+      "source": "arxiv",
+      "title": "Rethinking Exploration in RLVR: From Entropy Regularization to Refinement via Bidirectional Entropy Modulation",
+      "abstract": "Reinforcement learning with verifiable rewards (RLVR) has significantly advanced the reasoning capabilities of large language models (LLMs). However, it faces a fundamental limitation termed \\textit{restricted exploration}, where the policy rapidly converges to a narrow set of solutions. While entropy regularization is a popular approach used to sustain exploration, it often proves unreliable for LLMs, suffering from high hyperparameter sensitivity and yielding only marginal performance gains. Motivated by these inefficiencies, we propose to rethink the relationship between policy entropy and exploration. By deriving a parametric formulation of group-relative advantage estimation and analyzing entropy dynamics, we conceptually decompose policy entropy into \\textit{informative entropy}, which preserves diverse solution paths, and \\textit{spurious entropy}, which erodes reasoning patterns. Our analysis reveals that, in contrast to blind maximization, effective exploration requires \\textit{entropy refinement}-a mechanism implicitly embedded in group-relative advantage estimation that sustains informative entropy on positive rollouts while suppressing spurious entropy on negative ones. Guided by this insight, we propose \\textbf{AsymGRPO}, an exploratory framework that explicitly decouples the modulation of positive and negative rollouts. This allows for independent control over the preservation of informative entropy and the suppression of spurious noise. Extensive experiments demonstrate that AsymGRPO achieves superior performance compared to strong baselines and exhibits the potential to synergize with existing entropy regularization methods.",
+      "authors": [
+        "Hengrui Gu",
+        "Xiaotian Han",
+        "Yujing Bian",
+        "Kaixiong Zhou"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-04-06T17:42:38+00:00",
+      "link": "https://arxiv.org/pdf/2604.04894v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "parametric formulation of group-relative advantage estimation",
+      "llm_evidence_cn": "组相对优势估计的参数化公式",
+      "llm_evidence": "组相对优势估计的参数化公式",
+      "canonical_evidence": "组相对优势估计的参数化公式",
+      "llm_tldr_en": "Analyzes entropy dynamics in RLVR and proposes bidirectional entropy modulation for better exploration.",
+      "llm_tldr_cn": "分析 RLVR 中的熵动力学，并提出双向熵调制以改善探索受限问题。",
+      "llm_tldr": "分析 RLVR 中的熵动力学，并提出双向熵调制以改善探索受限问题。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05087v1",
+      "source": "arxiv",
+      "title": "Document Optimization for Black-Box Retrieval via Reinforcement Learning",
+      "abstract": "Document expansion is a classical technique for improving retrieval quality, and is attractive since it shifts computation offline, avoiding additional query-time processing. However, when applied to modern retrievers, it has been shown to degrade performance, often introducing noise that obfuscates the discriminative signal. We recast document expansion as a document optimization problem: a language model or a vision language model is fine-tuned to transform documents into representations that better align with the expected query distribution under a target retriever, using GRPO with the retriever's ranking improvements as rewards. This approach requires only black-box access to retrieval ranks, and is applicable across single-vector, multi-vector and lexical retrievers. We evaluate our approach on code retrieval and visual document retrieval (VDR) tasks. We find that learned document transformations yield retrieval gains and in many settings enable smaller, more efficient retrievers to outperform larger ones. For example, applying document optimization to OpenAI text-embedding-3-small model improves nDCG5 on code (58.7 to 66.8) and VDR (53.3 to 57.6), even slightly surpassing the 6.5X more expensive OpenAI text-embedding-3-large model (66.3 on code; 57.0 on VDR). When retriever weights are accessible, document optimization is often competitive with fine-tuning, and in most settings their combination performs best, improving Jina-ColBERT-V2 from 55.8 to 63.3 on VDR and from 48.6 to 61.8 on code retrieval.",
+      "authors": [
+        "Omri Uzan",
+        "Ron Polonsky",
+        "Douwe Kiela",
+        "Christopher Potts"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.IR"
+      ],
+      "published": "2026-04-06T18:41:40+00:00",
+      "link": "https://arxiv.org/pdf/2604.05087v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "using GRPO with retriever ranking improvements as rewards",
+      "llm_evidence_cn": "使用GRPO并将检索器排名提升作为奖励",
+      "llm_evidence": "使用GRPO并将检索器排名提升作为奖励",
+      "canonical_evidence": "使用GRPO并将检索器排名提升作为奖励",
+      "llm_tldr_en": "Optimizes document representations for retrieval using GRPO and reinforcement learning with ranking rewards.",
+      "llm_tldr_cn": "利用GRPO和强化学习，以排名提升作为奖励，优化检索中的文档表示。",
+      "llm_tldr": "利用GRPO和强化学习，以排名提升作为奖励，优化检索中的文档表示。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05157v1",
+      "source": "arxiv",
+      "title": "IntentScore: Intent-Conditioned Action Evaluation for Computer-Use Agents",
+      "abstract": "Computer-Use Agents (CUAs) leverage large language models to execute GUI operations on desktop environments, yet they generate actions without evaluating action quality, leading to irreversible errors that cascade through subsequent steps. We propose IntentScore, a plan-aware reward model that learns to score candidate actions from 398K offline GUI interaction steps spanning three operating systems. IntentScore trains with two complementary objectives: contrastive alignment for state-action relevance and margin ranking for action correctness. Architecturally, it embeds each candidate's planning intent in the action encoder, enabling discrimination between candidates with similar actions but different rationales. IntentScore achieves 97.5% pairwise discrimination accuracy on held-out evaluation. Deployed as a re-ranker for Agent S3 on OSWorld, an environment entirely unseen during training, IntentScore improves task success rate by 6.9 points, demonstrating that reward estimation learned from heterogeneous offline trajectories generalizes to unseen agents and task distributions.",
+      "authors": [
+        "Rongqian Chen",
+        "Yu Li",
+        "Zeyu Fang",
+        "Sizhe Tang",
+        "Weidong Cao",
+        "Tian Lan"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-06T20:39:30+00:00",
+      "link": "https://arxiv.org/pdf/2604.05157v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "plan-aware reward model training with contrastive alignment and margin ranking",
+      "llm_evidence_cn": "具有对比对齐和边际排名的计划感知奖励模型训练",
+      "llm_evidence": "具有对比对齐和边际排名的计划感知奖励模型训练",
+      "canonical_evidence": "具有对比对齐和边际排名的计划感知奖励模型训练",
+      "llm_tldr_en": "Introduces IntentScore, a reward model for computer-use agents trained with contrastive and ranking objectives.",
+      "llm_tldr_cn": "引入IntentScore，一种通过对比和排名目标训练的计算机使用代理奖励模型。",
+      "llm_tldr": "引入IntentScore，一种通过对比和排名目标训练的计算机使用代理奖励模型。",
+      "llm_tags": [
+        "query:rm-trn"
+      ],
+      "matched_query_tag": "query:rm-trn",
+      "matched_query_text": "reward model training architecture and methodology",
+      "matched_requirement_id": "req-16",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05164v1",
+      "source": "arxiv",
+      "title": "Not All Turns Are Equally Hard: Adaptive Thinking Budgets For Efficient Multi-Turn Reasoning",
+      "abstract": "As LLM reasoning performance plateau, improving inference-time compute efficiency is crucial to mitigate overthinking and long thinking traces even for simple queries. Prior approaches including length regularization, adaptive routing, and difficulty-based budget allocation primarily focus on single-turn settings and fail to address the sequential dependencies inherent in multi-turn reasoning.In this work, we formulate multi-turn reasoning as a sequential compute allocation problem and model it as a multi-objective Markov Decision Process. We propose TAB: Turn-Adaptive Budgets, a budget allocation policy trained via Group Relative Policy Optimization (GRPO) that learns to maximize task accuracy while respecting global per-problem token constraints. Consequently, TAB takes as input the conversation history and learns to adaptively allocate smaller budgets to easier turns and save appropriate number of tokens for the crucial harder reasoning steps. Our experiments on mathematical reasoning benchmarks demonstrate that TAB achieves a superior accuracy-tokens tradeoff saving up to 35% tokens while maintaining accuracy over static and off-the-shelf LLM budget baselines. Further, for systems where a plan of all sub-questions is available apriori, we propose TAB All-SubQ, a budget allocation policy that budgets tokens based on the conversation history and all past and future sub-questions saving up to 40% tokens over baselines.",
+      "authors": [
+        "Neharika Jali",
+        "Anupam Nayak",
+        "Gauri Joshi"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-04-06T20:48:51+00:00",
+      "link": "https://arxiv.org/pdf/2604.05164v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "budget allocation policy trained via Group Relative Policy Optimization (GRPO)",
+      "llm_evidence_cn": "通过组相对策略优化 (GRPO) 训练的预算分配策略",
+      "llm_evidence": "通过组相对策略优化 (GRPO) 训练的预算分配策略",
+      "canonical_evidence": "通过组相对策略优化 (GRPO) 训练的预算分配策略",
+      "llm_tldr_en": "Proposes TAB, a GRPO-trained policy for adaptive compute allocation in multi-turn reasoning.",
+      "llm_tldr_cn": "提出了 TAB，一种通过 GRPO 训练的策略，用于多轮推理中的自适应计算分配。",
+      "llm_tldr": "提出了 TAB，一种通过 GRPO 训练的策略，用于多轮推理中的自适应计算分配。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05268v1",
+      "source": "arxiv",
+      "title": "Region-R1: Reinforcing Query-Side Region Cropping for Multi-Modal Re-Ranking",
+      "abstract": "Multi-modal retrieval-augmented generation (MM-RAG) relies heavily on re-rankers to surface the most relevant evidence for image-question queries. However, standard re-rankers typically process the full query image as a global embedding, making them susceptible to visual distractors (e.g., background clutter) that skew similarity scores. We propose Region-R1, a query-side region cropping framework that formulates region selection as a decision-making problem during re-ranking, allowing the system to learn to retain the full image or focus only on a question-relevant region before scoring the retrieved candidates. Region-R1 learns a policy with a novel region-aware group relative policy optimization (r-GRPO) to dynamically crop a discriminative region. Across two challenging benchmarks, E-VQA and InfoSeek, Region-R1 delivers consistent gains, achieving state-of-the-art performances by increasing conditional Recall@1 by up to 20%. These results show the great promise of query-side adaptation as a simple but effective way to strengthen MM-RAG re-ranking.",
+      "authors": [
+        "Chan-Wei Hu",
+        "Zhengzhong Tu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-07T00:05:12+00:00",
+      "link": "https://arxiv.org/pdf/2604.05268v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "uses region-aware group relative policy optimization (r-GRPO)",
+      "llm_evidence_cn": "使用区域感知的组相对策略优化 (r-GRPO)",
+      "llm_evidence": "使用区域感知的组相对策略优化 (r-GRPO)",
+      "canonical_evidence": "使用区域感知的组相对策略优化 (r-GRPO)",
+      "llm_tldr_en": "Proposes Region-R1 using r-GRPO for dynamic image cropping in multi-modal re-ranking.",
+      "llm_tldr_cn": "提出Region-R1框架，利用r-GRPO在多模态重排序中实现动态图像裁剪。",
+      "llm_tldr": "提出Region-R1框架，利用r-GRPO在多模态重排序中实现动态图像裁剪。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05268v2",
+      "source": "arxiv",
+      "title": "Region-R1: Reinforcing Query-Side Region Cropping for Multi-Modal Re-Ranking",
+      "abstract": "Multi-modal retrieval-augmented generation (MM-RAG) relies heavily on re-rankers to surface the most relevant evidence for image-question queries. However, standard re-rankers typically process the full query image as a global embedding, making them susceptible to visual distractors (e.g., background clutter) that skew similarity scores. We propose Region-R1, a query-side region cropping framework that formulates region selection as a decision-making problem during re-ranking, allowing the system to learn to retain the full image or focus only on a question-relevant region before scoring the retrieved candidates. Region-R1 learns a policy with a novel region-aware group relative policy optimization (r-GRPO) to dynamically crop a discriminative region. Across two challenging benchmarks, E-VQA and InfoSeek, Region-R1 delivers consistent gains, achieving state-of-the-art performances by increasing conditional Recall@1 by up to 20%. These results show the great promise of query-side adaptation as a simple but effective way to strengthen MM-RAG re-ranking.",
+      "authors": [
+        "Chan-Wei Hu",
+        "Zhengzhong Tu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-07T00:05:12+00:00",
+      "link": "https://arxiv.org/pdf/2604.05268v2",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Novel region-aware group relative policy optimization (r-GRPO)",
+      "llm_evidence_cn": "新型区域感知组相对策略优化 (r-GRPO)",
+      "llm_evidence": "新型区域感知组相对策略优化 (r-GRPO)",
+      "canonical_evidence": "新型区域感知组相对策略优化 (r-GRPO)",
+      "llm_tldr_en": "Introduces r-GRPO to optimize region selection policies for multi-modal re-ranking tasks.",
+      "llm_tldr_cn": "提出区域感知组相对策略优化（r-GRPO），用于优化多模态重排序中的区域选择策略。",
+      "llm_tldr": "提出区域感知组相对策略优化（r-GRPO），用于优化多模态重排序中的区域选择策略。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05445v1",
+      "source": "arxiv",
+      "title": "Learning What Matters: Dynamic Dimension Selection and Aggregation for Interpretable Vision-Language Reward Modeling",
+      "abstract": "Vision-language reward modeling faces a dilemma: generative approaches are interpretable but slow, while discriminative ones are efficient but act as opaque \"black boxes.\" To bridge this gap, we propose VL-MDR (Vision-Language Multi-Dimensional Reward), a framework that dynamically decomposes evaluation into granular, interpretable dimensions. Instead of outputting a monolithic scalar, VL-MDR employs a visual-aware gating mechanism to identify relevant dimensions and adaptively weight them (e.g., Hallucination, Reasoning) for each specific input. To support this, we curate a dataset of 321k vision-language preference pairs annotated across 21 fine-grained dimensions. Extensive experiments show that VL-MDR consistently outperforms existing open-source reward models on benchmarks like VL-RewardBench. Furthermore, we show that VL-MDR-constructed preference pairs effectively enable DPO alignment to mitigate visual hallucinations and improve reliability, providing a scalable solution for VLM alignment.",
+      "authors": [
+        "Qiyuan Chen",
+        "Hongsen Huang",
+        "Jiahe Chen",
+        "Qian Shao",
+        "Jintai Chen",
+        "Hongxia Xu",
+        "Renjie Hua",
+        "Chuan Ren",
+        "Jian Wu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.CV"
+      ],
+      "published": "2026-04-07T05:28:39+00:00",
+      "link": "https://arxiv.org/pdf/2604.05445v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "interpretable vision-language reward modeling architecture and methodology",
+      "llm_evidence_cn": "可解释的视觉语言奖励模型架构与方法论",
+      "llm_evidence": "可解释的视觉语言奖励模型架构与方法论",
+      "canonical_evidence": "可解释的视觉语言奖励模型架构与方法论",
+      "llm_tldr_en": "Proposes a multi-dimensional reward framework for vision-language models to improve interpretability.",
+      "llm_tldr_cn": "提出了一种多维视觉语言奖励模型框架，通过动态维度选择提高评估的可解释性。",
+      "llm_tldr": "提出了一种多维视觉语言奖励模型框架，通过动态维度选择提高评估的可解释性。",
+      "llm_tags": [
+        "query:rm-trn"
+      ],
+      "matched_query_tag": "query:rm-trn",
+      "matched_query_text": "reward model training architecture and methodology",
+      "matched_requirement_id": "req-16",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.05963v1",
+      "source": "arxiv",
+      "title": "QiMeng-PRepair: Precise Code Repair via Edit-Aware Reward Optimization",
+      "abstract": "Large Language Models (LLMs) achieve strong program repair performance but often suffer from over-editing, where excessive modifications overwrite correct code and hinder bug localization. We systematically quantify its impact and introduce precise repair task, which maximizes reuse of correct code while fixing only buggy parts. Building on this insight, we propose PRepair, a framework that mitigates over-editing and improves repair accuracy. PRepair has two components: Self-Breaking, which generates diverse buggy programs via controlled bug injection and min-max sampling, and Self-Repairing, which trains models with Edit-Aware Group Relative Policy Optimization (EA-GRPO) using an edit-aware reward to encourage minimal yet correct edits. Experiments show that PRepair improves repair precision by up to 31.4% under $\\mathrm{fix}_1@1$, a metric that jointly considers repair correctness and extent, and significantly increases decoding throughput when combined with speculative editing, demonstrating its potential for precise and practical code repair.",
+      "authors": [
+        "Changxin Ke",
+        "Rui Zhang",
+        "Jiaming Guo",
+        "Yuanbo Wen",
+        "Li Ding",
+        "Shuo Wang",
+        "Xuyuan Zhu",
+        "Xiong Peng",
+        "Di Huang",
+        "Zidong Du",
+        "Xing Hu",
+        "Qi Guo",
+        "Yunji Chen"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE",
+        "cs.LG"
+      ],
+      "published": "2026-04-07T14:56:38+00:00",
+      "link": "https://arxiv.org/pdf/2604.05963v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "trains models with Edit-Aware Group Relative Policy Optimization (EA-GRPO)",
+      "llm_evidence_cn": "使用编辑感知组相对策略优化 (EA-GRPO) 训练模型",
+      "llm_evidence": "使用编辑感知组相对策略优化 (EA-GRPO) 训练模型",
+      "canonical_evidence": "使用编辑感知组相对策略优化 (EA-GRPO) 训练模型",
+      "llm_tldr_en": "Introduces PRepair using EA-GRPO and edit-aware rewards for precise code repair.",
+      "llm_tldr_cn": "引入PRepair框架，利用EA-GRPO和编辑感知奖励实现精确代码修复。",
+      "llm_tldr": "引入PRepair框架，利用EA-GRPO和编辑感知奖励实现精确代码修复。",
+      "llm_tags": [
+        "query:rm-opt:composite"
+      ],
+      "matched_query_tag": "query:rm-opt:composite",
+      "matched_query_text": "Papers central to 搜索Reward Model优化相关的论文，配合DPO、GRPO训练, especially work that connects or combines: Reward Model optimization and training techniques; Direct Preference Optimization for LLM alignment; Group Relative Policy Optimization in reinforcement learning; Preference learning algorithms for reward models; Reward shaping and scaling for stable training; Iterative Direct Preference Optimization methods; Optimization strategies for Reward Models in DPO and GRPO frameworks; Recent advances in reward model training for preference alignment; Integrating reward model improvements with direct preference optimization; Comparative study of reward modeling in RLHF and DPO variants.",
+      "matched_requirement_id": "req-composite-rm-opt",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.06061v1",
+      "source": "arxiv",
+      "title": "PromptEvolver: Prompt Inversion through Evolutionary Optimization in Natural-Language Space",
+      "abstract": "Text-to-image generation has progressed rapidly, but faithfully generating complex scenes requires extensive trial-and-error to find the exact prompt. In the prompt inversion task, the goal is to recover a textual prompt that can faithfully reconstruct a given target image. Currently, existing methods frequently yield suboptimal reconstructions and produce unnatural, hard-to-interpret prompts that hinder transparency and controllability. In this work, we present PromptEvolver, a prompt inversion approach that generates natural-language prompts while achieving high-fidelity reconstructions of the target image. Our method uses a genetic algorithm to optimize the prompt, leveraging a strong vision-language model to guide the evolution process. Importantly, it works on black-box generation models by requiring only image outputs. Finally, we evaluate PromptEvolver across multiple prompt inversion benchmarks and show that it consistently outperforms competing methods.",
+      "authors": [
+        "Asaf Buchnick",
+        "Aviv Shamsian",
+        "Aviv Navon",
+        "Ethan Fetaya"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-03T17:00:49+00:00",
+      "link": "https://arxiv.org/pdf/2604.06061v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "genetic algorithm to optimize the prompt in natural-language space",
+      "llm_evidence_cn": "使用遗传算法在自然语言空间中优化提示词",
+      "llm_evidence": "使用遗传算法在自然语言空间中优化提示词",
+      "canonical_evidence": "使用遗传算法在自然语言空间中优化提示词",
+      "llm_tldr_en": "PromptEvolver uses evolutionary algorithms to automatically optimize natural-language prompts for image generation.",
+      "llm_tldr_cn": "PromptEvolver 使用进化算法自动优化用于图像生成的自然语言提示词。",
+      "llm_tldr": "PromptEvolver 使用进化算法自动优化用于图像生成的自然语言提示词。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.06771v1",
+      "source": "arxiv",
+      "title": "Multi-Faceted Self-Consistent Preference Alignment for Query Rewriting in Conversational Search",
+      "abstract": "Conversational Query Rewriting (CQR) aims to rewrite ambiguous queries to achieve more efficient conversational search. Early studies have predominantly focused on the rewriting in isolation, ignoring the feedback from query rewrite, passage retrieval and response generation in the rewriting process. To address this issue, we propose Multi-Faceted Self-Consistent Preference Aligned CQR (MSPA-CQR). Specifically, we first construct self-consistent preference alignment data from three dimensions (rewriting, retrieval, and response) to generate more diverse rewritten queries. Then we propose prefix guided multi-faceted direct preference optimization to learn preference information from three different dimensions. The experimental results show that our MSPA-CQR is effective in both in- and out-of-distribution scenarios.",
+      "authors": [
+        "Zhiyu Cao",
+        "Peifeng Li",
+        "Qiaoming Zhu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-04-08T07:38:45+00:00",
+      "link": "https://arxiv.org/pdf/2604.06771v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "prefix guided multi-faceted direct preference optimization",
+      "llm_evidence_cn": "前缀引导的多面直接偏好优化",
+      "llm_evidence": "前缀引导的多面直接偏好优化",
+      "canonical_evidence": "前缀引导的多面直接偏好优化",
+      "llm_tldr_en": "Applies multi-faceted DPO to conversational query rewriting for better preference alignment.",
+      "llm_tldr_cn": "将多面DPO应用于对话式查询重写，以实现更好的偏好对齐。",
+      "llm_tldr": "将多面DPO应用于对话式查询重写，以实现更好的偏好对齐。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Direct Preference Optimization for LLM alignment",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.06804v1",
+      "source": "arxiv",
+      "title": "LASER: A Data-Centric Method for Low-Cost and Efficient SQL Rewriting based on SQL-GRPO",
+      "abstract": "Query rewriting, the process of transforming queries into semantically equivalent yet more efficient variants, is crucial for database optimization. Existing solutions predominantly rely on either rule-based heuristics or Large Language Models (LLMs). However, traditional rule-based methods lack adaptability, while LLM-based approaches incur prohibitive inference costs and privacy risks. In contrast, Small Language Models (SLMs) present a compelling middle ground, potentially offering both flexibility and efficiency. However, the development of such compact models is severely bottlenecked by the scarcity of high-quality, domain-specific training data. To bridge this gap, we introduce LASER, a data-centric framework designed to empower small models for robust SQL optimization. First, to address the scarcity of existing benchmarks and the limited optimization headroom of generic synthetic queries, we construct SQL-MCTS, a large-scale corpus of complex slow queries. We employ an MCTS-based hybrid expansion strategy that combines rule-guided anti-patterns with LLM mutations to evolve structurally expressive seeds into execution-verified slow variants. Second, to enable the model to autonomously discover latency-aware rewriting patterns, we propose SQL-GRPO, a specialized alignment strategy adapted from Group Relative Policy Optimization. By integrating Anchored Group Advantage to refine advantage estimation and Complexity-Adaptive Dynamic Rollout to efficiently allocate exploration budgets, this approach effectively empowers compact models to master execution-based optimization logic. Implemented on Qwen3 models, LASER significantly outperforms rule-based systems and LLMs in execution efficiency, while exhibiting robust zero-shot transferability with minimal overhead.",
+      "authors": [
+        "Jiahui Li",
+        "Tongwang Wu",
+        "Yuren Mao",
+        "Rong Kang",
+        "Tieying Zhang",
+        "Yunjun Gao"
+      ],
+      "primary_category": "cs.DB",
+      "categories": [
+        "cs.DB"
+      ],
+      "published": "2026-04-08T08:17:25+00:00",
+      "link": "https://arxiv.org/pdf/2604.06804v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "SQL rewriting based on SQL-GRPO",
+      "llm_evidence_cn": "基于 SQL-GRPO 的 SQL 重写",
+      "llm_evidence": "基于 SQL-GRPO 的 SQL 重写",
+      "canonical_evidence": "基于 SQL-GRPO 的 SQL 重写",
+      "llm_tldr_en": "Introduces LASER, a framework using Group Relative Policy Optimization for efficient SQL query rewriting.",
+      "llm_tldr_cn": "引入 LASER 框架，利用组相对策略优化 (GRPO) 实现高效的 SQL 查询重写。",
+      "llm_tldr": "引入 LASER 框架，利用组相对策略优化 (GRPO) 实现高效的 SQL 查询重写。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.06966v1",
+      "source": "arxiv",
+      "title": "MAR-GRPO: Stabilized GRPO for AR-diffusion Hybrid Image Generation",
+      "abstract": "Reinforcement learning (RL) has been successfully applied to autoregressive (AR) and diffusion models. However, extending RL to hybrid AR-diffusion frameworks remains challenging due to interleaved inference and noisy log-probability estimation. In this work, we study masked autoregressive models (MAR) and show that the diffusion head plays a critical role in training dynamics, often introducing noisy gradients that lead to instability and early performance saturation. To address this issue, we propose a stabilized RL framework for MAR. We introduce multi-trajectory expectation (MTE), which estimates the optimization direction by averaging over multiple diffusion trajectories, thereby reducing diffusion-induced gradient noise. To avoid over-smoothing, we further estimate token-wise uncertainty from multiple trajectories and apply multi-trajectory optimization only to the top-k% uncertain tokens. In addition, we introduce a consistency-aware token selection strategy that filters out AR tokens that are less aligned with the final generated content. Extensive experiments across multiple benchmarks demonstrate that our method consistently improves visual quality, training stability, and spatial structure understanding over baseline GRPO and pre-RL models. Code is available at: https://github.com/AMAP-ML/mar-grpo.",
+      "authors": [
+        "Xiaoxiao Ma",
+        "Jiachen Lei",
+        "Tianfei Ren",
+        "Jie Huang",
+        "Siming Fu",
+        "Aiming Hao",
+        "Jiahong Wu",
+        "Xiangxiang Chu",
+        "Feng Zhao"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-04-08T11:30:35+00:00",
+      "link": "https://arxiv.org/pdf/2604.06966v1",
+      "tags": [
+        "keyword:RM OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "stabilized GRPO framework for hybrid models",
+      "llm_evidence_cn": "针对混合模型的稳定GRPO框架",
+      "llm_evidence": "针对混合模型的稳定GRPO框架",
+      "canonical_evidence": "针对混合模型的稳定GRPO框架",
+      "llm_tldr_en": "Proposes MAR-GRPO to stabilize training in hybrid AR-diffusion models by reducing gradient noise.",
+      "llm_tldr_cn": "提出MAR-GRPO框架，通过减少梯度噪声来稳定混合自回归扩散模型的训练。",
+      "llm_tldr": "提出MAR-GRPO框架，通过减少梯度噪声来稳定混合自回归扩散模型的训练。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.07165v1",
+      "source": "arxiv",
+      "title": "Reason in Chains, Learn in Trees: Self-Rectification and Grafting for Multi-turn Agent Policy Optimization",
+      "abstract": "Reinforcement learning for Large Language Model agents is often hindered by sparse rewards in multi-step reasoning tasks. Existing approaches like Group Relative Policy Optimization treat sampled trajectories as independent chains, assigning uniform credit to all steps in each chain and ignoring the existence of critical steps that may disproportionally impact reasoning outcome. In this paper, we propose T-STAR(Tree-structured Self-Taught Agent Rectification), a framework that recovers the latent correlated reward structure across seemingly independent trajectories. Specifically, we consolidate trajectories into a unified Cognitive Tree by identifying and merging functionally similar steps/nodes. It enables an Introspective Valuation mechanism that back-propagates trajectory-level rewards through the tree to obtain a new notion of variance-reduced relative advantage at step-level. Using the Cognitive Tree, we also develop In-Context Thought Grafting to synthesize corrective reasoning by contrasting successful and failed branches at critical divergence points/steps. Our proposed Surgical Policy Optimization then capitalizes on the rich policy gradient information concentrated at these critical points/steps through a Bradley-Terry type of surgical loss. Extensive experiments across embodied, interactive, reasoning, and planning benchmarks demonstrate that T-STAR achieves consistent improvements over strong baselines, with gains most pronounced on tasks requiring extended reasoning chains.",
+      "authors": [
+        "Yu Li",
+        "Sizhe Tang",
+        "Tian Lan"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-04-08T14:55:29+00:00",
+      "link": "https://arxiv.org/pdf/2604.07165v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "improving Group Relative Policy Optimization",
+      "llm_evidence_cn": "改进 GRPO 算法",
+      "llm_evidence": "改进 GRPO 算法",
+      "canonical_evidence": "改进 GRPO 算法",
+      "llm_tldr_en": "T-STAR improves GRPO by recovering latent reward structures in multi-turn agent policy optimization.",
+      "llm_tldr_cn": "T-STAR 通过恢复多轮智能体策略优化中的潜在奖励结构来改进 GRPO 算法。",
+      "llm_tldr": "T-STAR 通过恢复多轮智能体策略优化中的潜在奖励结构来改进 GRPO 算法。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2604.00200v1",
+      "source": "arxiv",
+      "title": "Offline Constrained RLHF with Multiple Preference Oracles",
+      "abstract": "We study offline constrained reinforcement learning from human feedback with multiple preference oracles. Motivated by applications that trade off performance with safety or fairness, we aim to maximize target population utility subject to a minimum protected group welfare constraint. From pairwise comparisons collected under a reference policy, we estimate oracle-specific rewards via maximum likelihood and analyze how statistical uncertainty propagates through the dual program. We cast the constrained objective as a KL-regularized Lagrangian whose primal optimizer is a Gibbs policy, reducing learning to a convex dual problem. We propose a dual-only algorithm that ensures high-probability constraint satisfaction and provide the first finite-sample performance guarantees for offline constrained preference learning. Finally, we extend our theoretical analysis to accommodate multiple constraints and general f-divergence regularization.",
+      "authors": [
+        "Brenden Latham",
+        "Mehrdad Moharrami"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-03-31T20:06:34+00:00",
+      "link": "https://arxiv.org/pdf/2604.00200v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "estimating rewards from pairwise comparisons with multiple oracles",
+      "llm_evidence_cn": "通过多个预言机的成对比较估计奖励",
+      "llm_evidence": "通过多个预言机的成对比较估计奖励",
+      "canonical_evidence": "通过多个预言机的成对比较估计奖励",
+      "llm_tldr_en": "Studies offline RLHF with multiple preference oracles to balance performance and constraints.",
+      "llm_tldr_cn": "研究具有多个偏好预言机的离线RLHF，以平衡性能与安全/公平性约束。",
+      "llm_tldr": "研究具有多个偏好预言机的离线RLHF，以平衡性能与安全/公平性约束。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Preference learning algorithms for reward models",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.00258v1",
+      "source": "arxiv",
+      "title": "Hierarchical Apprenticeship Learning from Imperfect Demonstrations with Evolving Rewards",
+      "abstract": "While apprenticeship learning has shown promise for inducing effective pedagogical policies directly from student interactions in e-learning environments, most existing approaches rely on optimal or near-optimal expert demonstrations under a fixed reward. Real-world student interactions, however, are often inherently imperfect and evolving: students explore, make errors, revise strategies, and refine their goals as understanding develops. In this work, we argue that imperfect student demonstrations are not noise to be discarded, but structured signals-provided their relative quality is ranked. We introduce HALIDE, Hierarchical Apprenticeship Learning from Imperfect Demonstrations with Evolving Rewards, which not only leverages sub-optimal student demonstrations, but ranks them within a hierarchical learning framework. HALIDE models student behavior at multiple levels of abstraction, enabling inference of higher-level intent and strategy from suboptimal actions while explicitly capturing the temporal evolution of student reward functions. By integrating demonstration quality into hierarchical reward inference,HALIDE distinguishes transient errors from suboptimal strategies and meaningful progress toward higher-level learning goals. Our results show that HALIDE more accurately predicts student pedagogical decisions than approaches that rely on optimal trajectories, fixed rewards, or unranked imperfect demonstrations.",
+      "authors": [
+        "Md Mirajul Islam",
+        "Rajesh Debnath",
+        "Adittya Soukarjya Saha",
+        "Min Chi"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-03-31T21:34:18+00:00",
+      "link": "https://arxiv.org/pdf/2604.00258v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "learning from ranked relative quality of imperfect demonstrations",
+      "llm_evidence_cn": "从不完美演示的相对质量排序中学习",
+      "llm_evidence": "从不完美演示的相对质量排序中学习",
+      "canonical_evidence": "从不完美演示的相对质量排序中学习",
+      "llm_tldr_en": "Introduces HALIDE to learn pedagogical policies from ranked imperfect student demonstrations using evolving rewards.",
+      "llm_tldr_cn": "引入 HALIDE 框架，通过对不完美演示进行排序，在动态奖励下学习教学策略。",
+      "llm_tldr": "引入 HALIDE 框架，通过对不完美演示进行排序，在动态奖励下学习教学策略。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Preference learning algorithms for reward models",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.00310v1",
+      "source": "arxiv",
+      "title": "Robust Multimodal Safety via Conditional Decoding",
+      "abstract": "Multimodal large-language models (MLLMs) often experience degraded safety alignment when harmful queries exploit cross-modal interactions. Models aligned on text alone show a higher rate of successful attacks when extended to two or more modalities. In this work, we propose a simple conditional decoding strategy, CASA (Classification Augmented with Safety Attention) that utilizes internal representations of MLLMs to predict a binary safety token before response generation. We introduce a novel safety attention module designed to enhance the model's ability to detect malicious queries. Our design ensures robust safety alignment without relying on any external classifier or auxiliary head, and without the need for modality-specific safety fine-tuning. On diverse benchmarks such as MM-SafetyBench, JailbreakV-28k, and adversarial audio tests, CASA lowers the average attack success rate by more than 97% across modalities and across attack types. Our empirical evaluations also show that CASA maintains strong utility in benign inputs, a result validated through both automated and human evaluations (via 13 trained annotators). Together, these results highlight CASA as a simple and generalizable framework to improve multimodal LLM safety.",
+      "authors": [
+        "Anurag Kumar",
+        "Raghuveer Peri",
+        "Jon Burnsky",
+        "Alexandru Nelus",
+        "Rohit Paturi",
+        "Srikanth Vishnubhotla",
+        "Yanjun Qi"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-03-31T23:19:50+00:00",
+      "link": "https://arxiv.org/pdf/2604.00310v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "query:PR OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "improving multimodal safety alignment and robustness",
+      "llm_evidence_cn": "提高多模态安全对齐与鲁棒性",
+      "llm_evidence": "提高多模态安全对齐与鲁棒性",
+      "canonical_evidence": "提高多模态安全对齐与鲁棒性",
+      "llm_tldr_en": "Proposes a conditional decoding strategy to enhance safety alignment in multimodal LLMs.",
+      "llm_tldr_cn": "提出了一种条件解码策略，以增强多模态大语言模型的安全对齐。",
+      "llm_tldr": "提出了一种条件解码策略，以增强多模态大语言模型的安全对齐。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "evaluating and improving prompt robustness in LLMs",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.00442v1",
+      "source": "arxiv",
+      "title": "Execution-Verified Reinforcement Learning for Optimization Modeling",
+      "abstract": "Automating optimization modeling with LLMs is a promising path toward scalable decision intelligence, but existing approaches either rely on agentic pipelines built on closed-source LLMs with high inference latency, or fine-tune smaller LLMs using costly process supervision that often overfits to a single solver API. Inspired by reinforcement learning with verifiable rewards, we propose Execution-Verified Optimization Modeling (EVOM), an execution-verified learning framework that treats a mathematical programming solver as a deterministic, interactive verifier. Given a natural-language problem and a target solver, EVOM generates solver-specific code, executes it in a sandboxed harness, and converts execution outcomes into scalar rewards, optimized with GRPO and DAPO in a closed-loop generate-execute-feedback-update process. This outcome-only formulation removes the need for process-level supervision, and enables cross-solver generalization by switching the verification environment rather than reconstructing solver-specific datasets. Experiments on NL4OPT, MAMO, IndustryOR, and OptiBench across Gurobi, OR-Tools, and COPT show that EVOM matches or outperforms process-supervised SFT, supports zero-shot solver transfer, and achieves effective low-cost solver adaptation by continuing training under the target solver backend.",
+      "authors": [
+        "Runda Guan",
+        "Xiangqing Shen",
+        "Jiajun Zhang",
+        "Yifan Zhang",
+        "Jian Cheng",
+        "Rui Xia"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-04-01T03:39:11+00:00",
+      "link": "https://arxiv.org/pdf/2604.00442v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "optimizes optimization modeling with GRPO and verifiable rewards",
+      "llm_evidence_cn": "使用GRPO和可验证奖励优化建模任务",
+      "llm_evidence": "使用GRPO和可验证奖励优化建模任务",
+      "canonical_evidence": "使用GRPO和可验证奖励优化建模任务",
+      "llm_tldr_en": "Proposes EVOM, an execution-verified RL framework optimized with GRPO for mathematical modeling.",
+      "llm_tldr_cn": "提出EVOM框架，利用GRPO和执行验证奖励自动化数学建模任务。",
+      "llm_tldr": "提出EVOM框架，利用GRPO和执行验证奖励自动化数学建模任务。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Group Relative Policy Optimization in reinforcement learning",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.00438v1",
+      "source": "arxiv",
+      "title": "TR-ICRL: Test-Time Rethinking for In-Context Reinforcement Learning",
+      "abstract": "In-Context Reinforcement Learning (ICRL) enables Large Language Models (LLMs) to learn online from external rewards directly within the context window. However, a central challenge in ICRL is reward estimation, as models typically lack access to ground-truths during inference. To address this limitation, we propose Test-Time Rethinking for In-Context Reinforcement Learning (TR-ICRL), a novel ICRL framework designed for both reasoning and knowledge-intensive tasks. TR-ICRL operates by first retrieving the most relevant instances from an unlabeled evaluation set for a given query. During each ICRL iteration, LLM generates a set of candidate answers for every retrieved instance. Next, a pseudo-label is derived from this set through majority voting. This label then serves as a proxy to give reward messages and generate formative feedbacks, guiding LLM through iterative refinement. In the end, this synthesized contextual information is integrated with the original query to form a comprehensive prompt, with the answer determining through a final round of majority voting. TR-ICRL is evaluated on mainstream reasoning and knowledge-intensive tasks, where it demonstrates significant performance gains. Remarkably, TR-ICRL improves Qwen2.5-7B by 21.23% on average on MedQA and even 137.59% on AIME2024. Extensive ablation studies and analyses further validate the effectiveness and robustness of our approach. Our code is available at https://github.com/pangpang-xuan/TR_ICRL.",
+      "authors": [
+        "Wenxuan Jiang",
+        "Yuxin Zuo",
+        "Zijian Zhang",
+        "Xuecheng Wu",
+        "Zining Fan",
+        "Wenxuan Liu",
+        "Li Chen",
+        "Xiaoyu Li",
+        "Xuezhi Cao",
+        "Xiaolong Jin",
+        "Ninghao Liu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-04-01T03:34:05+00:00",
+      "link": "https://arxiv.org/pdf/2604.00438v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "reward estimation and pseudo-labeling for in-context reinforcement learning",
+      "llm_evidence_cn": "语境强化学习中的奖励估计和伪标签生成",
+      "llm_evidence": "语境强化学习中的奖励估计和伪标签生成",
+      "canonical_evidence": "语境强化学习中的奖励估计和伪标签生成",
+      "llm_tldr_en": "Proposes a framework for online reward estimation in LLMs using retrieval and majority voting for pseudo-labels.",
+      "llm_tldr_cn": "提出了一种利用检索和多数投票生成伪标签的大模型在线奖励估计框架。",
+      "llm_tldr": "提出了一种利用检索和多数投票生成伪标签的大模型在线奖励估计框架。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Optimization strategies for Reward Models in DPO and GRPO frameworks",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.00399v1",
+      "source": "arxiv",
+      "title": "A Cross-graph Tuning-free GNN Prompting Framework",
+      "abstract": "GNN prompting aims to adapt models across tasks and graphs without requiring extensive retraining. However, most existing graph prompt methods still require task-specific parameter updates and face the issue of generalizing across graphs, limiting their performance and undermining the core promise of prompting. In this work, we introduce a Cross-graph Tuning-free Prompting Framework (CTP), which supports both homogeneous and heterogeneous graphs, can be directly deployed to unseen graphs without further parameter tuning, and thus enables a plug-and-play GNN inference engine. Extensive experiments on few-shot prediction tasks show that, compared to SOTAs, CTP achieves an average accuracy gain of 30.8% and a maximum gain of 54%, confirming its effectiveness and offering a new perspective on graph prompt learning.",
+      "authors": [
+        "Yaqi Chen",
+        "Shixun Huang",
+        "Ryan Twemlow",
+        "Lei Wang",
+        "John Le",
+        "Sheng Wang",
+        "Willy Susilo",
+        "Jun Yan",
+        "Jun Shen"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-01T02:34:23+00:00",
+      "link": "https://arxiv.org/pdf/2604.00399v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "tuning-free prompting framework for graph neural networks",
+      "llm_evidence_cn": "图神经网络的免调优提示框架",
+      "llm_evidence": "图神经网络的免调优提示框架",
+      "canonical_evidence": "图神经网络的免调优提示框架",
+      "llm_tldr_en": "Introduces a cross-graph tuning-free prompting framework for GNN task adaptation.",
+      "llm_tldr_cn": "引入一种跨图免调优提示框架，用于图神经网络的任务适配。",
+      "llm_tldr": "引入一种跨图免调优提示框架，用于图神经网络的任务适配。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.00851v1",
+      "source": "arxiv",
+      "title": "Reliability of Large Language Models for Design Synthesis: An Empirical Study of Variance, Prompt Sensitivity, and Method Scaffolding",
+      "abstract": "Large Language Models (LLMs) are increasingly applied to automate software engineering tasks, including the generation of UML class diagrams from natural language descriptions. While prior work demonstrates that LLMs can produce syntactically valid diagrams, syntactic correctness alone does not guarantee meaningful design. This study investigates whether LLMs can move beyond diagram translation to perform design synthesis, and how reliably they maintain design-oriented reasoning under variation. We introduce a preference-based few-shot prompting approach that biases LLM outputs toward designs satisfying object-oriented principles and pattern-consistent structures. Two design-intent benchmarks, each with three domain-only, paraphrased prompts and 10 repeated runs, are used to evaluate three LLMs (ChatGPT 4o-mini, Claude 3.5 Sonnet, Gemini 2.5 Flash) across three modeling strategies: standard prompting, rule-injection prompting, and preference-based prompting, totaling 540 experiments (i.e. 2x3x10x3x3). Results indicate that while preference-based alignment improves adherence to design intent it does not eliminate non-determinism, and model-level behavior strongly influences design reliability. These findings highlight that achieving dependable LLM-assisted software design requires not only effective prompting but also careful consideration of model behavior and robustness.",
+      "authors": [
+        "Rabia Iftikhar",
+        "Andreas Rausch"
+      ],
+      "primary_category": "cs.SE",
+      "categories": [
+        "cs.SE"
+      ],
+      "published": "2026-04-01T13:05:09+00:00",
+      "link": "https://arxiv.org/pdf/2604.00851v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "query:PR OPT"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "study of prompt sensitivity and preference-based few-shot prompting",
+      "llm_evidence_cn": "研究提示词敏感性及基于偏好的少样本提示方法",
+      "llm_evidence": "研究提示词敏感性及基于偏好的少样本提示方法",
+      "canonical_evidence": "研究提示词敏感性及基于偏好的少样本提示方法",
+      "llm_tldr_en": "Investigates LLM reliability and prompt sensitivity in design synthesis using specialized prompting methods.",
+      "llm_tldr_cn": "研究了LLM在设计合成中的可靠性和提示词敏感性，并引入了基于偏好的提示方法。",
+      "llm_tldr": "研究了LLM在设计合成中的可靠性和提示词敏感性，并引入了基于偏好的提示方法。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "evaluating and improving prompt robustness in LLMs",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.00477v1",
+      "source": "arxiv",
+      "title": "Logarithmic Scores, Power-Law Discoveries: Disentangling Measurement from Coverage in Agent-Based Evaluation",
+      "abstract": "LLM-based agent judges are an emerging approach to evaluating conversational AI, yet a fundamental uncertainty remains: can we trust their assessments, and if so, how many are needed? Through 960 sessions with two model pairs across 15 tasks, we show that persona-based agent judges produce evaluations indistinguishable from human raters in a Turing-style validation. We then identify a score-coverage dissociation: quality scores improve logarithmically with panel size, while unique issue discoveries follow a sublinear power law-both exhibit diminishing returns, but scores saturate roughly twice as fast as discoveries. We hypothesize this reflects a power law distribution of the finding space: critical issues are discovered first by small panels, while corner cases require progressively larger panels, analogous to species accumulation curves in ecology. The mechanism traces to ensemble diversity-Big Five personality conditioning makes agents probe different quality dimensions, with expert judges acting as adversarial probes that push discovery into the tail of the finding distribution. A controlled ablation confirms that structured persona conditioning, not simple prompting, is required to produce these scaling properties.",
+      "authors": [
+        "HyunJoon Jung",
+        "William Na"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.CL",
+        "cs.HC",
+        "cs.MA"
+      ],
+      "published": "2026-04-01T04:44:21+00:00",
+      "link": "https://arxiv.org/pdf/2604.00477v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "evaluating LLM-based agent judges and score consistency",
+      "llm_evidence_cn": "评估基于LLM的代理评判员及其评分一致性",
+      "llm_evidence": "评估基于LLM的代理评判员及其评分一致性",
+      "canonical_evidence": "评估基于LLM的代理评判员及其评分一致性",
+      "llm_tldr_en": "Analyzes the reliability and scaling laws of LLM-based agent judges for conversational AI evaluation.",
+      "llm_tldr_cn": "分析了基于LLM的代理评判员在对话AI评估中的可靠性与规模定律。",
+      "llm_tldr": "分析了基于LLM的代理评判员在对话AI评估中的可靠性与规模定律。",
+      "llm_tags": [
+        "query:rm-trn"
+      ],
+      "matched_query_tag": "query:rm-trn",
+      "matched_query_text": "how to evaluate reward model accuracy and consistency",
+      "matched_requirement_id": "req-18",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.00523v1",
+      "source": "arxiv",
+      "title": "Lipschitz Dueling Bandits over Continuous Action Spaces",
+      "abstract": "We study for the first time, stochastic dueling bandits over continuous action spaces with Lipschitz structure, where feedback is purely comparative. While dueling bandits and Lipschitz bandits have been studied separately, their combination has remained unexplored. We propose the first algorithm for Lipschitz dueling bandits, using round-based exploration and recursive region elimination guided by an adaptive reference arm. We develop new analytical tools for relative feedback and prove a regret bound of $\\tilde O\\left(T^{\\frac{d_z+1}{d_z+2}}\\right)$, where $d_z$ is the zooming dimension of the near-optimal region. Further, our algorithm takes only logarithmic space in terms of the total time horizon, best achievable by any bandit algorithm over a continuous action space.",
+      "authors": [
+        "Mudit Sharma",
+        "Shweta Jain",
+        "Vaneet Aggarwal",
+        "Ganesh Ghalme"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.IR",
+        "cs.MA"
+      ],
+      "published": "2026-04-01T06:07:33+00:00",
+      "link": "https://arxiv.org/pdf/2604.00523v1",
+      "tags": [
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "dueling bandits with comparative feedback for preference learning",
+      "llm_evidence_cn": "具有比较反馈的对决多臂老虎机用于偏好学习",
+      "llm_evidence": "具有比较反馈的对决多臂老虎机用于偏好学习",
+      "canonical_evidence": "具有比较反馈的对决多臂老虎机用于偏好学习",
+      "llm_tldr_en": "Proposes an algorithm for Lipschitz dueling bandits in continuous spaces using comparative feedback.",
+      "llm_tldr_cn": "提出了一种在连续空间中利用比较反馈解决Lipschitz对决多臂老虎机问题的算法。",
+      "llm_tldr": "提出了一种在连续空间中利用比较反馈解决Lipschitz对决多臂老虎机问题的算法。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Preference learning algorithms for reward models",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.00901v2",
+      "source": "arxiv",
+      "title": "Experience as a Compass: Multi-agent RAG with Evolving Orchestration and Agent Prompts",
+      "abstract": "Multi-agent Retrieval-Augmented Generation (RAG), wherein each agent takes on a specific role, supports hard queries that require multiple steps and sources, or complex reasoning. Existing approaches, however, rely on static agent behaviors and fixed orchestration strategies, leading to brittle performance on diverse, multi-hop tasks. We identify two key limitations: the lack of continuously adaptive orchestration mechanisms and the absence of behavior-level learning for individual agents. To this end, we propose HERA, a hierarchical framework that jointly evolves multi-agent orchestration and role-specific agent prompts. At the global level, HERA optimizes query-specific agent topologies through reward-guided sampling and experience accumulation. At the local level, Role-Aware Prompt Evolution refines agent behaviors via credit assignment and dual-axes adaptation along operational and behavioral principles, enabling targeted, role-conditioned improvements. On six knowledge-intensive benchmarks, HERA achieves an average improvement of 38.69\\% over recent baselines while maintaining robust generalization and token efficiency. Topological analyses reveal emergent self-organization, where sparse exploration yields compact, high-utility multi-agent networks, demonstrating both efficient coordination and robust reasoning.",
+      "authors": [
+        "Sha Li",
+        "Naren Ramakrishnan"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-01T13:45:52+00:00",
+      "link": "https://arxiv.org/pdf/2604.00901v2",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "jointly evolves multi-agent orchestration and role-specific agent prompts",
+      "llm_evidence_cn": "共同演化多智能体编排和特定角色的智能体提示词",
+      "llm_evidence": "共同演化多智能体编排和特定角色的智能体提示词",
+      "canonical_evidence": "共同演化多智能体编排和特定角色的智能体提示词",
+      "llm_tldr_en": "A framework that optimizes agent prompts and topologies through reward-guided sampling.",
+      "llm_tldr_cn": "一个通过奖励引导采样来优化智能体提示词和拓扑结构的框架。",
+      "llm_tldr": "一个通过奖励引导采样来优化智能体提示词和拓扑结构的框架。",
+      "llm_tags": [
+        "query:pr-opt:composite"
+      ],
+      "matched_query_tag": "query:pr-opt:composite",
+      "matched_query_text": "Papers central to 提示词优化相关论文检索, especially work that connects or combines: automatic prompt optimization and refinement methods; APE automatic prompt engineer framework and performance; evaluating and improving prompt robustness in LLMs; state of the art methods for automatic prompt generation; comparative study of prompt tuning vs fine tuning.",
+      "matched_requirement_id": "req-composite-pr-opt",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2604.00536v1",
+      "source": "arxiv",
+      "title": "Optimsyn: Influence-Guided Rubrics Optimization for Synthetic Data Generation",
+      "abstract": "Large language models (LLMs) achieve strong downstream performance largely due to abundant supervised fine-tuning (SFT) data. However, high-quality SFT data in knowledge-intensive domains such as humanities, social sciences, medicine, law, and finance is scarce because expert curation is expensive, privacy constraints are strict, and label consistency is hard to ensure. Recent work uses synthetic data, typically by prompting a generator over domain documents and filtering outputs with handcrafted rubrics. Yet rubric design is expert-dependent, transfers poorly across domains, and is often optimized through a brittle heuristic loop of writing rubrics, synthesizing data, training, inspecting results, and manually guessing revisions. This process lacks reliable quantitative feedback about how a rubric affects downstream performance. We propose evaluating synthetic data by its training utility on the target model and using this signal to guide data generation. Inspired by influence estimation, we adopt an optimizer-aware estimator that uses gradient information to quantify each synthetic sample's contribution to a target model's objective on specific tasks. Our analysis shows that even when synthetic and real samples are close in embedding space, their influence on learning can differ substantially. Based on this insight, we propose an optimization-based framework that adapts rubrics using target-model feedback. We provide lightweight guiding text and use a rubric-specialized model to generate task-conditioned rubrics. Influence score is used as the reward to optimize the rubric generator with reinforcement learning. Experiments across domains, target models, and data generators show consistent improvements and strong generalization without task-specific tuning.",
+      "authors": [
+        "Zhiting Fan",
+        "Ruizhe Chen",
+        "Tianxiang Hu",
+        "Ru Peng",
+        "Zenan Huang",
+        "Haokai Xu",
+        "Yixin Chen",
+        "Jian Wu",
+        "Junbo Zhao",
+        "Zuozhu Liu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-04-01T06:28:44+00:00",
+      "link": "https://arxiv.org/pdf/2604.00536v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "influence-guided rubrics optimization for synthetic data generation via prompting",
+      "llm_evidence_cn": "通过提示词进行合成数据生成的影向力引导准则优化",
+      "llm_evidence": "通过提示词进行合成数据生成的影向力引导准则优化",
+      "canonical_evidence": "通过提示词进行合成数据生成的影向力引导准则优化",
+      "llm_tldr_en": "Optimizes rubrics used in prompting for synthetic data generation, replacing manual heuristic loops.",
+      "llm_tldr_cn": "优化了用于合成数据生成提示的准则，取代了传统的人工启发式循环。",
+      "llm_tldr": "优化了用于合成数据生成提示的准则，取代了传统的人工启发式循环。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2604.00790v1",
+      "source": "arxiv",
+      "title": "RefineRL: Advancing Competitive Programming with Self-Refinement Reinforcement Learning",
+      "abstract": "While large language models (LLMs) have demonstrated strong performance on complex reasoning tasks such as competitive programming (CP), existing methods predominantly focus on single-attempt settings, overlooking their capacity for iterative refinement. In this paper, we present RefineRL, a novel approach designed to unleash the self-refinement capabilities of LLMs for CP problem solving. RefineRL introduces two key innovations: (1) Skeptical-Agent, an iterative self-refinement agent equipped with local execution tools to validate generated solutions against public test cases of CP problems. This agent always maintains a skeptical attitude towards its own outputs and thereby enforces rigorous self-refinement even when validation suggests correctness. (2) A reinforcement learning (RL) solution to incentivize LLMs to self-refine with only standard RLVR data (i.e., problems paired with their verifiable answers). Extensive experiments on Qwen3-4B and Qwen3-4B-2507 demonstrate that our method yields substantial gains: after our RL training, these compact 4B models integrated with the Skeptical-Agent not only outperform much larger 32B models but also approach the single-attempt performance of 235B models. These findings suggest that self-refinement holds considerable promise for scaling LLM reasoning, with significant potential for further advancement.",
+      "authors": [
+        "Shaopeng Fu",
+        "Xingxing Zhang",
+        "Li Dong",
+        "Di Wang",
+        "Furu Wei"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-04-01T11:54:57+00:00",
+      "link": "https://arxiv.org/pdf/2604.00790v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "iterative self-refinement reinforcement learning",
+      "llm_evidence_cn": "迭代自优化强化学习",
+      "llm_evidence": "迭代自优化强化学习",
+      "canonical_evidence": "迭代自优化强化学习",
+      "llm_tldr_en": "Enhances LLM reasoning in competitive programming through an iterative self-refinement RL approach.",
+      "llm_tldr_cn": "通过迭代自优化强化学习方法增强LLM在竞赛编程中的推理能力。",
+      "llm_tldr": "通过迭代自优化强化学习方法增强LLM在竞赛编程中的推理能力。",
+      "llm_tags": [
+        "query:pr-opt"
+      ],
+      "matched_query_tag": "query:pr-opt",
+      "matched_query_text": "automatic prompt optimization and refinement methods",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2604.00997v1",
+      "source": "arxiv",
+      "title": "Uncertainty-Aware Variational Reward Factorization via Probabilistic Preference Bases for LLM Personalization",
+      "abstract": "Reward factorization personalizes large language models (LLMs) by decomposing rewards into shared basis functions and user-specific weights. Yet, existing methods estimate user weights from scarce data in isolation and as deterministic points, leading to inaccurate and unreliable inference. We introduce Variational Reward Factorization (VRF), an uncertainty-aware framework that represents each user's preferences as a variational distribution in a shared preference space. VRF infers user distributions via a variational encoder, derives weights through Wasserstein distance matching with shared probabilistic bases, and downweights uncertain estimates through a variance-attenuated loss. On three benchmarks, VRF outperforms all baselines across seen and unseen users, few-shot scenarios, and varying uncertainty levels, with gains extending to downstream alignment.",
+      "authors": [
+        "Gyuseok Lee",
+        "Wonbin Kweon",
+        "Zhenrui Yue",
+        "SeongKu Kang",
+        "Jiawei Han",
+        "Dong Wang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-04-01T14:58:51+00:00",
+      "link": "https://arxiv.org/pdf/2604.00997v1",
+      "tags": [
+        "keyword:PR OPT",
+        "keyword:RM OPT",
+        "keyword:RM TRN",
+        "query:PR OPT",
+        "query:RM OPT",
+        "query:RM TRN"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Variational Reward Factorization for preference learning and personalization",
+      "llm_evidence_cn": "用于偏好学习和个性化的变分奖励分解",
+      "llm_evidence": "用于偏好学习和个性化的变分奖励分解",
+      "canonical_evidence": "用于偏好学习和个性化的变分奖励分解",
+      "llm_tldr_en": "Introduces an uncertainty-aware framework for reward factorization to improve LLM personalization.",
+      "llm_tldr_cn": "引入了一种不确定性感知的奖励分解框架，用于提升大语言模型的个性化偏好对齐。",
+      "llm_tldr": "引入了一种不确定性感知的奖励分解框架，用于提升大语言模型的个性化偏好对齐。",
+      "llm_tags": [
+        "query:rm-opt"
+      ],
+      "matched_query_tag": "query:rm-opt",
+      "matched_query_text": "Preference learning algorithms for reward models",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    }
+  ]
+}

@@ -1,0 +1,745 @@
+Title: Reinforce to Learn, Elect to Reason: A Dual Paradigm for Video Reasoning
+
+URL Source: https://arxiv.org/pdf/2604.04379v1
+
+Published Time: Tue, 07 Apr 2026 01:22:04 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# Reinforce to Learn, Elect to Reason: A Dual Paradigm for Video Reasoning 
+
+## Songyuan Yang 1∗ Weijiang Yu 2† Jilin Ma 2 Ziyu Liu 2 Guijian Tang 1
+
+## Wenjing Yang 1 Huibin Tan 1∗ Nong Xiao 21National University of Defense Technology 2 Sun Yat-sen University 
+
+## Abstract 
+
+Video reasoning has advanced with large multimodal mod-els (LMMs), yet their inference is often a single pass that returns an answer without verifying whether the reasoning is evidence-aligned. We introduce Reinforce to Learn, Elect to Reason (RLER), a dual paradigm that decouples learn-ing to produce evidence from obtaining a reliable answer. In RLER-Training, we optimize the policy with group-relative reinforcement learning (RL) and 3 novel task-driven re-wards: Frame-sensitive reward grounds reasoning on ex-plicit key frames, Think-transparency reward shapes read-able and parsable reasoning traces, and Anti-repetition re-ward boosts information density. These signals teach the model to emit structured, machine-checkable evidence and potentiate reasoning capabilities. In RLER-Inference, we apply a train-free orchestrator that generates a small set of diverse candidates, parses their answers and cited frames, scores them by evidence consistency, confidence, trans-parency, and non-redundancy, and then performs a robust evidence-weighted election. This closes the loop between producing and using evidence, improving reliability and interpretability without enlarging the model. We compre-hensively evaluate RLER against various open-source and RL-based LMMs on 8 representative benchmarks. RLER achieves state of the art across all benchmarks and delivers an average improvement of 6.3% over base models, while using on average 3.1 candidates per question, indicating a favorable balance between compute and quality. The re-sults support a simple thesis: making evidence explicit dur-ing learning and electing by evidence during inference is a robust path to trustworthy video reasoning. 
+
+## 1. Introduction 
+
+The rapid evolution of large multimodal models (LMMs) is pushing video understanding from seeing to reasoning [25, 26, 53] and has enabled stronger cross-frame and open-domain inference [9, 16, 34]. However, a persistent weak-ness remains in practice [4, 27]: inference is often single   
+
+> ∗Equal contribution. †
+> Corresponding author. Traditional Inference
+> Struct Output
+> RLER Inference
+> Robust
+> Aggregation
+> Credible
+> Output
+> Single -Pass Generation
+
+Direct Output 
+
+> Refutation
+> Verification
+> Missing
+> Frame
+> Evidence Scoring
+> Generation
+> No reasoning
+> process
+> Evidence
+> mismatch
+> Keyframe
+> supported
+> Obse
+> So the
+> face b
+> Right (
+> and "T
+
+Conc 
+
+Figure 1. Comparison between Traditional and RLER Infer-ence. Single pass inference outputs an answer without verification and may miss key evidence. RLER produces structured outputs, scores evidence across candidates, aggregates by evidence, and performs a refutation check to deliver credible answers. 
+
+pass, returning an answer without checking whether the rea-soning is grounded in evidence or follows an appropriate path. Even sota LMMs can be disrupted by tiny perturba-tions at inference [17, 41], such as minor video changes or alternative phrasings. These vulnerabilities are further am-plified by the long temporal horizons and multi-view noise of video [30, 58]. Therefore, during such a single-pass rea-soning process, this fragility can accumulate without being detected or corrected, leading to conclusions that are unre-liable and difficult to interpret in complex video reasoning. Recent work improves reasoning through reinforcement-style training with rule-based rewards, format constraints, and spatio-temporal guidance [13, 23, 50], and through test-time scaling with diversified sampling or search [10, 12, 42]. These researches bring measurable gains, but a critical gap remains: multiple reasoning traces are rarely checked for evidence consistency, chain-of-thought is rarely verified against key frames and relations in a systematic way, and there is no principled arbitration across traces. In short, as shown in Figure 1, prior work often shows that a model can reason, but not that it reasoned using the correct evidence, which defines the challenge and our point of departure. Our motivation is to move video reasoning from answer-driven to evidence-driven. Specifically, training serves as shaping and potentiation: it teaches the model to emit struc-
+
+> arXiv:2604.04379v1 [cs.CV] 6 Apr 2026
+
+tured, machine-readable evidence signals. In contrast, reli-ability is decided at inference by whether the system can elect a consistent outcome from that evidence, aggregate it robustly, and perform a minimal self-review when needed. We therefore propose the dual paradigm RLER (Reinforce to Learn, Elect to Reason). Reinforce Learning shapes ex-plicit evidence and potentiates reasoning capabilities, while inference makes decisions by evidence rather than by a single chain, which separates “being able to think” from “thinking correctly” and closes the loop in one framework. On the training side (RLER-Training), we adopt GRPO [35] and design three novel rewards that target the essence of video reasoning: where to look, how much to say, and how to say it. The Frame-sensitive Reward encourages the identification of explicit key frames and their citation within the reasoning text, promoting cross-frame relations and temporal dependencies. The Anti-repetition Reward suppresses low-information repetition to increase informa-tion density and provide cleaner signals for subsequent comparison. The Think-transparency Reward encourages more elaborate and interpretable thought processes. Com-bined with the conventional Formatted Reward and Accu-racy Reward, these novel rewards yield evidence-centric, readable, and verifiable trajectories that interface directly with inference-time orchestration. On the inference side (RLER-Inference), we intro-duce a train-free evidence-aligned orchestrator. For each video–question pair, the system first performs diversified inputs and decoding across styles while keeping one con-servative run. This produces a set of independent candidate thoughts and answers. We parse each candidate into an-swer, key frame citations, and reasoning, then compute an evidence score from evidence co occurrence and relational consistency and combine it with length normalized confi-dence, redundancy, and transparency. Aggregation removes extreme candidates and performs a weighted election by ev-idence; if the top margin is insufficient the sample budget expands, and if an evidence weighted majority with suffi-cient confidence is met the process stops early. A single referee style self check verifies that cited frames and logic support the winner; if stronger counter evidence is found we reweight and draw one extra sample, otherwise we con-firm the answer. This turns multi sample generation into an evidence centered election and review, making the shaped evidence a computable, early stopping, and correctable de-cision mechanism. Extensive experiments demonstrate the effectiveness of our approach. Our contributions are as follows: (1) We present the dual paradigm RLER (Reinforce to Learn, Elect to Rea-son) that closes the loop between reward-shaped training and evidence-aligned election at inference, addressing the unreliability of single-pass generation in video reasoning. (2) We design 3 novel training rewards, Frame-sensitive Re-ward, Think-transparency Reward, and Anti-repetition Re-ward, which ensure evidence-centric and structured reason-ing outputs and align naturally with inference-time orches-tration. (3) We propose a train-free inference orchestra-tor (RLER-Inference) that integrates diversified sampling, evidence extraction and scoring, evidence-weighted elec-tion with outlier removal, adaptive budgeting with early stopping, and a one-shot referee-style self-check, leading multiple thoughts to a stable consensus at the level of ev-idence. (4) Extensive experiments demonstrate that RLER is broadly applicable and cost-effective, yielding an average improvement of 6.3% across benchmarks while using about 3.1 candidates per question, indicating strong effectiveness. 
+
+## 2. Related Works 
+
+Large Multimodal Models. Large Multimodal Models (LMMs) extend language models [1, 31, 44, 49] to visual [7, 18, 25, 26] modality, enabling unified perception–language understanding across images and videos. Early work es-tablished strong results on captioning and visual question answering, and recent research focus has been shifted to-wards extending LMMs to handle video understanding, with methods such as Qwen-2.5VL [2], InternVL2.5 [6], LLaVA-Video [56] and Video-LLaMA 3 [51]. However, most LMMs still produce answers in a single pass without verifiable evidence alignment, which our RLER framework addresses by learning to emit structured evidence and elect-ing the final answer by that evidence at inference. 
+
+Video Reasoning. Video reasoning has advanced along two complementary axes: training and inference. On the training side, reinforcement learning with verifiable or rule based rewards, exemplified in text by OpenAI o1 [16] and DeepSeek-R1 [13], has been adapted to visual settings through task specific reward designs that strengthen fine grained perception and reasoning [8, 29, 32, 50, 54, 57]. Although video understanding is less explored, recent ef-forts indicate promise for temporal and causal reasoning in videos [9, 23, 37, 43]. On the inference side, test time scaling methods such as best of N sampling [12], guided beam search [42], and Monte Carlo tree search [10, 20, 52] improve reasoning without additional training, yet applica-tions to LMMs largely mirror text only heuristics, including response lengthening [34] or search based reranking [39]. However, these two lines are often applied in isolation and seldom enforce cross candidate evidence consistency; our RLER unifies reward shaping with evidence aligned infer-ence to address this gap. 
+
+## 3. Preliminaries 
+
+3.1. Formalization for Video Reasoning 
+
+Let a video be V = ( x1, . . . , x T ) with frames xt and length 
+
+T . Given a question q, a policy model πθ generates a rea-Training 
+
+(a)  Diverse  Input  Reward Function  Aha Moment GRPO Optimizer  
+
+> Frame -Sensitive
+> Anti -repetition
+> Think -transparency
+> Policy
+> Optimization
+> Reward
+> Models
+> KOutput
+> Trajectories
+
+Inference   
+
+> Robust Aggregation Refutation Verification Frame Scoring
+> Transparency
+> Redundancy
+
+Weighted  Voting 
+
+> Integrated
+> Confidence
+
+Final answer 
+
+Self -Correction 
+
+> Semantic Rephrasing
+> View Diversification
+> Keyframe -grounded
+> evidence
+> Reduce redundancy
+> Cosine Length prior
+> Clipped to range
+> Scales with
+> repetition rate
+> Active only
+> when correct
+
+(b) Evidence 
+
+Scoring 
+
+> Cropping
+> Blurring
+> “How many square
+> pillow(s) are there?”
+
+：Inference ：Public    
+
+> Compare answer
+> to ground truth
+> Template Compli -
+> ance Checking
+> Accuracy Reward
+> Formatted Reward (Compare
+> confidence)
+> highest
+> lowest
+> Generate
+> Paraphrases
+> Parallel
+> Inference
+> Consistency
+> Evaluation
+
+(c) Score -Based 
+
+Comparative 
+
+(d) Reflective 
+
+Reasoning  
+
+> “Let me check for
+> square pillows. Looking
+> at Frame 6 …… ”
+> Evidence extraction
+
+：Training   
+
+> Noise
+> Injection
+> Brightening
+> Answer Reasoning
+> process Keyframe Confidence
+> Frame
+> Think
+> N-gram
+> Acc
+> Score
+> Model
+> answer
+
+Return to GRPO                            
+
+> Critique
+> Generation
+> Resampling
+> Resampling
+> Critique
+> Generation
+> Refutation
+> Detection
+> Re -evaluate
+> Self -
+> Correction
+> Return
+> to GRPO
+> 𝑅 𝑎𝑟 𝑜 =−𝜌 (𝑂 )
+> 𝑅 𝑓𝑠 𝑜 ,𝑠 =𝐼 𝑎𝑐𝑐 𝑜 ,𝑠 ·𝐹 𝑜 ·𝑅 𝑐𝑜𝑟𝑒 𝑜
+> 𝑅 𝑡𝑡 𝑜 ,𝑠 =𝐼 𝑎𝑐𝑐 𝑜 ,𝑠 ·𝑆 𝑓𝑠 𝑜 𝑅 𝑡𝑜𝑡𝑎𝑙 =෍
+> 𝑘
+> 𝑤 𝑘 𝑅 𝑘
+> Updated
+> candidate set
+> Detected
+> inconsistency
+> Generate
+> corrected
+> trajectory
+
+Figure 2. Method Overview. RLER-Training uses GRPO with Frame-sensitive, Think-transparency, and Anti-repetition Rewards to teach the model to emit structured outputs with keyframe citations and potentiate reasoning capabilities. RLER-Inference applies diverse inputs to produce multiple candidates, parse structure, score evidence, aggregate by evidence weights, and run refutation check. 
+
+soning trace z and an answer a. We write y = ( z, a ) and denote keyframe indices extracted from z as K ⊆ 1, . . . , T .The supervised corpus provides triplets (V, q, a ⋆), while the policy may produce multiple candidates y per (V, q ). Ascalar reward r(y; V, q ) evaluates y with respect to the task. In our framework, the training stage RLER-Training will in-stantiate r with task-specific rewards and optimize πθ ; the inference stage RLER-Inference will later use the structured trace (z, K ) for evidence-aligned selection. 
+
+3.2. Group Relative Policy Optimization 
+
+Group Relative Policy Optimization (GRPO) [13, 35] is an on-policy method that optimizes πθ without a learned critic. For each (V, q ), the algorithm samples a group of G candi-dates {oi}Gi=1 from the old policy πθold (· | V, q ) and com-putes rewards ri = r(oi; V, q ). A normalized advantage is obtained by a z-score within the group 
+
+Ai = ri − ¯rσr + ϵ , ¯r = 1
+
+GGX
+
+j=1 
+
+rj , σ2
+
+r = 1
+
+GGX
+
+j=1 
+
+(rj − ¯r)2.
+
+(1) Let the probability ratio be 
+
+ρi(θ) = πθ (oi | V, q )
+
+πθold (oi | V, q ) . (2) GRPO maximizes a clipped surrogate with a KL regular-izer, analogous to PPO [33], but using group-normalized advantages: 
+
+Lclip (θ) = E(V,q )
+
+h
+
+Ei
+
+ min  ρiAi, clip ϵ(ρi) Ai
+
+ i
+
+. (3) 
+
+RKL (θ) = E(V,q )
+
+DKL (πθ ∥ πref ) . (4) 
+
+JGRPO (θ) = Lclip (θ) − β RKL (θ). (5) The first term encourages responses with above-average re-wards within the sampled group while preventing unstable updates through clipping. The second term penalizes di-vergence from a fixed reference policy πref with weight β,which stabilizes training and limits drift. Parameters are updated by stochastic gradient ascent on JGRPO (θ) with periodic refresh of πθold . All probabilities in Eq. (2)–(5) are conditioned on (V, q ), and E(V,q ), i averages over data pairs and a uniform index i ∈ {1, . . . , G }. In RLER-Training, this objective is combined with the task reward to shape evidence-centric outputs that are consumed by RLER-Inference at inference stage. 
+
+## 4. Reinforce to Learn, Elect to Reason 
+
+Reinforce to Learn, Elect to Reason (RLER) is a dual paradigm that first learns to produce evidence and then rea-sons by electing among it, as shown in Figure 2. RLER-Training uses reinforcement to shape structured, verifiable signals and to strengthen the model’s reasoning capacity, making spatiotemporal grounding explicit and encouraging disciplined chains of thought. RLER-Inference consumes these signals, compares multiple candidate thoughts, aligns them with evidence, and performs self-review before de-ciding. The split is deliberate: learning determines where to look, what to say, and how to express it in a machine-parsable form; inference determines how to aggregate, ar-bitrate, and verify. Both stages adopt the same evidence-centric view, creating a natural symmetry between training rewards and inference-time scoring. 
+
+4.1. RLER-Training 
+
+We optimize the policy with GRPO using rewards that shape evidence-centric, concise, and transparent reasoning. For a video–question pair (V, q ), let o denote the model out-put and s the ground-truth answer. The total reward aggre-gates task components with nonnegative weights that sum to one, 
+
+Rtotal (o, s ) = X
+
+> k
+
+wk Rk(o, s ), wk ≥ 0, X
+
+> k
+
+wk = 1 .
+
+(6) Two indicators are shared across rewards: Iacc (o, s ) ∈{0, 1} signals answer correctness, and F(o) ∈ {0, 1}
+
+signals that the output follows the required schema with 
+
+<think> , <answer> , and <keyframes> tags. 
+
+Frame-sensitive Reward. This term links the reasoning trace to explicit visual evidence. Let K(o) be the set of valid keyframe indices extracted from o, and let E(o) count invalid indices. We define a bounded, parameter-light score that grows with valid citations and decreases with invalid ones, 
+
+sfs (o) = clip 
+
+ |K(o)| − E(o)1 + |K(o)| , 0, 1
+
+
+
+. (7) The final reward is gated by accuracy and format validity, 
+
+Rfs (o, s ) = Iacc (o, s ) F(o) sfs (o). (8) This formulation encourages citing informative frames when the model solves the task and adheres to the schema, while providing diminishing returns for excessive frame lists. 
+
+Think-transparency Reward. We encourage structured and readable traces without promoting verbosity. Let L(o)
+
+be the length of the reasoning segment and let eL(o) ∈ [0 , 1] 
+
+be its robustly normalized value obtained by clipping L(o)
+
+to a fixed operating range and rescaling. A simple unimodal bonus prefers moderate lengths, 
+
+Rtt (o, s ) = Iacc (o, s ) sin 2
+
+π eL(o)
+
+
+
+. (9) The peak near mid-range discourages both terse shortcuts and unnecessarily long narratives. 
+
+Anti-repetition Reward. To increase information density, we penalize repeated surface forms. Using fixed small n-grams [3], let Un(o) be the set of unique n-grams and let 
+
+Tn(o) be the total count. The repetition ratio and reward are 
+
+ρ(o) = 
+
+
+
+1 − |U n(o)|
+
+Tn(o) , Tn(o) > 0,
+
+0, otherwise, 
+
+Rar (o) = − ρ(o).
+
+(10) This pushes the model to avoid vacuous loops and to con-centrate on novel evidence. 
+
+Formatted Reward. To ensure reliable parsing during in-ference, we assign 
+
+Rfmt (o) = F(o), (11) so malformed outputs receive no structural credit. 
+
+Accuracy Reward. Task success remains the principal sig-nal, 
+
+Racc (o, s ) = Iacc (o, s ). (12) The five components in Eq. (8)–(12) are combined by Eq. (6) and optimized with GRPO. The resulting policy emits key frames, structured and concise reasoning, and schema-compliant outputs. These properties are consumed by RLER-Inference, which scores evidence, compares can-didates, and performs a brief self-review to select a reliable answer. 
+
+4.2. RLER-Inference 
+
+RLER-Inference consumes the evidence-shaped traces pro-duced by training and turns multi-sample generation into a principled, evidence-aligned election. Given a video–question pair (V, q ) and the trained policy πθ , we draw a small set of diversified candidates by perturbing de-coding or the visual crop while preserving semantics. For-mally, let ξi denote a light perturbation. We sample 
+
+oi ∼ π ξi 
+
+> θ
+
+(· | V, q ), i = 1 , . . . , K,  (13) and collect O = {oi}Ki=1 . Each output follows the schema enforced at training and exposes the fields needed for down-stream scoring. From every oi we parse a canonical answer, a set of cited key frames, and the reasoning text. We write 
+
+(ai, K i, z i, c i) = ϕ(oi), (14) where ai is the normalized answer string, Ki ⊆ { 1, . . . , T }
+
+are key-frame indices, zi is the reasoning segment, and ci ∈
+
+[0 , 1] is a confidence proxy derived from token probabilities over a short tail segment of oi with length normalization. The map ϕ is deterministic and relies only on the schema learned during training. Evidence-aligned scoring mirrors the training rewards in a parameter-light way. We reuse the frame-sensitive term by setting sfs (oi) as in Eq. (7). We measure transparent thinking by a bounded length preference, 
+
+τ (oi) = sin 2
+
+π eL(oi)
+
+
+
+, eL(oi) ∈ [0 , 1] , (15) where eL(oi) is a clipped-and-rescaled version of the reason-ing length. We quantify non-redundancy via 1 − ρ(oi), with 
+
+ρ(oi) defined in Eq. (10). The composite evidence score averages these signals with the confidence proxy, 
+
+Si = 14
+
+
+
+sfs (oi) + τ (oi) +  1 − ρ(oi) + ci
+
+
+
+∈ [0 , 1] . (16) This score favors candidates that ground on plausible frames, provide readable structure, avoid repetition, and are internally confident, thus aligning inference with the biases learned by RLER-Training. Aggregation proceeds by evidence-weighted election over canonical answers. Let canon( ·) map free-form an-swers to canonical strings and let A be the set of unique canonicals in O. For ˆa ∈ A , define its supporting index set 
+
+I(ˆ a) = {i : canon( ai) = ˆ a}. We form a soft consensus of supporting frames, 
+
+¯K(ˆ a) = arg max  
+
+> K⊆{ 1,...,T }
+
+X
+
+> i∈I(ˆ a)
+
+Si
+
+|K ∩ Ki||K ∪ Ki| , (17) and an evidence-weighted answer score, 
+
+S(ˆ a) = X
+
+> i∈I(ˆ a)
+
+Si
+
+|Ki ∩ ¯K(ˆ a)||Ki ∪ ¯K(ˆ a)| . (18) The elected answer is ˆa⋆ = arg max ˆa∈A S(ˆ a). To avoid outlier influence, we discard at most one maximal and one minimal Si within each I(ˆ a) before computing Eq. (18). Early stopping is triggered when the margin 
+
+S(ˆ a⋆) − max ˆa̸=ˆ a⋆ S(ˆ a) exceeds a small fixed threshold and the mean confidence 1
+
+> |I(ˆ a⋆)|
+
+P 
+
+> i∈I(ˆ a⋆)
+
+ci is above a preset level; otherwise the budget expands with a few additional samples in Eq. (13). Before finalizing, RLER-Inference performs a single referee-style self-check that mirrors the self-correction be-haviors observed during training. Conditioned on (V, q ) and the tuple (ˆ a⋆, ¯K(ˆ a⋆)) , the model produces a short critique that only inspects support sufficiency and potential omis-sions in the cited frames. The critique induces a nonpositive adjustment ∆(ˆ a⋆) ≤ 0 derived from detected support gaps. The final decision is 
+
+ˆafinal = arg max  
+
+> ˆa∈{ ˆa⋆,ˆa(2) }
+
+
+
+S(ˆ a) + 1{ˆa = ˆ a⋆} ∆(ˆ a⋆)
+
+
+
+, (19) where ˆa(2) is the runner-up by S(·). If ˆa(2) wins in Eq. (19), a single additional sample is drawn and the ag-gregation is recomputed; otherwise the system outputs ˆa⋆.This final step closes the duality with RLER-Training: the same notions of frame grounding, transparency, and non-redundancy that shape the traces during learning become quantitative levers for election and light self-review at in-ference, yielding a reliable answer with minimal extra com-putation. 
+
+## 5. Experiment 
+
+5.1. Experimental Setup 
+
+Benchmarks and Metrics. We evaluate on eight pub-lic video benchmarks: VSIBench [45] and VideoMMMU [14] for multi-step reasoning; VideoMME [11], TempCom-pass [28], MVBench [21], and WildVideo [46] for gen-eral understanding; LVBench [38] and LongVideoBench [40] for long-horizon understanding. The primary met-ric is accuracy (%) under each benchmark’s official pro-tocol. We further report inference-time compute with the average number of evaluated candidates, Avg K, measured after early stopping under a common cap Kmax . To an-alyze evidence quality, we introduce three auxiliary met-rics that align with RLER. The Evidence Grounding Score (EGS) measures frame legality and coverage: for a can-didate oi with cited frames Ki, we define vi as the frac-tion of valid, in-range, non-duplicate indices, and ui as the Jaccard overlap with the consensus set ¯K from the election step, then EGS( oi)= 12 (vi+ui) averaged over can-didates. The Transparency Index (TI) instantiates the bounded length preference τ (oi)= sin 2(π eL(oi)) and re-ports the mean value across correctly parsed traces. The Redundancy Ratio (RR) captures surface repetition using fixed n-grams: ρ(oi)=1 − |U n(oi)| 
+
+> Tn(oi)
+
+, and we report the mean 
+
+ρ (lower is better). 
+
+Implementation Details. We adopt Qwen2.5-VL-7B-Instruct [2] and train on NVIDIA A100 40GB GPUs. Only language-model parameters are updated; the vision encoder and projection are frozen. We use LoRA ( r=8 , α=16 ,dropout 0.05 ) and AdamW (lr 1×10 −5, weight decay 0.1,grad clip 1.0). GRPO uses group size G=4 , clipping 
+
+ϵclip =0 .2, and KL coefficient β=0 .04 for two epochs on Video-R1-260k [9]. Training samples 16 frames per video uniformly. At inference we enable RLER-Inference with budget cap Kmax =8 and a fixed early-stop rule shared across benchmarks. Candidates are diversified by a temper-ature grid {0.2, 0.7, 0.9} with top-p=0 .9 and distinct seeds, plus center and four-corner crops at 0.9 scale with mild blur (σ=0 .5) and ±10% brightness; one conservative run is al-ways included. Standard tasks use 32 frames; long videos are subsampled at 1 fps. If the schema is missing, we fall back to answer-level aggregation; all other settings follow official protocols. Training Curves are in Appendix. Unless noted, reward weights are wacc =0 .1, wfmt =0 .1,
+
+wfs =0 .2, wtt =0 .3, war =0 .3 in Rtotal = P 
+
+> k
+
+wkRk.Table 1. Comparison across 8 video benchmarks grouped by task category. “w/o sub” denotes evaluation without subtitles and “–” denotes not reported. RLER achieves consistent gains over its baseline and representative open-source and RL-based LMMs on most benchmarks. Bold means sota results among open-source LMMs. Scores are %.                                                                                                                                                           
+
+> Video Reasoning General Video Understanding Long Video Understanding Model VSIBench VideoMMMU VideoMME (w/o sub) TempCompass MVBench WildVideo LVBench LongVideoBench
+> Proprietary LMMs
+> GPT-4o [15] 34 61.2 67.9 -57.5 62.1 30.8 66.7
+> Open-Source LMMs
+> LLaVA-OneVision-7B [19] 32.4 33.8 58.2 -56.7 ---ShareGPT4Video-8B [5] -------39.7 LLaVA-Video-7B [56] 35.7 36.1 63.7 65.5 62.1 53.4 -59.5 VILA-1.5-8B [24] 28.9 20.9 -58.8 ----VideoLLaMA 3-7B [51] -46.0 61.0 ---45.3 -MiniCPM-V 2.6-8B [47] --59.7 59.6 44.7 46.4 43.5 -mPLUG-Owl3-8B [48] --53.5 -54.5 --59.8 InternVL2.5-8B [6] 41.6 -63.7 68.7 70.5 ---Qwen2.5-VL-7B [2] 37.4 47.4 65.1 69.2 67.5 51.3 42.0 56.0
+> RL-based LMMs
+> Video-R1 [9] 35.8 52.3 59.3 73.2 63.9 ---STAR-R1 [23] 34.1 49.2 56.6 72.4 67.8 ---TinyLLaVA-Video-R1 [55] --46.6 49.5 ----VideoChat-R1 [22] -50.0 58.8 73.9 67.9 ---VideoChat-R1.5 [43] -51.4 67.1 -70.6 -48.4 -VideoRFT [37] 36.8 51.1 59.8 73.7 62.1 ---MOSS-ChatV [36] -50.2 60.0 72.9 67.6 ---RLER (Ours) 43.3 54.2 68.5 76.2 72.9 57.5 50.7 63.0
+
+The frame-sensitive score sfs (o) follows Eq. (7) on parsed <keyframes> with deduplication and range checks. Think-transparency maps the reasoning length 
+
+L(o), clipped to [64 , 1024] tokens, to eL(o) ∈ [0 , 1] and uses 
+
+τ (o) = sin 2(π eL(o)) . Anti-repetition uses 5-grams over 
+
+<think> : ρ(o) = 1 − |U 3(o)| 
+
+> T3(o)
+
+and Rar = −ρ(o). The for-mat reward is Rfmt (o) = F(o) with mandatory <think> ,
+
+<answer> , <keyframes> ; accuracy uses exact match after canonicalization. GRPO advantages use z-score with 
+
+ϵ = 10 −8; the reference policy is the initial snapshot and 
+
+πθold is refreshed once per step. Early stopping triggers when the evidence-weighted margin exceeds δ=0 .08 and the mean confidence of the leading cluster exceeds γ=0 .4;confidence ci is the average token probability over the last 
+
+25% of oi. Election is evidence-weighted with at most one maximal and one minimal Si trimmed per answer cluster. 
+
+5.2. Main Result 
+
+RLER delivers consistent gains across all three benchmark families in Table 1. On video reasoning, it sets the best open-source results with 43.3% on VSIBench and 54.2% on VideoMMMU, surpassing recent RL-based models and improving markedly over the base model. On general video understanding, it achieves 68.5% on VideoMME without subtitles, 76.2% on TempCompass, 72.9% on MVBench, and 57.5% on WildVideo; these are the highest open-source numbers reported, and on VideoMME it even ex-ceeds the proprietary GPT-4o entry. On long video un-derstanding, it reaches 50.7% on LVBench and 63.0% on LongVideoBench, outperforming all reported open-source and RL-based baselines. The pattern is consistent: once training shapes structured evidence and inference elects by evidence, accuracy rises across diverse settings that stress cross-frame reasoning, mixed perception–reasoning skills, and long temporal horizons. 
+
+“Aha moment” Emergence in RLER-Training. During RLER-Training process, we observe a distinct emergence phenomenon we term the “aha moment.” We define this as a discrete event where the model explicitly recognizes a flaw in its ongoing hypothesis and initiates a corrective thought process. As shown in Figure 4, this is captured by the model’s interjection, “Wait. Let me re-evaluate.” Crucially, these self-initiated reversals furnish actionable cues for RLER-Inference: the same pattern is detected by the referee-style self-check to challenge a provisional winner and, when warranted, trigger reweighting or one-Given video & question 
+
+Refutation 
+
+Verification 
+
+RLER Inference’s Core Insight 
+
+Under the premise of  no extra training , the diversification of the training phase  —
+
+rollout + mutual comparison + reward reflection  — is  formally replicated into the 
+
+inference phase .
+
+This not only narrows the “training –inference gap” but also turns  consistency, evidence 
+
+alignment, and real -time calibration  into a  unified, pluggable inference protocol .
+
+Multiple candidate reasoning trajectories are 
+
+generated through semantic rephrasing and  View 
+
+Diversification 
+
+Question: How many sofas are in this room? 
+
+Evidence Scoring   
+
+> Frame -sensitive Reward
+> Anti -repetition Reward
+> Formatted Reward
+> Accuracy Reward
+
+Exclude the candidates 
+
+with the  highest  and 
+
+lowest  overall confidence, 
+
+then conduct a majority 
+
+vote among the remaining 
+
+three responses. 
+
+If a tie occurs, include the 
+
+response with the highest 
+
+confidence back into the 
+
+voting set and vote again. 
+
+Candidate A  | 4 | Error: armchair 
+
+misclassified as sofa (Frame 6) 
+
+Candidate B  | 3 | Correct: consistent sofa 
+
+count across Frames 2, 5, 6 
+
+Candidate C  | 4 | Error: fails to separate 
+
+chair and sofa categories 
+
+Produce five 
+
+answers 
+
+Robust 
+
+Aggregation 
+
+Output 
+
+Initial Answer:4 
+
+“Wait. Let me re -evaluate” 
+
+Judgment -based 
+
+Self -Check: 
+
+Aha Moment 
+
+Referee check: 
+
+“The counted object 
+
+in Frame 6 is an 
+
+armchair, not a sofa.” 
+
+Final Answer:3  
+
+> Cropping Blurring
+
+!Aggregated 
+
+Score 
+
+Structured 
+
+Candidate   
+
+> Candidate A (4) is
+> incorrect: it counts the
+> armchair in Frame 6 as
+> a sofa.
+> Candidate C (4) is
+> incorrect: it similarly
+> fails to distinguish the
+> armchair from the sofa.
+> Refutation evidence :
+> Frame 6 shows an
+> armchair, while Frames
+> 2 and 5 contain the
+> actual sofas.
+> Final answer : 3
+
+Candidate  A: Answer  = 4
+
+Reason  A: counts  armchair  as  sofa 
+
+Candidate  B: Answer  = 3
+
+Reason  B: distinguishes  sofa  vs  chair 
+
+Candidate  C: Answer  = 4
+
+Reason  C: misses  one  sofa 
+
+> Think -transparency Reward
+
+Figure 3. A case study show how RLER uses diverse inputs to form structured candidates, scores evidence, aggregates robustly, and performs refutation verification to revise the initial answer and deliver the final result. ation 
+
+tion 
+
+ation 
+
+Observation  Analysis  Backtracking  Self -reflection 
+
+You are a robot beginning at the bed facing the 
+
+tv. You want to navigate to the toilet. You will 
+
+perform the following actions 
+
+1. Go forward 
+
+until the TV 
+
+2. [please fill in] 
+
+5. Go forward 
+
+until the toilet. 
+
+3. Go forward 
+
+until the shower 
+
+I’m instructed to be  at the shower , having just moved 
+
+“until the shower,” which means I’m facing it. Since the 
+
+toilet is to the left of the shower unit, it would be to my 
+
+right when facing the shower. Turning left from the 
+
+doorway would face a wall, not the toilet. 
+
+Wait. Let me re -evaluate. 
+
+Frame 5 shows a doorway to the bathroom; Frame 6 
+
+shows the bedroom, with the bathroom on the left 
+
+when facing the TV. 
+
+Given the general layout implied by Frame 9, turning 
+
+left seems correct to face that doorway. So, the 
+
+first turn is Turn Left .
+
+Frame 5 shows the toilet is to the left of the shower 
+
+unit itself .
+
+maybe I should turn left from the shower? 
+
+I walk to the shower, facing its door. The toilet is 
+
+on the shower’s left, so to face it, I’d turn right. 
+
+Thus, the second turn is  Turn Right .
+
+After turning right (from my position facing the shower), 
+
+I should now be facing the toilet. Going forward will take 
+
+me to it 
+
+So the path is: Start at bed facing TV  -> Go to TV  -> Turn Left (to 
+
+face bathroom door)  -> Go to Shower (now facing shower)  -> Turn 
+
+Right (to face toilet)  -> Go to Toilet. The turns are "Turn Left" 
+
+and "Turn Right." 
+
+Conclusion 
+
+Frame 9 shows the bed with a TV on the wall at its foot, 
+
+so “forward” means moving from the bed toward the TV 
+
+wall. 
+
+4. [please fill in] 
+
+Reached the 
+
+final destination. 
+
+Figure 4. An example of emergence elicited by RLER-Training. The red text marks the “aha moment”, where the model identifies an internal conflict and initiates a re-evaluation. 
+
+shot resampling, thereby linking training-time emergence to inference-time verification. 
+
+Case Study. As shown in Figure 3, a single-pass model outputs an incorrect count due to conflating visually simi-lar furniture. RLER generates diversified candidates, parses each into answer, cited keyframes, and reasoning, and scores them by evidence consistency, transparency, and non-redundancy. Robust aggregation then down-weights outliers and elects the most evidence-aligned hypothesis. A brief referee self-check triggers an “aha moment,” where the candidate revisits its cited evidence and corrects the miscount, yielding the final correct answer 3. This exam-ple highlights RLER’s strengths: structured evidence from training, principled arbitration at inference, and targeted self-revision that turns ambiguous scenes into reliable, in-terpretable decisions. 
+
+5.3. Ablation Study 
+
+Training Ablations. As shown in Table 2, under matched data and optimization, RLER is best on both datasets (43.3% on VSIBench; 54.2% on VideoMMMU). Remov-ing the frame-sensitive reward causes the largest drop on VSIBench to 41.0%, while removing think-transparency or anti-repetition yields smaller but steady declines. Without RLER-Inference reaches 41.7% on VSIBench and 52.5% on VideoMMMU, indicating that reward shaping alone strengthens reasoning and evidence quality, though some ambiguous cases remain without election. Replacing GRPO with SFT records 39.2% on VSIBench and 49.8% on VideoMMMU. Despite having the required format, it lacks the reward signals that activate stronger reasoning, which shows that RLER-Training is better suited to complex rea-soning and that the full dual paradigm is most effective. Table 2. Training ablations. We ablate each training reward of RLER-Training while keeping the inference pipeline fixed, and also evaluate two asymmetric settings: w/o RLER-Inference means without RLER-Inference setting, w/o GRPO (w/ SFT) means replacing GRPO training with SFT. Setting VSIBench ↑ VideoMMMU ↑
+
+Qwen2.5-VL-7B (Baseline) 37.4 47.4 RLER (Ours) 43.3 54.2 
+
+w/o frame-sensitive 41.0 52.1 w/o think-transparency 41.9 52.7 w/o anti-repetition 42.1 53.0 w/o RLER-Inference 41.7 52.5 w/o GRPO (w/ SFT) 39.2 49.8 Table 3. Inference ablations. We remove one RLER-Inference component at a time while fixing other setting. “w/o diversity in-put” disables all input diversification, so K=1 . “w/o evidence weight” replaces evidence-weighted election with equal-weighted majority voting. “w/o outlier trimming” keeps extreme-score can-didates. “w/o tran. & red.” means only frame scoring. “w/o referee self-check” skips the final critique. “w/o RLER-Training” applies the pipeline to a model trained without RLER-Training; missing structured fields trigger answer-level aggregation. Avg K is the mean number of evaluated candidates under Kmax =8 .
+
+Setting MVBench ↑ LVBench ↑ Avg K
+
+Qwen2.5-VL-7B 67.5 42.0 –RLER (Ours) 72.9 50.7 3.1 w/o diversity input 69.1 46.5 1.0 w/o evidence weight 70.6 48.3 3.1 w/o outlier trimming 71.4 49.2 3.2 w/o tran. & red. 70.2 47.9 3.1 w/o referee self-check 71.8 49.1 3.0 w/o RLER-Training 68.1 42.5 3.0 
+
+Inference Ablations. As shown in Table 3, RLER reaches 72.9% on MVBench and 50.7% on LVBench with Avg 
+
+K=3 .1. Removing diversity input causes the largest drop, to 69.1% and 46.5% at K=1 .0, showing the value of alter-native views. Replacing evidence weighting with majority vote reduces accuracy to 70.6% and 48.3% at a similar bud-get, indicating that grounded evidence should carry more in-fluence than raw counts. Disabling outlier trimming yields 71.4% and 49.2% with Avg K=3 .2, and using frames only gives 70.2% and 47.9%, both reflecting weaker consensus. Omitting the referee self-check produces 71.8% and 49.1%, a small but consistent loss. Applying the pipeline with-out RLER-Training gives 68.1% and 42.5%, since reward-shaped outputs provide stronger and more consistent evi-dence for election. 
+
+Compute–Quality Tradeoff. As shown in Table 4, With the trained model and Kmax =8 fixed, dynamic RLER-I raises VSIBench from 41.0% to 43.3%, VideoMMMU from 52.0% to 54.2%, and MVBench from 69.1% to 72.9% us-                      
+
+> Table 4. Compute–quality tradeoff. We compare single sample (K=1 ), RLER-I(nference) with early stopping ( Kmax =8 ), and the fixed budget ( K=8 ).
+> Setting VSIBench VideoMMMU MVBench Avg K
+> Single sample 41.0 52.0 69.1 1.0 RLER (Ours) 43.3 54.2 72.9 3.1 Fixed budget 43.9 54.6 73.3 8.0
+> Table 5. Evidence–performance mirroring. EGS measures keyframe validity and coverage; TI measures transparency from a bounded-length preference; RR is n-gram redundancy.
+
+Setting Acc ↑ EGS ↑ TI ↑ RR ↓
+
+Qwen2.5-VL-7B 37.4 0.41 0.31 0.27 RLER (Ours) 43.3 0.72 0.64 0.11 
+
+w/o frame-sensitive 41.0 0.58 0.62 0.12 w/o think-transparency 41.9 0.70 0.48 0.12 w/o anti-repetition 42.1 0.71 0.63 0.18 
+
+ing on average K=3 .1. Increasing to a fixed K=8 adds only 0.4–0.6% at about 2.6× the sampling cost. This shows that evidence aligned election reaches consensus quickly on most examples; extra samples contribute little and some-times add redundant candidates. MVBench exhibits the largest step from single sample to dynamic, while the move from dynamic to K=8 has clear diminishing returns. 
+
+Evidence–Performance Mirroring. As shown in Table 5, Full RLER attains 43.3% with EGS 0.72, TI 0.64, and RR 0.11. Dropping the frame-sensitive reward reduces EGS to 0.58 and accuracy to 41.0%, reflecting the need for cross-frame grounding. Dropping the think-transparency reward lowers TI to 0.48 with accuracy 41.9%, showing the value of readable structure. Dropping the anti-repetition reward raises RR to 0.18 with accuracy 42.1%, indicating that re-dundancy dilutes useful evidence. The metric that shifts most in each row tracks the accuracy change, confirm-ing that training shapes verifiable evidence and inference prefers candidates that present it coherently. 
+
+## 6. Conclusion 
+
+We addressed the unreliability of single-pass video reason-ing by introducing RLER, a dual paradigm that learns to produce evidence and then reasons by electing among it. RLER-Training uses 3 novel rewards to shape structured and verifiable traces that expose key evidence, raise infor-mation density, and improve transparency. RLER-Inference consumes these traces, extracts and scores evidence, and performs an robust evidence-weighted election. Across video reasoning, general understanding, and long-horizon benchmarks, RLER improves accuracy and evidence qual-ity in a compute-efficient manner, showing that explicit ev-idence in learning and evidence-aligned arbitration at infer-ence are complementary and necessary. Acknowledgement. This work is supported by the Young Scientists Fund of the Hunan Natural Science Foundation (Grant No.2024JJ6474), the Youth Independent Innovation Science Fund Project of NUDT (Grant No.ZK24-08). 
+
+## References 
+
+[1] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ah-mad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 ,2023. 2 [2] Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang, Humen Zhong, Yuanzhi Zhu, Mingkun Yang, Zhao-hai Li, Jianqiang Wan, Pengfei Wang, Wei Ding, Zheren Fu, Yiheng Xu, Jiabo Ye, Xi Zhang, Tianbao Xie, Zesen Cheng, Hang Zhang, Zhibo Yang, Haiyang Xu, and Jun-yang Lin. Qwen2.5-vl technical report. arXiv preprint arXiv:2502.13923 , 2025. 2, 5, 6 [3] Peter F Brown, Vincent J Della Pietra, Peter V Desouza, Jen-nifer C Lai, and Robert L Mercer. Class-based n-gram mod-els of natural language. Computational linguistics , 18(4): 467–480, 1992. 4 [4] Guo Chen, Yicheng Liu, Yifei Huang, Baoqi Pei, Jilan Xu, Yuping He, Tong Lu, Yali Wang, and Limin Wang. CG-bench: Clue-grounded question answering benchmark for long video understanding. In The Thirteenth International Conference on Learning Representations , 2025. 1 [5] Lin Chen, Xilin Wei, Jinsong Li, Xiaoyi Dong, Pan Zhang, Yuhang Zang, Zehui Chen, Haodong Duan, Zhenyu Tang, Li Yuan, et al. Sharegpt4video: Improving video understand-ing and generation with better captions. Advances in Neural Information Processing Systems , 37:19472–19495, 2024. 6 [6] Zhe Chen, Weiyun Wang, Yue Cao, Yangzhou Liu, Zhang-wei Gao, Erfei Cui, Jinguo Zhu, Shenglong Ye, Hao Tian, Zhaoyang Liu, et al. Expanding performance boundaries of open-source multimodal models with model, data, and test-time scaling. arXiv preprint arXiv:2412.05271 , 2024. 2, 6 [7] Zesen Cheng, Sicong Leng, Hang Zhang, Yifei Xin, Xin Li, Guanzheng Chen, Yongxin Zhu, Wenqi Zhang, Ziyang Luo, Deli Zhao, et al. Videollama 2: Advancing spatial-temporal modeling and audio understanding in video-llms. 
+
+arXiv preprint arXiv:2406.07476 , 2024. 2 [8] Yihe Deng, Hritik Bansal, Fan Yin, Nanyun Peng, Wei Wang, and Kai-Wei Chang. Openvlthinker: An early ex-ploration to complex vision-language reasoning via iterative self-improvement. arXiv preprint arXiv:2503.17352 , 2025. 2[9] Kaituo Feng, Kaixiong Gong, Bohao Li, Zonghao Guo, Yibing Wang, Tianshuo Peng, Junfei Wu, Xiaoying Zhang, Benyou Wang, and Xiangyu Yue. Video-r1: Reinforcing video reasoning in mllms. arXiv preprint arXiv:2503.21776 ,2025. 1, 2, 5, 6 [10] Xidong Feng, Ziyu Wan, Muning Wen, Stephen Mar-cus McAleer, Ying Wen, Weinan Zhang, and Jun Wang. Alphazero-like tree-search can guide large language model decoding and training. arXiv preprint arXiv:2309.17179 ,2023. 1, 2 [11] Chaoyou Fu, Yuhan Dai, Yongdong Luo, Lei Li, Shuhuai Ren, Renrui Zhang, Zihan Wang, Chenyu Zhou, Yunhang Shen, Mengdan Zhang, et al. Video-mme: The first-ever comprehensive evaluation benchmark of multi-modal llms in video analysis. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 24108–24118, 2025. 5[12] Lin Gui, Cristina Gˆ arbacea, and Victor Veitch. Bonbon alignment for large language models and the sweetness of best-of-n sampling. Advances in Neural Information Pro-cessing Systems , 37:2851–2885, 2024. 1, 2 [13] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu, Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, et al. Deepseek-r1 incentivizes reasoning in llms through reinforcement learning. Nature , 645(8081):633– 638, 2025. 1, 2, 3 [14] Kairui Hu, Penghao Wu, Fanyi Pu, Wang Xiao, Yuanhan Zhang, Xiang Yue, Bo Li, and Ziwei Liu. Video-mmmu: Evaluating knowledge acquisition from multi-discipline pro-fessional videos. arXiv preprint arXiv:2501.13826 , 2025. 5 [15] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perel-man, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Weli-hinda, Alan Hayes, Alec Radford, et al. Gpt-4o system card. 
+
+arXiv preprint arXiv:2410.21276 , 2024. 6 [16] Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richard-son, Ahmed El-Kishky, Aiden Low, Alec Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al. Openai o1 system card. arXiv preprint arXiv:2412.16720 , 2024. 1, 2 [17] Minjoon Jung, Junbin Xiao, Byoung-Tak Zhang, and Angela Yao. On the consistency of video large language models in temporal comprehension. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 13713– 13722, 2025. 1 [18] Long Lan, Xiao Teng, Jing Zhang, Xiang Zhang, and Dacheng Tao. Learning to purification for unsupervised per-son re-identification. IEEE Transactions on Image Process-ing , 32:3338–3353, 2023. 2 [19] Bo Li, Yuanhan Zhang, Dong Guo, Renrui Zhang, Feng Li, Hao Zhang, Kaichen Zhang, Peiyuan Zhang, Yanwei Li, Zi-wei Liu, et al. Llava-onevision: Easy visual task transfer. 
+
+arXiv preprint arXiv:2408.03326 , 2024. 6 [20] Geng Li, Jinglin Xu, Yunzhen Zhao, and Yuxin Peng. Dyfo: A training-free dynamic focus visual search for enhancing lmms in fine-grained visual understanding. In Proceedings of the Computer Vision and Pattern Recognition Conference ,pages 9098–9108, 2025. 2 [21] Kunchang Li, Yali Wang, Yinan He, Yizhuo Li, Yi Wang, Yi Liu, Zun Wang, Jilan Xu, Guo Chen, Ping Luo, et al. Mvbench: A comprehensive multi-modal video understand-ing benchmark. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 22195– 22206, 2024. 5 [22] Xinhao Li, Ziang Yan, Desen Meng, Lu Dong, Xiangyu Zeng, Yinan He, Yali Wang, Yu Qiao, Yi Wang, and Limin Wang. Videochat-r1: Enhancing spatio-temporal perception via reinforcement fine-tuning. arXiv preprint arXiv:2504.06958 , 2025. 6 [23] Zongzhao Li, Zongyang Ma, Mingze Li, Songyou Li, Yu Rong, Tingyang Xu, Ziqi Zhang, Deli Zhao, and Wenbing Huang. Star-r1: Spatial transformation reasoning by rein-forcing multimodal llms. arXiv preprint arXiv:2505.15804 ,2025. 1, 2, 6 [24] Ji Lin, Hongxu Yin, Wei Ping, Pavlo Molchanov, Moham-mad Shoeybi, and Song Han. Vila: On pre-training for vi-sual language models. In Proceedings of the IEEE/CVF con-ference on computer vision and pattern recognition , pages 26689–26699, 2024. 6 [25] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. Advances in neural information processing systems , 36:34892–34916, 2023. 1, 2 [26] Haotian Liu, Chunyuan Li, Yuheng Li, Bo Li, Yuanhan Zhang, Sheng Shen, and Yong Jae Lee. Llava-next: Im-proved reasoning, ocr, and world knowledge, 2024. 1, 2 [27] Huabin Liu, Filip Ilievski, and Cees GM Snoek. Common-sense video question answering through video-grounded en-tailment tree reasoning. In Proceedings of the Computer Vi-sion and Pattern Recognition Conference , pages 3262–3271, 2025. 1 [28] Yuanxin Liu, Shicheng Li, Yi Liu, Yuxiang Wang, Shuhuai Ren, Lei Li, Sishuo Chen, Xu Sun, and Lu Hou. Tempcom-pass: Do video llms really understand videos? arXiv preprint arXiv:2403.00476 , 2024. 5 [29] Ziyu Liu, Zeyi Sun, Yuhang Zang, Xiaoyi Dong, Yuhang Cao, Haodong Duan, Dahua Lin, and Jiaqi Wang. Visual-rft: Visual reinforcement fine-tuning. arXiv preprint arXiv:2503.01785 , 2025. 2 [30] Haoyu Lu, Yuqi Huo, Yifan Du, Zijia Zhao, Longteng Guo, Bingning Wang, Weipeng Chen, and Jing Liu. Nee-dle in a video haystack: A scalable synthetic evaluator for video mllms. In International Conference on Representation Learning , pages 99750–99782, 2025. 1 [31] AI Meta. The llama 4 herd: The beginning of a new era of natively multimodal ai innovation. https://ai. meta. com/blog/llama-4-multimodal-intelligence/, checked on , 4 (7):2025, 2025. 2 [32] Yingzhe Peng, Gongrui Zhang, Miaosen Zhang, Zhiyuan You, Jie Liu, Qipeng Zhu, Kai Yang, Xingzhong Xu, Xin Geng, and Xu Yang. Lmm-r1: Empowering 3b lmms with strong reasoning abilities through two-stage rule-based rl. 
+
+arXiv preprint arXiv:2503.07536 , 2025. 2 [33] John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Rad-ford, and Oleg Klimov. Proximal policy optimization algo-rithms. arXiv preprint arXiv:1707.06347 , 2017. 3 [34] Hao Shao, Shengju Qian, Han Xiao, Guanglu Song, Zhuo-fan Zong, Letian Wang, Yu Liu, and Hongsheng Li. Visual cot: Advancing multi-modal language models with a com-prehensive dataset and benchmark for chain-of-thought rea-soning. Advances in Neural Information Processing Systems ,37:8612–8642, 2024. 1, 2 [35] Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK Li, Y Wu, et al. Deepseekmath: Pushing the limits of mathe-matical reasoning in open language models. arXiv preprint arXiv:2402.03300 , 2024. 2, 3 [36] Sicheng Tao, Jungang Li, Yibo Yan, Junyan Zhang, Yubo Gao, Hanqian Li, ShuHang Xun, Yuxuan Fan, Hong Chen, Jianxiang He, et al. Moss-chatv: Reinforcement learning with process reasoning reward for video temporal reasoning. 
+
+arXiv preprint arXiv:2509.21113 , 2025. 6 [37] Qi Wang, Yanrui Yu, Ye Yuan, Rui Mao, and Tianfei Zhou. Videorft: Incentivizing video reasoning capability in mllms via reinforced fine-tuning. arXiv preprint arXiv:2505.12434 ,2025. 2, 6 [38] Weihan Wang, Zehai He, Wenyi Hong, Yean Cheng, Xiao-han Zhang, Ji Qi, Ming Ding, Xiaotao Gu, Shiyu Huang, Bin Xu, et al. Lvbench: An extreme long video understanding benchmark. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 22958–22967, 2025. 5[39] Ziyang Wang, Shoubin Yu, Elias Stengel-Eskin, Jaehong Yoon, Feng Cheng, Gedas Bertasius, and Mohit Bansal. Videotree: Adaptive tree-based video representation for llm reasoning on long videos. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 3272– 3283, 2025. 2 [40] Haoning Wu, Dongxu Li, Bei Chen, and Junnan Li. Longvideobench: A benchmark for long-context interleaved video-language understanding. Advances in Neural Informa-tion Processing Systems , 37:28828–28857, 2024. 5 [41] Junbin Xiao, Nanxin Huang, Hangyu Qin, Dongyang Li, Yi-cong Li, Fengbin Zhu, Zhulin Tao, Jianxing Yu, Liang Lin, Tat-Seng Chua, et al. Videoqa in the era of llms: An empir-ical study. International Journal of Computer Vision , pages 1–24, 2025. 1 [42] Yuxi Xie, Kenji Kawaguchi, Yiran Zhao, James Xu Zhao, Min-Yen Kan, Junxian He, and Michael Xie. Self-evaluation guided beam search for reasoning. Advances in Neural In-formation Processing Systems , 36:41618–41650, 2023. 1, 2[43] Ziang Yan, Xinhao Li, Yinan He, Zhengrong Yue, Xiangyu Zeng, Yali Wang, Yu Qiao, Limin Wang, and Yi Wang. Videochat-r1. 5: Visual test-time scaling to reinforce mul-timodal reasoning by iterative perception. arXiv preprint arXiv:2509.21100 , 2025. 2, 6 [44] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388 , 2025. 2 [45] Jihan Yang, Shusheng Yang, Anjali W Gupta, Rilyn Han, Li Fei-Fei, and Saining Xie. Thinking in space: How mul-timodal large language models see, remember, and recall spaces. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 10632–10643, 2025. 5 [46] Songyuan Yang, Weijiang Yu, Wenjing Yang, Xinwang Liu, Huibin Tan, Long Lan, and Nong Xiao. Wildvideo: Bench-marking lmms for understanding video-language interaction. 
+
+IEEE Transactions on Pattern Analysis and Machine Intelli-gence , 2025. 5 [47] Yuan Yao, Tianyu Yu, Ao Zhang, Chongyi Wang, Junbo Cui, Hongji Zhu, Tianchi Cai, Haoyu Li, Weilin Zhao, Zhihui He, et al. Minicpm-v: A gpt-4v level mllm on your phone. arXiv preprint arXiv:2408.01800 , 2024. 6 [48] Jiabo Ye, Haiyang Xu, Haowei Liu, Anwen Hu, Ming Yan, Qi Qian, Ji Zhang, Fei Huang, and Jingren Zhou. mplug-owl3: Towards long image-sequence understanding in multi-modal large language models. arXiv preprint arXiv:2408.04840 , 2024. 6 [49] Alex Young, Bei Chen, Chao Li, Chengen Huang, Ge Zhang, Guanwei Zhang, Guoyin Wang, Heng Li, Jiangcheng Zhu, Jianqun Chen, et al. Yi: Open foundation models by 01. ai. 
+
+arXiv preprint arXiv:2403.04652 , 2024. 2 [50] Yufei Zhan, Yousong Zhu, Shurong Zheng, Hongyin Zhao, Fan Yang, Ming Tang, and Jinqiao Wang. Vision-r1: Evolv-ing human-free alignment in large vision-language models via vision-guided reinforcement learning. arXiv preprint arXiv:2503.18013 , 2025. 1, 2 [51] Boqiang Zhang, Kehan Li, Zesen Cheng, Zhiqiang Hu, Yuqian Yuan, Guanzheng Chen, Sicong Leng, Yuming Jiang, Hang Zhang, Xin Li, et al. Videollama 3: Frontier multi-modal foundation models for image and video understand-ing. arXiv preprint arXiv:2501.13106 , 2025. 2, 6 [52] Congzhi Zhang, Jiawei Peng, Zhenglin Wang, Yilong Lai, Haowen Sun, Heng Chang, Fei Ma, and Weijiang Yu. VReST: Enhancing reasoning in large vision-language mod-els through tree search and self-reward mechanism. In Pro-ceedings of the 63rd Annual Meeting of the Association for Computational Linguistics , 2025. 2 [53] Hang Zhang, Xin Li, and Lidong Bing. Video-llama: An instruction-tuned audio-visual language model for video un-derstanding. arXiv preprint arXiv:2306.02858 , 2023. 1 [54] Jingyi Zhang, Jiaxing Huang, Huanjin Yao, Shunyu Liu, Xikun Zhang, Shijian Lu, and Dacheng Tao. R1-vl: Learn-ing to reason with multimodal large language models via step-wise group relative policy optimization. arXiv preprint arXiv:2503.12937 , 2025. 2 [55] Xingjian Zhang, Siwei Wen, Wenjun Wu, and Lei Huang. Tinyllava-video-r1: Towards smaller lmms for video reason-ing. arXiv preprint arXiv:2504.09641 , 2025. 6 [56] Yuanhan Zhang, Jinming Wu, Wei Li, Bo Li, Zejun Ma, Zi-wei Liu, and Chunyuan Li. Video instruction tuning with synthetic data. arXiv preprint arXiv:2410.02713 , 2024. 2, 6 [57] Hengguang Zhou, Xirui Li, Ruochen Wang, Minhao Cheng, Tianyi Zhou, and Cho-Jui Hsieh. R1-zero’s” aha moment” in visual reasoning on a 2b non-sft model. arXiv preprint arXiv:2503.05132 , 2025. 2 [58] Heqing Zou, Tianze Luo, Guiyang Xie, Fengmao Lv, Guangcong Wang, Junyang Chen, Zhuochen Wang, Han-sheng Zhang, Huaijian Zhang, et al. From seconds to hours: Reviewing multimodal large language models on comprehensive long video understanding. arXiv preprint arXiv:2409.18938 , 2024. 1

@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-001.webp",
+      "caption": "Table 1: Main results. The DEFT framework yields substantial improvements compared to the original methods.",
+      "page": 6,
+      "index": 1,
+      "width": 917,
+      "height": 469
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-002.webp",
+      "caption": "Figure 3: Augmented reference answers enhanced by ChatGPT contribute to a more reasonable calculation of BLEU and BARTScore.",
+      "page": 6,
+      "index": 2,
+      "width": 440,
+      "height": 331
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-003.webp",
+      "caption": "Figure 4: In both the Harmless and Helpful aspects of human evaluations, the DEFT series demonstrates a higher win rate compared to the original method.",
+      "page": 7,
+      "index": 3,
+      "width": 448,
+      "height": 306
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-004.webp",
+      "caption": "Table 2: The absence of each component in DEFT will result in a decline in overall performance.",
+      "page": 7,
+      "index": 4,
+      "width": 912,
+      "height": 207
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-005.webp",
+      "caption": "Figure 1: The positive and negative distribution can be obtained by calculating word frequencies from the tokenized preference data. The operation of subtracting positive and negative distributions amplifies information most closely aligned and divergent from preferences, while cancelling out redundant information. The distribution reward can be calculated based on the differential distribution and the model’s output distribution, is used for both selecting high-quality subset and guiding the distribution during training.",
+      "page": 3,
+      "index": 5,
+      "width": 935,
+      "height": 510
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-006.webp",
+      "caption": "Table 7: The differences in the statistics of all output tokens on the test set between DEFT and the original method (DEFT - Vanilla).",
+      "page": 13,
+      "index": 6,
+      "width": 365,
+      "height": 423
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-007.webp",
+      "caption": "Table 8: The differences in the statistics of all output tokens on the test set between DEFT and the original method (DEFT - Vanilla).",
+      "page": 13,
+      "index": 7,
+      "width": 372,
+      "height": 452
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-008.webp",
+      "caption": "Figure 5: Changes of RQ during the training process with and without the involvement of RQ updates (Left). Performance on the test set across varying data volumes (Right).",
+      "page": 8,
+      "index": 8,
+      "width": 921,
+      "height": 283
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-009.webp",
+      "caption": "Table 4: The comparison of different data selection methods shows that DEFT outperformed both the high likelihoodbased method and Superfiltering across all metrics, further demonstrating its effectiveness.",
+      "page": 8,
+      "index": 9,
+      "width": 881,
+      "height": 207
+    },
+    {
+      "url": "assets/figures/arxiv/2604.01787v1/fig-010.webp",
+      "caption": "Figure 2: Data filtration is achieved through pre-computed RQ, where responses demanding preferences of high specificity yield lower RQ, while those unrelated to preferences receive heightened RQ, facilitating the extraction of a dataset characterized by maximal preference information.",
+      "page": 5,
+      "index": 10,
+      "width": 935,
+      "height": 274
+    }
+  ]
+}

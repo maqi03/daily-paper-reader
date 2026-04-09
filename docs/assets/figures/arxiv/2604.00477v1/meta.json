@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-001.webp",
+      "caption": "Table 5: Per-task comparison between human raters and agent judges. praw: uncorrected; pBonf: Bonferroni-corrected (×15). After correction, only 2 of 15 tasks remain significant.",
+      "page": 15,
+      "index": 1,
+      "width": 668,
+      "height": 450
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-002.webp",
+      "caption": "Table 2: ICC(2,k) with 95% CIs for both model pairs. Both follow a logarithmic curve (R2 > 0.97).",
+      "page": 7,
+      "index": 2,
+      "width": 586,
+      "height": 215
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-003.webp",
+      "caption": "Figure 2: The score–coverage dissociation. Left: Scoring reliability (ICC) improves logarithmically. Right: Issue discovery follows a sublinear power law (b = 0.69, R2 = 0.999; shaded band: θ = 0.60– 0.70). Gray diamonds show raw observation counts before semantic deduplication; the 75% gap at N=32 illustrates the importance of deduplication for measuring true discovery. Both dimensions exhibit diminishing returns, but scores saturate ∼2× faster.",
+      "page": 7,
+      "index": 3,
+      "width": 979,
+      "height": 312
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-004.webp",
+      "caption": "Table 4: Complete pool of 32 agent judges. O/C/E/A/N = Big Five dimensions (0–1). Expertise: Expert, Intermediate, Novice.",
+      "page": 14,
+      "index": 4,
+      "width": 698,
+      "height": 850
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-005.webp",
+      "caption": "Figure 6: Score distributions by domain. Red histograms: agent judges (N=96 per domain). Blue lines: individual human raters. KS p-values shown per domain; most domains show no significant distributional difference.",
+      "page": 18,
+      "index": 5,
+      "width": 979,
+      "height": 202
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-006.webp",
+      "caption": "Figure 7: Effect sizes (Cohen’s d) between human raters (50 recruited, 43 retained, 86 sessions) and agent judges (N=480) by domain. Green: non-significant (p > 0.05). The overall effect is small (d = −0.18, p = 0.12).",
+      "page": 18,
+      "index": 6,
+      "width": 832,
+      "height": 413
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-007.webp",
+      "caption": "Figure 5: Power law exponent b as a function of cosine similarity threshold θ. Across all seven thresholds (θ = 0.50–0.80), the exponent remains below 1.0, confirming that the sublinear conclusion is not an artifact of a particular deduplication setting. The recommended range (θ = 0.60–0.70, shaded) is chosen by cluster quality inspection: at θ = 0.65, semantically equivalent insights from different agents are correctly grouped while distinct issues remain separated.",
+      "page": 17,
+      "index": 7,
+      "width": 832,
+      "height": 517
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-008.webp",
+      "caption": "Figure 4: Left: Sublinear discovery scaling with head/torso/tail zones annotated. Marginal contribution per judge decreases from 4.7 (N=1–4) to 2.0 (N=16–32), consistent with diminishing returns. The confidence band spans θ = 0.60–0.70. Right: Hypothesized power law distribution of the finding space. Critical findings (head) have high per-session discovery probability and are found by small panels; moderate findings (torso) require more diverse perspectives; corner cases (tail) are reached only by large panels. This distribution explains the sublinear exponent b ≈ 0.69.",
+      "page": 16,
+      "index": 8,
+      "width": 976,
+      "height": 381
+    },
+    {
+      "url": "assets/figures/arxiv/2604.00477v1/fig-009.webp",
+      "caption": "Figure 3: Left: distribution of “matches my experience” ratings (1–5). 45% of ratings are ≥ 4; mean = 3.07. Right: 41% of participants reported the AI found issues they missed, while only 19% found issues the AI missed—agent judges provide complementary, not redundant, coverage.",
+      "page": 16,
+      "index": 9,
+      "width": 979,
+      "height": 371
+    }
+  ]
+}

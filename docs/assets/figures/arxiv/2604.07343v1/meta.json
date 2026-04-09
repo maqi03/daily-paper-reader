@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-001.webp",
+      "caption": "Table 2: Performance comparison of various reward models on our benchmark. The evaluation metric is accuracy (%). Best results are marked in bold.",
+      "page": 6,
+      "index": 1,
+      "width": 772,
+      "height": 638
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-002.webp",
+      "caption": "Figure 2: Performance of user profile integration methods across reward model series.",
+      "page": 7,
+      "index": 2,
+      "width": 829,
+      "height": 230
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-003.webp",
+      "caption": "Figure 4: Prompt for generating rejected answers of Personalized RewardBench.",
+      "page": 18,
+      "index": 3,
+      "width": 825,
+      "height": 317
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-004.webp",
+      "caption": "Figure 3: Prompt for generating chosen answers of Personalized RewardBench.",
+      "page": 18,
+      "index": 4,
+      "width": 824,
+      "height": 317
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-005.webp",
+      "caption": "Table 3: Correlation between different reward model benchmarks and downstream performance (BoN and PPO). Best results are marked in bold.",
+      "page": 8,
+      "index": 5,
+      "width": 825,
+      "height": 272
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-006.webp",
+      "caption": "Figure 1: Overview of Personalized RewardBench. (1) Data Construction: Chosen and rejected response pairs are constructed by strictly adhering to or violating personalized rubric aspects. (2) RM Evaluation: Multiple reward models are evaluated to obtain accuracy scores and rankings. (3) Downstream Validation: These models are applied to downstream tasks (BoN, PPO) to measure policy performance. (4) Correlation Analysis: The rankings from (2) and (3) are compared to quantify the alignment between the benchmark metric and actual policy utility.",
+      "page": 4,
+      "index": 6,
+      "width": 824,
+      "height": 239
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-007.webp",
+      "caption": "Figure 5: Prompt for evaluating downstream answers.",
+      "page": 19,
+      "index": 7,
+      "width": 824,
+      "height": 317
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-008.webp",
+      "caption": "Figure 6: Prompt for pairwise preference evaluation.",
+      "page": 19,
+      "index": 8,
+      "width": 824,
+      "height": 316
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-009.webp",
+      "caption": "Table 5: Downstream performance of different reward models across Personalized RewardBench. Best results are marked in bold, second best underlined.",
+      "page": 12,
+      "index": 9,
+      "width": 825,
+      "height": 372
+    },
+    {
+      "url": "assets/figures/arxiv/2604.07343v1/fig-010.webp",
+      "caption": "Table 1: Human evaluation scores across chosen and rejected responses.",
+      "page": 5,
+      "index": 10,
+      "width": 790,
+      "height": 263
+    }
+  ]
+}
