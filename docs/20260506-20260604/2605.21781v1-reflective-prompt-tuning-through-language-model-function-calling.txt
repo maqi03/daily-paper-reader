@@ -1,0 +1,778 @@
+Title: Reflective Prompt Tuning through Language Model Function-Calling
+
+URL Source: https://arxiv.org/pdf/2605.21781v1
+
+Published Time: Fri, 22 May 2026 00:18:18 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+## Reflective Prompt Tuning through Language Model Function-Calling 
+
+Farima Fatahi Bayat, Moin Aminnaseri, Pouya Pezeshkpour, Estevam Hruschka 
+
+Megagon Labs {farima, moin, pouya, estevam}@megagon.ai 
+
+Abstract 
+
+Large language models (LLMs) have become increasingly capable of following instructions and complex reasoning, making prompting a flexible interface for adapting models with-out parameter updates. Yet prompt design re-mains labor-intensive and highly sensitive to formatting, phrasing, and instruction order, mo-tivating automated prompt optimization meth-ods that reduce manual effort while preserving inference-time flexibility. However, existing methods often search over prompt candidates or use fixed critique-refine pipelines driven by individual examples or small batches, limiting their ability to capture systematic error patterns and make targeted edits grounded in failure his-tory. We propose Reflective Prompt Tuning (RPT), a framework that uses LLM function calling to simulate the iterative workflow of human prompt engineers. An LLM optimizer calls a diagnostic function that evaluates the tar-get model over an entire optimization set, sum-marizes recurring failure modes, and returns a structured diagnostic report. The optimizer uses this report, together with an accumulated memory of prior reports, to revise the prompt for the next iteration. RPT further supports confidence-aware optimization by using cali-bration signals in diagnostic feedback and final prompt selection. Across three reasoning tasks, RPT improves over initial prompts by up to 12.9 points, remains competitive with state of the art, and improves confidence calibration. Our analyses show that RPT is especially ef-fective on multi-hop and mathematical reason-ing, producing targeted prompt revisions that align with diagnosed failure patterns and lead to gains in task performance and calibration. 1
+
+1 Introduction 
+
+Large language models (LLMs) have become in-creasingly adept at following instructions and per-forming complex reasoning, making contextual      
+
+> 1We release our code at: https://github.com/ megagonlabs/RPT .
+
+prompting the dominant mechanism for adapt-ing model behavior to downstream tasks (Lou et al., 2024; Wei et al., 2022; Kojima et al., 2022). Prompts let users specify objectives, constraints, and output formats without modifying model pa-rameters, enabling rapid adaptation across applica-tions (Sahoo et al., 2025; Schulhoff et al., 2025). Despite this flexibility, prompt design remains a major bottleneck. Crafting effective prompts is often a manual and iterative process that relies on trial and error and, in some cases, requires sub-stantial expertise (Zamfirescu-Pereira et al., 2023; Knoth et al., 2024). Moreover, LLMs exhibit un-predictable sensitivity to seemingly minor choices such as formatting, phrasing, and instruction order-ing, so prompt effectiveness may not generalize re-liably across settings (Zhuo et al., 2024; Sclar et al., 2024). These challenges have motivated automated prompt optimization methods that aim to reduce manual prompt-engineering effort by automatically searching for, selecting, or revising prompts based on task objectives (Ramnath et al., 2025). The current state of the art increasingly uses tex-tual feedback to guide prompt optimization (Shinn et al., 2023; Yuksekgonul et al., 2024; Agrawal et al., 2025). In this paradigm, an optimizer in-spects signals such as execution traces, reasoning steps, or evaluator feedback, and proposes prompt revisions. However, existing methods have sev-eral limitations. First, many follow fixed context-updating pipelines. For example, ACE (Zhang et al., 2026) updates an auxiliary playbook of reusable strategies inserted into a fixed prompt tem-plate. While this can improve stability, it limits the optimizer’s ability to make arbitrary prompt-level revisions. Second, updates in each iteration are of-ten driven by individual examples (Zhang et al., 2026) or minibatch subsets (Opsahl-Ong et al., 2024a; Agrawal et al., 2025; Yuksekgonul et al., 2024), making optimization sensitive to local rather than recurring failures. Third, most methods lack 
+
+> arXiv:2605.21781v1 [cs.CL] 20 May 2026
+
+explicit memory over prior diagnostic reports and prompt revisions, limiting credit assignment across iterations. Finally, prompt selection is typically driven by task performance alone, leaving broader reliability properties outside the optimization crite-rion. Although GEPA (Agrawal et al., 2025) incor-porates auxiliary evaluation signals, its prompt se-lection remains primarily task-performance driven. To address these limitations, we propose Reflec-tive Prompt Tuning (RPT), a framework that lever-ages LLMs’ function-calling capabilities to mimic the iterative workflow of human prompt engineers. Modern LLMs can call external functions, inspect structured outputs, and reason over feedback from those calls to guide subsequent decisions. RPT builds on these capabilities by using an LLM as an active prompt optimizer that inspects model behav-ior and revises the prompt through an explicit diag-nostic function. Starting from a seed prompt, the optimizer iteratively calls the diagnostic function to evaluate the target model and return a structured diagnostic report. This function collects behavioral traces, critiques incorrect responses by diagnos-ing their failure modes, clusters these diagnoses to identify recurring failure patterns, and summarizes where the current prompt breaks down. The op-timizer conditions on this report together with an accumulated memory of prior reports and prompt revisions, enabling it to reason about persistent fail-ures and previous refinement attempts rather than treating each update in isolation. RPT further sup-ports confidence-aware optimization by incorporat-ing calibration diagnostics into both the feedback shown to the optimizer and the development-set criterion used to select the final prompt. We evaluate RPT on three reasoning tasks spanning multi-hop reasoning over textual evi-dence with HotPotQA (Yang et al., 2018), math-ematical reasoning with LiveBench-Math (White et al., 2025), and domain-specific numerical rea-soning with Formula (Wang et al., 2025). Us-ing GPT-4.1 as the target model, we compare RPT against state-of-the-art automated prompt-optimization baselines, including ACE (Zhang et al., 2026), GEPA (Agrawal et al., 2025), and MIPRO (Opsahl-Ong et al., 2024a). Across tasks, RPT consistently improves over initial prompts, achieving gains of up to +12.9 points on HotPotQA, +12.4 points on LiveBench-Math, and +11.7 points on Formula, while remaining competitive with state-of-the-art baselines. Our confidence-aware experiments further show that incorporating cali-bration signals into both diagnostic feedback and final prompt selection improves calibration along-side task performance. Finally, analysis of opti-mization traces shows that RPT produces targeted prompt revisions aligned with diagnosed failure modes, offering insight into why and how prompts are revised across iterations. Together, these results suggest that tool-calling LLMs can enable scalable and interpretable prompt optimization. 
+
+2 Reflective Prompt Tuning (RPT) 
+
+We present Reflective Prompt Tuning (RPT), a diagnosis-driven prompt optimization framework. RPT automates the iterative workflow of prompt engineers: run a prompt, inspect outputs, identify recurring failures, revise the prompt, and repeat. Recent advances in LLM function calling and rea-soning over tool outputs enable LLMs to serve as prompt optimizers (Schick et al., 2023; Gou et al., 2024; Yuksekgonul et al., 2024). We first formu-late prompt optimization as selecting a prompt that improves task performance and confidence calibra-tion (Section 2.1). We then describe how RPT con-structs diagnostic feedback and reflectively revises prompts based on diagnosed failures (Section 2.2). All prompts used in RPT are in Appendix 7. 
+
+2.1 Problem Statement 
+
+Let fθ be the target model and pt the prompt at optimization iteration t. Given input x, the model produces 
+
+fθ(x; pt) = ( r, ˆy, c ), (1) where r is the reasoning trace, ˆy is the final answer, and c is the reported confidence. We assume an optimization set Dtrain , a development set Ddev ,and a held-out test set Dtest . The goal is to generate candidate prompts {p0, . . . , p T } and select a final prompt p∗ using development-set performance. Let 
+
+O(p; D) = {μ1(p; D), . . . , μ n(p; D)} (2) denote the set of evaluation metrics for prompt p
+
+on dataset D, including task performance metrics and confidence calibration error. We use a scalar selection function Φ to combine these metrics and select the final prompt: 
+
+p∗ = arg max   
+
+> pt∈{ p0,...,p T}
+
+Φ ( O(pt; Ddev )) (3) Appendix 7.8 further shows that prompts often grow during optimization, but longer prompts do Optimizer LLM 
+
+Diagnostic Function         
+
+> Historical Context (Previous Reports)
+> Append new report to memory
+> Update based on current report and historical context
+> Next Iteration
+> Behavior Collection and Scoring
+> Failure Detection & Critique
+> Clustering Recurring Failure Modes
+> Diagnostic Report Generation
+> Compare with Ground Truth
+> Example Failure Case
+> Input: (... Long text …)
+> Ground Truth: Label A
+> Prediction: Label B
+> Prompt
+> pt:“…prompt …”
+> Reasoning: …
+> Confidence: …
+> All Critiques
+> ClusterFusion
+> Failure Clusters
+> Reasoning Decomposition Error
+> Missing Constraints
+> Confusion Between Similar Labels
+> …
+> Input
+> Ground Truth
+> Prediction
+> Reasoning
+> Confidence
+> Structured Diagnostic Report
+> Dtrain
+> Prompt
+> pt
+> Critique LLM
+> Generate 1-3 failures
+> Target Model
+> C₁
+> C₂
+> C₃ Failure Clusters
+> Evaluation Metrics
+> Accuracy: 62.3% Brier Score: 0.283
+> C₁
+> C₂
+> C₃
+> C₄
+> Prompt
+> pt
+> Failure Cases
+> C₅
+
+Figure 1: Overview of Reflective Prompt Tuning (RPT). At each iteration, the optimizer calls a diagnostic function that evaluates the current prompt on Dtrain , critiques failures, clusters recurring failure modes, and returns a structured report. The optimizer uses this report and prior reports to generate the next prompt. 
+
+not necessarily yield better development perfor-mance, motivating development-set selection. In the confidence-aware setting, Φ jointly accounts for task performance and calibration by rewarding higher task scores while penalizing miscalibration, for example through a negative Brier-score term. The selected prompt p∗ is then evaluated on the held-out test set Dtest .
+
+2.2 Methodology Overview 
+
+We formulate RPT as a two-stage textual update process, illustrated in Figure 1. First, RPT con-structs response-level feedback (Section 2.2.1): given the current prompt pt, the diagnostic func-tion evaluates target-model outputs on Dtrain , cri-tiques incorrect responses, identifies recurring fail-ure modes, and summarizes them with aggregate metrics into a diagnostic report Rt. Second, RPT translates this report into a prompt-level revision (Section 2.2.2): conditioned on pt, Rt, and a mem-ory of prior reports, optimizer infers likely prompt shortcomings and produces the next prompt pt+1 .
+
+2.2.1 Constructing Diagnostic Feedback 
+
+The diagnostic function connects target-model be-havior to the optimizer LLM. Given the current prompt pt, the optimizer invokes this function to evaluate the target model on the full optimization set Dtrain and return a structured diagnostic report 
+
+Rt. The report captures not only how well the prompt performs, but also how target-model out-puts fail and which failures recur across the dataset. 
+
+Behavior collection and scoring. The diagnostic function first runs the target model fθ with prompt 
+
+pt on each example (xi, y i) ∈ Dtrain . For each example, it records the reasoning trace ri, final answer ˆyi, and reported confidence ci. It then com-putes task-specific performance metrics, along with average confidence and Brier score for calibration. These metrics capture overall prompt quality, but do not explain the causes of failures. 
+
+Failure detection and critique. Next, the func-tion identifies failed examples using the task-specific evaluator: 
+
+It = {(xi, y i, ˆyi, r i, c i) | i is incorrect } (4) Next, for each failed example i ∈ I t, a critique LLM generates concise response-level diagnoses of how the target-model output fails with respect to the expected answer yi and the evaluation criteria. Since RPT elicits confidence as part of the target-model output, the critique also assesses whether the reported confidence ci is appropriate based on the response’s correctness and quality. These diag-noses capture local issues such as incorrect reason-ing, unsupported evidence use, formatting errors, or overconfident incorrect answers. Each failed instance may yield up to three diag-noses to improve coverage and reduce sensitivity to individual critiques. Let the resulting pool of sample-level failure diagnoses be: 
+
+Zt = {zi,j | i ∈ I t, j ≤ 3} (5) 
+
+Identifying recurring failure modes. The diag-noses in Zt provide local feedback about individual failures, but prompt revision benefits from identi-fying patterns that recur across the optimization set. To convert response-level critiques into dataset-level diagnostic feedback, RPT applies ClusterFu-sion (Xu et al., 2025) to Zt, grouping semantically similar diagnoses into recurring failure topics: 
+
+Ct = {(ak, d k, S k)}Kk=1 , (6) where ak is a short topic label, dk describes the fail-ure mode, and Sk contains representative examples. This aggregation compresses local critiques into a compact summary of systematic target-model failures, helping the optimizer infer prompt-level shortcomings and propose targeted revisions. The number of topics K controls the summary granu-larity (details on K selection in Appendix 7.5). 
+
+Diagnostic report generation. The diagnostic function returns a structured report 
+
+Rt =  pt, O(pt; Dtrain ), C′
+
+> t
+
+ , (7) where pt is the current prompt, O(pt; Dtrain ) con-tains aggregate metrics, and C′ 
+
+> t
+
+⊆ C t denotes the retained subset of clustered failure topics, with rep-resentative examples and summaries. We retain a subset C′ 
+
+> t
+
+to keep the report focused on promi-nent recurring patterns; details are provided in Ap-pendix 7.5. Together, these components turn feed-back from scalar scoring into structured diagnosis. History is maintained in an external memory outside the diagnostic function. At iteration t, the optimizer receives the current report Rt together with prior reports M<t . After the iteration, the current report is appended for future use: 
+
+M<t +1 = Append( M<t , Rt). (8) This lets the optimizer reason over the optimization trajectory rather than only the current report. In practice, memory grows linearly with the iteration budget T , but remains manageable because each report stores only aggregate metrics and a filtered set of recurring failure clusters. 
+
+2.2.2 Reflective Prompt Revision with Memory 
+
+Given the current diagnostic report Rt and the ex-ternal memory of prior reports M<t , the optimizer identifies which recurring response-level failures indicate shortcomings of the current prompt and generates a revision. Formally, 
+
+pt+1 = LLM opt (pt, Rt, M<t ). (9) The optimizer treats diagnostic reports as evidence for revision: it inspects aggregate metrics, recur-ring failure topics, representative examples, and previous prompt changes. The external memory M helps address the credit-assignment challenge in prompt optimiza-tion (Opsahl-Ong et al., 2024b; Yuksekgonul et al., 2024). A prompt edit may improve some metrics while worsening others, a failure may require sev-eral revisions to resolve, and repeated failures may indicate ineffective prior edits. By conditioning on prior reports, the optimizer can track persistent fail-ures, previous revision attempts, and performance changes over time. Thus, RPT treats history as memory over the optimization trajectory rather than treating each update as an independent proposal. 
+
+3 Experimental Setup 
+
+Tasks and Datasets. We optimize and evaluate prompts on three reasoning tasks: multi-hop rea-soning over textual evidence (HotPotQA; Yang et al. (2018)), mathematical reasoning (LiveBench-Math; White et al. (2025)), and domain-specific numerical reasoning (Formula; Wang et al. (2025)). Additional dataset statistics and details can be found in Appendix 7.4 
+
+Target model and optimizer LLMs. We use GPT-4.1 (OpenAI, 2025b) as the target model for RPT and all baselines. As optimizer LLMs, we in-stantiate RPT with function-calling frontier models from two families and at different scales: GPT-5 and GPT-5-mini (OpenAI, 2025a), and Gemini-3.1-Pro (GoogleAI, 2026a) and Gemini-3.1-Flash-Lite (GoogleAI, 2026b). 
+
+Baselines. We compare RPT against three state-of-the-art automated prompt-optimization base-lines: Agentic Context Engineering (ACE; Zhang et al. (2026)), GEPA (Agrawal et al., 2025), and MIPRO (Opsahl-Ong et al., 2024b). Additional baseline and implementation details are provided in Appendix 7.5. Optimizer LLM Method HotPotQA LiveBench Math Formula Aggregate Initial Final Initial Final Initial Final GPT-5 ACE 55.4 66.6 54.1 61.6 71.1 85.5 71.2 GEPA 46.6 64.4 40.6 46.2 72.5 74.0 61.5 MIPRO 48.8 66.8 40.7 47.6 73.5 76.5 63.6                                                                                            
+
+> RPT (ours) 55.5 68.4 58.1 70.5 72.3 84.0 74.3
+> GPT-5-mini ACE 55.4 65.0 54.1 64.9 71.1 85.0 71.6
+> GEPA 46.6 62.4 40.6 46.9 72.5 74.5 61.3 MIPRO 48.8 65.6 40.7 43.8 73.5 77.5 62.3
+> RPT (ours) 55.5 65.2 58.1 66.2 72.3 74.0 68.5 Gemini-3.1-Pro ACE 55.4 65.8 54.1 60.8 71.1 84.5 70.4
+> GEPA 46.6 66.4 40.6 46.9 72.5 75.5 62.9 MIPRO 48.8 65.2 40.7 43.2 73.5 75.5 61.3
+> RPT (ours) 55.5 65.8 58.1 70.4 72.3 74.0 70.1 Gemini-3.1-Flash-Lite ACE 55.4 66.6 54.1 56.6 71.1 83.0 68.7
+> GEPA 46.6 64.6 40.6 42.7 72.5 78.5 61.9 MIPRO 48.8 63.6 40.7 42.5 73.5 74.0 60.0
+> RPT (ours) 55.5 64.6 58.1 64.9 72.3 73.5 67.7
+
+Table 1: Benchmark results for different prompt optimizers evaluated on GPT-4.1 as the target model. Columns report task-specific metrics: accuracy for HotPotQA and Formula, and task score for LiveBench-Math. Final denotes performance of the optimized prompt. Best final scores within each optimizer and dataset are shown in bold . RPT consistently improves over initial prompts and remains competitive with state-of-the-art baselines. 
+
+Evaluation. We report task-specific performance metrics: accuracy for HotPotQA and Formula, and task score for LiveBench-Math 2. For calibration, we report Brier score using the model’s verbalized confidence (Xiong et al., 2024). 
+
+4 Results and Analyses 
+
+We evaluate RPT from three perspectives. First, we compare RPT-optimized prompts against seed prompts and state-of-the-art baselines, while study-ing the effect of optimizer LLM size (Section 4.1). Second, we examine whether confidence-aware op-timization improves calibration without sacrificing task performance (Section 4.2). Finally, we ana-lyze optimization traces to study persistent failures, diagnosis–patch alignment, and associations with subsequent performance gains (Section 4.3). 
+
+4.1 RPT Is Competitive with SOTA Baselines 
+
+Table 1 reports the task performance of prompts op-timized by RPT and the baseline prompt optimizers described in Section 3. For each task and method, we report the performance of the initial prompt and the performance of the optimized prompt selected via development-set performance 3. 
+
+> 2Following LiveBench, task score is averaged across four math tasks: https://github.com/LiveBench/LiveBench/ tree/main/livebench/process_results/math .
+> 3For Formula, we use the initial prompt from ACE; for HotPotQA, we adapt this template to the QA setting; and for LiveBench-Math, we adapt the initial prompt from GEPA.
+
+Observation 1: RPT is strongest on tasks with recurring reasoning failures. Across optimizer LMs, RPT achieves the best final performance on LiveBench-Math for every optimizer setting, improving over the initial prompt by up to +12.4 points. On HotPotQA, RPT is also competitive: it achieves the best final performance with GPT-5 and remains close to the strongest baseline under other instantiations. GEPA and MIPRO perform com-petitively on HotPotQA, but provide smaller gains on LiveBench-Math; their lower initial scores also suggest that implementation-specific choices affect their absolute performance. Formula shows a differ-ent pattern: ACE consistently achieves the best fi-nal performance, while RPT is competitive mainly when paired with GPT-5. More broadly, RPT appears well-suited to tasks where recurring fail-ures can be diagnosed and translated into targeted prompt revisions. However, it may be less advanta-geous for domain-specific computation, where lo-calized instance-level updates or predefined prompt structures may be more effective. 
+
+Observation 2: RPT benefits from stronger op-timizer LLMs. Optimizer choice has a clear im-pact on RPT’s performance. Compared to GPT-5-mini, using GPT-5 increases RPT’s Aggregate score from 68.5 to 74.3, with gains across all three tasks. Within the Gemini family, Gemini-3.1-Pro similarly improves over Gemini-3.1-Flash-Lite, in-creasing Aggregate from 67.7 to 70.1. This pattern Optimizer LLM Method HotPotQA LiveBench-Math Formula Task Score ↑ Brier ↓ Task Score ↑ Brier ↓ Task Score ↑ Brier ↓                                                    
+
+> GPT-5 GEPA-C 57.6 →66.8 .410 →.296 40.1 →42.2 .543 →.519 73.5 →75.5 .262 →.246
+> RPT 55.5 →68.4 .438 →.241 58.1 →70.5 .347 →.174 72.3 →84.0 .272 →.129
+> GPT-5-mini GEPA-C 57.6 →65.6 .410 →.309 40.1 →40.1 .543 →.543 73.5 →72.5 .262 →.260
+> RPT 55.5 →65.2 .438 →.309 58.1 →65.6 .347 →.287 72.3 →74.0 .272 →.256
+> Gemini-3.1-Pro GEPA-C 57.6 →68.0 .410 →.306 40.1 →46.9 .543 →.475 73.5 →74.5 .262 →.255
+> RPT 55.5 →65.8 .438 →.326 58.1 →70.4 .347 →.244 72.3 →74.0 .272 →.239
+> Gemini-3.1-FL GEPA-C 57.6 →66.4 .410 →.325 40.1 →45.6 .543 →.484 73.5 →74.5 .262 →.255 RPT 55.5 →64.6 .438 →.346 58.1 →64.9 .347 →.311 72.3 →73.5 .272 →.262
+
+Table 2: Confidence-aware optimization results. GEPA-C denotes GEPA with confidence feedback. Each cell reports initial →final performance and Brier; higher performance and lower Brier are better. 
+
+is expected because RPT places a demanding bur-den on the optimizer: it must perform credit assign-ment over diagnostic feedback and prior prompt revisions, identify unresolved failures, and trans-late recurring failure modes into targeted prompt edits. Compared with the baselines, RPT achieves the best aggregate performance with GPT-5 and is nearly tied with ACE under Gemini-3.1-Pro, while ACE remains stronger with smaller optimizer LLMs. GEPA and MIPRO generally trail in aggre-gate performance, partly due to lower initial prompt performance on LiveBench-Math. 
+
+4.2 Confidence Signals Improve Calibration 
+
+We next ask whether confidence-aware prompt op-timization can improve both task performance and calibration. This matters because verbalized confi-dence is often used as a proxy for answer reliabil-ity in abstention, routing, human review, and risk-sensitive deployment (Wen et al., 2025; Chuang et al., 2025; dela Cruz et al., 2025; Wang et al., 2026). ACE and MIPRO do not directly expose calibration diagnostics to the optimizer without sub-stantial modification, while GEPA can use them as auxiliary feedback. In contrast, RPT incorporates calibration into both diagnostic feedback and final prompt selection Table 2 compares RPT with confidence-aware GEPA. GEPA shows that calibration feedback can help: on HotPotQA, it improves both task perfor-mance and Brier score across optimizer LLMs. However, gains are more limited on LiveBench-Math and Formula. With GPT-5-mini as optimizer, confidence feedback yields no gain on LiveBench-Math and slightly hurts Formula performance, sug-gesting that it may distract a less capable optimizer. RPT more consistently improves both task per-formance and calibration. Although prompt op-timization cannot access internal uncertainty esti-mates or logits, our results show that calibration can improve when treated as a first-class optimiza-tion signal. By incorporating calibration into both the diagnostic loop and prompt-selection objective, RPT better aligns self-reported confidence with empirical correctness while also improving task performance. 
+
+4.3 What Does RPT Learn from Diagnostics? 
+
+Beyond final task performance, RPT produces structured optimization traces at each iteration. We analyze these traces to understand how RPT im-proves prompts over time, focusing on the GPT-5 optimizer since it performs best in our experiments. Across tasks, we collect failure diagnoses from each iteration and derive prompt-update instances by using GPT-4.1 to extract atomic differences be-tween consecutive prompts, pt and pt+1 . We then apply ClusterFusion, as described in Section 2, to group diagnoses and prompt updates into 10 failure 
+
+topics and 10 patch topics, respectively. To relate topics to performance, we compute next-iteration metric changes by comparing metrics under pt
+
+with those after evaluating pt+1 . Thus, positive ∆
+
+task score and negative ∆ Brier indicate improve-ment. Because this analysis relies on optimization traces, we interpret results as associations rather than causal effects. 
+
+4.3.1 Does RPT Produce Targeted Revisions? 
+
+We next examine whether RPT performs tar-geted credit assignment from diagnosed failures to prompt revisions. For each failure topic Fi and patch topic Pj , we compute P (Pj | Fi) as the fraction of transitions containing Pj among those containing Fi. Failure topics diagnosed at iteration 
+
+t are assigned to transition t → t + 1 , and patch topics are extracted from the corresponding prompt update (topic presence is binary within each tran-Context + Evidence 
+
+> Multi-hop Reasoning
+> Salience Biases
+> Question Constraints
+> Answer Consistency
+> Disambiguation
+> Span/Surface Errors
+> Granularity
+> Answer/Entity Type
+> Overconfidence
+> Span Minimality
+> Canonical Form
+> Qualifiers
+> Legal Designators
+> Answer Granularity
+> Nationality/Demonyms
+> Temporal/Numeric
+> Multi-hop Queries
+> Pre-answer Checks
+> Calibration
+> HotpotQA
+> Arithmetic/Algebra
+> Geometry/Structure
+> Definitions/Theorems
+> Factorization
+> Logical Flow
+> Combinatorics
+> Semantic Alignment
+> Notation/Symbols
+> Verification Failure
+> Incomplete Strategy
+> Step-by-step
+> Verification Guards
+> Calibration Caps
+> Identifier Invariants
+> Algebra Checks
+> Geometry Checks
+> Optimization Audits
+> Output Validation
+> Domain Audits
+> Flow Controls
+> LiveBench-Math
+> Exchange Rate
+> Compounding
+> Arithmetic
+> Provided Inputs
+> Formula Selection
+> Cash-flow Timing
+> Ambiguity/Confidence
+> Unit/Scale
+> Fabricated Assumptions
+> Sanity Checks
+> Units/Scale/Format
+> Precision/Rounding
+> Arithmetic Checks
+> Confidence Reporting
+> Timing Cues
+> Power Checks
+> Option Pricing
+> Display Safeguards
+> Output Requirements
+> CDFs/Percent Changes
+> Formula
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> P(patch | failure)
+> Failure topic
+> Patch topic
+
+Figure 2: Failure-to-patch alignment across datasets. Each heatmap reports P (patch topic | failure topic ), showing which prompt revisions tend to follow each diagnosed failure type. 
+
+sition). This measures whether specific failures systematically lead to specific prompt edits, which would indicate targeted credit assignment rather than generic prompt rewriting. Figure 2 shows that the specificity of this failure-to-patch mapping varies across tasks. On Hot-PotQA, several answer-control patches, such as span minimality, canonical-form preference, and answer granularity matching, appear across many failure types, reflecting the benchmark’s sensitivity to exact answer form. However, multi-hop reason-ing failures more often trigger relation- and query-handling patches, suggesting meaningful failure-specific credit assignment beyond generic answer-format control (optimized HotPotQA prompt in Appendix 7.9). On LiveBench-Math, the alignment concentrates around verification-oriented patches, including stepwise protocols, arithmetic checks, output validation, and notation or invariant han-dling. This indicates that the optimizer maps di-verse mathematical failures to structured reasoning and checking mechanisms. Formula exhibits a broader pattern: many dis-tinct failure topics lead to similar domain-level safe-guards rather than sharply different patches. This suggests that RPT identifies relevant domain con-trols, but performs less fine-grained credit assign-ment on this task than on HotPotQA or LiveBench-Math. This weaker failure-specificity may partly explain why RPT yields smaller gains on Formula and falls behind ACE (Table 1). 
+
+4.3.2 Do Prompt Patches Predict Gains? 
+
+We next examine whether prompt updates are fol-lowed by improvements in task performance or cal-ibration. For each patch topic present at iteration t,we compute the average change in task score and Brier score after evaluating the revised prompt pt+1 
+
+on Dtrain . This analysis identifies which edits tend to precede better task performance or calibration. Figure 3 shows that useful patches differ by task but often share a common structure: they impose concrete controls on the model’s reasoning or out-put. On HotPotQA, the strongest gains are asso-ciated with relation and multi-hop handling, pre-answer verification, confidence calibration, and an-swer granularity matching. On LiveBench-Math, gains are associated with step-by-step solution pro-tocols, output validation, arithmetic checks, and confidence calibration. On Formula, the clear-est improvements come from unit, scale, and for-mat handling, while precision/rounding, power-consistency checks, and calibration-related patches yield smaller gains. Overall, these results suggest that RPT’s prompt revisions are often useful as well as failure-specific: patches that introduce veri-fication steps, answer-form constraints, arithmetic checks, or unit-handling rules tend to improve task score while reducing Brier. Formula is more mixed, with some specialized domain safeguards showing weak or negative short-term associations, likely be-cause they are introduced for harder or more persis-tent domain-specific failures. Appendix 7.7 further shows that the most actionable diagnoses are con-crete failures that can be translated into explicit behavioral constraints, while Appendix 7.6 shows that the most persistent failures are task-specific reasoning errors. 
+
+5 Related Work 
+
+Prompting offers a flexible way to adapt LLMs to downstream tasks without parameter updates. However, prompt design remains labor-intensive Δ score Δ Brier   
+
+> Span Minimality
+> Canonical Form
+> Qualifiers
+> Legal Designators
+> Answer Granularity
+> Nationality/Demonyms
+> Temporal/Numeric
+> Multi-hop Queries
+> Pre-answer Checks
+> Calibration
+> HotpotQA
+> Δ score Δ Brier
+> Step-by-step
+> Verification Guards
+> Calibration Caps
+> Identifier Invariants
+> Algebra Checks
+> Geometry Checks
+> Optimization Audits
+> Output Validation
+> Domain Audits
+> Flow Controls
+> LiveBench-Math
+> Δ score Δ Brier
+> Units/Scale/Format
+> Precision/Rounding
+> Arithmetic Checks
+> Confidence Reporting
+> Timing Cues
+> Power Checks
+> Option Pricing
+> Display Safeguards
+> Output Requirements
+> CDFs/Percent Changes
+> Formula
+> −0.04
+> −0.02
+> 0.00
+> 0.02
+> 0.04
+> Mean Δ metric
+> Δ metric
+> Patch topic
+
+Figure 3: Patch topics and next-iteration metric changes. Each cell reports the average ∆ task score or ∆ Brier on 
+
+Dtrain after a prompt update containing that patch; higher ∆ task score and lower ∆ Brier indicate improvement. 
+
+and sensitive to formatting, phrasing, demonstra-tions, and instruction order (Lu et al., 2022; Sclar et al., 2023), motivating automated prompt opti-mization methods that reduce manual effort (Shin et al., 2020; Yuksekgonul et al., 2024; Opsahl-Ong et al., 2024a; Agrawal et al., 2025). 
+
+Automated prompt optimization. A growing body of work uses optimization procedures, and increasingly LLMs themselves, to propose, revise, or select prompts. AutoPrompt searches for dis-crete trigger tokens (Shin et al., 2020), while APE and OPRO use LLMs to generate natural-language prompt candidates from task examples or prior candidate-score pairs (Zhou et al., 2023; Yang et al., 2024). Other methods edit prompts using textual gradients or evolutionary search (Pryzant et al., 2023; Guo et al., 2024), and recent systems ex-tend prompt optimization to modular LLM pro-grams by searching over instructions and demon-strations (Khattab et al., 2024; Opsahl-Ong et al., 2024b). RPT also uses LLMs for prompt optimiza-tion, but differs by leveraging function calling to simulate the iterative workflow of human prompt engineers: evaluating the current prompt, diagnos-ing systematic failures, and using structured diag-nostic feedback to guide revisions, making prompt revision explicitly diagnosis-driven. 
+
+Reflective optimization methods. Recent meth-ods use rich textual feedback to guide prompt or program optimization. TextGrad backpropa-gates natural-language feedback through compu-tation graphs (Yuksekgonul et al., 2024), while GEPA uses execution and evaluation traces as re-flective feedback for prompt proposals (Agrawal et al., 2025). MIPRO addresses credit assign-ment in multi-stage LLM programs with program-and data-aware proposal strategies and Bayesian search (Opsahl-Ong et al., 2024b). RPT builds on reflective feedback, but centers each iteration on a diagnostic function that evaluates the current prompt over the full optimization split and returns aggregate metrics and recurring failures. The opti-mizer uses this report together with prior reports to guide the next update. While GEPA can optionally use confidence and calibration as auxiliary signals, RPT incorporates them directly into both the diag-nostic report and final prompt-selection criterion. 
+
+Memory and adaptive context. Recent methods improve LLM behavior by accumulating feedback or reusable strategies over time. Reflexion stores verbal reflections from past trials (Shinn et al., 2023), while Agent-Pro evolves agent policies through reflection on interactive experience (Zhang et al., 2024). Dynamic Cheatsheet and ACE build external playbook of lessons, strategies, or to improve later inference or context construc-tion (Krause et al., 2019; Zhang et al., 2026). RPT uses memory at prompt-optimization level: condi-tioning on prior reports and prompt revisions helps the optimizer reason over past refinements, avoid repetitive edits, and improve credit assignment. 
+
+Conclusion 
+
+We introduced Reflective Prompt Tuning (RPT), a diagnosis-driven framework that uses LLM func-tion calling to optimize prompts through structured feedback and memory over prior revisions. Across three reasoning tasks, RPT improves over seed prompts and remains competitive with state of the art, especially on multi-hop and mathemati-cal reasoning. We also show that confidence-aware optimization improves calibration alongside task performance, and that RPT produces prompt revi-sions aligned with diagnosed failures. These results highlight function-calling LLMs as a promising ap-proach to scalable and interpretable prompt tuning. Limitations 
+
+Our study has several limitations. First, we evaluate RPT on three reasoning tasks: multi-hop question answering, mathematical reasoning, and domain-specific numerical reasoning. While these tasks cover different forms of reasoning, they do not cap-ture the full range of prompt-optimization settings, such as open-ended generation, coding, dialogue, tool-using agents, or long-horizon interactive tasks. In addition, our experiments use GPT-4.1 as the target model and frontier proprietary LLMs as op-timizers. The effectiveness of RPT may differ for smaller open-source models, weaker optimizer LMs, or settings where function calling is unavail-able. Second, RPT is more computationally expen-sive than prompt optimizers that use individual examples or small minibatches. Each iteration eval-uates the target model on the full optimization set, critiques failed examples, clusters diagnoses, and conditions the optimizer on prior reports. Although the diagnostic reports are compressed and the mem-ory remains manageable under our iteration bud-gets, scaling RPT to much larger datasets or longer optimization trajectories may require more aggres-sive sampling, report compression, or retrieval over memory. Finally, RPT improves prompts but cannot guar-antee that prompting alone can resolve all failures. Some persistent errors, especially deeper mathe-matical reasoning failures or domain-specific con-vention errors, may require complementary inter-ventions such as better tools, external validators, retrieval, fine-tuning, or changes to the target model itself. Similarly, our confidence-aware setting re-lies on verbalized confidence, which is only a black-box proxy for uncertainty. Although RPT improves calibration in our experiments, self-reported con-fidence may remain sensitive to prompting and should be validated carefully before being used in high-stakes downstream decisions. 
+
+References 
+
+Lakshya A. Agrawal, Shangyin Tan, Dilara Soylu, Noah Ziems, Rishi Khare, Krista Opsahl-Ong, Arnav Singhvi, Herumb Shandilya, Michael J. Ryan, Meng Jiang, Christopher Potts, Koushik Sen, Alexandros G. Dimakis, Ion Stoica, Dan Klein, Matei Zaharia, and Omar Khattab. 2025. Gepa: Reflective prompt evo-lution can outperform reinforcement learning. arXiv preprint arXiv:2507.19457 .Yu-Neng Chuang, Prathusha Kameswara Sarma, Parik-shit Gopalan, John Boccio, Sara Bolouki, Xia Hu, and Helen Zhou. 2025. Learning to route llms with confidence tokens. Preprint , arXiv:2410.13284. Jane Arleth dela Cruz, Iris Hendrickx, and Martha Lar-son. 2025. Evaluating large language models for confidence-based check set selection. In Findings of the Association for Computational Linguistics: ACL 2025 , pages 16249–16265, Vienna, Austria. Associa-tion for Computational Linguistics. GoogleAI. 2026a. Best for complex tasks and bringing creative concepts to life. https://deepmind.google/models/gemini/pro/. GoogleAI. 2026b. Gemini 3.1 flash-lite: Built for intelligence at scale. https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-flash-lite/. Zhibin Gou, Zhihong Shao, Yeyun Gong, yelong shen, Yujiu Yang, Minlie Huang, Nan Duan, and Weizhu Chen. 2024. ToRA: A tool-integrated reasoning agent for mathematical problem solving. In The Twelfth International Conference on Learning Repre-sentations .Qingyan Guo, Rui Wang, Junliang Guo, Bei Li, Kaitao Song, Xu Tan, Guoqing Liu, Jiang Bian, and Yujiu Yang. 2024. Connecting large language models with evolutionary algorithms yields powerful prompt opti-mizers. In The Twelfth International Conference on Learning Representations .Omar Khattab, Arnav Singhvi, Paridhi Maheshwari, Zhiyuan Zhang, Keshav Santhanam, Sri Vard-hamanan, Saiful Haq, Ashutosh Sharma, Thomas T. Joshi, Hanna Moazam, Heather Miller, Matei Za-haria, and Christopher Potts. 2024. Dspy: Compiling declarative language model calls into self-improving pipelines. In International Conference on Learning Representations .Nils Knoth, Antonia Tolzin, Andreas Janson, and J. Leimeister. 2024. Ai literacy and its implications for prompt engineering strategies. Comput. Educ. Artif. Intell. , 6:100225. Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yu-taka Matsuo, and Yusuke Iwasawa. 2022. Large language models are zero-shot reasoners. In Pro-ceedings of the 36th International Conference on Neural Information Processing Systems , NIPS ’22, Red Hook, NY, USA. Curran Associates Inc. Ben Krause, Emmanuel Kahembwe, Iain Murray, and Steve Renals. 2019. Dynamic evalua-tion of transformer language models. Preprint ,arXiv:1904.08378. Renze Lou, Kai Zhang, and Wenpeng Yin. 2024. Large language model instruction following: A survey of progresses and challenges. Computational Linguis-tics , 50(3):1053–1095. Yao Lu, Max Bartolo, Alastair Moore, Sebastian Riedel, and Pontus Stenetorp. 2022. Fantastically ordered prompts and where to find them: Overcoming few-shot prompt order sensitivity. In Proceedings of the 60th Annual Meeting of the Association for Compu-tational Linguistics , pages 8086–8098. Association for Computational Linguistics. OpenAI. 2025a. Gpt-5 system card. https://cdn.openai.com/gpt-5-system-card.pdf. Version: 2025-08-13. OpenAI. 2025b. Introducing gpt-4.1 in the api. https://openai.com/index/gpt-4-1/. Version: 2025-04-14. Krista Opsahl-Ong, Michael J Ryan, Josh Purtell, David Broman, Christopher Potts, Matei Zaharia, and Omar Khattab. 2024a. Optimizing instructions and demon-strations for multi-stage language model programs. In Proceedings of the 2024 Conference on Empiri-cal Methods in Natural Language Processing , pages 9340–9366, Miami, Florida, USA. Association for Computational Linguistics. Krista Opsahl-Ong, Michael J. Ryan, Josh Purtell, David Broman, Christopher Potts, Matei Zaharia, and Omar Khattab. 2024b. Optimizing instructions and demonstrations for multi-stage language model programs. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing ,pages 9340–9366, Miami, Florida, USA. Association for Computational Linguistics. Reid Pryzant, Dan Iter, Jerry Li, Yin Lee, Chenguang Zhu, and Michael Zeng. 2023. Automatic prompt op-timization with “gradient descent” and beam search. In Proceedings of the 2023 Conference on Empiri-cal Methods in Natural Language Processing , pages 7957–7968, Singapore. Association for Computa-tional Linguistics. Kiran Ramnath, Kang Zhou, Sheng Guan, Soumya Sm-ruti Mishra, Xuan Qi, Zhengyuan Shen, Shuai Wang, Sangmin Woo, Sullam Jeoung, Yawei Wang, Haozhu Wang, Han Ding, Yuzhe Lu, Zhichao Xu, Yun Zhou, Balasubramaniam Srinivasan, Qiaojing Yan, Yueyan Chen, Haibo Ding, and 2 others. 2025. A systematic survey of automatic prompt optimization techniques. In Proceedings of the 2025 Conference on Empiri-cal Methods in Natural Language Processing , pages 33078–33110, Suzhou, China. Association for Com-putational Linguistics. Pranab Sahoo, Ayush Kumar Singh, Sriparna Saha, Vinija Jain, Samrat Mondal, and Aman Chadha. 2025. A systematic survey of prompt engineering in large language models: Techniques and applications. 
+
+Preprint , arXiv:2402.07927. Timo Schick, Jane Dwivedi-Yu, Roberto Dessí, Roberta Raileanu, Maria Lomeli, Eric Hambro, Luke Zettle-moyer, Nicola Cancedda, and Thomas Scialom. 2023. Toolformer: language models can teach themselves to use tools. In Proceedings of the 37th Interna-tional Conference on Neural Information Processing Systems , NIPS ’23, Red Hook, NY, USA. Curran Associates Inc. Sander Schulhoff, Michael Ilie, Nishant Balepur, Kon-stantine Kahadze, Amanda Liu, Chenglei Si, Yin-heng Li, Aayush Gupta, HyoJung Han, Sevien Schul-hoff, Pranav Sandeep Dulepet, Saurav Vidyadhara, Dayeon Ki, Sweta Agrawal, Chau Pham, Gerson Kroiz, Feileen Li, Hudson Tao, Ashay Srivastava, and 12 others. 2025. The prompt report: A systematic survey of prompt engineering techniques. Preprint ,arXiv:2406.06608. Melanie Sclar, Yejin Choi, Yulia Tsvetkov, and Alane Suhr. 2023. Quantifying language models’ sensitiv-ity to spurious features in prompt design or: How i learned to start worrying about prompt formatting. 
+
+arXiv preprint arXiv:2310.11324 .Melanie Sclar, Yejin Choi, Yulia Tsvetkov, and Alane Suhr. 2024. Quantifying language models’ sensitiv-ity to spurious features in prompt design or: How i learned to start worrying about prompt formatting. 
+
+Twelfth International Conference on Learning Repre-sentations , abs/2310.11324. Taylor Shin, Yasaman Razeghi, Robert L. Logan IV, Eric Wallace, and Sameer Singh. 2020. Autoprompt: Eliciting knowledge from language models with au-tomatically generated prompts. In Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing , pages 4222–4235. Association for Computational Linguistics. Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik R. Narasimhan, and Shunyu Yao. 2023. Re-flexion: Language agents with verbal reinforcement learning. In Advances in Neural Information Pro-cessing Systems .Dannong Wang, Jaisal Patel, Daochen Zha, Steve Y. Yang, and Xiao-Yang Liu. 2025. Finlora: Bench-marking lora methods for fine-tuning llms on finan-cial datasets. Preprint , arXiv:2505.19819. Jiawei Wang, Yanfei Zhou, Siddartha Devic, and De-qing Fu. 2026. Are llm decisions faithful to verbal confidence? Preprint , arXiv:2601.07767. Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed H. Chi, Quoc V. Le, and Denny Zhou. 2022. Chain-of-thought prompt-ing elicits reasoning in large language models. In 
+
+Proceedings of the 36th International Conference on Neural Information Processing Systems , NIPS ’22, Red Hook, NY, USA. Curran Associates Inc. Bingbing Wen, Jihan Yao, Shangbin Feng, Chenjun Xu, Yulia Tsvetkov, Bill Howe, and Lucy Lu Wang. 2025. Know your limits: A survey of abstention in large language models. Preprint , arXiv:2407.18418. Colin White, Samuel Dooley, Manley Roberts, Arka Pal, Benjamin Feuer, Siddhartha Jain, Ravid Shwartz-Ziv, Neel Jain, Khalid Saifullah, Sreemanti Dey, Shubh-Agrawal, Sandeep Singh Sandha, Siddartha Venkat Naidu, Chinmay Hegde, Yann LeCun, Tom Gold-stein, Willie Neiswanger, and Micah Goldblum. 2025. Livebench: A challenging, contamination-free LLM benchmark. In The Thirteenth International Confer-ence on Learning Representations .Miao Xiong, Zhiyuan Hu, Xinyang Lu, YIFEI LI, Jie Fu, Junxian He, and Bryan Hooi. 2024. Can LLMs express their uncertainty? an empirical evaluation of confidence elicitation in LLMs. In The Twelfth Inter-national Conference on Learning Representations .Yiming Xu, Yuan Yuan, Vijay Viswanathan, and Gra-ham Neubig. 2025. Clusterfusion: Hybrid clustering with embedding guidance and llm adaptation. arXiv preprint arXiv:2512.04350 .Chengrun Yang, Xuezhi Wang, Yifeng Lu, Hanxiao Liu, Quoc V. Le, Denny Zhou, and Xinyun Chen. 2024. Large language models as optimizers. In Interna-tional Conference on Learning Representations .Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William Cohen, Ruslan Salakhutdinov, and Christo-pher D. Manning. 2018. HotpotQA: A dataset for diverse, explainable multi-hop question answering. In Proceedings of the 2018 Conference on Empiri-cal Methods in Natural Language Processing , pages 2369–2380, Brussels, Belgium. Association for Com-putational Linguistics. Mert Yuksekgonul, Federico Bianchi, Joseph Boen, Sheng Liu, Zhi Huang, Carlos Guestrin, and James Zou. 2024. Textgrad: Automatic "differentiation" via text. Preprint , arXiv:2406.07496. J.D. Zamfirescu-Pereira, Richmond Y. Wong, Bjoern Hartmann, and Qian Yang. 2023. Why johnny can’t prompt: How non-ai experts try (and fail) to design llm prompts. Proceedings of the 2023 CHI Confer-ence on Human Factors in Computing Systems .Qizheng Zhang, Changran Hu, Shubhangi Upasani, Boyuan Ma, Fenglu Hong, Vamsidhar Kamanuru, Jay Rainton, Chen Wu, Mengmeng Ji, Hanchen Li, Urmish Thakker, James Zou, and Kunle Olukotun. 2026. Agentic context engineering: Evolving con-texts for self-improving language models. Wenqi Zhang, Ke Tang, Hai Wu, Mengna Wang, Yongliang Shen, Guiyang Hou, Zeqi Tan, Peng Li, Yueting Zhuang, and Weiming Lu. 2024. Agent-pro: Learning to evolve via policy-level reflection and op-timization. In Proceedings of the 62nd Annual Meet-ing of the Association for Computational Linguistics .Association for Computational Linguistics. Yongchao Zhou, Andrei Ioan Muresanu, Ziwen Han, Keiran Paster, Silviu Pitis, Harris Chan, and Jimmy Ba. 2023. Large language models are human-level prompt engineers. Preprint , arXiv:2211.01910. Jingming Zhuo, Songyang Zhang, Xinyu Fang, Haodong Duan, Dahua Lin, and Kai Chen. 2024. Prosa: Assessing and understanding the prompt sen-sitivity of llms. In Conference on Empirical Methods in Natural Language Processing .
+
+6 Appendix 7 RPT Prompts 
+
+This section lists the seed prompts, the optimizer prompt (shared across all datasets), and the dataset-specific critic prompts used in RPT. 
+
+7.1 Seed Prompts                                 
+
+> Formula Seed Prompt
+> System message
+> You are an analysis expert tasked with answering questions using your knowledge.
+> User instruction
+> •Show your reasoning step-by-step
+> •Be concise but thorough in your analysis
+> •Double-check your calculations and logic before providing the final answer Your output should be a JSON with fields:
+> •reasoning: your chain of thought /reasoning /thinking process, detailed analysis and calculations
+> •answer: your concise final answer.
+> •confidence: a number in [0,1] representing your confidence in the final answer.
+> HotpotQA Seed Prompt
+> System message
+> You are tasked with answering questions using only the provided context.
+> User instruction
+> •Reason step by step using only the provided context.
+> •Be concise but thorough in your justification.
+> •Before answering, verify that your answer is supported by the context. Your output should be a JSON with fields:
+> •justification: acontext-grounded explanation of how you reached the answer.
+> •answer: your concise final answer.
+> •confidence: a number in [0,1] representing your confidence in the final answer.
+> LiveBench-Math Seed Prompt
+> System message
+> Solve the math problem step by step and give the final answer in exactly the format requested by the question.
+> User instruction
+> Your output should be a JSON with fields:
+
+• reasoning: your chain of thought /reasoning / thinking process, detailed analysis and calculations. 
+
+• answer: final answer in exactly the format requested by the question. 
+
+• confidence: a number in [0,1] representing your confidence in the final answer. Output only valid JSON that matches the required schema. 
+
+7.2 Critic Prompts 
+
+Formula Critic Prompt 
+
+You are a strict evaluation critic for formula-construction failures. You are given ONE QA trace with: 
+
+• question 
+
+• gold answer 
+
+• predicted answer 
+
+• model confidence 
+
+• model reasoning Your job is to diagnose why the model produced the wrong answer. 
+
+Instructions: 
+
+1. Produce 1-3 failure_modes with: 
+
+• label: 2-6 words, consistent across similar errors 
+
+• definition: Comprehensive explanation of the failure mode 
+
+• why: brief, self-contained explanation for THIS example, e.g. “The question asked for the city’s location relative to Rome, but the model returned the city name instead.” 
+
+• basis: cite what in trace/reasoning shows this 2. Focus on actionable failure modes. 3. If you cannot identify a clear failure mode, return an empty list. 4. Output ONLY valid JSON matching the schema. 
+
+HotpotQA Critic Prompt 
+
+You are a strict evaluation critic for QA failures. You are given ONE QA trace: 
+
+• question 
+
+• context (titles + snippets) 
+
+• gold answer 
+
+• predicted answer 
+
+• model confidence 
+
+• model reasoning Your goal is to diagnose WHY the target model produced the wrong answer. 
+
+Instructions: 
+
+1. Produce 1-3 failure_modes with: 
+
+• label: 2-6 words, consistent across similar errors 
+
+• definition: Comprehensive explanation of the failure mode 
+
+• why: brief explanation for THIS example 
+
+• basis: cite what in the trace/reasoning shows this 2. Make labels concrete and clusterable: 
+
+• Prefer labels like “wrong bridge entity” over long sentences. 
+
+• Do not include entity names, dates, or example-specific details in labels. 3. If you cannot identify a clear failure mode, return an empty list. 4. Output ONLY valid JSON matching the schema (no extra text). 
+
+LiveBench-Math Critic Prompt 
+
+You are a strict evaluation critic for math failures. You are given one failed model attempt with: 
+
+• task metadata 
+
+• question 
+
+• gold answer 
+
+• predicted answer 
+
+• model confidence 
+
+• model reasoning Your goal is to diagnose why the model failed. 
+
+Instructions: 
+
+1. Produce 1-3 failure_modes with: 
+
+• label: 2-6 words, consistent across similar errors 
+
+• definition: Comprehensive explanation of the failure mode 
+
+• why: brief, self-contained explanation for THIS example 
+
+• basis: cite what in the trace/reasoning shows this 2. Make labels concrete and clusterable. 3. If you cannot identify a clear failure mode, return an empty list. 4. Output only valid JSON matching the schema. 7.3 Shared Optimizer Prompt                                                                                                                  
+
+> Optimizer Prompt
+> You are the Reflective Prompt Tuning (RPT) controller. Your goal is to iteratively improve aPromptProgram for the target task.
+> At each iteration you must:
+> 1. Call evaluate_prompt exactly once on the CURRENT PromptProgram. 2. Read the returned evaluation report with insights. 3. Output either a PATCH or STOP.
+> Optimization target:
+> •Primary: improve task performance on the training split.
+> •Secondary: improve calibration (lower Brier /reduce overconfidence) without hurting task performance.
+> Decision guidance:
+> •When current_summary is provided, use it as the primary decision signal, especially current_summary.metrics and any deltas vs previous/best.
+> •Use history only to detect trajectory, regressions, and previously ineffective edits.
+> Patch constraints:
+> •Edits should be targeted to the failure modes, and designed to address their underlying issues with concrete guidance.
+> •Avoid vague or generic guidance that only restates the failure; specify concrete checks, comparisons, extractions, or verifications.
+> •Prefer revising, merging, deleting, or reorganizing existing instructions over adding new broad rules.
+> •Keep the output contract stable (JSON schema and required fields).
+> •Avoid redundant or conflicting rules; consolidate instructions when possible.
+> Stop condition:
+> •Output STOP if training-set performance has plateaued or further edits are unlikely to help.
+> Hard rule:
+> •Do NOT propose aPATCH or STOP decision before calling evaluate_prompt and receiving its result.
+> Dataset Train Dev Test HotPotQA (Yang et al., 2018) 300 300 500 LiveBench-Math (White et al., 2025) 123 123 122 Formula (Wang et al., 2025) 500 300 200
+
+Table 3: Datasets used for prompt optimization, prompt selection, and final evaluation. 
+
+7.4 Optimization Datasets HotPotQA. HotPotQA (Yang et al., 2018) is a multi-hop question answering benchmark in which the model is given a question and supporting pas-sages, and must combine evidence across passages to produce the answer. We use it as a task for multi-hop reasoning over textual evidence, requir-ing models to identify relevant information, con-nect evidence across hops, and extract a concise answer. 
+
+LiveBench-Math. LiveBench-Math (White et al., 2025) is the math category of LiveBench, a benchmark designed to reduce contamination through regularly updated questions and automatic scoring against objective ground-truth answers. We use LiveBench-Math to evaluate mathematical reasoning, including problem decomposition, intermediate computation, and final-answer generation. Specifically, we use the retrieve math questions from the 2024-08-31 LiveBench release (most recent to date). Following GEPA (Agrawal et al., 2025), we evenly split the resulting set of 368 questions (shuffled with Python random seed 0) into train, development, and test sets. 
+
+Formula. Formula (Wang et al., 2025) is a finan-cial reasoning benchmark built around the eXten-sible Business Reporting Language (XBRL). Fol-lowing ACE (Zhang et al., 2026), we use Formula as a domain-specific numerical reasoning task. It requires models to apply financial concepts and per-form computations over structured financial data. Dataset statistics are reported in Table 3. 
+
+7.5 Additional Experimental Details RPT configuration. Each RPT optimizer is in-structed to call a single diagnostic function at the beginning of each iteration. The diagnostic func-tion evaluates the current prompt on the optimiza-tion split, collects the target model’s structured outputs, critiques incorrect responses, clusters fail-ure diagnoses with ClusterFusion (Xu et al., 2025), and summarizes recurring failure modes together with aggregate metrics. The optimizer then uses 0 4 8 12 16 20           
+
+> Disambiguation
+> Context + Evidence
+> Answer Consistency
+> Salience Biases
+> Question Constraints
+> Overconfidence
+> Multi-hop Reasoning
+> Answer/Entity Type
+> Granularity
+> Span/Surface Errors
+> 1.7
+> 1.7
+> 2.0
+> 2.0
+> 3.3
+> 4.0
+> 4.3
+> 4.3
+> 7.0
+> 15.0
+> HotpotQA
+> 0510 15 20 25
+> Factorization
+> Combinatorics
+> Incomplete Strategy
+> Notation/Symbols
+> Geometry/Structure
+> Verification Failure
+> Logical Flow
+> Definitions/Theorems
+> Semantic Alignment
+> Arithmetic/Algebra
+> 1.0
+> 1.8
+> 2.5
+> 2.6
+> 3.2
+> 5.3
+> 5.7
+> 18.0
+> 19.0
+> 19.0
+> LiveBench-Math
+> 0816 24 32 40
+> Fabricated Assumptions
+> Unit/Scale
+> Ambiguity/Confidence
+> Provided Inputs
+> Exchange Rate
+> Compounding
+> Sanity Checks
+> Cash-flow Timing
+> Formula Selection
+> Arithmetic
+> 6.8
+> 6.8
+> 15.5
+> 15.5
+> 15.5
+> 15.5
+> 32.0
+> 32.0
+> 32.0
+> 32.0
+> Formula
+> Average persistence of failure topics
+> Average consecutive optimization steps active
+
+Figure 4: Average persistence of failure topics across optimization iterations for HotPotQA, LiveBench-Math, and Formula. Persistence is measured as average run length: the number of consecutive iterations for which a failure topic remains active. 
+
+this diagnostic report, along with the memory of prior reports, to revise the prompt or stop if per-formance has plateaued or the iteration budget has been reached. 
+
+Clustering model. For failure-mode clustering, we use ClusterFusion with GPT-4.1 (OpenAI, 2025b) as the clustering model across all RPT in-stantiations. Based on empirical tuning, we set the number of clusters to K = 10 for HotPotQA and LiveBench-Math, and K = 20 for Formula, which has a larger optimization set. We keep K fixed across optimizer LLMs for each dataset. To keep the diagnostic report focused on prominent recur-ring patterns, we include only clusters whose size exceeds 10% of the total diagnosis pool. 
+
+Baseline configuration. ACE, GEPA, and MIPRO are run with the same target model and task splits as RPT. For each baseline, we follow the settings in the original paper or released implementation when available. For MIPRO, we use the official DSPy 4 imple-mentation of MIPROv2, which jointly optimizes instructions and few-shot demonstrations, with 
+
+auto="heavy" to maximize optimization perfor-mance. For GEPA, we use the released implemen-tation and adapt the AIME configuration, scaling the optimization budget according to the relative train/development set sizes in our tasks. For ACE, we use the released repository for Formula and adapt its instructions to the other datasets. We keep the default setting of one epoch for all tasks 5.
+
+> 4
+
+https://dspy.ai/api/optimizers/MIPROv2/ 
+
+> 5
+
+https://github.com/ace-agent/ace 
+
+For GEPA, we additionally evaluate aconfidence-aware variant in which confidence and calibration diagnostics are provided as auxiliary side information to the reflection prompt, while prompt selection remains driven primarily by task performance. 
+
+7.6 Failure-Mode Persistence 
+
+We measure the persistence of each failure topic by its average run length, defined as the number of consecutive iterations in which the topic remains active. Longer runs indicate failures that persist de-spite prompt revisions, while shorter runs suggest failures that are more transient or easier to address. Figure 4 shows that persistent failures are task-specific. On HotPotQA, the longest-lived issues involve span extraction, surface-form errors, gran-ularity or answer-type mismatches, and multi-hop reasoning. On LiveBench-Math, persistent failures center on arithmetic and algebraic computation, se-mantic misalignment, and misuse of mathematical definitions or conventions. On Formula, they in-volve arithmetic calculation, metric definition and formula selection, timing conventions, and domain constraints. Overall, the most persistent failures are not generic formatting errors, but deeper task-specific reasoning failures. This suggests that some failures require repeated refinement, and others may reflect limitations that are difficult to over-come through prompting alone. 
+
+7.7 Actionability of Diagnosed Failure Modes 
+
+We analyze which diagnosed failure modes are most actionable for the optimizer. For each failure topic active at iteration t, we compute the average Δ score Δ Brier   
+
+> Context +
+> Evidence
+> Multi-hop
+> Reasoning
+> Salience
+> Biases
+> Question
+> Constraints
+> Answer
+> Consistency
+> Disambiguation
+> Span/Surface
+> Errors
+> Granularity
+> Answer/Entity
+> Type
+> Overconfidence
+> HotpotQA
+> Δ score Δ Brier
+> Arithmetic/Algebra
+> Geometry/Structure
+> Definitions/Theorems
+> Factorization
+> Logical Flow
+> Combinatorics
+> Semantic
+> Alignment
+> Notation/Symbols
+> Verification
+> Failure
+> Incomplete
+> Strategy
+> LiveBench-Math
+> Δ score Δ Brier
+> Exchange
+> Rate/PPP
+> Compounding
+> Arithmetic
+> Provided
+> Inputs
+> Formula
+> Selection
+> Cash-flow
+> Timing
+> Ambiguity/Confidence
+> Unit/Scale
+> Fabricated
+> Assumptions
+> Sanity Checks
+> Formula
+> −0.02
+> −0.01
+> 0.00
+> 0.01
+> 0.02
+> Mean Δ metric
+> Δ metric
+> Failure topic
+
+Figure 5: Average next-iteration metric changes associated with each diagnosed failure topic for HotPotQA, LiveBench-Math, and Formula. For each failure topic present at iteration t, we report the mean change in task score and Brier score from t to t + 1 . Higher ∆ task score and lower ∆ Brier indicate improvement. 
+
+change in task score and Brier score after evalu-ating the revised prompt at iteration t + 1 . This analysis is associative rather than causal, but in-dicates which diagnosed failures tend to precede useful prompt updates. Figure 5 shows that actionable diagnoses vary by task. On HotPotQA, failures involving multi-hop reasoning, question-cue interpretation, span extrac-tion, and granularity mismatches are followed by some of the largest task-score gains and Brier re-ductions, suggesting that concrete answer-selection errors can often be translated into effective prompt edits. On LiveBench-Math, diagnoses such as com-binatorial errors, notation confusion, logical-flow failures, and arithmetic or theorem-application er-rors are generally followed by task-score gains, though persistent mathematical failures often re-quire multiple revisions. On Formula, failure topics are less discrimi-native: most are followed by small task-score gains and Brier reductions, likely because domain-specific failures often co-occur. Overall, RPT is most effective when diagnoses can be converted into explicit behavioral constraints, such as answer-span control, verification steps, or unit and format handling. More complex mathematical or domain-convention failures remain useful to diagnose, but may require complementary interventions beyond prompt revision. 
+
+7.8 Prompt Length and Development Performance 
+
+We analyze how prompt length changes during RPT optimization and how these changes relate to development-set performance. Figure 6 plots the number of prompt tokens and the corresponding de-velopment task score across optimization iterations for HotPotQA, LiveBench-Math, and Formula. Across all tasks, prompt length tends to increase as the optimizer incorporates additional constraints, checks, and task-specific instructions. However, development performance does not increase mono-tonically with prompt length. On HotPotQA, the largest gain occurs early, after which performance remains relatively stable while prompt length con-tinues to grow. On LiveBench-Math, dev per-formance improves overall but fluctuates substan-tially, with later, longer prompts not always outper-forming earlier shorter ones. On Formula, perfor-mance jumps after early revisions and then largely plateaus, despite continued prompt growth. These trends suggest that longer prompts are not inherently better. Instead, useful prompt growth comes from adding targeted constraints, while later edits may introduce redundancy or task-specific overfitting. This further motivates selecting the fi-nal prompt by development-set performance, rather than simply using the last prompt produced by the optimization loop. 
+
+7.9 Example Prompt Revision 
+
+Below, we show an example prompt revision pro-duced by RPT for HotPotQA with GPT-5 as the optimizer. The initial prompt contains only high-level instructions to reason from context, verify support, and produce a JSON output. The selected prompt is more targeted: it adds explicit guidance for question parsing, supporting-span extraction, answer-type and granularity matching, multi-hop reasoning, temporal or comparative constraints, and confidence calibration. This example illustrates how RPT converts di-agnostic feedback into concrete prompt edits. The optimized prompt targets recurring HotPotQA fail-1 4 7 10 13 15                            
+
+> 0
+> 500
+> 1000
+> 1500
+> 2000
+> 2500
+> Prompt tokens
+> HotpotQA
+> 14710 13 16 19
+> 0
+> 1000
+> 2000
+> 3000
+> 4000
+> LiveBench-Math
+> 1713 19 25 31 32
+> 0
+> 1000
+> 2000
+> 3000
+> 4000
+> Formula
+> 14710 13 15
+> Optimization step
+> 0.50
+> 0.55
+> 0.60
+> 0.65
+> Dev task score
+> 14710 13 16 19
+> Optimization step
+> 0.600
+> 0.625
+> 0.650
+> 0.675
+> 0.700
+> 1713 19 25 31 32
+> Optimization step
+> 0.70
+> 0.75
+> 0.80
+> 0.85
+
+Figure 6: Prompt length and development-set task score across RPT optimization iterations for HotPotQA, LiveBench-Math, and Formula. Prompt length generally increases over time, while development performance improves early and then plateaus or fluctuates, motivating development-set prompt selection rather than selecting the final iteration by default. 
+
+ures by adding explicit controls for minimal span extraction, surface-form matching, multi-hop re-lation tracing, and confidence calibration under ambiguity. 
+
+Original Prompt - HotpotQA 
+
+System Message. You are tasked with an-swering questions using only the provided context. 
+
+User Instruction. 
+
+• Reason step by step using only the pro-vided context. • Be concise but thorough in your justifi-cation. • Before answering, verify that your an-swer is supported by the context. Your output should be a JSON with fields: • justification: a context-grounded expla-nation of how you reached the answer. • answer: your concise final answer. • confidence: a number in [0,1] repre-senting your confidence in the final an-swer. 
+
+Optimized Prompt - HotpotQA 
+
+System Message. You are tasked with an-swering questions using only the provided context. User Instruction. Instructions: • Use only the provided context. Parse the question to identify: (a) the sub-ject, (b) the relation/attribute requested, (c) any constraints (time/comparative qualifiers such as based on, before/after, first/last/only), and (d) the required an-swer type and granularity/format, in-cluding whether a unit or administra-tive/institutional qualifier is explicitly requested. • Find the specific supporting span(s) in the context. When multiple surface forms/aliases exist, select the exact con-tiguous span in the context that best matches the question wording; if none match, use the canonical full form as written in context, preserving capital-ization, diacritics, and suffixes/post-nominals (e.g., Jr., Sr., III). If the ques-tion asks for a unit or an administra-tive/institutional qualifier, select the span that includes it; if not, and both prefixed and bare forms appear, prefer the bare form. • Answer extraction: copy the minimal contiguous span verbatim from the con-text (casing and numerals). Do not add extra words, qualifiers, punctuation, or units unless explicitly requested. Match the question’s granularity. For numbers, output digits only; if the con-text has modifiers like “about/circa/ap-proximately 100”, return just the bare value “100”. If a full date is given but the question asks for a year, return only the 4-digit year. If the question requests a value-with-unit, copy the exact num-ber+unit as one contiguous span (e.g., “5 kilometers”). For place/organization names, include prefixes like “City of”, “County of”, “Province of”, “Univer-sity of”, or “Department of” only if (a) the question targets that unit, or (b) the context consistently uses that prefixed form without an alternative bare form. Trim leading/trailing articles or punctu-ation unless they are part of the official name. • Yes/No questions: answer exactly yes or no in lowercase with no punctuation. • Relation/compositional queries: follow all required hops and return the final requested attribute/value, not an inter-mediate entity or related item. Verify subject–object direction (e.g., “X ac-quired Y” vs “X was acquired by Y”). Multi-hop checklist: (1) find the bridge entity tied to the subject, (2) locate the next hop that yields the requested at-tribute, (3) ensure the final answer span appears verbatim in the context. • Comparative/temporal qualifiers: when prompts include first/last/only/earli-est/latest/highest/lowest or a time re-striction, (1) collect all candidate spans linked to the subject, (2) apply the spec-ified ordering/constraint to choose the single correct candidate, (3) return only that final span. • Disambiguation: if multiple candidate entities/mentions exist (including same-named entities), choose the one whose qualifiers (role, location, dates, affilia-tion) satisfy the question’s constraints; 
+
+ignore distractors. • Before answering, run a final span checklist: (a) type and administrative level match the request, (b) temporal/-comparative constraint satisfied, (c) sur-face form matches the question when available, else canonical full form in context, (d) span is minimal, contigu-ous, and free of extraneous punctua-tion. • Justification: briefly cite the key sup-porting phrase(s) and reasoning in ≤ 3
+
+sentences. • Confidence calibration: set confidence based on evidence and ambiguity. 
+
+– 0.85 if exactly one unambiguous supporting span directly answers the question with no alias/format ambiguity. 
+
+– ∼0.55 if supported but there are multiple aliases/forms, qualifier/u-nit risks, or minor ambiguity (cap confidence here in such cases). 
+
+– ∼0.35 if partially supported or re-quires weaker inferences across snippets. 
+
+– ≤0.25 if the support is tenuous or potentially contradicted. Output JSON fields: • justification: a context-grounded expla-nation of how you reached the answer. • answer: the bare minimal span only (no quotes or extra words). • confidence: a number in [0,1] repre-senting your confidence in the final an-swer.

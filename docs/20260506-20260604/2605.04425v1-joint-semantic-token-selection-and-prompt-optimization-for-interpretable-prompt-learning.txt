@@ -1,0 +1,533 @@
+Title: Joint Semantic Token Selection and Prompt Optimization for Interpretable Prompt Learning
+
+URL Source: https://arxiv.org/pdf/2605.04425v1
+
+Published Time: Thu, 07 May 2026 00:23:12 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# Joint Semantic Token Selection and Prompt Optimization for Interpretable Prompt Learning 
+
+## Yating Wang a, Yaqi Zhao a, Yongshun Gong a, Yilong Yin a and Haoliang Sun a,∗
+
+> a
+
+School of Software, Shandong University, Jinan, 250101, China 
+
+A R T I C L E I N F O 
+
+Keywords :Vision-Language Models Prompt Learning Submodular Learning Alternating Optimization 
+
+A B S T R A C T 
+
+Vision-language models such as CLIP achieve strong visual-textual alignment, but often suffer from overfitting and limited interpretability when adapted through continuous prompt learning. While discrete prompt optimization improves interpretability, it usually depends on large external models, leading to high computational costs and limited scalability. In this paper, we propose Interpretable Prompt Learning (IPL), a hybrid framework that alternates between discrete semantic token selection and continuous prompt optimization. Specifically, IPL formulates semantic token selection as an approximate submodular optimization problem, encouraging tokens that are both human-understandable and semantically diverse. It further adopts an alter-nating optimization strategy to integrate discrete token selection with continuous prompt tuning, improving interpretability while preserving adaptability to downstream tasks. Our framework is plug-and-play, allowing seamless integration with existing prompt learning methods. Extensive experiments on multiple benchmarks show that IPL consistently improves both interpretability and accuracy across five representative prompt learning methods, providing an effective and scalable extension to existing frameworks. 
+
+## 1. Introduction 
+
+Vision-Language Models (VLMs) (Alayrac, Donahue, Luc, Miech, Barr, Hasson, Lenc, Mensch, Millican, Reynolds et al., 2022; Jia, Yang, Xia, Chen, Parekh, Pham, Le, Sung, Li and Duerig, 2021; Radford, Kim, Hallacy, Ramesh, Goh, Agarwal, Sastry, Askell, Mishkin, Clark et al., 2021; Yao, Huang, Hou, Lu, Niu, Xu, Liang, Li, Jiang and Xu, 2021; Yu, Wang, Vasudevan, Yeung, Seyedhosseini and Wu, 2022; Yuan, Chen, Chen, Codella, Dai, Gao, Hu, Huang, Li, Li et al., 2021; Zhai, Wang, Mustafa, Steiner, Keysers, Kolesnikov and Beyer, 2022; Li, Li, Xiong and Hoi, 2022) have made remarkable progress in recent years by leveraging large-scale datasets to jointly learn image and text representations. Their exceptional versatility stems from the ability to align visual and textual modalities within a shared representation space, enabling strong zero-shot generalization across diverse vision-language scenarios. However, their substantial model size and complexity often pose significant challenges for adaptation to specific downstream tasks (Zhou, Yang, Loy and Liu, 2022b,a; Sung, Cho and Bansal, 2022). To further improve the adaptability of VLMs to downstream tasks with limited labeled data, prompt learning (Jia, Tang, Chen, Cardie, Belongie, Hariharan and Lim, 2022; Zhou et al., 2022b,a) has become a widely adopted approach. It typically fine-tunes a small set of learnable prompt tokens while keeping the backbone model frozen, enabling task adaptation with minimal computational overhead. These continuously optimized methods have demonstrated impressive performance, even in few-shot scenarios. Despite their success, these methods face notable challenges. One major issue is overfitting, where learned prompts become overly specialized to the training set, leading to poor generalization and reduced interpretability (Ma, Liu, Deng, Xie, Dong and Xu, 2023; Park, Ko and Kim, 2024). Moreover, because these prompt tokens are optimized in a continuous embedding space, they often drift away from interpretable semantic tokens, making the learned knowledge harder to interpret or transfer. In addition, several existing methods rely heavily on external models, such as large multimodal or language models, to generate or refine prompts (Li, Song, Cheng, Li and Yang, 2025b; Du, Sun and Snoek, 2024). The dependence on such external models also introduce potential instability and restricts their flexibility in real-world applications, particularly when dealing with long or complex textual contexts (Liu et al., 2023; Li, Zhang, Do, Yue and Chen, 2025a). Building on these observations, we propose Interpretable Prompt Learning (IPL), a method that combines discrete semantic token selection with continuous prompt optimization. In the discrete stage, we adopt a greedy selection 
+
+> ∗
+
+Corresponding author 
+
+haolsun@sdu.edu.cn (H. Sun) 
+
+Wang et al.: Preprint Page 1 of 15 
+
+> arXiv:2605.04425v1 [cs.CV] 6 May 2026 Interpretable Prompt Learning
+
+strategy formulated as an approximate submodular optimization problem to identify a set of tokens from a candidate pool, ensuring semantic alignment with the target domain. These semantic tokens serve as interpretable pivots that capture meaningful visual and textual concepts, such as object attributes or physical traits, thereby providing human-understandable semantics for prompt construction. In the continuous stage, we fine-tune the learnable embeddings while keeping the semantic tokens fixed, allowing soft tokens to adapt to the target dataset without losing their semantic grounding. By alternating between these two stages, IPL unifies discrete semantic selection and continuous task adaptation within a single framework. Unlike prior methods that depend on external large models, IPL performs both semantic discovery and optimization internally, enabling efficient and scalable deployment. Beyond the architectural design, semantic tokens provide a principled mechanism for improving prompt learning. Because these tokens correspond to explicit and transferable concepts, the learned prompts can capture features that better reflect the underlying structure of the target domain, thereby enhancing interpretability and transparency. Moreover, fixing part of the prompt as semantic tokens, rather than treating all prompt elements as fully learnable embeddings, reduces the number of free parameters and introduces useful semantic priors. This design helps mitigate overfitting and improves generalization to unseen categories. It also implicitly encourages consistency between visual and textual modalities, leading to more stable transfer across different tasks. Our approach offers a simple yet effective enhancement to existing prompt learning methods and can be seamlessly integrated with various prompt learning frameworks, making it a versatile and broadly applicable solution. In summary, our contributions are as follows: 
+
+• We propose a novel framework that alternates between semantic token selection and continuous prompt optimization, achieving a balance between prompt interpretability and adaptability. 
+
+• We formulate semantic selection as an approximate submodular optimization problem and design a submodular function that combines cross-entropy with a diversity penalty, encouraging prompt diversity and improving generalization to unseen categories. 
+
+• We demonstrate the effectiveness of our approach by integrating it into five widely used prompt learning methods, achieving consistent gains in both interpretability and performance across diverse benchmarks. 
+
+## 2. Related Works 
+
+2.1. Vision-Language Models 
+
+Vision-language models (VLMs) have achieved remarkable progress by learning aligned visual and textual representations from large-scale image–text pairs, enabling strong multimodal understanding and transferability. Representative models, such as CLIP (Radford et al., 2021), ALIGN (Jia et al., 2021), BLIP (Li et al., 2022), LiT (Zhai et al., 2022), and Flamingo (Alayrac et al., 2022), adopt different pretraining strategies to bridge vision and language. Among them, CLIP has become one of the most influential foundations for downstream adaptation, as it maps images and texts into a shared embedding space through contrastive learning and supports strong zero-shot recognition. Recent VLMs have further expanded this paradigm by incorporating larger multimodal architectures and stronger reasoning capabilities, such as BLIP-2 (Li, Li, Savarese and Hoi, 2023) and LLaVA-based models (Liu, Cheng, Liu, Zhang, Li, Ren, Zou, Yang, Su, Zhu et al., 2024). At the same time, recent surveys have shown that VLM research has increasingly shifted from pretraining alone toward efficient adaptation strategies, including fine-tuning, prompt engineering, and parameter-efficient transfer (Danish, Sadeghi-Niaraki, Khan, Dang, Tightiz and Moon, 2025; Shinde, Ravi, Dey, Sakib, Rampure and Roy, 2025). This trend highlights that, despite strong pretrained alignment, effectively adapting VLMs to downstream tasks remains a central challenge. In particular, CLIP-style models often require task-specific adaptation to achieve stronger semantic alignment and transferability on downstream benchmarks. This has motivated the development of prompt learning methods, which adapt pretrained VLMs by optimizing only a small set of prompt parameters while keeping the backbone frozen. Recent overviews of CLIP prompting further indicate that improving generalization and maintaining interpretability have become key concerns in this line of research (Cui, Zhang, Wang, Wang and Xiao, 2025). 
+
+2.2. Prompt Learning 
+
+Prompt learning (Zhou et al., 2022b,a; Li et al., 2025b; Yang, Zhang, Wang and Xie, 2024; Khattak, Rasheed, Maaz, Khan and Khan, 2023a; Yao, Zhang and Xu, 2023; Du et al., 2024; Xing, Wu, Cheng, Zhang, Liang, Wang and Zhang, 2024; Zhang, Wu, Zhang, Yu, Ma, Jin, Yang and Zeng, 2025; Danish et al., 2025; Zheng, Wang and   
+
+> Wang et al.: Preprint Page 2 of 15
+
+Interpretable Prompt Learning A photo of a pizza, with emphasis on: w i, ...                  
+
+> Candidate Words
+> w1,w 2
+> ...
+> w1, w 2, ... w i
+> ...
+> Diversity Penalty CE
+> Loss
+> Final set
+> Yes Yes Yes Yes
+> discard
+> discard
+> discard
+> discard
+> No No No No
+> Alternate
+> V1... VmW1... Vnw2[cls]
+> prompt
+> Vn[cls] V2V1
+> Text
+> Encoder
+> Logits
+> Image
+> Encoder
+> Image
+> Encoder Text
+> Encoder
+> GT
+> GT Logits
+> Supervision Multiplication Addition Learnable Token Fixed Token Frozen Parameter
+> (a) Candidate Filtering (b) Semantic Token Selection (c) Prompt Optimization
+
+Figure 1: Pipeline of our method, divided into three main stages. (a) We begin by filtering the raw word set through a series of criteria to construct a refined candidate pool. (b) From this pool, we perform greedy token selection to identify semantically relevant tokens, which are inserted into prompt and serve as interpretable tokens that guide the prompt learning. (c) We alternate between semantic token selection and continuous prompt optimization to integrate the two process adaptively. 
+
+Gao, 2025) has become a widely adopted strategy for adapting large pre-trained VLMs to downstream tasks with limited labeled data. By optimizing only a small set of prompt parameters—typically continuous embeddings—while keeping the backbone frozen, prompt learning achieves effective task adaptation with relatively low computational cost. Representative methods such as CoOp (Zhou et al., 2022b) and CoCoOp (Zhou et al., 2022a) have demonstrated strong few-shot performance and improved transferability. However, because these prompts are learned entirely in a continuous embedding space, the resulting prompt vectors are often difficult to interpret and cannot be directly mapped to meaningful natural-language semantics. To improve the interpretability of prompt learning, recent studies have introduced explicit semantic structures into prompt design (Li et al., 2025b; Ding, Li, Miao and Pfister, 2024; Ghosal, Basu, Feizi and Manocha, 2024; Du et al., 2024; Kim, Kim and Lee, 2024). TAP (Ding et al., 2024), for example, constructs an LLM-generated tree of attributes and combines it with learnable expert tokens and vision-conditional pooling to achieve attribute-level alignment. IntCoOp (Ghosal et al., 2024) extends CoOp by incorporating a graph-based prompt interaction mechanism based on class relations, thereby enhancing both interpretability and classification performance. ATPrompt (Li et al., 2025b) anchors prompts with fixed universal attribute tokens and employs differentiable search for token selection, improving generalization to unseen categories. IPO (Du et al., 2024) uses LMM-generated image descriptions and an LLM to iteratively produce human-readable, dataset-specific prompts without gradient-based learning, improving both interpretability and transferability. Despite these advances, existing interpretable prompt learning methods often depend on external knowledge sources, such as LLMs, LMMs, or predefined attribute inventories. Such reliance increases annotation or inference cost and may reduce scalability in practical deployment. In some cases, these methods also suffer from instability when handling long textual inputs or complex semantic descriptions (Du et al., 2024). In contrast, IPL selects a small set of discrete semantic tokens from a filtered candidate vocabulary and incorporates them into prompts as fixed semantic anchors interleaved with learnable context vectors. This design introduces explicit semantic grounding without relying on costly external generation or elaborate attribute engineering, while maintaining a favorable balance among interpretability, adaptability, and efficiency. 
+
+Wang et al.: Preprint Page 3 of 15 Interpretable Prompt Learning 
+
+2.3. Submodular Optimization 
+
+Submodular optimization (Liu, Chong, Pezeshki and Zhang, 2020; Zhu, 2024; Dughmi, 2009) addresses discrete problems defined by the diminishing returns property: the marginal gain of adding an element to a set decreases as the set grows. Formally, a set function 𝐹 ∶ 2 𝑉 → ℝ is submodular if, for all 𝐴 ⊆ 𝐵 ⊆ 𝑉 and any 𝑣 ∈ 𝑉 ⧵ 𝐵 , it holds that: 
+
+𝐹 (𝐴 ∪ { 𝑣 }) − 𝐹 (𝐴 ) ≥ 𝐹 (𝐵 ∪ { 𝑣 }) − 𝐹 (𝐵 ). (1) A key advantage of submodular functions is that greedy algorithms can provide efficient approximate solutions. For monotone, non-negative functions under a cardinality constraint, the greedy approach guarantees a (1 − 1∕ 𝑒 )-approximation to the optimal solution (Nemhauser, Wolsey and Fisher, 1978; Krause and Golovin, 2014). Submodular optimization has been widely applied in areas such as active learning (Kothawade, Beck, Killamsetty and Iyer, 2021; Golovin and Krause, 2011), data summarization (Tschiatschek, Iyer, Wei and Bilmes, 2014; Mitrovic, Kazemi, Zadimoghaddam and Karbasi, 2018; Schreiber, Bilmes and Noble, 2020), as well as exemplar selection for few-shot learning (Killamsetty, Sivasubramanian, Ramakrishnan and Iyer, 2021). In practice, strict submodularity is often difficult to achieve, but approximately submodular functions retain many of their desirable properties (Chierichetti, Dasgupta and Kumar, 2022; Ajayi, Lee and Schaefer, 2019; Das and Kempe, 2018). A function 𝑓 ∶ 2 𝑉 → ℝ is said to be 𝜖 -approximately submodular if there exists a submodular function 𝐹 such that: 
+
+(1 − 𝜖 )𝐹 (𝑆 ) ≤ 𝑓 (𝑆 ) ≤ (1 + 𝜖 )𝐹 (𝑆 ), (2) for all subsets 𝑆 ⊆ 𝑉 , where 𝜖 denotes the approximation error, which represents the deviation from strict submodularity. Such functions exhibit diminishing marginal gains in a relaxed sense, allowing greedy algorithms to achieve near-optimal solutions with provable guarantees. Recent studies (Horel and Singer, 2016; Bian, Buhmann, Krause and Tschiatschek, 2017) show that greedy methods remain effective for approximate or near-submodular functions, often yielding strong empirical performance. Motivated by these observations, we adopt an approximately submodular objective to guide semantic token selection. This formulation provides a practical basis for greedy search, allowing us to balance efficiency and solution quality while capturing both discriminative utility and semantic diversity. 
+
+## 3. Problem Setup 
+
+3.1. The Prediction Function in CLIP 
+
+CLIP (Radford et al., 2021) consists of a visual encoder and a textual encoder. The visual encoder maps an image to a high-dimensional embedding, while the textual encoder converts a prompt into a textual embedding. Both embeddings are aligned in a shared space to enable direct image–text comparison. For 𝑁 categories, CLIP generates textual features by inserting each class label (e.g., “pizza”) into a handcrafted template 𝑃 ℎ (“a photo of a [CLS]”) and encoding it with 𝐸 text , yielding 𝐲 = 𝐸 text (𝑃 ℎ). Meanwhile, for an image 𝐱 ,the visual encoder 𝐸 img produces 𝐮 = 𝐸 img (𝑥 ). Classification for each class 𝑐 is then performed by computing cosine similarities between 𝐮 and all 𝐲 𝑐 , followed by a softmax: 
+
+𝑝 (𝑐 |𝑥 ) = exp( sim (𝐮 , 𝐲 𝑐 )∕ 𝜏 )
+
+∑𝑁 𝑖 =1 exp( sim (𝐮 , 𝐲 𝑖 )∕ 𝜏 ) , (3) where sim (⋅, ⋅) denotes cosine similarity, and 𝜏 is a learnable temperature parameter controlling the sharpness of the distribution. 
+
+3.2. Prompt Structure 
+
+In prompt learning, prompts are designed to adapt pretrained models to downstream tasks, typically through learnable context tokens. In CoOp (Zhou et al., 2022b), the original prompt 𝑃 consists of 𝑛 learnable soft tokens followed by the class name [CLS]: 
+
+𝑃 = [ 𝑉 1][ 𝑉 2] … [ 𝑉 𝑛 ] [ CLS ], (4) where {𝑉 𝑖 ∈ ℝ𝑑 }𝑛 𝑖 =1 are learnable prompt embeddings, and 𝑑 is the embedding dimension. These vectors are optimized end-to-end with the contrastive objective, enabling automatic adaptation of prompt context to downstream datasets.   
+
+> Wang et al.: Preprint Page 4 of 15 Interpretable Prompt Learning
+
+In our method, let 𝑊 cand denote the candidate set filtered from the raw corpus 𝑊 raw . A subset of tokens is selected from 𝑊 cand and inserted into the prompt 𝑃 , yielding a modified prompt ̃ 𝑃 . These selected tokens remain fixed during optimization. For example, when two semantic tokens are chosen, the input embedding sequence is interleaved as: ̃𝑃 = [ 𝑉 1] ⋯ [𝑉 𝑚 ][ 𝑤 1][ 𝑉 𝑚 +1 ] ⋯ [𝑉 2𝑚 ][ 𝑤 2] ⋯ [𝑉 𝑛 ][ CLS ], (5) where each semantic token 𝑤 𝑖 follows a group of 𝑚 learnable tokens (Li et al., 2025b). This alternating structure preserves both task adaptability and semantic stability during optimization, thereby balancing adaptability and interpretability throughout prompt learning. 
+
+## 4. The Proposed Method 
+
+We propose a framework that alternates between discrete semantic token selection and continuous prompt optimization. Semantic tokens are selected through a greedy algorithm guided by an approximate submodular objective and then inserted into the prompt as discrete semantic anchors, while the remaining soft context tokens are continuously optimized. This alternating process balances interpretability and adaptability. An overview of the pipeline is shown in Figure 1. 
+
+4.1. Candidate Filtering 
+
+To enable effective semantic selection, we construct a high-quality candidate pool of interpretable tokens from the NLTK corpus (Bird, Klein and Loper, 2009). This step ensures that the selected tokens carry human-understandable meanings while remaining compatible with both linguistic and tokenization constraints. Specifically, we apply four filtering criteria to derive the candidate set 𝑊 cand from the raw corpus 𝑊 raw .First, we retain only words that are purely alphabetic and satisfy |𝑤 𝑖 | ≥ 3, excluding symbols, single letters, and other non-standard textual artifacts that are unlikely to provide semantically meaningful information. Second, to ensure semantic validity, each candidate word must satisfy 𝑤 𝑖 ∈ WordNet, where WordNet (Miller, 1995) serves as an external lexical database distinct from the NLTK word list and helps filter out non-semantic entries such as personal names or place names. This constraint ensures that all selected tokens correspond to concrete and interpretable concepts. Third, we impose a frequency threshold requiring Zipf (𝑤 𝑖 ) ≥ 3.5, where the Zipf (Van Heuven, Mandera, Keuleers and Brysbaert, 2014) score reflects how commonly a word is used in natural language. This removes rare or obscure terms that may hinder generalization. Finally, to maintain consistency with the tokenization behavior of the CLIP text encoder, we require that len (tokenize (𝑤 𝑖 )) = 1 , ensuring that each word maps to exactly one token under the CLIP tokenizer. This avoids semantic fragmentation during tokenization and preserves the integrity of each selected concept in the embedding process. The first three criteria correspond to linguistic constraints, while the last one concerns tokenization consistency. Formally, the final filtered set is: 
+
+𝑊 cand =
+
+⎧⎪⎨⎪⎩
+
+𝑤 𝑖 ∈ 𝑊 raw 
+
+|||||||||𝑤 𝑖 | ≥ 3,𝑤 𝑖 ∈ WordNet ,
+
+Zipf (𝑤 𝑖 ) ≥ 3.5,
+
+len (tokenize (𝑤 𝑖 )) = 1 
+
+⎫⎪⎬⎪⎭
+
+(6) The resulting candidate pool contains 8,883 tokens, forming a compact yet diverse set of interpretable words. This size provides sufficient semantic coverage while keeping computational cost manageable, making it well suited for semantic token selection. Based on this curated vocabulary, the subsequent optimization can be performed without relying on external models, enabling an efficient and self-contained pipeline. 
+
+4.2. Semantic Token Selection 
+
+With the candidate pool prepared, we next introduce the semantic token selection process. Our goal is to construct a token subset that is both class-relevant and semantically diverse. To this end, we define a set-level objective that combines a utility term and a redundancy penalty: 
+
+𝐺 (𝑊 sel ) = Utility( 𝑊 sel ) − 𝜆 Redundancy( 𝑊 sel ), (7) where 𝑊 sel denotes the currently selected token set and 𝜆 controls the trade-off between discriminability and diversity.   
+
+> Wang et al.: Preprint Page 5 of 15
+
+Interpretable Prompt Learning 
+
+Figure 2: Empirical diminishing returns of marginal gain in token selection, showing the decreasing trend as tokens are added. 
+
+For the utility term, we measure how much the selected tokens improve image–text alignment under a CLIP-based prompt. Specifically, let 
+
+𝑃 sel = “a photo of a [CLS], with emphasis on: [. . . ]” ,
+
+where [… ] is replaced by the tokens in 𝑊 sel . We define 
+
+Utility( 𝑊 sel ) = Lce (∅) − Lce (𝑊 sel ), (8) where Lce (𝑊 sel ) is the CLIP-based classification loss under prompt 𝑃 sel , and Lce (∅) denotes the corresponding loss without any inserted semantic tokens. A larger utility indicates a larger reduction in classification loss brought by the selected tokens. The classification loss is defined as 
+
+Lce (𝑊 sel ) = − log exp(sim( 𝐮 𝑖 , 𝐲 𝑐 (𝑊 sel ))∕ 𝜏 )
+
+∑𝑁 𝑗 =1 exp(sim( 𝐮 𝑖 , 𝐲 𝑗 (𝑊 sel ))∕ 𝜏 ) , (9) where 𝐮 𝑖 denotes the CLIP image feature of the 𝑖 -th sample, 𝐲 𝑗 (𝑊 sel ) denotes the text embedding of the prompt instantiated with token set 𝑊 sel for class 𝑗 , and 𝜏 is the temperature parameter. To encourage diversity, we define the redundancy term as the sum of pairwise similarities among selected tokens: 
+
+Redundancy( 𝑊 sel ) = ∑ 
+
+> 𝑤 𝑖 ,𝑤 𝑗 ⊆𝑊 sel
+> 𝑖<𝑗
+
+sim( 𝐞 𝑖 , 𝐞 𝑗 ), (10) where 𝐞 𝑖 and 𝐞 𝑗 denote the embeddings of selected tokens 𝑤 𝑖 and 𝑤 𝑗 . A smaller redundancy indicates less semantic overlap within the selected set. Our formulation is motivated by approximately diminishing marginal behavior in practice: as more informative tokens are added, the additional reduction in classification loss typically becomes smaller, while semantically similar tokens incur increasing redundancy. As shown in Figure 2, the marginal gain generally exhibits a decreasing trend as the greedy selection proceeds. Therefore, although 𝐺 (𝑊 sel ) does not strictly satisfy submodularity, it can be viewed as approximately submodular in practice and is thus well suited to greedy optimization. At step 𝑙 , given the current selected set 𝑊 (𝑙 −1)  
+
+> sel
+
+, we greedily select the token that maximizes the marginal objective gain: 
+
+𝑤 ∗ = arg max  
+
+> 𝑤 ∈𝑊 cand ⧵𝑊 (𝑙 −1)
+> sel
+
+[
+
+ΔUtility( 𝑤 ∣ 𝑊 (𝑙 −1)  
+
+> sel
+
+) − 𝜆 ΔRedundancy( 𝑤 ∣ 𝑊 (𝑙 −1)  
+
+> sel
+
+)
+
+]
+
+. (11) Here, the marginal utility gain is defined as 
+
+ΔUtility( 𝑤 ∣ 𝑊 (𝑙 −1)  
+
+> sel
+
+) = Lce (𝑊 (𝑙 −1)  
+
+> sel
+
+) − Lce (𝑊 (𝑙 −1)  
+
+> sel
+
+∪ { 𝑤 }) , (12) 
+
+Wang et al.: Preprint Page 6 of 15 Interpretable Prompt Learning 
+
+which measures the additional reduction in classification loss after adding 𝑤 . The marginal redundancy increase is defined as 
+
+ΔRedundancy( 𝑤 ∣ 𝑊 (𝑙 −1)  
+
+> sel
+
+) = ∑ 
+
+> 𝑤 𝑖 ⊆𝑊 (𝑙 −1)
+> sel
+
+sim( 𝐞 𝑤 , 𝐞 𝑖 ), (13) which measures the semantic overlap introduced by 𝑤 with respect to the current selected set. That is, the selected token should maximally reduce the classification loss while introducing as little semantic redundancy as possible. After each step, 𝑤 ∗ is removed from the candidate pool to avoid duplicate selection. 
+
+4.3. Prompt Learning with Alternating Optimization 
+
+To integrate discrete token selection with continuous prompt tuning, we adopt an alternating optimization strategy that balances interpretability and adaptability. Specifically, discrete token selection and continuous prompt learning are performed iteratively until 𝑘 tokens have been selected, ensuring both semantic clarity and flexibility in prompt representation. In the continuous stage, the soft tokens in the prompt are optimized via gradient-based updates. During each iteration, a batch of image–text pairs is passed through the model, and prediction scores are computed in the shared embedding space. Formally, for a single image, the training objective follows the same contrastive loss as before: 
+
+L = − log exp(cos( 𝐮 𝑖 , 𝐲 𝑐 )∕ 𝜏 )
+
+∑𝑁 𝑗 =1 exp(cos( 𝐮 𝑖 , 𝐲 𝑗 )∕ 𝜏 ) , (14) where 𝐲 𝑗 and 𝐲 𝑐 denote the textual embeddings generated from the current prompt ̃ 𝑃 in Eq. (5). The gradients of this loss are then backpropagated to update the learnable soft prompt tokens. 
+
+Algorithm 1 Semantic Token Selection and Prompt Optimization 
+
+Require: number of selected tokens 𝑘 , learning rate 𝛼 , candidate pool 𝑊 cand , total epochs 𝑇 , alternating interval 𝑡  
+
+> 1:
+
+Initialize selected token set 𝑊 sel ← ∅, prompt parameters ̃ 𝑃 ← random initialization  
+
+> 2:
+
+for 𝑞 = 1 to 𝑘 do  
+
+> 3:
+
+Select 𝑤 ∗ according to Eq. (11)  
+
+> 4:
+
+Update 𝑊 sel ← 𝑊 sel ∪ { 𝑤 ∗} and 𝑊 cand ← 𝑊 cand ⧵ {𝑤 ∗} 
+
+> 5:
+
+Update the prompt with the current selected token set 𝑊 sel  
+
+> 6:
+
+for 𝑑 = 1 to 𝑡 do  
+
+> 7:
+
+Optimize ̃ 𝑃 ←̃ 𝑃 − 𝛼 ∇L 
+
+> 8:
+
+end for  
+
+> 9:
+
+end for  
+
+> 10:
+
+for 𝑟 = 1 to 𝑇 − 𝑘𝑡 do  
+
+> 11:
+
+Optimize ̃ 𝑃 ←̃ 𝑃 − 𝛼 ∇L 
+
+> 12:
+
+end for  
+
+> 13:
+
+return ̃ 𝑃 , 𝑊 sel 
+
+In the discrete stage, one semantic token is selected from the candidate pool in each iteration following Eq. (11). This selection step allows us to gradually introduce relevant semantic tokens into the prompt. We then integrate the two stages into a unified alternating optimization procedure, which is conducted for a total of 𝑇 epochs. Specifically, after selecting one token, it is inserted into the prompt, resulting in an updated prompt ̃ 𝑃 .The model is then optimized for 𝑡 epochs via continuous optimization, allowing it to adapt to the newly introduced token. This process repeats until 𝑘 semantic tokens have been incorporated. Once all semantic tokens are selected, the remaining 𝑇 − 𝑘𝑡 epochs are devoted to refining the learnable context vectors while keeping the selected tokens fixed. This alternating strategy mitigates early selection bias, improves the consistency between token semantics and downstream objectives, and ultimately enhances generalization. The pseudocode for our approach is summarized in Algorithm 1, which illustrates the process of semantic token selection and optimization. The algorithm operates in three phases: 
+
+• Semantic Token Selection (lines 2–5): At each iteration, the algorithm selects a new semantic token from 𝑊 cand 
+
+according to Eq. (11).   
+
+> Wang et al.: Preprint Page 7 of 15 Interpretable Prompt Learning
+
+• Alternating Optimization (lines 6–8): After each token is selected, the prompt is updated and the learnable soft prompt tokens are optimized for 𝑡 epochs. 
+
+• Final Refinement (lines 10–12): Once all semantic tokens have been selected, the learnable soft prompt tokens are further optimized for the remaining 𝑇 − 𝑘𝑡 epochs. 
+
+## 5. Experiments and Analysis 
+
+5.1. Setup 
+
+5.1.1. Dataset 
+
+To evaluate both base-to-novel transfer and cross-dataset generalization, we conduct experiments on 11 widely used image classification benchmarks covering diverse recognition scenarios. The evaluation includes generic object recognition (ImageNet (Deng, Dong, Socher, Li, Li and Fei-Fei, 2009), Caltech101 (Fei-Fei, Fergus and Perona, 2004)); fine-grained categorization across animals, vehicles, plants, and food (OxfordPets (Parkhi, Vedaldi, Zisserman and Jawahar, 2012), StanfordCars (Krause, Stark, Deng and Fei-Fei, 2013), Flowers102 (Nilsback and Zisserman, 2008), Food101 (Bossard, Guillaumin and Van Gool, 2014), FGVCAircraft (Maji, Rahtu, Kannala, Blaschko and Vedaldi, 2013)); scene understanding (SUN397 (Xiao, Hays, Ehinger, Oliva and Torralba, 2010)); action recognition (UCF101 (Soomro, Zamir and Shah, 2012)); texture classification (DTD (Cimpoi, Maji, Kokkinos, Mohamed and Vedaldi, 2014)); and remote sensing imagery (EuroSAT (Helber, Bischke, Dengel and Borth, 2019)). To further assess robustness under distribution shifts, we adopt ImageNet as the source dataset and evaluate on four ImageNet variants: ImageNet-V2 (Recht, Roelofs, Schmidt and Shankar, 2019), ImageNet-Sketch (Wang, Ge, Lipton and Xing, 2019), ImageNet-A (Hendrycks, Zhao, Basart, Steinhardt and Song, 2021b), and ImageNet-R (Hendrycks, Basart, Mu, Kadavath, Wang, Dorundo, Desai, Zhu, Parajuli, Guo et al., 2021a). 
+
+5.1.2. Base-to-Novel Generalization 
+
+Following existing protocols, we partition each dataset into base and novel classes, training exclusively on base classes and evaluating on both base and novel test sets. We adopt each baseline’s original optimization schedule for fair comparison, reporting performance on both splits along with their harmonic mean (HM). This setting evaluates the model’s ability to generalize from seen to unseen classes under distribution shifts. 
+
+5.1.3. Cross-dataset Evaluation 
+
+For cross-dataset evaluation, models are trained on ImageNet and evaluated on 10 unseen datasets from diverse domains without additional fine-tuning. We report accuracy on each dataset to assess the model’s ability to transfer knowledge across different data distributions and visual domains. 
+
+5.1.4. Domain Generalization 
+
+To assess domain generalization, we evaluate ImageNet-trained models on four ImageNet variants: ImageNetV2, ImageNet-Sketch, ImageNet-A, and ImageNet-R. We report overall accuracy to measure model performance on out-of-distribution data, which is critical for real-world deployment. 
+
+5.1.5. Implementation Details 
+
+We use CLIP with a ViT-B/16 backbone for all experiments under the 16-shot setting, and report the average results over three runs. For CoOp and MaPLe, each fixed token is paired with 𝑚 = 2 learnable tokens, while other methods use 𝑚 = 4 . Fixed tokens are initialized to zero and then replaced with selected tokens. All experiments are conducted on a single GPU using the original hyperparameter settings. 
+
+5.2. Main Result 
+
+5.2.1. Base-to-Novel Generalization 
+
+We evaluate IPL on five representative baselines, including text-based methods—CoOp (Zhou et al., 2022b), CoCoOp (Zhou et al., 2022a), KgCoOp (Yao et al., 2023), PromptSrc (Khattak, Wasim, Naseer, Khan, Yang and Khan, 2023b)—and the multimodal approach MaPLe (Khattak et al., 2023a). Experiments are conducted on 11 datasets, reporting accuracy on base classes, novel classes, and their harmonic mean to assess generalization. As shown in Table 1, IPL consistently improves HM across all baselines. The most significant gains are observed on CoOp (+4.07%) and CoCoOp (+1.19%). Notable improvements are also achieved on several datasets, such as Flowers102 and EuroSAT, where the latter shows a +8.41% increase on novel classes. These results indicate that   
+
+> Wang et al.: Preprint Page 8 of 15
+
+Interpretable Prompt Learning 
+
+Table 1 
+
+Base-to-Novel Generalization Results 
+
+Methods Average ImageNet Caltech101 OxfordPets Base Novel HM Base Novel HM Base Novel HM Base Novel HM CoOp 82.69 63.22 71.66 76.47 67.88 71.92 98.00 89.81 93.73 93.67 95.29 94.47 
+
++IPL 82.49 70.00 75.73 (+4.07) 76.38 66.07 70.85 (-1.07) 98.00 92.53 95.19 (+1.82) 95.48 96.50 95.99 (+1.52) 
+
+CoCoOp 80.47 71.69 75.83 75.98 70.43 73.10 97.96 93.81 95.84 95.20 97.69 96.43 
+
++IPL 81.52 73.00 77.02 (+1.19) 76.34 70.12 73.10 (+0.00) 97.78 94.79 96.26 (+0.42) 95.85 97.39 96.61 (+0.18) 
+
+KgCoOp 80.73 73.60 77.00 75.83 69.96 72.78 97.72 94.39 96.03 94.65 97.76 96.18 
+
++IPL 80.37 74.43 77.29 (+0.29) 76.17 70.12 73.02 (+0.24) 97.77 94.36 96.03 (+0.00) 95.10 97.96 96.51 (+0.33) 
+
+MaPLe 82.28 75.14 78.55 76.66 70.54 73.47 97.74 94.36 96.02 95.43 97.76 96.58 
+
++IPL 83.51 74.85 78.94 (+0.39) 76.90 70.36 73.48 (+0.01) 98.19 94.18 96.14 (+0.12) 95.59 97.67 96.62 (+0.04) 
+
+PromptSRC 84.26 76.10 79.97 77.60 70.73 74.01 98.10 94.03 96.02 95.33 97.30 96.30 
+
++IPL 84.46 76.58 80.33 (+0.36) 77.69 70.66 74.01 (+0.00) 98.13 94.29 96.17 (+0.15) 95.85 97.61 96.72 (+0.42) 
+
+Methods StanfordCars Flowers102 Food101 FGVCAircraft Base Novel HM Base Novel HM Base Novel HM Base Novel HM CoOp 78.12 60.40 68.13 97.60 59.67 74.06 88.33 82.26 85.19 40.44 22.30 28.75 
+
++IPL 77.38 68.61 72.73 (+4.60) 97.18 70.47 81.70 (+7.64) 89.68 88.93 89.30 (+4.11) 39.10 30.43 34.22 (+5.47) 
+
+CoCoOp 70.49 73.59 72.01 94.87 71.75 81.71 90.70 91.29 90.99 33.41 23.71 27.74 
+
++IPL 73.14 72.47 72.80 (+0.79) 96.26 70.89 82.81 (+1.10) 90.41 91.38 90.89 (-0.10) 36.61 32.33 34.32 (+6.58) 
+
+KgCoOp 71.76 75.04 73.36 95.00 74.73 83.65 90.50 91.70 91.09 36.21 33.55 34.83 
+
++IPL 72.17 74.83 73.47 (+0.11) 93.77 75.68 83.76 (+0.11) 90.52 91.72 91.11 (+0.02) 34.74 35.09 34.91 (+0.08) 
+
+MaPLe 72.94 74.00 73.47 95.92 72.46 82.56 90.71 92.05 91.38 37.44 35.61 36.50 
+
++IPL 76.29 73.35 74.79 (+1.32) 96.24 73.10 83.66 (+1.10) 90.45 91.67 91.05 (-0.33) 40.66 35.71 37.98 (+1.48) 
+
+PromptSRC 78.27 74.97 73.47 98.07 76.50 85.95 90.67 91.53 91.10 42.73 37.87 40.15 
+
++IPL 78.96 75.11 76.99 (+3.52) 97.88 77.97 86.79 (+0.84) 90.75 91.62 91.19 (+0.09) 42.64 38.29 40.33 (+0.18) 
+
+Methods SUN397 DTD EuroSAT UCF101 Base Novel HM Base Novel HM Base Novel HM Base Novel HM CoOp 80.60 65.89 72.51 79.44 41.18 54.24 92.19 54.74 68.69 84.69 56.05 67.46 
+
++IPL 81.16 70.40 75.40 (+2.89) 80.17 52.30 63.30 (+9.06) 89.22 67.73 77.10 (+8.41) 83.68 66.03 73.82 (+6.36) 
+
+CoCoOp 79.74 76.68 78.27 77.01 56.00 64.85 87.49 60.04 71.21 82.33 73.45 77.64 
+
++IPL 80.79 76.64 78.66 (+0.39) 79.32 55.79 65.51 (+0.66) 86.66 66.09 74.59 (+3.38) 83.57 75.07 79.09 (+1.45) 
+
+KgCoOp 80.29 76.53 78.36 77.55 54.99 64.35 85.64 64.34 73.48 82.89 76.67 79.65 
+
++IPL 78.52 78.12 78.32 (-0.04) 75.96 58.09 65.81 (+1.46) 86.58 65.79 74.77 (+1.29) 82.83 76.92 79.77 (+0.12) 
+
+MaPLe 80.82 78.70 79.75 80.36 59.18 68.16 94.07 73.23 82.35 83.00 78.66 80.77 
+
++IPL 81.81 77.83 79.77 (+0.02) 81.33 57.51 67.38 (-0.75) 95.90 75.01 84.01 (+1.66) 85.30 76.96 80.91 (+0.14) 
+
+PromptSRC 82.67 78.47 80.52 83.37 62.97 71.75 92.90 73.90 82.32 87.10 78.89 82.74 
+
++IPL 82.92 78.55 80.68 (+0.16) 84.49 62.14 71.61 (-0.14) 92.73 77.13 84.18 (+1.86) 87.02 79.01 82.82 (+0.08) 
+
+Table 2 
+
+Cross-Dataset Evaluation Results Method Image Net Caltech 101 Oxford Pets Stanford Cars Flowers 102 Food101 FGVC Aircraft SUN397 DTD Euro SAT UCF101 Average CoOp 71.51 93.70 89.14 64.51 68.71 85.30 18.47 64.15 41.92 46.39 66.55 63.88 +IPL 71.67 94.24 90.40 64.61 70.25 85.72 21.87 63.79 43.27 50.83 68.58 65.93 (+2.05) 
+
+CoCoOp 71.02 94.43 90.14 65.32 71.88 86.06 22.94 67.36 45.73 45.37 68.21 65.74 +IPL 71.36 94.13 90.71 65.92 72.12 86.05 23.60 65.11 44.90 49.90 70.09 66.72 (+0.98) 
+
+MaPLe 70.72 93.53 90.49 65.57 72.23 86.20 24.74 67.01 46.49 48.06 68.69 66.30 +IPL 70.77 94.31 90.79 65.82 72.59 86.16 24.18 67.08 45.73 52.46 69.13 66.99 (+0.69) 
+
+IPL consistently enhances the balance between base and novel performance, demonstrating strong robustness and generalization across diverse scenarios. 
+
+5.2.2. Cross-dataset Evaluation 
+
+We further evaluate three representative baselines under a cross-dataset setting, where models are trained on ImageNet and tested on unseen datasets from different domains. This setting is particularly challenging due to substantial distribution shifts (e.g., from fine-grained object recognition to scene classification). Detailed results are reported in Table 2. Incorporating IPL leads to consistent performance gains, with average improvements of +2.05%, +0.98%, and +0.69% for CoOp, CoCoOp, and MaPLe, respectively. Most datasets show clear improvements, indicating that IPL effectively enhances both model adaptability and zero-shot generalization ability. 
+
+Wang et al.: Preprint Page 9 of 15 Interpretable Prompt Learning                                            
+
+> Table 3
+> Domain Generalization Results Methods Source Target Dataset Average ImageNet -V2 -S -A -R CoOp 71.51 64.20 47.99 49.71 75.21 59.28 +IPL 71.67 64.34 48.70 50.64 76.10 59.94 (+0.66) CoCoOp 71.02 64.07 48.75 50.63 76.18 59.91 +IPL 71.36 64.42 49.08 51.00 76.66 60.29 (+0.38) MaPLe 70.72 64.07 49.15 50.96 76.98 60.27 +IPL 70.77 64.11 49.27 51.24 77.44 60.52 (+0.25)
+
+5.2.3. Domain Generalization 
+
+To evaluate domain generalization, we integrate IPL into CoOp, CoCoOp, and MaPLe, train them on ImageNet, and test them on four out-of-domain datasets. As shown in Table 3, IPL consistently improves performance, yielding gains of +0.66%, +0.38%, and +0.25% for the three baselines, respectively. These results demonstrate that IPL effectively enhances model robustness under domain shift and provides consistent benefits for domain generalization. 
+
+5.3. Further Analysis 
+
+5.3.1. Semantic Alignment of Selected Tokens 
+
+To illustrate the clarity and relevance of the identified tokens, Table 4 presents the token selections across all datasets, together with human-annotated semantic relevance scores. The scores are provided by three annotators with undergraduate degrees, good English proficiency, and familiarity with the dataset contents. Each annotator rates the relevance between the selected tokens and the corresponding dataset on a 5-point scale, and the final score is obtained by averaging their ratings. For OxfordPets , the tokens convey physical traits and care-related concepts; in FGVCAircraft , they relate to aircraft functionality and passenger experience; for Flower102 , they describe morphological features and aesthetic qualities; in UCF101 , they capture action dynamics and situational contexts; in EuroSAT , the selected token highlights the dominance of color cues and surface patterns in satellite imagery; and in DTD , the token “heather” reflects texture regularity and fine-grained material appearance. Overall, these examples show that our method can select tokens that are semantically rich and closely related to the conceptual, visual, and functional characteristics of each dataset, leading to more interpretable visual-textual associations. However, for some datasets, the selected tokens are less informative, mainly due to high intra-class diversity or broad semantic coverage, as in SUN397 and ImageNet . Many of these words have relatively low similarity scores, often around 0.5 (e.g., “social” with other candidate tokens), suggesting that the model tends to favor diversity when strong semantic cues are limited. Compared with CoOp (Zhou et al., 2022b), which learns continuous context vectors without explicit semantic grounding, the nearest words retrieved from its embeddings (Table 4) often show limited visual relevance, including meaningless or dataset-specific fragments such as “tosc,” “.#,” or “nytimes.” In contrast, IPL’s discrete tokens are more consistent with domain semantics and receive higher human relevance scores in most cases, providing clearer and more interpretable associations between visual and textual concepts. 
+
+5.3.2. Diversity Penalty 
+
+To evaluate the effect of diversity regularization, we remove the diversity penalty term from the token selection objective and conduct experiments on 11 benchmark datasets, using CoOp as the baseline under the same base-to-novel setting. As shown in Table 5, incorporating the diversity penalty consistently improves HM accuracy, suggesting its benefit for generalization. While base-class accuracy remains similar or slightly decreases, novel-class accuracy generally improves. Without this regularization, the selected tokens tend to overfit the semantics of base classes, limiting transfer to unseen categories. These results indicate that the diversity penalty helps promote a richer and more transferable set of semantic tokens. Following the analysis in the previous section, we set 𝜆 to 0.2 for datasets with clearer semantics (e.g., OxfordPets and Flowers102) and 0.1 for datasets with broader or less explicit semantics. However, when 𝜆 is set too high (e.g., above 0.4), its effect becomes overly strong, especially on high-accuracy datasets such as Caltech101. In this case, the model tends to select less relevant tokens in pursuit of diversity, which reduces interpretability and weakens   
+
+> Wang et al.: Preprint Page 10 of 15
+
+Interpretable Prompt Learning 
+
+Table 4 
+
+Selected tokens for different datasets with human-annotated semantic relevance scores (1–5). Dataset Selected Tokens IPL Score CoOp Tokens CoOp Score 
+
+OxfordPets furry, veterinary, adopt 5 tosc, enjoyment 2
+
+Flower102 flowering, tilted, stunning 4 - -
+
+FGVCAircraft comfortable, touchdown 4 - -
+
+UCF101 simulation, reaction, turning 4 facial, meteorologist 2
+
+EuroSAT blue 3 - -
+
+StanfordCars departure 3 - -
+
+Food101 sweating, social 2 nytimes, lc 1
+
+DTD heather, title, phone 2 honey, series 1ImageNet visit, social 1 .#, potd 1Caltech101 fascism, social, pile 1 - -SUN397 excluding 1 - -
+
+Table 5 
+
+Effect of Removing Diversity Penalty on Model Performance                                                                                                                        
+
+> Dataset HM Base New w/ Penalty w/o Penalty Δw/ Penalty w/o Penalty Δw/ Penalty w/o Penalty Δ
+> ImageNet 70.85 69.33 +1.52 76.38 76.11 +0.27 66.07 63.67 +2.40 Caltech101 95.19 94.28 +0.91 98.00 98.06 -0.06 92.53 90.97 +1.56 OxfordPets 97.18 94.52 +2.66 95.48 95.00 +0.48 96.50 94.18 +2.32 StanfordCars 73.73 72.36 +1.37 77.38 78.20 -0.82 68.61 67.35 +1.26 Flowers102 81.70 80.53 +1.17 97.18 97.56 -0.38 70.47 68.70 +1.77 Food101 89.30 88.33 +0.97 89.68 88.84 +0.84 88.93 87.87 +1.06 FGVCAircraft 34.22 32.75 +1.47 39.10 40.68 -1.58 30.43 27.59 +2.84 SUN397 75.40 72.57 +2.83 81.16 81.02 +0.14 70.40 65.72 +4.68 DTD 63.30 62.03 +1.27 80.17 80.25 -0.08 52.30 50.60 +1.70 EuroSAT 77.10 69.87 +7.23 89.22 90.49 -1.27 67.73 56.99 +10.74 UCF101 73.82 71.36 +2.46 83.68 84.64 -0.96 66.03 61.69 +4.34
+> Average 75.62 73.45 +2.17 82.49 82.80 -0.31 70.00 66.85 +3.15
+
+generalization. These findings highlight the importance of properly balancing the diversity penalty to achieve effective transfer across datasets. 
+
+5.3.3. Token Quantity 
+
+To further analyze the effect of token quantity, we vary the number of selected tokens 𝑘 and examine the resulting model behavior. While increasing 𝑘 enhances the semantic expressiveness of the prompt, we observe a continued reduction in the token selection loss Lsel beyond six tokens, indicating limited additional gains in semantic alignment. However, this reduction in Lsel does not lead to improved classification performance. Instead, inserting too many tokens tends to saturate the prompt space and introduce redundant or weakly relevant concepts. To balance expressiveness and efficiency, we conduct a controlled evaluation across all datasets by varying 
+
+𝑘 ∈ {1 , … , 6} , and select the token quantity for each dataset based on training performance. Since the training and test sets are strictly separated, this selection does not involve any test-time information. This adaptive strategy ensures that the number of inserted semantic tokens is sufficient to capture dataset-specific representations while avoiding unnecessary prompt complexity that may hinder generalization. 
+
+5.3.4. Alternating Epochs 
+
+We study the effect of the alternating interval 𝑡 on representative baselines with relatively long training schedules, namely CoOp and KgCoOp, both trained for 100 epochs. We vary 𝑡 ∈ {5 , 7, 10 , 13 , 15 , 17 , 20} , where 𝑡 denotes the number of standard optimization epochs between two alternating updates. As shown in Figure 3, 𝑡 = 10 consistently achieves the best or near-best HM accuracy on these baselines, indicating a favorable trade-off between base and novel performance. Both smaller and larger values of 𝑡 lead to slight performance degradation, suggesting that an appropriate update frequency is important. For the other baselines, whose training schedules involve relatively few optimization epochs, the number of alternating updates is inherently limited. In such cases, varying 𝑡 does not provide a meaningful sensitivity analysis, 
+
+Wang et al.: Preprint Page 11 of 15 Interpretable Prompt Learning     
+
+> Figure 3: Effect of alternating interval 𝑡 on HM accuracy averaged over 11 datasets. The best performance is obtained at
+> 𝑡 =10 , suggesting that balanced update scheduling benefits prompt learning stability and effectiveness.
+> Figure 4: Comparison of GPU utilization, p95 utilization, and duty cycle between CoOp and CoOp+IPL. CoOp+IPL introduces only modest increases in GPU usage across all three metrics.
+
+as different choices result in only a small number of updates. We therefore set 𝑡 = 1 to apply semantic refinement as frequently as possible while preserving consistency with their original optimization protocols. 
+
+5.3.5. Runtime and Overhead 
+
+We evaluate the computational overhead introduced by the semantic token selection module in IPL. Across the 11 datasets used in our experiments, with a candidate vocabulary of 8,883 words, one full greedy traversal takes 252 seconds on average. Since each traversal evaluates candidate tokens in the same manner, the computational cost grows approximately linearly with the size of the candidate pool. In practice, this cost can be further reduced by restricting the pool to a more task-specific vocabulary. The evaluation of candidate tokens is also amenable to parallelization. Specifically, if 𝐵 candidates are processed simultaneously, the wall-clock time can in principle be reduced by a factor close to 𝐵 , subject to GPU memory and implementation overhead. Therefore, the reported runtime should be viewed as a conservative estimate under a standard sequential implementation, while additional acceleration is possible when hardware resources permit. To further quantify the training overhead introduced by IPL, we monitor GPU behavior during training. As shown in Figure 4, compared with CoOp, CoOp+IPL results in modest increases in three GPU metrics: average utilization, high-percentile utilization, and the duty ratio above 50%. These metrics reflect overall load, peak demand, and the proportion of time the GPU remains actively engaged, respectively. The consistent trend across all three metrics indicates that incorporating IPL leads to only a limited increase in training-time GPU demand. In addition, the peak memory footprint increases from 3.69 GB to 4.66 GB, which remains modest and does not affect training feasibility on standard GPUs.   
+
+> Wang et al.: Preprint Page 12 of 15
+
+Interpretable Prompt Learning 
+
+Table 6 
+
+Impact of Template Choice on Harmonic Mean Accuracy Template Caltech101 OxfordPets DTD “with emphasis on:” 95.19 95.99 63.30 
+
+“focusing on:” 94.77 93.84 61.22 “showcasing:” 94.50 95.76 60.11 “with following aspects:” 95.08 94.15 62.96 
+
+Overall, these results show that the additional cost of IPL is small relative to the full training pipeline, and that the greedy token selection stage remains lightweight in practice, even under shared or resource-constrained GPU environments. 
+
+5.3.6. Selecting Templates 
+
+To further study the effect of template design in Subsection 4.2, we conduct an ablation study on three representative datasets using CoOp as the baseline. All variants are built upon the conventional prompt form “a photo of a [CLS]”, with different extended templates used to introduce the selected tokens. Since different templates provide different contextual priors, they may lead to different token selections and thus different downstream performance. As shown in Table 6, the template “with emphasis on” consistently outperforms the other variants and yields the best harmonic mean accuracy on all three datasets. Based on this observation, we adopt “a photo of a [CLS], with emphasis on: [...]” as the default template in all experiments. Beyond the final accuracy differences, template choice also influences the semantic tendency of token selection. Different templates reshape the contextual relationship between the class name and candidate words, thereby affecting their relative similarity ranking in the text embedding space. In our experiments, the template “with emphasis on” tends to favor more salient and dataset-relevant attributes, whereas other templates more often lead to generic or descriptive words. This suggests that template design affects not only classification performance but also the type of semantic features that are more likely to be selected. 
+
+## 6. Conclusion and Future Work 
+
+Adapting large-scale vision–language models to downstream tasks remains challenging due to overfitting under limited supervision and the lack of explicit semantics in learned prompts. Although prompt learning offers a parameter-efficient adaptation paradigm, the resulting prompts are often difficult to interpret, which can limit transferability and weaken generalization to novel categories. To address these issues, we propose IPL, a prompt learning framework that embeds selected semantic tokens into continuous prompts, improving interpretability while alleviating overfitting to base classes. Extensive experiments on 11 datasets demonstrate consistent gains over strong baselines, including an average improvement of +1.26% in harmonic mean for base-to-novel generalization. Additional improvements in cross-dataset and domain generalization further verify the robustness of our method. As a plug-and-play enhancement to existing prompt learning methods, IPL achieves better performance with only modest overhead, demonstrating both effectiveness and practicality. Looking ahead, future work will investigate the incorporation of more dynamic and context-sensitive semantic priors to further enhance the flexibility and expressiveness of prompt representations. While our current design relies on handcrafted selection templates that perform well empirically, they remain static and lack adaptation to different contexts. In addition, we plan to extend our approach to broader modalities and domains, such as video-language understanding and medical imaging, where the dual objectives of interpretability and generalization remain paramount. 
+
+## References 
+
+> Ajayi, T., Lee, T., Schaefer, A., 2019. Approximate submodularity and its implications in discrete optimization. arXiv:1901.09209 . Alayrac, J.B., Donahue, J., Luc, P., Miech, A., Barr, I., Hasson, Y., Lenc, K., Mensch, A., Millican, K., Reynolds, M., et al., 2022. Flamingo: a visual language model for few-shot learning. Proc. Adv. Neural Inf. Process. Syst. 35, 23716–23736. Bian, A.A., Buhmann, J.M., Krause, A., Tschiatschek, S., 2017. Guarantees for greedy maximization of non-submodular functions with applications, in: Proc. Int. Conf. Mach. Learn., pp. 498–507. Bird, S., Klein, E., Loper, E., 2009. Natural language processing with Python: analyzing text with the natural language toolkit. " O’Reilly Media, Inc.".
+
+Wang et al.: Preprint Page 13 of 15 Interpretable Prompt Learning 
+
+Bossard, L., Guillaumin, M., Van Gool, L., 2014. Food-101–mining discriminative components with random forests, in: Proc. Eur. Conf. Comput. Vis., pp. 446–461. Chierichetti, F., Dasgupta, A., Kumar, R., 2022. On additive approximate submodularity. Theor. Comput. Sci. 922, 346–360. Cimpoi, M., Maji, S., Kokkinos, I., Mohamed, S., Vedaldi, A., 2014. Describing textures in the wild, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 3606–3613. Cui, F., Zhang, Y., Wang, X., Wang, X., Xiao, L., 2025. Generalizable prompt learning of clip: A brief overview. arXiv preprint arXiv:2503.01263 .Danish, S., Sadeghi-Niaraki, A., Khan, S.U., Dang, L.M., Tightiz, L., Moon, H., 2025. A comprehensive survey of vision–language models: Pretrained models, fine-tuning, prompt engineering, adapters, and benchmark datasets. Information Fusion . Das, A., Kempe, D., 2018. Approximate submodularity and its applications: Subset selection, sparse approximation and dictionary selection. J. Mach. Learn. Res. 19, 1–34. Deng, J., Dong, W., Socher, R., Li, L.J., Li, K., Fei-Fei, L., 2009. Imagenet: A large-scale hierarchical image database, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 248–255. Ding, T., Li, W., Miao, Z., Pfister, H., 2024. Tree of attributes prompt learning for vision-language models. arXiv:2410.11201 . Du, Y., Sun, W., Snoek, C., 2024. Ipo: Interpretable prompt optimization for vision-language models. Proc. Adv. Neural Inf. Process. Syst. 37, 126725–126766. Dughmi, S., 2009. Submodular functions: Extensions, distributions, and algorithms. a survey. arXiv:0912.0322 . Fei-Fei, L., Fergus, R., Perona, P., 2004. Learning generative visual models from few training examples: An incremental bayesian approach tested on 101 object categories, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit. Workshop, pp. 178–178. Ghosal, S.S., Basu, S., Feizi, S., Manocha, D., 2024. Intcoop: Interpretability-aware vision-language prompt tuning. arXiv:2406.13683 . Golovin, D., Krause, A., 2011. Adaptive submodularity: Theory and applications in active learning and stochastic optimization. J. Artif. Intell. Res. 42, 427–486. Helber, P., Bischke, B., Dengel, A., Borth, D., 2019. Eurosat: A novel dataset and deep learning benchmark for land use and land cover classification. IEEE J. Sel. Topics Appl. Earth Observ. Remote Sens. 12, 2217–2226. Hendrycks, D., Basart, S., Mu, N., Kadavath, S., Wang, F., Dorundo, E., Desai, R., Zhu, T., Parajuli, S., Guo, M., et al., 2021a. The many faces of robustness: A critical analysis of out-of-distribution generalization, in: Proc. IEEE/CVF Int. Conf. Comput. Vis., pp. 8340–8349. Hendrycks, D., Zhao, K., Basart, S., Steinhardt, J., Song, D., 2021b. Natural adversarial examples, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 15262–15271. Horel, T., Singer, Y., 2016. Maximization of approximately submodular functions. Proc. Adv. Neural Inf. Process. Syst. 29. Jia, C., Yang, Y., Xia, Y., Chen, Y.T., Parekh, Z., Pham, H., Le, Q., Sung, Y.H., Li, Z., Duerig, T., 2021. Scaling up visual and vision-language representation learning with noisy text supervision, in: Proc. Int. Conf. Mach. Learn., pp. 4904–4916. Jia, M., Tang, L., Chen, B.C., Cardie, C., Belongie, S., Hariharan, B., Lim, S.N., 2022. Visual prompt tuning, in: Proc. Eur. Conf. Comput. Vis., pp. 709–727. Khattak, M.U., Rasheed, H., Maaz, M., Khan, S., Khan, F.S., 2023a. Maple: Multi-modal prompt learning, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 19113–19122. Khattak, M.U., Wasim, S.T., Naseer, M., Khan, S., Yang, M.H., Khan, F.S., 2023b. Self-regulating prompts: Foundational model adaptation without forgetting, in: Proc. IEEE/CVF Int. Conf. Comput. Vis., pp. 15190–15200. Killamsetty, K., Sivasubramanian, D., Ramakrishnan, G., Iyer, R., 2021. Glister: Generalization based data subset selection for efficient and robust learning, in: Proc. AAAI Conf. Artif. Intell., pp. 8110–8118. Kim, G., Kim, S., Lee, S., 2024. Aapl: Adding attributes to prompt learning for vision-language models, in: Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit., pp. 1572–1582. Kothawade, S.N., Beck, N.A., Killamsetty, K., Iyer, R.K., 2021. SIMILAR: Submodular information measures based active learning in realistic scenarios, in: Beygelzimer, A., Dauphin, Y., Liang, P., Vaughan, J.W. (Eds.), Proc. Adv. Neural Inf. Process. Syst. URL: https://openreview. net/forum?id=x_n34KpwAvI .Krause, A., Golovin, D., 2014. Submodular function maximization. Tractability 3, 3. Krause, J., Stark, M., Deng, J., Fei-Fei, L., 2013. 3d object representations for fine-grained categorization, in: Proc. IEEE/CVF Int. Conf. Comput. Vis. Workshops, pp. 554–561. Li, J., Li, D., Savarese, S., Hoi, S., 2023. Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models, in: Proc. Int. Conf. Mach. Learn., pp. 19730–19742. Li, J., Li, D., Xiong, C., Hoi, S., 2022. Blip: Bootstrapping language-image pre-training for unified vision-language understanding and generation, in: Proc. Int. Conf. Mach. Learn., pp. 12888–12900. Li, T., Zhang, G., Do, Q.D., Yue, X., Chen, W., 2025a. Long-context LLMs struggle with long in-context learning. Trans. Mach. Learn. Res. URL: 
+
+https://openreview.net/forum?id=Cw2xlg0e46 .Li, Z., Song, Y., Cheng, M.M., Li, X., Yang, J., 2025b. Advancing textual prompt learning with anchored attributes, in: Proceedings of the IEEE/CVF International Conference on Computer Vision, pp. 3618–3627. Liu, N.F., et al., 2023. Lost in the middle: How language models use long contexts. arXiv:2307.03172 . Liu, S., Cheng, H., Liu, H., Zhang, H., Li, F., Ren, T., Zou, X., Yang, J., Su, H., Zhu, J., et al., 2024. Llava-plus: Learning to use tools for creating multimodal agents, in: Proc. Eur. Conf. Comput. Vis., pp. 126–142. Liu, Y., Chong, E.K., Pezeshki, A., Zhang, Z., 2020. Submodular optimization problems and greedy strategies: A survey. Discrete Event Dynamic Systems 30, 381–412. Ma, C., Liu, Y., Deng, J., Xie, L., Dong, W., Xu, C., 2023. Understanding and mitigating overfitting in prompt tuning for vision-language models. IEEE Trans. Circuits Syst. Video Technol. 33, 4616–4629. Maji, S., Rahtu, E., Kannala, J., Blaschko, M., Vedaldi, A., 2013. Fine-grained visual classification of aircraft. arXiv:1306.5151 . Miller, G.A., 1995. Wordnet: A lexical database for english. Communications of the ACM 38, 39–41. doi: 10.1145/219717.219748 .
+
+Wang et al.: Preprint Page 14 of 15 Interpretable Prompt Learning 
+
+Mitrovic, M., Kazemi, E., Zadimoghaddam, M., Karbasi, A., 2018. Data summarization at scale: A two-stage submodular approach, in: Proc. Int. Conf. Mach. Learn., pp. 3596–3605. Nemhauser, G.L., Wolsey, L.A., Fisher, M.L., 1978. An analysis of approximations for maximizing submodular set functions—i. Math. Program. 14, 265–294. Nilsback, M.E., Zisserman, A., 2008. Automated flower classification over a large number of classes, in: Proc. IEEE 6th Indian Conf. Comput. Vis. Graph. Image Process., pp. 722–729. Park, J., Ko, J., Kim, H.J., 2024. Prompt learning via meta-regularization, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 26940–26950. Parkhi, O.M., Vedaldi, A., Zisserman, A., Jawahar, C., 2012. Cats and dogs, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 3498–3505. Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., et al., 2021. Learning transferable visual models from natural language supervision, in: Proc. Int. Conf. Mach. Learn., pp. 8748–8763. Recht, B., Roelofs, R., Schmidt, L., Shankar, V., 2019. Do imagenet classifiers generalize to imagenet?, in: Proc. Int. Conf. Mach. Learn., pp. 5389–5400. Schreiber, J., Bilmes, J., Noble, W.S., 2020. apricot: Submodular selection for data summarization in python. J. Mach. Learn. Res. 21, 1–6. Shinde, G., Ravi, A., Dey, E., Sakib, S., Rampure, M., Roy, N., 2025. A survey on efficient vision-language models. Wiley Interdisciplinary Reviews: Data Mining and Knowledge Discovery 15, e70036. Soomro, K., Zamir, A.R., Shah, M., 2012. Ucf101: A dataset of 101 human actions classes from videos in the wild. arXiv:1212.0402 . Sung, Y.L., Cho, J., Bansal, M., 2022. Vl-adapter: Parameter-efficient transfer learning for vision-and-language tasks, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 5227–5237. Tschiatschek, S., Iyer, R.K., Wei, H., Bilmes, J.A., 2014. Learning mixtures of submodular functions for image collection summarization. Proc. Adv. Neural Inf. Process. Syst. 27. Van Heuven, W.J., Mandera, P., Keuleers, E., Brysbaert, M., 2014. Subtlex-uk: A new and improved word frequency database for british english. Q. J. Exp. Psychol. 67, 1176–1190. Wang, H., Ge, S., Lipton, Z., Xing, E.P., 2019. Learning robust global representations by penalizing local predictive power. Proc. Adv. Neural Inf. Process. Syst. 32. Xiao, J., Hays, J., Ehinger, K.A., Oliva, A., Torralba, A., 2010. Sun database: Large-scale scene recognition from abbey to zoo, in: Proc. IEEE Comput. Soc. Conf. Comput. Vis. Pattern Recognit., pp. 3485–3492. Xing, Y., Wu, Q., Cheng, D., Zhang, S., Liang, G., Wang, P., Zhang, Y., 2024. Dual modality prompt tuning for vision-language pre-trained model. IEEE Trans. Multimedia 26, 2056–2068. doi: 10.1109/TMM.2023.3291588 .Yang, L., Zhang, R.Y., Wang, Y., Xie, X., 2024. Mma: Multi-modal adapter for vision-language models, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 23826–23837. Yao, H., Zhang, R., Xu, C., 2023. Visual-language prompt tuning with knowledge-guided context optimization, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 6757–6767. Yao, L., Huang, R., Hou, L., Lu, G., Niu, M., Xu, H., Liang, X., Li, Z., Jiang, X., Xu, C., 2021. Filip: Fine-grained interactive language-image pre-training. arXiv:2111.07783 . Yu, J., Wang, Z., Vasudevan, V., Yeung, L., Seyedhosseini, M., Wu, Y., 2022. Coca: Contrastive captioners are image-text foundation models. arXiv:2205.01917 . Yuan, L., Chen, D., Chen, Y.L., Codella, N., Dai, X., Gao, J., Hu, H., Huang, X., Li, B., Li, C., et al., 2021. Florence: A new foundation model for computer vision. arXiv:2111.11432 . Zhai, X., Wang, X., Mustafa, B., Steiner, A., Keysers, D., Kolesnikov, A., Beyer, L., 2022. Lit: Zero-shot transfer with locked-image text tuning, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 18123–18133. Zhang, W., Wu, L., Zhang, Z., Yu, T., Ma, C., Jin, X., Yang, X., Zeng, W., 2025. Unleash the power of vision-language models by visual attention prompt and multimodal interaction. IEEE Trans. Multimedia 27, 2399–2411. doi: 10.1109/TMM.2024.3521785 .Zheng, Y., Wang, S., Gao, Y., 2025. Group-guided prompt learning for vision-language models. Expert Systems with Applications , 129846. Zhou, K., Yang, J., Loy, C.C., Liu, Z., 2022a. Conditional prompt learning for vision-language models, in: Proc. IEEE Conf. Comput. Vis. Pattern Recognit., pp. 16816–16825. Zhou, K., Yang, J., Loy, C.C., Liu, Z., 2022b. Learning to prompt for vision-language models. Int. J. Comput. Vis. 130, 2337–2348. Zhu, Y., 2024. Submodular optimization: Variants, theory and applications, in: CIKM, pp. 5503–5506. 
+
+Wang et al.: Preprint Page 15 of 15

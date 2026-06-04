@@ -1,0 +1,960 @@
+Title: Strategy-Induct: Task-Level Strategy Induction for Instruction Generation
+
+URL Source: https://arxiv.org/pdf/2605.20924v1
+
+Published Time: Thu, 21 May 2026 00:51:43 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+## STRATEGY -I NDUCT : Task-Level Strategy Induction for Instruction Generation 
+
+Po-Chun Chen 1 Hen-Hsen Huang 2 Hsin-Hsi Chen 1,3 
+
+> 1
+
+Department of Computer Science and Information Engineering, National Taiwan University, Taiwan 
+
+> 2
+
+Institute of Information Science, Academia Sinica, Taiwan 
+
+> 3
+
+AI Research Center (AINTU), National Taiwan University, Taiwan 
+
+pcchen@nlg.csie.ntu.edu.tw, hhhuang@iis.sinica.edu.tw, hhchen@ntu.edu.tw 
+
+Abstract 
+
+Designing effective task-level prompts is cru-cial for improving the performance of Large Language Models (LLMs). While prior work on instruction induction demonstrates that LLMs can infer better instructions with limited examples, existing approaches often rely on input-output pairs, where obtaining labeled an-swers can be difficult or costly. To address this limitation, we propose S TRATEGY -I NDUCT , a framework that derives task-level instructions solely from a small set of example questions without requiring labeled answers. Our ap-proach first prompts the model to generate ex-plicit reasoning strategies for each question, forming (strategy, question) pairs. These pairs are then used to induce a task instruction that guides reasoning. Experiments across multi-ple tasks and model scales demonstrate that STRATEGY -I NDUCT outperforms state-of-the-art methods in question-only settings. Further-more, we observe that jointly utilizing LLMs and Large Reasoning Models across task in-struction generation and inference may lead to further performance improvements. 
+
+1 Introduction 
+
+Large language models (LLMs) have achieved re-markable progress in natural language processing, demonstrating strong capabilities in understand-ing, generating, and reasoning (Brown et al., 2020; Wei et al., 2022a; Chen et al., 2023; Wei et al., 2023; OpenAI, 2023). Providing high-quality task instructions is essential for enabling LLMs to effec-tively perform tasks, as well-designed instructions can significantly enhance accuracy and consistency. However, designing high-quality task instructions is challenging, as it often requires domain expertise and extensive manual effort. Honovich et al. (2023) showed that LLMs can induce task instructions from input-output pairs, a process known as instruction induction . Building on this concept, subsequent studies have explored automated task instruction generation (Zhou et al., 2022; Chen et al., 2024a; Hsieh et al., 2024). While effective, these methods often rely on large external resources or an initial instruction prompt, making them less practical for users with limited data or prompt-writing skills (Desmond and Brachman, 2024). Moreover, their optimized instructions are often model-specific, limiting generalization across architectures. To address these limitations, recent studies have explored low-cost instruction induction methods that require only a small number of examples (Chen et al., 2024b; Zhou et al., 2024; Aswani et al., 2024), allowing LLMs to induce effective task instructions to improve inference performance. While Chen et al. (2024b) demonstrates that LLMs can generate better instructions using limited ex-amples and even exhibit cross-model adaptability, their approach still heavily relies on input-output pairs. In real-world applications, such reliance may be impractical, as obtaining labeled answers can often be difficult or costly. To overcome these challenges, we propose STRATEGY -I NDUCT , a framework that generates task instructions solely from input questions, elim-inating the need for labeled answers. Instead of relying on input-output pairs, it creates strategies for each example question and induces a task-level instruction from these strategy-question pairs. As mentioned earlier, general users often lack the prompt-writing skills needed to communicate effectively with LLMs, making it challenging to craft well-formed and complete instructions. To address this, we adopt the Short Phrase Prompting concept proposed by Chen et al. (2024b), where a brief task description helps convey task intent. A Short Phrase can be used alongside a minimal user query when needed, or omitted if the question is al-ready self-explanatory. The specific Short Phrases used in our experiments are listed in Appendix D.       
+
+> arXiv:2605.20924v1 [cs.CL] 20 May 2026 Question-Strategy Pairs
+> (s 1, x 1)
+> (s 2, x 2)
+> ...
+> (s N, x N)
+> d
+> PSTRATEGY -I NDUCT
+> ...
+> d, x 1
+> d, x 2
+> d, x N
+> INDUCT Stage STRATEGY Stage
+> s1
+> s2
+> sN
+> Inference Stage
+> x*
+> y*
+> si: strategy
+> LLM
+> LLM
+> LLM
+> LLM LLM
+> PSTRATEGY -I NDUCT
+> d : Short Phrase
+> (Optional )
+> d : Short Phrase (Optional )
+
+Figure 1: Our proposed S TRATEGY -I NDUCT framework for strategy-based instruction induction. The framework consists of three stages: (1) Strategy Stage , where the LLM generates strategies ( si) for given inputs ( xi). (2) 
+
+INDUCT Stage , where question-strategy pairs ( (si, x i)) are combined with meta prompts and short phrases to generate an induced prompt ( PSTRATEGY -I NDUCT ). (3) Inference Stage , where PSTRATEGY -I NDUCT is used in inference to guide the LLM in solving a new question (x*) in the same task. 
+
+STRATEGY -I NDUCT provides several advan-tages. First, it enables instruction induction in question-only settings, addressing the critical chal-lenge of missing labeled outputs. Second, un-like prompt optimization approaches, S TRATEGY -INDUCT generates instructions that generalize across different models without requiring task-specific fine-tuning. We evaluate S TRATEGY -I NDUCT in question-only scenarios, where each task provides a set of example questions without answers. Our exper-iments cover multiple datasets, including BBH-Induct, Evals-Induct, and the Shift Cipher Task. Our results show that S TRATEGY -I NDUCT sur-passes existing SOTA methods. Furthermore, we analyze its effectiveness across different LLM fam-ilies (e.g., Llama, Mistral, GPT, Gemini), model scales, and model types, including both LLMs and Large Reasoning Models (LRMs), such as GPT o3 mini, demonstrating its scalability and robustness. 
+
+2 STRATEGY -I NDUCT Framework 
+
+Existing instruction induction methods such as INDUCT-LEARN (Chen et al., 2024b) require labeled input-output pairs to induce task instruc-tions. However, obtaining correct answers can be costly or infeasible in many practical scenarios. STRATEGY -I NDUCT removes this requirement by operating in a question-only setting. The key en-abler is the S TRATEGY stage, which generates rea-soning strategies for each question, providing the structured signal that labeled outputs would other-wise supply for the subsequent induction step. In this section, we formally describe S TRATEGY -INDUCT , a framework for task-level strategy in-duction that induces task instructions from input questions without requiring labeled answers. It consists of three stages: Strategy, Induct, and Infer-ence. The following subsections define each stage (see Figure 1 for an overview). 
+
+2.1 STRATEGY Stage 
+
+The goal of this stage is to generate a reasoning strategy si for each input question xi. Given a set of N input questions from the same task :
+
+X = {x1, x 2, . . . , x N } (1) Each xi is a task-specific question. The LLM is prompted with a meta prompt PS, the question 
+
+xi, and optionally a task-level Short Phrase d (a brief task description) to produce the corresponding reasoning strategy: 
+
+si = LLM (PS, d, x i) (2) Repeating this process for each xi ∈ X produces a set of strategy-question pairs: 
+
+S = {(s1, x 1), (s2, x 2), . . . , (sN , x N )} (3) The next stage takes S as input to induce a task-level instruction prompt. 
+
+2.2 INDUCT Stage 
+
+In this stage, we construct an induced prompt 
+
+PSTRATEGY -I NDUCT using the collected strategy-question pairs. Specifically, the LLM is prompted with a meta prompt PI, the Short Phrase d, and the set S to induce a task-level instruction. 
+
+PSTRATEGY -I NDUCT = LLM (PI, d, S) (4) The resulting PSTRATEGY -I NDUCT is a reusable task-level prompt applicable to other questions within the same task. 2.3 Inference Stage 
+
+At inference time, the induced prompt 
+
+PSTRATEGY -I NDUCT is used to solve new ques-tions within the same task. Given a new question 
+
+x∗, the LLM generates a response: 
+
+y∗ = LLM (PSTRATEGY -I NDUCT , x ∗) (5) where y∗ is the model’s response. Thus, 
+
+PSTRATEGY -I NDUCT can be reused across questions within the same task. 
+
+3 Experiments 
+
+3.1 Models 
+
+We conduct experiments using 18 models, span-ning four LLM series and two LRMs, covering both open-source and proprietary models. Further details on model versions and configurations are provided in Appendix B. 
+
+3.2 Datasets 
+
+We adopt the datasets used in prior state-of-the-art instruction induction methods (Chen et al., 2024b), ensuring comparability with existing approaches. 
+
+BBH-Induct This dataset is adapted from the BIG-Bench Hard (BBH) benchmark (Suzgun et al., 2022), a suite of tasks that current LLMs struggle to match average human performance. It comprises 23 tasks totaling 5,161 instances, covering diverse reasoning challenges including logical deduction, spatial reasoning, and language understanding. 
+
+Evals-Induct Derived from the OpenAI Evals project, this dataset features 24 challenging tasks that are beyond the capabilities of state-of-the-art models. Each task contains approximately 91 to 378 examples, totaling 3,683 instances. 
+
+Shift Cipher Task We additionally include the Shift Cipher Task (Prabhakar et al., 2024) to as-sess the effectiveness of our approach on symbolic reasoning tasks. This task involves decoding text encrypted with a shift cipher, where each letter is replaced by another a fixed number of positions ear-lier in the alphabet. The dataset includes cases with shifts ranging from k = 1 to 25 , requiring mod-els to generalize across different rotation values. Each example consists of a seven-letter word en-coded with a shift cipher. Following Prabhakar et al. (2024), we use words from the highest-probability bin (Bin 1), where words are ranked by GPT-2 log probability and may include non-standard forms that are frequent in pre-training corpora but not necessarily valid English words. For instance, a case with shift _level = 3 , also known as ROT-3, requires decoding “fkrrvhg” back to “choosed” by shifting each letter 3 positions backward: f → c, k
+
+→ h, r → o, and so on. Further details on all datasets are provided in Table 8 to 10 in the Appendix. 
+
+3.3 Baselines ZCoT We apply Zero-shot Chain-of-Thought (Kojima et al., 2022) using Short Phrase Instruc-tions, where the model receives only a short phrase as guidance for reasoning. 
+
+SCoT Automatic Strategic Chain-of-Thought, proposed by Wang et al. (2024), is a state-of-the-art Chain-of-Thought (CoT) baseline that prompts the model to first identify an effective problem-solving strategy before proceeding with step-by-step reasoning. In our setting, we provide only Short Phrase Instructions as the task description. 
+
+INDUCT The instruction induction stage of Chen et al. (2024b) serves as the state-of-the-art in-struction induction baseline, which applies LLMs to infer task instructions from given examples. In our setting, we provide the model with Short Phrase and Questions (without Answers) to induce task in-structions. ZCoT and SCoT are instance-level methods that solve each question independently using only the Short Phrase as the task description. INDUCT and our S TRATEGY -I NDUCT are task-level meth-ods that additionally leverage a small set of exam-ple questions to induce a reusable task instruction prior to inference. At inference time, all methods receive the same input: one instruction and one new question. The distinction is that instance-level methods use the Short Phrase directly as the instruc-tion, whereas task-level methods replace it with an induced instruction derived from the example ques-tions. 
+
+3.4 Other Details 
+
+All experiments follow the BBH-Induct and Evals-Induct settings, including a Short Phrase for every task or subtask as its task description. The specific phrases for each dataset and subtask are listed in Appendix Tables 8–10. 
+
+N Setting We set N = 3 , so S TRATEGY -I NDUCT 
+
+generates a strategy for each of three questions and BBH-Induct Evals-Induct Shift Cipher Model ZCoT SCoT Induct Ours ZCoT SCoT Induct Ours ZCoT SCoT Induct Ours Llama 3.1 8B 62.03 56.29 59.48 65.33 33.80 32.09 36.09 37.36 0.80 0.64 2.56 2.56                                                                                                                                                                                                                                     
+
+> Llama 3.1 70B 82.09 84.52 86.03 88.99 55.91 56.99 59.45 58.91 30.40 32.16 47.84 50.24
+> Llama 3.1 405B 85.04 83.94 89.28 88.52 61.57 61.48 62.44 61.84 44.16 34.24 65.92 61.44 Llama 3.3 70B 83.59 84.52 88.52 87.30 59.99 59.34 58.49 60.32 34.24 31.84 53.44 56.00
+> Mistral Nemo 12B 56.46 53.97 52.29 55.71 31.81 26.33 35.93 35.29 0.00 0.16 0.00 0.48
+> Mistral Small 2 70.14 69.91 69.57 70.32 48.34 48.18 51.03 48.95 1.76 2.08 0.96 1.76 Mistral Small 3 75.07 76.52 76.64 80.41 53.94 56.50 55.13 57.22 18.24 18.08 20.48 21.44
+> Mistral Large 2 82.03 81.86 85.57 85.97 63.74 58.93 63.44 60.08 38.56 44.32 23.84 41.12 Gemini 1.5 Flash 8B 67.42 69.80 67.07 69.33 44.97 45.24 39.25 43.20 3.52 4.16 3.84 3.84 Gemini 1.5 Flash 78.72 77.86 77.68 81.80 53.57 55.78 54.54 56.56 6.88 13.76 15.68 26.40
+> Gemini 1.5 Pro 80.87 82.03 83.71 85.39 64.61 64.83 63.07 67.18 30.40 41.28 64.16 57.60 Gemini 2.0 Flash Lite 76.64 78.23 76.52 81.80 60.48 59.52 60.54 62.49 36.16 19.68 52.00 52.00
+> Gemini 2.0 Flash 78.33 79.62 79.30 85.45 61.35 64.22 60.01 66.38 54.24 53.44 65.60 67.04
+> Gemini 2.0 Pro Exp 83.62 85.04 80.23 86.72 69.69 68.88 64.47 71.08 55.04 54.56 77.12 71.04 GPT-4o mini 79.54 80.06 78.78 82.32 61.52 60.22 62.23 62.52 77.44 75.20 76.16 66.56 GPT-4o 84.12 87.83 87.94 87.65 70.27 71.99 71.93 71.20 79.52 75.20 73.76 84.80
+> Gemini 2.0 Flash Thinking 87.25 86.52 86.90 88.99 74.46 73.72 71.03 74.16 80.00 81.12 81.76 86.88
+> GPT o3 mini (low) 85.91 85.04 88.46 88.81 78.29 76.39 77.02 77.26 93.60 72.16 95.04 96.80
+> GPT o3 mini (medium) 88.70 89.68 89.39 89.74 83.60 81.14 79.27 82.18 97.44 31.20 88.48 97.44
+> GPT o3 mini (high) 88.87 89.91 89.74 91.30 85.02 83.85 81.91 85.08 98.40 24.64 98.24 98.40
+
+Table 1: Accuracy (%) of different models on BBH-Induct, Evals-Induct, and Shift Cipher in zero-shot settings. The highest overall accuracy is shown in bold . “Induct” refers to the INDUCT baseline. 
+
+induces instructions from the resulting pairs. 
+
+Experimental Configurations We utilize API services from five LLM providers: OpenAI, Google, Mistral AI, SambaNova, and Together AI. Model details are in Appendix B. For cost consid-erations, we follow the sampling strategy of Chen et al. (2024b), randomly sampling 25 examples per task and setting temperature to 0 for deterministic outputs. 
+
+4 Results and Analysis 
+
+4.1 Quality of Strategy-Induced Instructions 
+
+We evaluate S TRATEGY -I NDUCT on BBH-Induct, Evals-Induct, and the Shift Cipher Task using LLMs and LRMs, measuring the accuracy of LLM responses given the question and generated instruc-tions. To assess effectiveness, we compare it with baselines across 60 settings (20 per dataset). As shown in Table 1, our method outperforms existing methods in most settings. Compared to ZCoT, it achieves a 50-3-7 win-tie-lose record. Compared to INDUCT (Chen et al., 2024b), it attains 44-3-13, and compared to SCoT, it reaches 52-0-8. 
+
+Performance on LLMs Our results align with previous findings (Honovich et al., 2023; Chen et al., 2024b), showing that smaller LLMs such as Llama 3.1 8B, Mistral Nemo 12B, Gemini 1.5 Flash 8B, Gemini 2.0 Flash Lite, and GPT-4o mini struggle with instruction induction, making it dif-ficult for them to derive effective task instructions. However, S TRATEGY -I NDUCT mitigates this issue, achieving a 10-3-2 win-tie-lose record against IN-DUCT on these small models. For mid-to-large models, S TRATEGY -I NDUCT is particularly effec-tive. Compared to ZCoT, it yields higher accuracy across all models, except for Mistral Large 2, which underperforms on Evals-Induct, and Mistral Small 2, which produces a tie on Shift Cipher. These results demonstrate the scalability of our method across different model sizes. Additionally, we ob-serve that SCoT struggles with maintaining output format consistency in the Shift Cipher Task, lead-ing to performance degradation. This issue is par-ticularly evident in GPT o3 mini, where incorrect formatting negatively impacts accuracy. 
+
+Performance on LRMs A similar trend is ob-served in LRMs, where stronger models tend to benefit more from our approach. For instance, the win-tie-lose record for GPT o3 mini improves from 2-0-1 ( low reasoning effort) to 2-1-0 ( high reason-ing effort). Overall, S TRATEGY -I NDUCT improves LLM and LRM performance across diverse tasks, outperforming prior state-of-the-art methods. 
+
+4.2 Breakdown of BBH-Induct 
+
+We analyze the 23 tasks in BBH-Induct to exam-ine how S TRATEGY -I NDUCT impacts their perfor-mance. Figure 2 shows accuracy differences across 18 models, comparing S TRATEGY -I NDUCT with the baseline ZCoT. As model size increases, negative changes (red 0.0 8.0 0.0 -4.0 -8.0 0.0 24.0 -4.0 9.3 -4.0 0.0 28.0 -4.0 -12.0 12.0 -16.0 0.0 32.0 4.0 -8.0 6.7 -4.0 16.0
+
+4.0 12.0 4.0 4.0 4.0 -12.0 16.0 8.0 -1.3 0.0 4.0 20.0 4.0 4.0 -4.0 20.0 20.0 32.0 8.0 0.0 0.0 0.0 12.0
+
+4.0 8.0 0.0 4.0 20.0 0.0 4.0 4.0 -13.3 0.0 -4.0 0.0 0.0 0.0 0.0 32.0 8.0 20.0 4.0 0.0 1.3 -4.0 -8.0
+
+-4.0 4.0 4.0 0.0 0.0 0.0 8.0 0.0 -2.7 -4.0 0.0 8.0 4.0 0.0 -4.0 28.0 -8.0 44.0 0.0 0.0 0.0 0.0 8.0
+
+-12.0 -4.0 -24.0 -12.0 -20.0 8.0 12.0 -4.0 -1.3 4.0 0.0 -4.0 -24.0 20.0 0.0 -4.0 -4.0 44.0 4.0 12.0 -12.0 -12.0 16.0
+
+-4.0 -8.0 8.0 -12.0 -16.0 4.0 12.0 24.0 9.3 -4.0 20.0 16.0 -56.0 -16.0 16.0 -12.0 4.0 24.0 0.0 -4.0 -5.3 0.0 4.0
+
+0.0 16.0 8.0 -8.0 -16.0 16.0 16.0 0.0 2.7 0.0 12.0 -4.0 -4.0 4.0 8.0 0.0 8.0 28.0 12.0 0.0 16.0 0.0 8.0
+
+0.0 0.0 -4.0 4.0 12.0 -4.0 4.0 0.0 14.7 -8.0 12.0 8.0 0.0 4.0 -4.0 20.0 8.0 24.0 -8.0 0.0 0.0 4.0 4.0
+
+-8.0 16.0 -8.0 0.0 -28.0 4.0 0.0 -20.0 -2.7 4.0 16.0 4.0 -40.0 4.0 8.0 16.0 4.0 24.0 20.0 -4.0 -9.3 4.0 40.0
+
+0.0 -16.0 0.0 -4.0 4.0 -12.0 0.0 0.0 -1.3 -4.0 4.0 20.0 4.0 0.0 -4.0 4.0 0.0 16.0 -8.0 4.0 0.0 0.0 64.0
+
+8.0 4.0 4.0 12.0 4.0 0.0 8.0 4.0 -8.0 0.0 -4.0 0.0 0.0 -4.0 0.0 8.0 16.0 20.0 8.0 0.0 0.0 8.0 16.0
+
+0.0 30.0 0.0 -16.0 -4.0 -8.0 4.0 -8.0 -1.3 0.0 0.0 4.0 0.0 -4.0 0.0 -8.0 16.0 50.0 4.0 0.0 0.0 4.0 56.0
+
+4.0 24.0 -4.0 8.0 4.0 0.0 0.0 0.0 1.3 -20.0 4.0 -12.0 4.0 17.6 0.0 0.0 8.0 26.0 28.0 0.0 18.7 0.0 52.0
+
+0.0 10.0 8.0 -8.0 4.0 0.0 -4.0 0.0 -2.7 -16.0 0.0 0.0 0.0 0.0 -4.0 4.0 8.0 52.0 4.0 0.0 4.0 0.0 12.0
+
+0.0 -8.0 -4.0 -4.0 24.0 -20.0 16.0 -8.0 6.7 0.0 4.0 24.0 4.0 -4.0 8.0 4.0 4.0 8.0 4.0 4.0 9.3 -8.0 0.0
+
+4.0 -8.0 0.0 24.0 12.0 -4.0 28.0 0.0 1.3 -8.0 -4.0 4.0 4.0 0.0 -4.0 4.0 8.0 20.0 12.0 0.0 0.0 -12.0 0.0
+
+0.0 0.0 4.0 20.0 8.0 -4.0 8.0 0.0 0.0 -8.0 0.0 0.0 0.0 0.0 -4.0 4.0 0.0 12.0 0.0 0.0 0.0 0.0 0.0
+
+4.0 0.0 0.0 4.0 0.0 0.0 0.0 0.0 -1.3 4.0 0.0 4.0 0.0 0.0 0.0 24.0 8.0 16.0 4.0 0.0 0.0 0.0 0.0
+
+4.0 4.0 0.0 0.0 4.0 4.0 0.0 0.0 0.0 0.0 0.0 -4.0 -4.0 0.0 0.0 12.0 -4.0 8.0 4.0 0.0 0.0 0.0 -4.0
+
+0.0 4.0 0.0 12.0 0.0 0.0 0.0 0.0 0.0 -4.0 0.0 0.0 0.0 4.0 0.0 16.0 4.0 16.0 8.0 0.0 0.0 0.0 -4.0
+
+−50
+
+0
+
+50
+
+Accuracy Delta (%)
+
+> boolean expressions
+> causal judgement
+> date understanding
+> disambiguation qa
+> dyck languages
+> formal fallacies
+> geometric shapes
+> hyperbaton
+> logical deduction
+> movie recommendation
+> multistep arithmetic two
+> navigate
+> object counting
+> penguins in a table
+> reasoning about colored objects
+> ruin names
+> salient translation error detection
+> snarks
+> sports understanding
+> temporal sequences
+> tracking shuffled objects
+> web of lies
+> word sorting
+
+Llama 3.1 8B
+
+Llama 3.1 70B
+
+Llama 3.1 405B
+
+Llama 3.3 70B
+
+Mistral Nemo 12B
+
+Mistral Small 2
+
+Mistral Small 3
+
+Mistral Large 2
+
+Gemini 1.5 Flash 8B
+
+Gemini 1.5 Flash
+
+Gemini 1.5 Pro
+
+Gemini 2.0 Flash Lite
+
+Gemini 2.0 Flash
+
+Gemini 2.0 Pro Exp
+
+GPT 4o mini
+
+GPT 4o
+
+Gemini 2.0 Flash Thinking
+
+GPT o3 mini (low)
+
+GPT o3 mini (medium)
+
+GPT o3 mini (high)
+
+> Model
+
+Figure 2: Accuracy difference heatmap for the 23 tasks from BBH-Induct across 18 models. The accuracy delta is computed between S TRATEGY -I NDUCT and the baseline method ZCoT (blue/red indicates our method wins/loses). 5 10 15 20 25 
+
+100 
+
+75 
+
+50 
+
+25 
+
+0
+
+25 
+
+50 
+
+75 
+
+100 
+
+> Accuracy Delta(%)
+
+Llama 3.1 405B 
+
+5 10 15 20 25 
+
+Mistral Large 2 
+
+5 10 15 20 25 
+
+Task (rot_x) 
+
+100 
+
+75 
+
+50 
+
+25 
+
+0
+
+25 
+
+50 
+
+75 
+
+100 
+
+> Accuracy Delta(%)
+
+Gemini 2.0 Pro Exp 
+
+5 10 15 20 25 
+
+Task (rot_x) 
+
+GPT 4o 
+
+Figure 3: The head-to-head comparison of the largest models within each LLM series on the 25 subtasks from Shift Cipher. The accuracy delta indicates the accu-racy difference between S TRATEGY -I NDUCT and ZCoT (blue/red indicates our method wins/loses). 
+
+regions) decrease while positive improvements (blue regions) become more widespread. This trend is consistent with the findings of Chen et al. (2024b). Some exceptions occur in simpler sub-tasks (e.g., boolean expressions), where strong models such as GPT-4o, Llama 3.1 405B, and LRMs already achieve near-perfect accuracy, leav-ing little room for improvement. For traditional LLMs, S TRATEGY -I NDUCT im-proves performance on semantic understanding tasks, notably snarks , ruin names , and sports under-5 10 15 20 25 
+
+50 
+
+25 
+
+0
+
+25 
+
+50 
+
+> Accuracy Delta(%)
+
+Gemini 2.0 Flash Thinking 
+
+5 10 15 20 25 
+
+GPT o3 mini (low) 
+
+5 10 15 20 25 
+
+Task (rot_x) 
+
+50 
+
+25 
+
+0
+
+25 
+
+50 
+
+> Accuracy Delta(%)
+
+GPT o3 mini (medium) 
+
+5 10 15 20 25 
+
+Task (rot_x) 
+
+GPT o3 mini (high) 
+
+Figure 4: The head-to-head comparison of LRMs on the 25 subtasks from Shift Cipher. The accuracy delta represents the accuracy difference between S TRATEGY -INDUCT and ZCoT (blue/red indicates our method wins/loses). 
+
+standing . It also improves performance in ranking-related tasks (e.g., word sorting ), particularly for smaller models. Additionally, tasks involving geo-metric or spatial reasoning (e.g., geometric shapes and navigate ) also benefit. For LRMs, S TRATEGY -I NDUCT improves per-formance on semantic understanding tasks, such as disambiguation QA , snarks , ruin names , and 
+
+sports understanding . This aligns with the design of LRMs, which primarily focus on mathemati-cal, logical, and programming tasks rather than language understanding. Notably, several subtasks where S TRATEGY -INDUCT shows strong gains— salient translation error detection , snarks , and sports understand-ing —are categorized as knowledge-based rather than reasoning-oriented by Suzgun et al. (2022). Our framework yields accuracy improvements of 8 to 60 percentage points on snarks and win-tie-lose rates of 15-3-2 and 14-3-3 against ZCoT for sports understanding and salient translation error detec-tion , respectively. Further analysis is provided in Appendix E and Appendix F.1. We also observed errors in certain smaller mod-els on specific subtasks. For instance, Mistral Nemo, Mistral Small, and Gemini 1.5 Flash 8B tend to classify objects instead of counting them in the object counting task, leading to misinterpreta-tions and higher error rates. 
+
+4.3 Breakdown of the Shift Cipher Task 
+
+To better understand the effects of S TRATEGY -INDUCT , we analyze its performance across dif-ferent shift values in the Shift Cipher task. Prior work by Prabhakar et al. (2024) showed that even state-of-the-art LLMs, such as GPT-4 and Llama 3.1 405B, perform well on commonly seen shift val-ues like ROT-1, ROT-3 (Caesar cipher), and ROT-13. However, accuracy decreases for less frequent shifts (rot-k, where k̸ = 1 , 3, 13 ). Following the analytical approach of Prabhakar et al. (2024), we select the largest model from each LLM series as a representative and include all available LRM mod-els to ensure a comprehensive evaluation across different reasoning capabilities. As shown in Figure 3, our method achieves greater improvements on less common shift val-ues. A possible explanation is that S TRATEGY -INDUCT induces prompts that explicitly guide LLMs to handle wrap-around effects in letter po-sitions, thereby reducing errors. We also observe higher performance fluctuations for ROT-10. For instance, Llama 3.1 405B shows noticeable accu-racy gains, whereas GPT-4o exhibits a drop. Our analysis suggests that for ROT-10, LLMs tend to be more sensitive to prompt variations. Specifically, GPT-4o frequently misaligns the positions of ’s’ and ’t’, the 19th and 20th letters of the alphabet, respectively, leading to errors. Overall, S TRATEGY -I NDUCT enhances LLM performance on the Shift Cipher task (Figure 3) while also improving reasoning in weaker LRMs (Figure 4), such as Gemini 2.0 Flash Thinking and GPT o3 mini (low). 
+
+5 Analysis and Discussion 
+
+5.1 Effect of the Number of Example Questions 
+
+To analyze the impact of the number of exam-ple questions ( N ), we conduct experiments with 
+
+N = 1 , 3, 5 on BBH-Induct. As shown in Table 2, performance generally improves from N = 1 to 
+
+N = 3 , with N = 3 achieving the highest accu-racy for most models (19-0-1 win-tie-lose against 
+
+N = 1 ). However, increasing N to 5 does not consistently yield further gains. A likely explanation is that each example ques-tion is paired with a multi-step strategy, so larger N
+
+substantially increases the length and complexity of the induction prompt. While N = 3 offers suffi-cient diversity for effective induction, N = 5 may exceed the capacity of some models to synthesize a concise instruction from the additional context.                                                                
+
+> Model N=1 N=3 N=5 Llama 3.1 8B 64.35 65.33 61.74 Llama 3.1 70B 87.54 88.99 89.97
+> Llama 3.1 405B 88.12 88.52 89.10
+> Llama 3.3 70B 86.72 87.30 87.77
+> Mistral Nemo 12B 51.71 55.71 59.13
+> Mistral Small 2 66.09 70.32 70.43
+> Mistral Small 3 75.83 80.41 79.59 Mistral Large 2 84.87 85.97 84.58 Gemini 1.5 Flash 8B 67.07 69.33 68.06 Gemini 1.5 Flash 80.46 81.80 81.80
+> Gemini 1.5 Pro 83.65 85.39 84.35 Gemini 2.0 Flash Lite 81.39 81.80 85.08
+> Gemini 2.0 Flash 83.10 85.45 85.60
+> Gemini 2.0 Pro Exp 86.09 86.72 85.74 GPT-4o mini 83.65 82.32 79.30 GPT-4o 86.67 87.65 86.84 Gemini 2.0 Flash Thinking 86.87 88.99 88.75 GPT o3 mini (low) 87.83 88.81 87.59 GPT o3 mini (medium) 89.57 89.74 88.70 GPT o3 mini (high) 90.43 91.30 90.61
+
+Table 2: Effect of the number of example questions N
+
+on S TRATEGY -I NDUCT performance across different models on BBH-Induct. 
+
+5.2 Cross-Model Generalization 
+
+To evaluate the cross-model capability of our ap-proach, we select recent small, medium, and large models from each LLM series and assess whether the prompts they generate enhance the performance of various inference models. We analyze this gen-eralization from four perspectives: (1) Effect of Model Scale on Prompt Quality, (2) Generaliza-tion of Prompts Across LLM Series, (3) Impact of 3.30 1.91 0.41 0.58 4.12 0.29 5.39 -0.99 2.15 2.21 3.48 -2.21 2.77 1.19 -0.70 0.69 -0.82 0.18 -0.70 -0.52                                                                                                                                                                                                                                                                           
+
+> 6.496.783.483.664.873.026.903.304.464.935.687.948.103.973.883.011.913.131.391.91
+> 4.755.973.423.715.742.388.474.002.673.835.275.626.483.221.162.550.173.081.730.70
+> 0.520.69-3.53-1.91-0.75-1.97-2.78-3.07-2.49-2.55-2.03-0.410.57-2.98-3.66-1.98-5.11-3.88-4.53-4.52
+> 7.013.772.674.876.326.795.340.754.122.323.590.155.844.61-0.472.601.101.341.21-0.87
+> 6.675.562.963.956.733.257.543.945.575.166.326.435.843.222.604.631.212.551.211.91
+> 1.455.273.773.955.450.064.062.962.671.512.905.165.261.020.29-1.220.691.05-0.350.70
+> 5.515.504.473.715.285.865.053.074.524.474.751.797.121.311.913.471.211.570.521.56
+> 1.804.524.004.477.191.345.572.674.525.925.394.583.063.103.135.621.101.340.340.70
+> 7.195.790.933.256.793.025.924.756.614.124.817.946.084.732.782.371.332.791.211.04
+> 7.885.333.953.957.955.345.925.682.783.775.744.466.423.971.913.531.622.611.391.39
+> 4.403.774.535.804.648.478.815.807.304.586.32-6.507.414.553.183.881.743.831.561.74
+> 4.236.032.553.604.183.663.544.356.383.716.326.327.185.133.824.632.142.900.051.74
+> 1.395.913.954.295.681.166.094.294.525.286.325.915.094.092.263.242.142.551.041.22
+> 4.695.914.994.764.124.414.355.805.394.064.294.467.704.611.333.711.271.342.262.43
+> −1515
+
+Accuracy Delta(%)
+
+> Llama 3.1 8B
+> Llama 3.1 70B
+> Llama 3.1 405B
+> Llama 3.3 70B
+> Mistral Nemo 12B
+> Mistral Small 2
+> Mistral Small 3
+> Mistral Large 2
+> Gemini 1.5 Flash 8B
+> Gemini 1.5 Flash
+> Gemini 1.5 Pro
+> Gemini 2.0 Flash Lite
+> Gemini 2.0 Flash
+> Gemini 2.0 Pro Exp
+> GPT 4o mini
+> GPT 4o
+> Gemini 2.0 Flash Thinking
+> GPT o3 mini (low)
+> GPT o3 mini (medium)
+> GPT o3 mini (high)
+
+Inference Model                                   
+
+> Llama3.18B
+> Llama3.1405B
+> Llama3.370B
+> MistralNemo12B
+> MistralSmall3
+> MistralLarge2
+> Gemini2.0FlashLite
+> Gemini2.0Flash
+> Gemini2.0ProExp
+> GPT4omini
+> GPT4o
+> Gemini2.0FlashThinking
+> GPTo3mini(low)
+> GPTo3mini(medium)
+> GPTo3mini(high)
+> Strategy-Induct Prompt Generation Model
+
+Figure 5: Cross-model generalization analysis on BBH-Induct, where the prompt induction and inference models are different. Accuracy is shown as a percentage, with darker blue indicating greater improvement and darker orange indicating performance decline. 
+
+Prompts on Different Model Scales, and (4) Co-operation Between LLMs and LRMs. Figure 5 presents our experimental results, which we ana-lyze below. 
+
+5.2.1 Effect of Model Scale on Prompt Quality 
+
+Smaller models, such as Llama 3.1 8B and Mistral Nemo 12B, tend to generate less effective prompts, sometimes even reducing the performance of down-stream models. In contrast, prompts from larger models often lead to widespread performance im-provements. For example, those generated by Llama 3.1 405B and Mistral Large 2 contribute to notable improvements. Additionally, we ob-serve that although Gemini 2.0 Pro Exp is larger than Gemini 2.0 Flash, their performance on BBH-Induct is similar (86.72% vs. 85.45%), resulting in prompts of comparable quality. This suggests that prompt quality correlates more with task per-formance than with model size alone. 
+
+5.2.2 Generalization of Prompts Across LLM Series 
+
+Our approach demonstrates strong cross-series gen-eralization. The most capable models in each series (Llama 3.1 405B, Mistral Large 2, Gemini 2.0 Pro Exp, and GPT-4o) generate prompts that improve the performance of models from other series. We observe that applying prompts across dif-ferent models can sometimes yield higher perfor-mance gains. For example, when GPT-4o uses its own induced prompts on BBH-Induct, it achieves a 3.53% improvement over the baseline. However, when using prompts generated by Mis-tral Large 2 and Gemini 2.0 Pro Exp, the improve-ment increases to 4.63% and 5.62%, respectively. This suggests that prompts generated by different models may introduce alternative reasoning strate-gies, helping the original model refine its outputs, a pattern consistent across other model families. 5.2.3 Impact of Prompts on Different Model Scales 
+
+Smaller models benefit more from detailed prompts, as they rely more on explicit guidance. For example, in the Llama 3.1 series, when using prompts from GPT-4o, the performance gains for Llama 3.1 8B, 70B, and 405B are 7.88%, 5.33%, and 3.95%, respectively. This pattern suggests that high-quality prompts provide greater improve-ments for smaller models. 
+
+5.2.4 Cooperation Between LLMs and LRMs 
+
+LRMs sometimes gain less from their self-generated prompts compared to those from stronger LLMs. For instance, prompts generated by Llama 3.1 405B, when used by GPT o3 mini (low and medium), lead to greater performance gains com-pared to prompts generated by GPT o3 mini itself. Meanwhile, some LRMs generate prompts that sometimes perform on par with, or even surpass, those from larger LLMs. For example, prompts from Gemini 2.0 Flash Thinking significantly boost Mistral Small 2 and Mistral Small 3, yielding gains of 8.47% and 8.81%, respectively. However, while Gemini 2.0 Flash Thinking’s prompts improve most models, they negatively im-pact Gemini 2.0 Flash Lite. A possible explanation is that Flash Thinking tends to generate more struc-tured, multi-step strategies, which, while beneficial for many models, may be overly complex for Flash Lite. For instance, in tasks like Tracking Shuffled Objects , where precise step tracking is required, Flash Lite may struggle to follow these detailed instructions, leading to errors. These findings suggest that LLMs and LRMs may complement each other, with LLMs poten-tially enhancing task instruction quality for LRMs, while certain LRMs may generate prompts that improve other models. 
+
+5.3 Case Study: From Instance Strategies to Task Instructions 
+
+Figure 6 illustrates how S TRATEGY -I NDUCT ab-stracts instance-level insights into a reusable task instruction on the snarks task. Each individual strat-egy captures only one sarcasm cue (e.g., irony or hyperbole), whereas the induced instruction consol-idates them into a comprehensive framework cov-ering irony, hyperbole, satire, and other indicators. This generalization leads to a substantial accuracy gain on Gemini 2.0 Flash, from 0.40 (SCoT) to 0.76 (S TRATEGY -I NDUCT ). 
+
+6 Related Work 
+
+Inductive Reasoning in LLMs Inductive reason-ing, a fundamental cognitive skill, has been widely examined in LLMs. Prior studies show that LLMs can infer patterns and rules from limited observa-tions (Liu et al., 2024; Yu et al., 2023; Li et al., 2024). He et al. (2024) found that while LLMs exhibit inherent inductive capabilities, interactive environments enhance their effectiveness. Yang et al. (2022) investigated rule induction from fac-tual data, while Zhu et al. (2023) explored general-ization from examples. Zhang et al. (2024) further incorporated inductive reasoning into instruction fine-tuning, and Chen et al. (2024c) applied it to en-hance temporal reasoning. These studies highlight the potential of leveraging induction to improve LLMs’ reasoning abilities. 
+
+Task-Level Instruction Generation Instruction induction, where LLMs generate task instructions from input-output examples, was introduced by Honovich et al. (2023). Subsequent studies have explored various techniques, including ranking can-didate instructions (Zhou et al., 2022; Zhang et al., 2023), iterative refinement using demonstrations (Sun et al., 2023; Chen et al., 2024a), and dy-namic reasoning modules (Aswani et al., 2024). Additionally, evolutionary optimization has also been applied to improve instruction generation (Xu et al., 2022; Fernando et al., 2023; Guo et al., 2024). However, these methods often require sub-stantial computational resources and are typically optimized for a single model, limiting their gener-alizability. More efficient alternatives focus on generating a single instruction with minimal overhead. Zhou et al. (2024) constructed reasoning structures from predefined modules, while Chen et al. (2024b) pro-posed an approach that generates a single instruc-tion with chain-of-thought (CoT) demonstrations to improve efficiency. However, the approach of Chen et al. (2024b) still relies on labeled input-output pairs for the induction process. Our pro-posed S TRATEGY -I NDUCT framework follows a similar efficiency-driven approach but addresses a fundamentally different setting. Unlike prior work that requires labeled input-output pairs for induc-tion, S TRATEGY -I NDUCT derives task instructions from a small set of example questions alone, us-ing strategy generation as the key mechanism to compensate for the absence of labeled answers. Additionally, our method is model-agnostic, Case Study: Snarks Task (BBH)      
+
+> Input Question and Generated Strategies: Input Question 1:
+> (A) Think of the poor man! What will he do without his job? (B) Think of the poor man! What will he do without his yacht?
+> Generated Strategy 1:
+> Step 1: Analyze option (A) [...] Consider the common understanding of job loss as a serious issue. Step 2: Analyze option (B) [...] Consider owning a yacht as a luxury, and the potential for sarcasm when expressing concern about someone losing a luxury item. [...]
+> Input Question 2:
+> (A) What a poor guy, years of work and he only got a $50,000 scholarship (B) What a poor guy, years of work and he only got a $50 scholarship
+> Generated Strategy 2:
+> Step 1: Analyze option (A) for potential sarcasm. Consider the implied meaning of “poor guy” in relation to receiving a $50,000 scholarship. Evaluate if the statement conveys the opposite of its literal meaning. Step 2: Analyze option (B) [...] Step 3: Compare the two options (A) and (B). [...]
+> Input Question 3:
+> (A) Have you tried not being poor? It is much easier (B) Have you tried not being rude? It is much easier
+> Generated Strategy 3:
+> Step 1: Analyze option A for sarcastic intent. Consider the inherent difficulty of overcoming poverty and whether the statement implies the opposite. Step 2: Analyze option B for sarcastic intent. Consider the ease of being polite and whether the statement implies the opposite. [...]
+> Final Induced Instruction (S TRATEGY -I NDUCT ):
+> Step 1: Analyze Sentence (A): Carefully examine sentence (A) for potential indicators of sarcasm. [...] Look for elements such as: – Irony: A statement where the intended meaning is the opposite of the literal meaning. – Hyperbole: Exaggeration for emphasis or effect. – Satire: The use of humor, irony, exaggeration, or ridicule... [...] Step 2: Analyze Sentence (B): Repeat the analysis process from Step 1 for sentence (B). Step 3: Compare Sentences: Compare the two sentences based on the likelihood of sarcastic intent. [...] Step 4: Select the More Sarcastic Sentence: Determine which sentence (A or B) is more likely to be sarcastic based on your analysis.
+> Result (Gemini 2.0 Flash): SCoT: 0.40 →STRATEGY -I NDUCT :0.76
+
+Figure 6: Case study on the snarks task (Gemini 2.0 Flash). Each instance-level strategy captures one sarcasm cue; the induced instruction unifies them into a comprehensive reasoning framework. Full details in Appendix. 
+
+demonstrating strong cross-model generalization. Beyond text, this low-cost induction paradigm has also been extended to multimodal settings, includ-ing visual question answering (Chen et al., 2025b) and audio understanding (Chen et al., 2026). 
+
+Reasoning Methods Chain-of-Thought (CoT) prompting improves LLMs’ problem-solving by generating intermediate reasoning steps (Wei et al., 2022b; Kojima et al., 2022; Nye et al., 2021). To en-hance CoT effectiveness, prior work has explored diverse example selection (Zhang et al., 2022) and structured reasoning strategies, including planning before answering (Wang et al., 2023) and formu-lating strategies first (Wang et al., 2024). Chen et al. (2025a) further proposed generating multiple diverse rationales per question and inducing them into a unified plan, improving zero-shot reasoning without example questions. However, this approach operates at the instance level, requiring the full multi-rationale induction process for every new question, which incurs higher inference cost. These methods all require per-instance reasoning, generating a reasoning path for each query. In contrast, S TRATEGY -I NDUCT 
+
+operates at the task level, deriving a reusable task instruction from a small set of example questions without answer labels, amortizing the induction cost across all questions within the same task. 
+
+7 Conclusion 
+
+We propose S TRATEGY -I NDUCT , a framework that derives task-level instructions solely from exam-ple questions without requiring labeled answers. By generating reasoning strategies for each ques-tion and inducing a unified instruction from these strategy-question pairs, our approach enables effec-tive instruction generation in question-only settings. By leveraging strategy generation as a substitute for labeled outputs, S TRATEGY -I NDUCT broadens the applicability of instruction induction to scenar-ios where annotated data is unavailable. Exper-iments across multiple datasets and model fami-lies show that S TRATEGY -I NDUCT outperforms ex-isting methods across various LLMs and LRMs, demonstrating strong adaptability across model scales. Our findings further suggest that combining LLMs and LRMs for task instruction generation and inference may yield additional performance gains. The framework also exhibits robust cross-model generalization, highlighting its broad appli-cability and potential for future extensions. 8 Limitations 
+
+Reliance on Instruction-Following Models Our approach relies on sufficiently strong instruction following models to generate responses in the de-sired format and to induce instructions that facili-tate the extraction of effective strategies. While modern instruction following models, such as Llama 3.1 8B, Mistral NeMo 12B, Gemini 1.5 Flash 8B, and GPT-4o mini, are capable of han-dling complex instructions, earlier models, such as Llama 1 and Llama 2, may lack the necessary capability to adhere to structured formats. 
+
+Generalization Across Models and Datasets 
+
+Our approach has been evaluated on multiple datasets and across 18 different models (with 20 settings), covering a diverse range of architectures and training paradigms. While our results demon-strate strong generalization across these settings, its applicability to models and datasets beyond our experimental scope remains to be further explored. 
+
+Dependence on API-Based Models Due to hard-ware limitations, our experiments rely on API-based access to open-source models provided by services such as Mistral AI, SambaNova, and To-gether AI. Since we do not have full control over the internal configurations of these services, there may be variations in model behavior across differ-ent API providers. 
+
+Task Scope Our framework is designed for task-level instruction induction, where a single reusable instruction is derived for an entire category of prob-lems within established task definitions. It excels at handling repetitive problems that share a com-mon structure, such as those in BBH-Induct, Evals-Induct, and the Shift Cipher Task. However, real-world tasks can be diverse, open-set, or combina-tions of multiple tasks, where preparing task de-scriptions and collecting representative example questions may be more challenging. Extending our approach to such open-ended scenarios remains an area for future work. 
+
+Acknowledgements 
+
+This work was supported by National Science and Technology Council, Taiwan, under grant NSTC 114-2221-E-002 -070 -MY3, and by Min-istry of Education (MOE), Taiwan, under grant NTU-114L900901. 
+
+References 
+
+Krishna Aswani, Huilin Lu, Pranav Patankar, Priya Dhalwani, Xue Tan, Jayant Ganeshmohan, and Si-mon Lacasse. 2024. Auto-evolve: Enhancing large language model‘s performance via self-reasoning framework. In Findings of the Association for Com-putational Linguistics: EMNLP 2024 , pages 13243– 13257, Miami, Florida, USA. Association for Com-putational Linguistics. Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, T. J. Henighan, Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeff Wu, Clemens Winter, and 12 others. 2020. Language models are few-shot learners. ArXiv , abs/2005.14165. Lichang Chen, Jiuhai Chen, Tom Goldstein, Heng Huang, and Tianyi Zhou. 2024a. InstructZero: Ef-ficient instruction optimization for black-box large language models. In Proceedings of the 41st Inter-national Conference on Machine Learning , volume 235 of Proceedings of Machine Learning Research ,pages 6503–6518. PMLR. Po-Chun Chen, Hen-Hsen Huang, and Hsin-Hsi Chen. 2025a. Diverge to induce prompting: Multi-rationale induction for zero-shot reasoning. In Proceedings of the 14th International Joint Conference on Nat-ural Language Processing and the 4th Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics , pages 102–115, Mumbai, India. The Asian Federation of Natural Language Processing and The Association for Computational Linguistics. Po-Chun Chen, Hen-Hsen Huang, and Hsin-Hsi Chen. 2025b. Vqa-induct: Instruction induction for visual question answering. In Proceedings of the 34th ACM International Conference on Information and Knowl-edge Management , CIKM ’25, page 4659–4664, New York, NY, USA. Association for Computing Machin-ery. Po-Chun Chen, Hen-Hsen Huang, and Hsin-Hsi Chen. 2026. Task-level instructions induction for audio question answering from few examples. In Proceed-ings of the 19th Conference of the European Chapter of the Association for Computational Linguistics (Vol-ume 2: Short Papers) , pages 244–264, Rabat, Mo-rocco. Association for Computational Linguistics. Po-Chun Chen, Sheng-Lun Wei, Hen-Hsen Huang, and Hsin-Hsi Chen. 2024b. Induct-learn: Short phrase prompting with instruction induction. In Proceed-ings of the 2024 Conference on Empirical Methods in Natural Language Processing , pages 5204–5231, Miami, Florida, USA. Association for Computational Linguistics. Wei-Lin Chen, Cheng-Kuang Wu, Yun-Nung Chen, and Hsin-Hsi Chen. 2023. Self-ICL: Zero-shot in-context learning with self-generated demonstrations. In Pro-ceedings of the 2023 Conference on Empirical Meth-ods in Natural Language Processing , pages 15651– 15662, Singapore. Association for Computational Linguistics. Ziyang Chen, Dongfang Li, Xiang Zhao, Baotian Hu, and Min Zhang. 2024c. Temporal knowledge ques-tion answering via abstract reasoning induction. In 
+
+Proceedings of the 62nd Annual Meeting of the As-sociation for Computational Linguistics (Volume 1: Long Papers) , pages 4872–4889, Bangkok, Thailand. Association for Computational Linguistics. Michael Desmond and Michelle Brachman. 2024. Ex-ploring prompt engineering practices in the enterprise. 
+
+ArXiv , abs/2403.08950. Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, Anirudh Goyal, Anthony S. Hartshorn, Aobo Yang, Archi Mitra, Archie Sravankumar, Artem Ko-renev, Arthur Hinsvark, Arun Rao, Aston Zhang, and 510 others. 2024. The llama 3 herd of models. ArXiv ,abs/2407.21783. Chrisantha Fernando, Dylan S. Banarse, Henryk Michalewski, Simon Osindero, and Tim Rock-täschel. 2023. Promptbreeder: Self-referential self-improvement via prompt evolution. ArXiv ,abs/2309.16797. Google. 2025. Gemini 2.0: Flash, flash-lite and pro. FEB. 5, 2025. Qingyan Guo, Rui Wang, Junliang Guo, Bei Li, Kaitao Song, Xu Tan, Guoqing Liu, Jiang Bian, and Yujiu Yang. 2024. Connecting large language models with evolutionary algorithms yields powerful prompt op-timizers. In The Twelfth International Conference on Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024 . OpenReview.net. Kaiyu He, Mian Zhang, Shuo Yan, Peilin Wu, and Zhiyu Zoey Chen. 2024. Idea: Enhancing the rule learning ability of large language model agent through induction, deduction, and abduction. 
+
+Preprint , arXiv:2408.10455. Or Honovich, Uri Shaham, Samuel R. Bowman, and Omer Levy. 2023. Instruction induction: From few examples to natural language task descriptions. In 
+
+Proceedings of the 61st Annual Meeting of the As-sociation for Computational Linguistics (Volume 1: Long Papers) , pages 1935–1952, Toronto, Canada. Association for Computational Linguistics. Cho-Jui Hsieh, Si Si, Felix Yu, and Inderjit Dhillon. 2024. Automatic engineering of long prompts. In 
+
+Findings of the Association for Computational Lin-guistics ACL 2024 , pages 10672–10685, Bangkok, Thailand and virtual meeting. Association for Com-putational Linguistics. Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yu-taka Matsuo, and Yusuke Iwasawa. 2022. Large language models are zero-shot reasoners. ArXiv ,abs/2205.11916. Jiachun Li, Pengfei Cao, Zhuoran Jin, Yubo Chen, Kang Liu, and Jun Zhao. 2024. Mirage: Evaluating and explaining inductive reasoning process in language models. ArXiv , abs/2410.09542. Emmy Liu, Graham Neubig, and Jacob Andreas. 2024. An incomplete loop: Deductive, inductive, and ab-ductive learning in large language models. ArXiv ,abs/2404.03028. MistralAI. 2024a. Ai in abundance. Sep 17, 2024. MistralAI. 2024b. Mistral nemo. Jul 18, 2024. MistralAI. 2024c. Pixtral large. Nov 18, 2024. MistralAI. 2025. Mistral small 3. Jan 30, 2025. Maxwell Nye, Anders Andreassen, Guy Gur-Ari, Henryk Michalewski, Jacob Austin, David Bieber, David Dohan, Aitor Lewkowycz, Maarten Bosma, David Luan, Charles Sutton, and Augustus Odena. 2021. Show your work: Scratchpads for interme-diate computation with language models. ArXiv ,abs/2112.00114. OpenAI. 2023. Gpt-4 technical report. ArXiv ,abs/2303.08774. OpenAI. 2024a. Gpt-4o mini: advancing cost-efficient intelligence. July 18, 2024. OpenAI. 2024b. Hello gpt-4o. May 13, 2024. OpenAI. 2025. Openai o3-mini. January 31, 2025. Akshara Prabhakar, Thomas L. Griffiths, and R. Thomas McCoy. 2024. Deciphering the factors influencing the efficacy of chain-of-thought: Probability, mem-orization, and noisy reasoning. In Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 3710–3724, Miami, Florida, USA. Asso-ciation for Computational Linguistics. Machel Reid, Nikolay Savinov, Denis Teplyashin, Dmitry Lepikhin, Timothy P. Lillicrap, Jean-Baptiste Alayrac, Radu Soricut, Angeliki Lazaridou, Orhan Firat, Julian Schrittwieser, Ioannis Antonoglou, Ro-han Anil, Sebastian Borgeaud, Andrew M. Dai, Katie Millican, Ethan Dyer, Mia Glaese, Thibault Sottiaux, Ben jamin Lee, and 655 others. 2024. Gemini 1.5: Unlocking multimodal understanding across millions of tokens of context. ArXiv , abs/2403.05530. Hong Sun, Xue Li, Yi Xu, Youkow Homma, Qin-hao Cao, Min man Wu, Jian Jiao, and De-nis Xavier Charles. 2023. Autohint: Automatic prompt optimization with hint generation. ArXiv ,abs/2307.07415. Mirac Suzgun, Nathan Scales, Nathanael Scharli, Se-bastian Gehrmann, Yi Tay, Hyung Won Chung, Aakanksha Chowdhery, Quoc V. Le, Ed Huai hsin Chi, Denny Zhou, and Jason Wei. 2022. Challenging big-bench tasks and whether chain-of-thought can solve them. In Annual Meeting of the Association for Computational Linguistics .Lei Wang, Wanyu Xu, Yihuai Lan, Zhiqiang Hu, Yunshi Lan, Roy Ka-Wei Lee, and Ee-Peng Lim. 2023. Plan-and-solve prompting: Improving zero-shot chain-of-thought reasoning by large language models. In An-nual Meeting of the Association for Computational Linguistics .Yu Wang, Shiwan Zhao, Zhihu Wang, Heyuan Huang, Ming Fan, Yubo Zhang, Zhixing Wang, Haijun Wang, and Ting Liu. 2024. Strategic chain-of-thought: Guiding accurate reasoning in llms through strategy elicitation. ArXiv , abs/2409.03271. Jason Wei, Yi Tay, Rishi Bommasani, Colin Raf-fel, Barret Zoph, Sebastian Borgeaud, Dani Yo-gatama, Maarten Bosma, Denny Zhou, Donald Met-zler, Ed Huai hsin Chi, Tatsunori Hashimoto, Oriol Vinyals, Percy Liang, Jeff Dean, and William Fedus. 2022a. Emergent abilities of large language models. 
+
+ArXiv , abs/2206.07682. Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Ed Huai hsin Chi, F. Xia, Quoc Le, and Denny Zhou. 2022b. Chain of thought prompting elicits reasoning in large language models. ArXiv ,abs/2201.11903. Jerry W. Wei, Jason Wei, Yi Tay, Dustin Tran, Al-bert Webson, Yifeng Lu, Xinyun Chen, Hanxiao Liu, Da Huang, Denny Zhou, and Tengyu Ma. 2023. Larger language models do in-context learning dif-ferently. ArXiv , abs/2303.03846. Hanwei Xu, Yujun Chen, Yulun Du, Nan Shao, Yang-gang Wang, Haiyu Li, and Zhilin Yang. 2022. Gps: Genetic prompt search for efficient few-shot learn-ing. In Conference on Empirical Methods in Natural Language Processing .Zonglin Yang, Li Dong, Xinya Du, Hao Cheng, E. Cam-bria, Xiaodong Liu, Jianfeng Gao, and Furu Wei. 2022. Language models as inductive reasoners. 
+
+ArXiv , abs/2212.10923. Fei Yu, Hongbo Zhang, and Benyou Wang. 2023. Natu-ral language reasoning, a survey. ACM Computing Surveys .Huaqi Zhang, Lubao Wang, Haiming Shao, Mingxuan Wu, and Wei Ren. 2024. Large model fine-tuning method based on pre-cognitive inductive reasoning -pcir. In 2024 5th International Seminar on Artificial Intelligence, Networking and Information Technology (AINIT) , pages 1218–1221. Zhihan Zhang, Shuohang Wang, Wenhao Yu, Yichong Xu, Dan Iter, Qingkai Zeng, Yang Liu, Chenguang Zhu, and Meng Jiang. 2023. Auto-instruct: Auto-matic instruction generation and ranking for black-box language models. In Findings of the Associa-tion for Computational Linguistics: EMNLP 2023 ,pages 9850–9867, Singapore. Association for Com-putational Linguistics. Zhuosheng Zhang, Aston Zhang, Mu Li, and Alexan-der J. Smola. 2022. Automatic chain of thought prompting in large language models. ArXiv ,abs/2210.03493. Pei Zhou, Jay Pujara, Xiang Ren, Xinyun Chen, Heng-Tze Cheng, Quoc Le, Ed Chi, Denny Zhou, Swa-roop Mishra, and Huaixiu Steven Zheng. 2024. Self-discover: Large language models self-compose rea-soning structures. ArXiv , abs/2402.03620. Yongchao Zhou, Andrei Ioan Muresanu, Ziwen Han, Keiran Paster, Silviu Pitis, Harris Chan, and Jimmy Ba. 2022. Large language models are human-level prompt engineers. ArXiv , abs/2211.01910. Zhaocheng Zhu, Yuan Xue, Xinyun Chen, Denny Zhou, Jian Tang, Dale Schuurmans, and Hanjun Dai. 2023. Large language models can learn rules. ArXiv ,abs/2310.07064. A Prompt Templates 
+
+We use three types of prompts: Strategy Genera-tion, Induction (including both Instruction Induc-tion and Strategy Induction), and Inference. To structure the reasoning process effectively, we adopt <deduction> to encapsulate intermediate reasoning steps and <final_answer> to indicate the conclusive response. During evaluation, we di-rectly extract the content within <final_answer> 
+
+for answer matching. For detailed prompt struc-tures, please refer to Figure 8 to 13. 
+
+B Detailed Experimental Configurations 
+
+B.1 Models Used in Experiments 
+
+We evaluate our framework using 18 models, including four series of large language models (LLMs) and reasoning models (LRMs), covering both open-source and proprietary systems. 
+
+Llama models Llama 3.1 8B, Llama 3.1 70B, Llama 3.1 405B, and Llama 3.3 70B (Dubey et al., 2024). 
+
+Mistral models Mistral Nemo 12B, Mistral Small 2, Mistral Small 3, and Mistral Large 2 (Mis-tralAI, 2024b,a,c, 2025). 
+
+Gemini models Gemini 1.5 Flash 8B, Gemini 1.5 Flash, Gemini 1.5 Pro, Gemini 2.0 Flash Lite Preview, Gemini 2.0 Flash, and Gemini 2.0 Pro Exp (Reid et al., 2024; Google, 2025). 
+
+GPT models GPT-4o mini and GPT-4o (OpenAI, 2024a,b). 
+
+LRMs Gemini 2.0 Flash Thinking Exp (Google, 2025) and GPT o3 mini (OpenAI, 2025) with low ,
+
+medium , and high reasoning effort settings. 
+
+B.2 Other Details Model Version Table 3 lists the exact model ver-sions used in our experiments, following the nam-ing conventions used in the API. 
+
+Safety Settings We disable all safety settings for Gemini to prevent Google’s API from refusing to respond. 
+
+Cost Details Table 4 shows the estimated total cost for all experiments, which amounted to ap-proximately $972 with API services provided by SambaNova, Together AI, Mistral AI, Google, and OpenAI.                    
+
+> Model Model Version
+> Llama 3.1 8B Meta-Llama-3.1-8B-Instruct
+> Llama 3.1 70B Meta-Llama-3.1-70B-Instruct
+> Llama 3.1 405B Meta-Llama-3.1-405B-Instruct
+> Llama 3.3 70B Llama-3.3-70B-Instruct-Turbo
+> Mistral Nemo 12B open-mistral-nemo-2407
+> Mistral Small 2 mistral-small-2409
+> Mistral Small 3 mistral-small-2501
+> Mistral Large 2 mistral-large-2411
+> Gemini 1.5 Flash 8B gemini-1.5-flash-8b-001
+> Gemini 1.5 Flash gemini-1.5-flash-002
+> Gemini 1.5 Pro gemini-1.5-pro-002
+> Gemini 2.0 Flash Lite Preview gemini-2.0-flash-lite-preview-02-05
+> Gemini 2.0 Flash gemini-2.0-flash-001
+> Gemini 2.0 Pro Exp gemini-2.0-pro-exp-02-05
+> GPT-4o mini gpt-4o-mini-2024-07-18
+> GPT-4o gpt-4o-2024-11-20
+> Gemini 2.0 Flash Thinking Exp gemini-2.0-flash-thinking-exp-01-21
+> GPT o3 mini o3-mini-2025-01-31
+
+Table 3: Correspondence between model names and detailed versions.                                            
+
+> Model Cost (USD) API Provider
+> Llama 3.1 8B 3SambaNova Llama 3.1 70B 20 SambaNova Llama 3.1 405B 168 SambaNova Llama 3.3 70B 21 Together AI Mistral Nemo 12B 4Mistral AI Mistral Small 2 9Mistral AI Mistral Small 3 4Mistral AI Mistral Large 2 86 Mistral AI Gemini 1.5 Flash 8B 2Google Gemini 1.5 Flash 4Google Gemini 1.5 Pro 66 Google Gemini 2.0 Flash Lite Preview 4Google Gemini 2.0 Flash 5Google Gemini 2.0 Pro Exp -Google GPT-4o mini 8OpenAI GPT-4o 132 OpenAI Gemini 2.0 Flash Thinking Exp -Google GPT o3 mini (low) 73 OpenAI GPT o3 mini (medium) 139 OpenAI GPT o3 mini (high) 224 OpenAI
+> Total Cost 972
+
+Table 4: Estimated total costs for each model (Google experimental models are free and are denoted by ’-’ in the table, thus not included in the cost calculation). 
+
+Model Settings We set the temperature to 0 and Top-P to 1. The maximum output length is set to 8,192 tokens, if supported by the model. 
+
+C Use of AI Assistants 
+
+In this paper, GPT-4o and GPT o3 mini were used for grammar refinement and assistance in code de-velopment. However, all outputs from the language models served only as references, and the final writing of the paper and code was reviewed and authored by the researcher. 
+
+D Detailed Dataset Information 
+
+This appendix provides the Short Phrases used for different tasks across all datasets in our study. We adopt the Short Phrases from (Chen et al., 2024b), making minor adjustments for clarity where neces-sary. The specific Short Phrases for each task are listed in Table 8 to Table 10. 
+
+E Analysis of Non-Reasoning Tasks in BBH-Induct 
+
+As discussed in Section 4.2, although BBH is pri-marily a reasoning-oriented benchmark, several subtasks—such as salient translation error detec-tion , snarks , and sports understanding —are clas-sified as knowledge-based tasks by Suzgun et al. (2022). Table 5 presents a direct comparison among Z-CoT, the Induct baseline, and our framework on these subtasks. Our method achieves a win-tie-lose rate of 30-10-20 compared to Induct, and 49-6-5 compared to Z-CoT. These results indicate that strategy induction can be beneficial for a range of non-reasoning tasks, in addition to its strengths on reasoning-oriented benchmarks. Further experi-ments and results on additional non-reasoning tasks are presented in the following section. 
+
+F Additional Experimental Result 
+
+Our current setting follows Induct-Learn (Chen et al., 2024b), where the authors constructed the BBH-Induct dataset by extracting task-relevant con-text from the original BBH questions, and remov-ing them from the original question. This added context, referred to as the Short Phrase . The fol-lowing is an example of BBH-Induct: 
+
+Example from Short Phrase Task 
+
+> Short Phrase:
+> Similar Movie Recommendation
+> Question:
+> Minority Report, Total Recall, Inside Out, Forrest Gump
+> Options:
+> (A) Phenomena (B) Lilting (C) Catwoman (D) Edge of Tomorrow
+
+Without the Short Phrase, the question appears as just a list of movie names and options, and the task objective becomes ambiguous. This is a specific characteristic of the BBH-Induct dataset. However, in many real-world settings (even in the original BBH dataset), user queries tend to include the task objective explicitly. In such cases, the Short Phrase becomes optional. 
+
+F.1 MMLU-PRO Result 
+
+To further investigate this, we conducted additional experiments comparing the performance with and without Short Phrases. We chose the MMLU-PRO dataset for this comparison, as it consists of knowledge-based questions that better reflect non-reasoning tasks, which also allows us to evalu-ate the generalizability of our framework beyond reasoning-oriented benchmarks. This design al-lowed us to systematically examine both issues within a single experimental setting. We first present the performance comparison on the MMLU-PRO dataset with Short Phrases included, to highlight how our framework performs against baselines under this setting. Due to computational constraints, we sampled 25 examples from each of the 14 sub-tasks in MMLU-PRO, resulting in a total of 350 instances. We evaluated our framework across 15 different models, and compared it against the current state-of-the-art Induct-Learn (Induct) and Zero-Shot Chain of Thought (ZCoT). The experimental re-sults are presented in Table 6. 
+
+F.2 Effect of Short Phrases 
+
+To further examine the role of Short Phrases, we compare the performance of our framework with and without Short Phrases using the same experi-mental protocol described above. Table 7 presents the results for all evaluated models under both set-tings. We observe that the performance differences across models are generally minor. This outcome can be attributed to the nature of the MMLU-PRO dataset: the questions are already well-structured and self-explanatory, so the inclusion of an explicit Short Phrase offers limited additional benefit. These results indicate that, for benchmarks like MMLU-PRO where questions themselves provide sufficient task context, Short Phrases are optional and do not significantly impact performance. 
+
+G Case Study – BBH-Induct Snarks 
+
+We present a case study on the Snarks (sarcasm detection) task from BBH-Induct. Strategies gener-ated from individual questions are typically much shorter and less detailed compared to those ob-tained after induction. As a result, applying a sin-gle strategy with S-CoT on Gemini 2.0 Flash yields an accuracy of only 0.40. After our induction stage consolidates these strategies, the resulting instruc-Model Salient. Snarks Sports ZCoT Induct Our ZCoT Induct Our ZCoT Induct Our 
+
+Llama 3.1 8B 56% 48% 56% 32% 24% 64% 80% 76% 84% 
+
+Llama 3.1 70B 64% 72% 84% 60% 88% 92% 84% 84% 92% 
+
+Llama 3.1 405B 68% 88% 76% 60% 84% 80% 84% 96% 88% Llama 3.3 70B 80% 76% 72% 48% 84% 92% 88% 88% 88% 
+
+Mistral Nemo 12B 56% 52% 52% 24% 72% 84% 80% 44% 88% 
+
+Mistral Small 2 68% 60% 72% 24% 88% 48% 96% 96% 96% 
+
+Mistral Small 3 64% 68% 72% 48% 68% 76% 88% 100% 100% 
+
+Mistral Large 2 76% 76% 84% 60% 92% 84% 92% 96% 84% Gemini 1.5 Flash 8B 56% 56% 60% 28% 60% 52% 60% 60% 80% 
+
+Gemini 1.5 Flash 64% 76% 64% 40% 68% 56% 88% 84% 80% Gemini 1.5 Pro 64% 72% 80% 60% 76% 80% 80% 92% 88% Gemini 2.0 Flash Lite 64% 60% 80% 30% 72% 80% 76% 88% 80% Gemini 2.0 Flash 64% 64% 72% 50% 76% 76% 56% 92% 84% Gemini 2.0 Pro Exp 68% 64% 76% 40% 88% 92% 88% 92% 92% 
+
+GPT 4o mini 64% 68% 68% 68% 80% 76% 88% 96% 92% GPT 4o 68% 72% 76% 68% 80% 88% 84% 96% 96% 
+
+Gemini 2.0 Flash Thinking 68% 72% 68% 76% 80% 88% 88% 84% 88% 
+
+GPT o3 mini (low) 68% 68% 76% 52% 76% 68% 92% 88% 96% 
+
+GPT o3 mini (medium) 76% 76% 72% 72% 76% 80% 92% 96% 96% 
+
+GPT o3 mini (high) 68% 72% 72% 76% 72% 92% 88% 100% 96% 
+
+Table 5: Accuracy comparison on three non-reasoning tasks from BBH-Induct (Salient Translation Error Detection, Snarks, and Sports) across 18 models. "Salient." refers to the Salient Translation Error Detection task. Bold numbers indicate the best performance for each model. 
+
+Model ZCoT Induct Our 
+
+Llama 3.1 8B 41.71% 44.00% 42.00% Llama 3.3 70B 70.29% 69.14% 71.43% 
+
+Mistral Small 2 49.71% 47.14% 46.86% Mistral Small 3 64.86% 67.43% 66.29% Mistral Large 2 68.57% 68.57% 68.86% 
+
+Gemini 1.5 Flash 8B 52.29% 53.71% 54.57% 
+
+Gemini 1.5 Flash 66.00% 65.14% 65.71% Gemini 1.5 Pro 74.86% 73.43% 76.29% 
+
+Gemini 2.0 Flash Lite 68.29% 68.29% 67.71% Gemini 2.0 Flash 63.14% 62.86% 70.29% 
+
+Gemini 2.0 Pro Exp 82.29% 84.29% 82.86% GPT-4o mini 62.29% 63.14% 60.57% GPT-4o 75.14% 76.00% 76.57% 
+
+Gemini 2.0 Flash Thinking 75.43% 75.14% 75.71% 
+
+GPT o3 mini (low) 76.57% 74.00% 77.14% 
+
+GPT o3 mini (medium) 77.71% 77.43% 78.57% 
+
+GPT o3 mini (high) 79.71% 79.14% 80.00% 
+
+Table 6: Accuracy (%) of different models on MMLU-PRO in zero-shot settings. The highest overall accuracy is shown in bold. “Induct” refers to the INDUCT base-line. 
+
+tion is more comprehensive and effective (see Fig-ure 7), leading to a substantial improvement in accuracy to 0.76. 
+
+Model Non SP SP 
+
+Llama 3.1 8B 47.43% 42.00% Llama 3.3 70B 70.86% 71.43% 
+
+Mistral Small 2 49.43% 46.86% Mistral Small 3 66.00% 66.29% 
+
+Mistral Large 2 69.71% 68.86% Gemini 1.5 Flash 8B 54.00% 54.57% 
+
+Gemini 1.5 Flash 66.00% 65.71% Gemini 1.5 Pro 76.00% 76.29% 
+
+Gemini 2.0 Flash Lite 69.71% 67.71% Gemini 2.0 Flash 68.29% 70.29% 
+
+Gemini 2.0 Pro Exp 84.00% 82.86% GPT-4o mini 60.29% 60.57% 
+
+GPT-4o 76.00% 76.57% 
+
+Gemini 2.0 Flash Thinking 76.29% 75.71% GPT o3 mini (low) 78.29% 77.14% GPT o3 mini (medium) 78.57% 78.57% 
+
+GPT o3 mini (high) 79.71% 80.00% 
+
+Table 7: Accuracy comparison of our framework on the MMLU-PRO dataset with and without Short Phrases. Bold values indicate the better performance for each model. SP denotes Short Phrase. Short Phrase 
+
+Snarks (Sarcasm Detection) 
+
+Question 1 
+
+(A) Think of the poor man! What will he do without his job? (B) Think of the poor man! What will he do without his yacht? 
+
+Strategy 1 
+
+Step 1: Analyze option (A) to determine if the statement "Think of the poor man! What will he do without his job?" is likely to be sarcastic. Consider the common understanding of job loss as a serious issue. Step 2: Analyze option (B) to determine if the statement "Think of the poor man! What will he do without his yacht?" is likely to be sarcastic. Consider the common understanding of owning a yacht as a luxury, and the potential for sarcasm when expressing concern about someone losing a luxury item. Step 3: Compare the two options and determine which statement is more likely to be sarcastic based on the context and the implied meaning. Step 4: Select the option (A or B) that is more likely to be sarcastic and output the corresponding letter. 
+
+Question 2 
+
+(A) What a poor guy, years of work and he only got a $50,000 scholarship (B) What a poor guy, years of work and he only got a $50 scholarship 
+
+Strategy 2 
+
+Step 1: Analyze option (A) for potential sarcasm. Consider the implied meaning of "poor guy" in relation to receiving a +$50,000 scholarship. Evaluate if the statement is intended to convey the opposite of its literal meaning. Step 2: Analyze option (B) for potential sarcasm. Consider the implied meaning of "poor guy" in relation to receiving a $50 scholarship. Evaluate if the statement is intended to convey the opposite of its literal meaning. Step 3: Compare the two options (A) and (B). Determine which option is more likely to be sarcastic based on the discrepancy between the expected outcome (years of work) and the actual reward ($50,000 vs. $50). Step 4: Select the option (A or B) that demonstrates a greater degree of incongruity between the situation and the speaker’s expressed sentiment, indicating a higher likelihood of sarcasm. Step 5: Output the corresponding letter (A or B) of the selected option. 
+
+Question 3 
+
+(A) Have you tried not being poor? It is much easier (B) Have you tried not being rude? It is much easier 
+
+Strategy 3 
+
+Step 1: Analyze option A for sarcastic intent. Consider the inherent difficulty of overcoming poverty and whether the statement implies the opposite. Step 2: Analyze option B for sarcastic intent. Consider the ease of being polite and whether the statement implies the opposite. Step 3: Compare the two options and determine which statement is more likely to be interpreted as sarcastic based on common understanding and social context. Step 4: Select the option (A or B) that exhibits a higher degree of sarcasm. Step 5: Output the corresponding letter (A or B) as the answer. 
+
+Inducted Strategy (STRATEGY-INDUCT) 
+
+1. Analyze Sentence (A): Carefully examine sentence (A) for potential indicators of sarcasm. Consider the context and whether the statement could be interpreted as meaning the opposite of what it says, with the intention to criticize or be humorous. Look for elements such as: – Irony: A statement where the intended meaning is the opposite of the literal meaning. – Hyperbole: Exaggeration for emphasis or effect. – Satire: The use of humor, irony, exaggeration, or ridicule to expose and criticize people’s stupidity or vices. – Witty remarks: Cleverly humorous or ironic expressions. – Ambivalent remarks: Statements that have mixed feelings or contradictory ideas. 2. Analyze Sentence (B): Repeat the analysis process from Step 1 for sentence (B). 3. Compare Sentences: Compare the two sentences based on the likelihood of sarcastic intent. Consider which sentence is more likely to be used to express the opposite of its literal meaning in a critical or humorous way, based on the definition of sarcasm. 4. Select the More Sarcastic Sentence: Determine which sentence (A or B) is more likely to be sarcastic based on your analysis. 5. Output the Answer: Output the letter corresponding to the sentence identified as more likely to be sarcastic. 
+
+Figure 7: Example strategies and the induced instruction from S TRATEGY -I NDUCT on the snarks (sarcasm detection) task in BBH-Induct (Gemini 2.0 Flash). The induced instruction unifies and formalizes pragmatic cues such as irony and exaggeration from diverse strategies. You are tasked with designing a strategy to solve a given question. Your goal is to carefully analyze the question and formulate a clear and effective plan outlining the steps needed to solve it. Remember, you should not actually solve the question or provide a final answer. Additionally, make sure to base your strategy on the details provided in <task_information> , <answer_format> ,and <question> for the most relevant approach. Please follow these steps: 1. Carefully read and analyze the question. 2. Identify the key components and challenges within the question. 3. Develop a step-by-step strategy to address the question. 4. Outline your strategy using numbered steps. Present your strategy in the following format: 
+
+<strategy> 
+
+Step 1: [Brief description of the first step] Step 2: [Brief description of the second step] Step 3: [Brief description of the third step] 
+
+[Continue with additional steps as needed] </strategy> 
+
+**Important:** Focus solely on creating a strategy to solve the question. Do not attempt to solve the question or provide a final answer. Your strategy should outline the approach to solving the question, not the solution itself. Here is the task_information, answer_format and the question you need to create a strategy for: 
+
+<task_information> 
+
+{ } 
+
+</task_information> <answer_format> 
+
+{ } 
+
+</answer_format> <question> 
+
+{ } 
+
+</question> 
+
+Figure 8: Prompt Template for Strategy Generation (Ours). You are an expert in the field of NLP (Natural Language Processing), possessing exceptional data observation and analysis skills. Your expertise includes extracting significant rules from complex datasets and formulating precise task instructions based on these rules. Currently, you are focusing on analyzing a specific set of examples, deriving insights to formulate a clear and detailed task instruction. This task description will serve as an instruction set, guiding the execution of the related tasks. The task instruction should include the following elements: 1. **Task Content**: Clearly define the purpose of the task and the specific activities required to be completed. 2. **Input Format**: Provide detailed descriptions of the types of data accepted, their formats, and how to process these data effectively. 3. **Operational Steps**: Detail the specific step-by-step procedures required to complete the task. Remember to ensure that the final output format adheres to the "answer_format" specification. Ensure that your task instruction is concise, clear, and easily understandable by users. It should provide all necessary information for someone to successfully complete the task. Present your task instruction in the following format: 
+
+<task_instruction> {Your task instruction here, with each element under its own subheading} </task_instruction> 
+
+Remember to focus solely on creating the task instruction based on the given information and examples. Do not attempt to complete the task itself. Here is the task_information , answer_format and the examples you need to create a Task Instruction for: 
+
+<task_information> 
+
+{} 
+
+</task_information> <answer_format> 
+
+{} 
+
+</answer_format> <examples> 
+
+{} 
+
+</examples> 
+
+Figure 9: Prompt Template for INDUCT (Instruction Induction) You are an expert in the field of NLP (Natural Language Processing), with outstanding data observation and analysis skills. Your expertise includes inductively deriving better solution rules (or methods) from various question-solving strategies and question-pair examples within the same task. Based on these rules, you can formulate precise task instructions. Currently, you are focused on analyzing a set of specific question-solving strategies and question-pair examples to gain insights for creating clear and detailed task instruction. This task instruction will serve as instruction sets to guide the execution of related tasks. The task instruction should include the following elements: 1. **Task Content**: Clearly define the purpose of the task and the specific activities required to be completed. 2. **Input Format**: Provide detailed descriptions of the types of data accepted, their formats, and how to process these data effectively. 3. **Operational Steps**: Detail the specific step-by-step procedures required to complete the task. Remember to ensure that the final output format adheres to the "answer_format" specification. Ensure your task instruction are concise, clear, and easy to understand for users. They should provide all the necessary information for someone to successfully complete the task. Present your task instruction in the following format: 
+
+<task_instruction> {Your task instruction here, with each element under its own subheading} </task_instruction> 
+
+Please remember to focus solely on creating the task instruction based on the given information and examples. Do not attempt to complete the task itself. Here is the task_information , answer_format and the examples you need to create a Task Instruction for: 
+
+<task_information> 
+
+{} 
+
+</task_information> <answer_format> 
+
+{} 
+
+</answer_format> <examples> 
+
+{} 
+
+</examples> 
+
+Figure 10: Prompt Template for Strategy Induction(Ours) 
+
+[Task Instruction] {} **Output Format**: {} Follow these steps carefully: 1. Provide step-by-step deduction that answers the question 
+
+<deduction> [Your step-by-step deduction here] </deduction> 
+
+2. Based on your deduction, provide the final answer according to the rules specified in the "Output Format" section. If unsure and "Output Format" is option, guess the closest option. Present your final answer in the following format: 
+
+<final_answer> [Your final answer here] </final_answer> 
+
+Note Do not use programming or code to solve this question. 
+
+Figure 11: Prompt Template for Zero-shot Chain-of-Thought (ZCoT). [Task Instruction] {} **Output Format**: {} Follow these steps carefully: 1. Carefully consider the problem and generate the strategic knowledge that would best guide the problem-solving process. 
+
+<strategy> [Your strategy here] </strategy> 
+
+2. Provide step-by-step deduction that answers the question. 
+
+<deduction> [Your step-by-step deduction here] </deduction> 
+
+3. Based on your deduction, provide the final answer according to the rules specified in the "Output Format" section. If unsure and "Output Format" is option, guess the closest option. Present your final answer in the following format: 
+
+<final_answer> [Your final answer here] </final_answer> 
+
+Note Do not use programming or code to solve this question. 
+
+Figure 12: Prompt Template for Automatic Strategic Chain-of-Thought (SCoT) 
+
+[Task Instruction] {} **Output Format**: {} Follow these steps carefully: 1. Provide step-by-step deduction that answers the question 
+
+<deduction> [Your step-by-step deduction here] </deduction> 
+
+2. Based on your deduction, provide the final answer according to the rules specified in the "Output Format" section. If unsure and "Output Format" is option, guess the closest option. Present your final answer in the following format: 
+
+<final_answer> [Your final answer here] </final_answer> 
+
+Note Do not use programming or code to solve this question. 
+
+Figure 13: Prompt Template for INDUCT and S TRATEGY -I NDUCT (Ours) Strategy-Induct Prompt 
+
+[Task Instruction] ### Task Content: 
+
+The purpose of this task is to detect sarcasm in a given set of options and select the correct option that exhibits sarcasm. Sarcasm often involves irony, exaggeration, or statements that contradict reality or common expectations. The task requires careful analysis of the tone, context, and implied meaning of the options to identify the sarcastic statement. 
+
+### Input Format: 
+
+- You will be provided with a question containing two or more options (e.g., A, B, etc.). - Each option is a statement or phrase that needs to be analyzed for sarcasm. - The input will be presented in a format where each option is labeled with a letter (e.g., A, B). 
+
+### Operational Steps: 
+
+1. Understand the Task Requirement : Recognize that the goal is to detect sarcasm in the given options and select the one that best represents sarcasm. 2. Analyze the Context of Each Option :- Carefully read each option. - Identify the tone, context, and any potential mismatch between the literal meaning and the implied meaning. 3. Identify Indicators of Sarcasm :- Look for exaggeration, irony, or statements that seem to contradict reality or common expectations. - Pay attention to phrases that imply the opposite of what is being said or highlight an absurdity. 4. Compare the Options :- Evaluate each option to determine which one contains a sarcastic tone. - Consider the likelihood of the statement being ironic, exaggerated, or mocking. 5. Select the Correct Option :- Choose the single letter (e.g., A, B, etc.) corresponding to the option that best represents sarcasm. 6. Verify the Choice :- Double-check your reasoning to ensure the selected option aligns with the task of sarcasm detection. 7. Output the Answer :- Provide the output as a single letter (e.g., A, B, etc.) corresponding to the chosen option, adhering to the specified answer format. Prompt Template 
+
+Output Format :The output is a single letter corresponding to the correct option from the list (e.g., A, B, C, etc.). Follow these steps carefully: 1. Provide step-by-step deduction that answers the question <deduction> [Your step-by-step deduction here] </deduction> 2. Based on your deduction, provide the final answer according to the rules specified in the "Output Format" section. If unsure and "Output Format" is option, guess the closest option. Present your final answer in the following format: <final_answer> [Your final answer here] </final_answer> New Question 
+
+[Question] 
+
+(A) The best way to defeat a stronger/larger and better regimented force is by fighting on their terms (B) The best way to defeat a stronger/larger and better regimented force is by fighting on your terms 
+
+[Answer] 
+
+Let’s refer to the "Operational Steps" and think step by step. Model Response 
+
+<deduction> 
+
+1. Understand the Task Requirement : The task is to detect sarcasm in the given options and select the one that best represents sarcasm. Sarcasm often involves irony, exaggeration, or a contradiction to reality or common expectations. 2. Analyze the Context of Each Option :- Option A : "The best way to defeat a stronger/larger and better regimented force is by fighting on their terms." This statement suggests that one should fight a stronger and better-organized force by adhering to their strengths and strategies. This seems counterintuitive and ironic because it contradicts common sense; fighting on the enemy’s terms would likely lead to defeat. - Option B : "The best way to defeat a stronger/larger and better regimented force is by fighting on your terms." This statement aligns with common sense and strategy. It suggests that one should fight in a way that plays to their own strengths, which is logical and not sarcastic. 3. Identify Indicators of Sarcasm :- Option A contains irony because it suggests doing something that is clearly counterproductive (fighting on the enemy’s terms). This is a sarcastic way of pointing out the absurdity of such an approach. - Option B is straightforward and lacks any ironic or sarcastic tone. 4. Compare the Options :- Option A is sarcastic because it uses irony to highlight the absurdity of fighting on the enemy’s terms. - Option B is not sarcastic; it is a logical and straightforward statement. 5. Select the Correct Option :- Based on the analysis, Option A is the sarcastic statement. 6. Verify the Choice :- The reasoning aligns with the task of sarcasm detection. Option A uses irony to make its point, making it the correct choice. </deduction> <final_answer> A</final_answer> 
+
+Figure 14: Example of Strategy-Induct Prompting on the Snarks task in the BBH-Induct dataset, using GPT-4o, where the correct answer is A. Zero Shot CoT Prompt 
+
+[Task Instruction] 
+
+Snarks (Sarcasm Detection) Prompt Template 
+
+Output Format : The output is a single letter corresponding to the correct option from the list (e.g., A, B, C, etc.). Follow these steps carefully: 1. Provide step-by-step deduction that answers the question 
+
+<deduction> 
+
+[Your step-by-step deduction here] 
+
+</deduction> 
+
+2. Based on your deduction, provide the final answer according to the rules specified in the "Output Format" section. If unsure and "Output Format" is option, guess the closest option. Present your final answer in the following format: 
+
+<final_answer> 
+
+[Your final answer here] 
+
+</final_answer> 
+
+Note : Do not use programming or code to solve this question. New Question 
+
+[Question] 
+
+(A) The best way to defeat a stronger/larger and better regimented force is by fighting on their terms (B) The best way to defeat a stronger/larger and better regimented force is by fighting on your terms [Answer] Let’s think step by step. Model Response 
+
+<deduction> 
+
+1. The question revolves around the strategy to defeat a stronger, larger, and better-regimented force. This implies that the opponent has an advantage in terms of size, strength, and organization. 2. Option (A) suggests fighting on the opponent’s terms. This would mean engaging in a way that plays to the opponent’s strengths, which is counterintuitive. If the opponent is stronger and better organized, fighting on their terms would likely lead to defeat. 3. Option (B) suggests fighting on your own terms. This implies leveraging your own strengths and avoiding the opponent’s advantages. Historically and strategically, this approach is more effective when facing a superior force. For example, guerrilla warfare or asymmetric tactics are often used to counteract a stronger opponent. 4. Based on logic and historical precedent, fighting on your own terms (Option B) is the more effective strategy. 
+
+</deduction> <final_answer> 
+
+B
+
+</final_answer> 
+
+Figure 15: Example of Zero-shot CoT Prompting on the Snarks task in the BBH-Induct dataset, using GPT-4o, where the correct answer is A. Task Sub Task Short Phrase 
+
+Boolean Expressions boolean expressions Boolean Expressions Causal Judgment causal judgement Causal Judgment Date Understanding date understanding Date Understanding Disambiguation QA disambiguation qa Disambiguation QA Dyck Languages dyck languages Dyck Languages Formal Fallacies Syllogisms Negation formal fallacies Formal Fallacies Syllogisms Negation Geometric Shapes geometric shapes Geometric Shapes Hyperbaton (Adjective Ordering) hyperbaton Hyperbaton (Correct Adjective Order) Logical Deduction logical deduction five objects Logical Deduction logical deduction seven objects Logical Deduction logical deduction three objects Logical Deduction Movie Recommendation movie recommendation Similar Movie Recommendation Multi-Step Arithmetic multistep arithmetic two Multi-Step Arithmetic Navigate navigate Navigate (Round-Trip Check) Object Counting object counting Total Object Count Penguins in a Table penguins in a table Penguins in a Table Reasoning about Colored Objects reasoning about colored objects Reasoning about Colored Objects Ruin Names ruin names Ruin Names (Humorous Edit) Salient Translation Error Detection salient translation error detection Salient Translation Error Detection Snarks snarks Snarks (Sarcasm Detection) Sports Understanding sports understanding Sports Plausibility Check Temporal Sequences temporal sequences Temporal Sequences Tracking Shuffled Objects tracking shuffled objects five objects Tracking Shuffled Objects tracking shuffled objects seven objects Tracking Shuffled Objects tracking shuffled objects three objects Tracking Shuffled Objects Web of Lies web of lies Web of Lies Word Sorting word sorting Word Sorting 
+
+Table 8: Mapping between tasks, subtasks, and their corresponding short phrases in BBH-Induct. 
+
+Task Sub Task Short Phrase 
+
+2d_movement - 2D Movement (Facing North) anagrams - Anagram Solver bitwise - Bitwise Arithmetic count_token_freq_dna - DNA Token Frequency Counter css-selectors css-selectors_explain CSS Selectors Verifier css-selectors_verbal CSS Selector Generator determinant - Matrix Determinant Calculator forth_stack_sim - Forth Stack Simulator guess_the_singer - Guess the Singer largest_country - Largest Country lat_long_identify - Lat-Long Country Finder mate-in-one - Mate in One math_equations - Math Equations missing_operators - Missing Operators ner_finance - NER Finance next-val-series - Next-Val Series partially_solved_crossword_clues - Partially Solved Crossword Clues points_on_line - Midpoint on Line poker_analysis - Poker Winner recurrence-relation - Recurrence Relation resistor_ohm_calculator - Resistor Ohm Calculator smiles_to_formula - SMILES to Formula sort_numeric - Sort Numeric Descending word_association word_association_related_words_2 Word Association word_association_related_words_3 Word Association word_association_related_words_4 Word Association word_association_related_words_5 Word Association 
+
+Table 9: Mapping between tasks, subtasks, and their corresponding short phrases in Evals-Induct. Task Sub Task Short Phrase 
+
+Shift Cipher Shift Cipher – ROT-1 Shift Cipher Shift Cipher – ROT-2 Shift Cipher – ROT-3 Shift Cipher – ROT-4 Shift Cipher – ROT-5 Shift Cipher – ROT-6 Shift Cipher – ROT-7 Shift Cipher – ROT-8 Shift Cipher – ROT-9 Shift Cipher – ROT-10 Shift Cipher – ROT-11 Shift Cipher – ROT-12 Shift Cipher – ROT-13 Shift Cipher – ROT-14 Shift Cipher – ROT-15 Shift Cipher – ROT-16 Shift Cipher – ROT-17 Shift Cipher – ROT-18 Shift Cipher – ROT-19 Shift Cipher – ROT-20 Shift Cipher – ROT-21 Shift Cipher – ROT-22 Shift Cipher – ROT-23 Shift Cipher – ROT-24 Shift Cipher – ROT-25 
+
+Table 10: Mapping between tasks, subtasks, and their corresponding short phrases in Shift Cipher.
