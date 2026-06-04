@@ -1,0 +1,605 @@
+Title: Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement
+
+URL Source: https://arxiv.org/pdf/2605.28360v1
+
+Published Time: Thu, 28 May 2026 01:23:13 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+# Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement 
+
+Jyotirmoy Nath 1 Neeraj Kumar 1 Brejesh Lall 11IIT Delhi, India 
+
+jyotirmoy.nath@ee.iitd.ac.in neerajkr2k14@gmail.com brejesh@ee.iitd.ac.in 
+
+Abstract 
+
+Automatic prompt optimization (APO) has driven significant gains in LLM-based agen-tic workflows (Yao et al., 2023; Shinn et al., 2023; Khattab et al., 2024; Pryzant et al., 2023; Yuksekgonul et al., 2024). However, existing methods treat each task’s prompt as a mono-lithic, instance-blind string optimized through global edits, producing brittle updates and pre-venting the reuse of learned sub-behaviors. We propose Prompt Codebooks (PCO) , a novel compositional prompt optimization framework that recasts APO as discrete learning over a fi-nite vocabulary of natural-language instincts -atomic, reusable instruction units. PCO orga-nizes prompt-construction knowledge in a dis-crete codebook and routes each input to a small subset of entries via an LLM-based encoder; a generator composes them into a prompt for the frozen target model; a critic emits a struc-tured verdict that decomposes by attribution into per-variable textual gradients, jointly train-ing the encoder, generator, and codebook un-der a language-valued min-max objective. The resulting routing is per-instance : different in-puts in the same task receive different instinct compositions, a regime structurally inexpress-ible under instance-blind methods. Across six benchmarks on Qwen3-8B and LLaMA-3.1-8B, PCO improves over zero-shot by up to 
+
++30 .36 points, surpasses the strongest prior baseline (GEPA) by +3 .34 on H OTPOT QA and +1 .11 in aggregate, and reduces deployed prompt length by up to 14 .1× vs. MIPROv2 and 3.0× vs. GEPA using only K=16 instincts. 
+
+1 Introduction 
+
+Large language models (LLMs) increasingly op-erate inside compositional agentic workflows ,pipelines where one agent plans, another invokes tools, a third verifies, and feedback loops refine all three (Yao et al., 2023; Shinn et al., 2023; Wu et al., 2024; Khattab et al., 2024). These systems are non-differentiable by construction: tool calls, retrieval, and discrete planning steps preclude analytic gra-dients. Within this landscape, automatic prompt optimization (APO) is a core sub-problem: ev-ery agent is a composition of LLM calls condi-tioned on prompts that determine the planner’s de-cisions, the verifier’s calibration, and the safety of the system as a whole. Existing APO methods, in-cluding black-box search (Zhou et al., 2023; Shin et al., 2020), RL over tokens (Deng et al., 2022), evolutionary mutation (Guo et al., 2024; Agrawal et al., 2026), reflective refinement (Madaan et al., 2023), and textual-gradient optimization of prompt strings (Pryzant et al., 2023; Yuksekgonul et al., 2024), treat the prompt for each task as a mono-lithic, instance-blind text object : a single string applied identically to every input and optimized through global edits. Consequently, the formula-tion is both instance-blind , because one prompt serves all inputs, and globally entangled , because a critique intended to fix one failure may rewrite the entire prompt and disrupt other well-tuned be-haviors. Meanwhile, a parallel decade of generative modeling has shown that discrete latent code-books (van den Oord et al., 2017; Razavi et al., 2019; Chang et al., 2022), paired with a generator– critic training signal (Goodfellow et al., 2014; Ar-jovsky et al., 2017; Esser et al., 2021), yield state-of-the-art results in image synthesis, neural audio coding (Defossez et al., 2022), and token-based multimodal modeling. A defining property of such systems is that they are trained per distribution :their power is intra-domain, with codes specialized to a single data regime. APO has exactly this shape; each task defines its own input distribution, reward, and optimal prompting policy, and is in practice run per-task — yet no prior APO method has or-ganized prompts as compositions over a discrete latent vocabulary. We close this gap with Prompt Codebooks (PCO) , a framework that introduces a discrete 
+
+> arXiv:2605.28360v1 [cs.AI] 27 May 2026
+
+codebook of natural-language instincts — atomic instruction units that are themselves optimizable variables — as a first-class object in prompt op-timization. A prompt encoder (an LLM) routes each input x to a small subset of codebook entries via semantic routing rather than nearest-neighbor quantization allowing the encoder to select instincts based on meaning rather than vector proximity. A 
+
+prompt generator composes the selected instincts, conditioned on x, into a fluent prompt dispatched to the frozen target LLM. A critic emits a structured natural-language verdict that an attribution operator partitions into per-variable textual gradients (Yuk-sekgonul et al., 2024), propagating component-wise through the generator, the active codebook en-tries, and the encoder’s routing policy. The full sys-tem is trained end-to-end under a language-valued min–max objective. This architecture confers four advantages over monolithic per-task APO, each corresponding to a capability useful for broader agentic workflows. 
+
+(i) Per-instance adaptive prompting : the encoder routes different inputs within the same task to dif-ferent instinct compositions — hard instances in-voke verification-heavy instincts, easier inputs use lightweight ones — a regime structurally absent from monolithic optimizers. (ii) Dense, behavior-level supervision : the critic emits a structured natural-language verdict rather than a sparse bi-nary reward (Arjovsky et al., 2017), exposing not just whether a prompt failed but which behavior 
+
+was responsible, providing a richer training signal than scalar feedback alone. (iii) Regularization through a discrete bottleneck : the finite codebook biases the policy toward instance-general structure, preventing the destructive interference character-istic of global prompt edits — we conjecture this additionally improves out-of-distribution robust-ness. (iv) Localized credit assignment : attribu-tion routes feedback to the specific instinct respon-sible for a failure, leaving unrelated instincts un-touched — unlike monolithic prompt optimization where every update rewrites the entire string. We evaluate PCO on six benchmarks spanning multi-hop reasoning, mathematical problem-solving, and instruction following using 8B-parameter back-bones. PCO achieves gains of up to +30 .36 points over zero-shot prompting ( LLaMA-3.1-8B ) and 
+
++1 .11 points in aggregate over the strongest prior baseline (GEPA, Qwen3-8B ), while reducing de-ployed prompt length by up to 14 .1× compared to MIPROv2. 
+
+Contributions. 
+
+1. We introduce a discrete codebook of natural-language instincts as a first-class object in prompt optimization: a finite, learnable inven-tory of atomic instruction units, routed and composed per input, replacing the monolithic prompt string that has defined APO since its inception. To our knowledge, this is the first formulation in which prompts are constructed compositionally from a shared discrete latent vocabulary, optimized end-to-end through a textual min–max objective (Sec. 3.4). 2. Per-instance adaptive prompting through semantic routing, where px̸ = px′ at infer-ence time, enabling a per-instance adaptive regime that is structurally inexpressible under instance-blind monolithic prompts (Agrawal et al., 2026; Yuksekgonul et al., 2024). 3. We formalize codebook, encoder, and gen-erator training as a language-valued min– max problem with a fixed critic adversary (Sec. 3.4), unifying task reward and behavior-level feedback into per-variable textual gradi-ents. 4. Evaluation across six benchmarks spanning reasoning, mathematics, and instruction fol-lowing, achieving up to +30 .36 points over zero-shot (LLaMA-3.1-8B) and a +1 .11 ag-gregate improvement over the strongest base-line (GEPA on Qwen3-8B). 
+
+2 Related Work 
+
+Prompt Optimization. Early automated ap-proaches such as APE (Zhou et al., 2023) formu-late prompt construction as a search over candi-date instructions, while AutoPrompt (Shin et al., 2020) optimizes discrete trigger tokens via gradi-ent search. Subsequent methods including Pro-TeGi (Pryzant et al., 2023) and TextGrad (Yuksek-gonul et al., 2024) iteratively refine prompts us-ing natural-language feedback, while DSPy (Khat-tab et al., 2024) structures prompts as composi-tional programs, though its components remain instance-blind. Despite these advances, prompts re-main monolithic and instance-blind—learned com-ponents cannot be reused across inputs within the same task. 
+
+Feedback-Driven and Evolutionary Optimiza-tion. Automated methods increasingly rely on reward signals, natural-language critiques (Shinn et al., 2023; Madaan et al., 2023; Cheng et al., 2024; Lee et al., 2026), and evolutionary mutation to re-fine prompts. Reinforcement learning approaches like GRPO (Shao et al., 2024; Zuo et al., 2025) reduce manual design but require extensive roll-outs. Evolutionary methods instead perform search via mutation and selection (Guo et al., 2024; Câ-mara et al., 2025); MIPROv2 (Opsahl-Ong et al., 2024) jointly optimizes instructions within DSPy pipelines, and GEPA / GEPA+Merge (Agrawal et al., 2026) applies critique-driven mutation to achieve state-of-the-art results. However, because all of these methods apply feedback to entire mono-lithic strings, updates remain noisy and useful learned substructures cannot be reused across in-puts within the same task. 
+
+Discrete Latent Representations. Discrete latent representations model data using a finite set of reusable components (van den Oord et al., 2017; Razavi et al., 2019). VQ-VAE (van den Oord et al., 2017) demonstrates that discrete codebooks en-able component reuse and more stable optimization properties absent from existing prompt optimiza-tion approaches, which operate over unstructured text or continuous embeddings (Liu et al., 2023). PCO inherits this structure, representing prompts as compositions of discrete instruction units to en-able structured reuse across inputs within the same task. 
+
+3 Method: Prompt Codebook Optimization (PCO) 
+
+We propose Prompt Codebook Optimization (PCO) , which recasts prompt optimization as dis-crete compositional learning over a finite vocabu-lary of natural-language instruction units. In place of the monolithic prompt string optimized by prior APO, PCO imposes a discrete latent bottleneck through which every prompt must emerge as a com-position of shared, reusable textual primitives. As shown in Figure 1, the framework comprises four components — a prompt encoder, a discrete code-book of textual instincts, a prompt generator, and a critic — jointly trained via textual gradient de-scent under a language-valued min–max objective (Sec. 3.4). PCO is language-native throughout: ev-ery optimizable variable is a string, every gradient a natural-language critique, and discrete assignment is performed by an LLM-based semantic router rather than nearest-neighbor quantization. 
+
+3.1 Problem Setup and Notation 
+
+Let M denote a frozen large language model and 
+
+D = {(xi, y ⋆i )}Ni=1 a per-task dataset with inputs 
+
+xi ∈ X and references y⋆i ∈ Y . Let r : Y ×Y → R
+
+be a task-specific reward (exact match, pass-rate, or learned preference). The standard APO prob-lem (Zhou et al., 2023; Pryzant et al., 2023) seeks a single prompt p⋆ maximizing expected reward: 
+
+p⋆ = arg max  
+
+> p∈P
+
+E(x,y ⋆)∼D 
+
+ r(M(p, x ), y ⋆) . (1) Eq. (1) treats the prompt as a monolithic, instance-blind string. Its two structural pathologies— 
+
+instance blindness (the same p for every x) and 
+
+global entanglement (every update rewrites the en-tire string)—motivate the discrete latent decompo-sition introduced next. 
+
+3.2 Discrete Latent Decomposition of Prompts 
+
+We replace the monolithic prompt with three train-able components and a finite codebook of textual instincts: • A prompt encoder , Eθ : X × C K →{1, . . . , K }S , implemented as an LLM with system prompt θ, maps an input x to S dis-crete indices into a codebook of size K, where 
+
+S ≪ K.• A codebook , C = {c1, . . . , c K }, where each 
+
+ck is a short natural-language directive (e.g., “decompose into sub-questions before answer-ing”). • A prompt generator , Gϕ : X × C S → P ,implemented as an LLM with system prompt 
+
+ϕ, composes the S selected instincts, condi-tioned on x, into a fluent prompt. • A critic , Dψ : Y × X × P × Y → T , im-plemented as an LLM with system prompt ψ,which emits natural-language feedback in the textual-gradient space T .The trainable variable set is Θ = {θ, ϕ, C} ; the frozen target M and the critic ψ are held fixed. Under this decomposition, the monolithic prompt of Eq. (1) is replaced by the composed prompt 
+
+pΘ(x) = Gϕ
+
+ x, C[Eθ(x, C)] , (2) so that the APO objective is now optimized over Θ through the encoder–codebook–generator pipeline. Figure 1: Overview of PCO. The encoder maps a task to discrete indices, selecting instruction units from a shared codebook. The generator composes these into a prompt, which is executed by a frozen LLM. A critic provides natural-language feedback, propagated backward via textual gradients. 
+
+3.3 Forward Pass: Routing, Composition, and Execution 
+
+For each input x, the forward pass proceeds in three steps: 
+
+zq = Eθ(x, C) ∈ { 1, . . . , K }S , (3) 
+
+p = Gϕ(x, {ck : k ∈ zq}), (4) 
+
+y = M(p, x ). (5) Eq. (3) is the discrete bottleneck: the encoder se-lects S indices from a codebook of size K, yielding an input-dependent routing zq. Eq. (4) composes the selected instincts {ck}k∈zq into a fluent prompt 
+
+p, conditioned on x for instance-specific phrasing. Eq. (5) is the sole call to the frozen target LLM. Together, Eqs. (3) –(4) realize per-instance adaptive prompting: distinct inputs flow through distinct instinct compositions. 
+
+3.4 Training Objective: A Critic-Regularized Discrete Bottleneck 
+
+The forward pass of Sec. 3.3 produces, for each in-put x, a composed prompt p = Gϕ(x, C[Eθ(x, C)]) 
+
+and response y = M(p, x ). Motivated by the GAN family (Goodfellow et al., 2014; Arjovsky et al., 2017), where a critic supplies a dense con-tinuous signal in place of binary supervision, we introduce a critic Dψ : Y × X × P × Y → T 
+
+that plays the same functional role in the textual domain. Rather than a scalar, Dψ emits a structured natural-language verdict 
+
+ℓtext = Dψ(y, x, p, y ⋆) ∈ T ,
+
+identifying behaviors in y deviating from y⋆, lo-calizing failures to specific elements of p, and pre-scribing corrections. A scalarizer ρ : T → R≥0
+
+projects this verdict onto a penalty — zero when the critique is empty, larger as deviations grow more severe. PCO then trains Θ = {θ, ϕ, C} against this critic under a language-valued min–max objective: 
+
+Θ⋆ = arg max  
+
+> θ,ϕ, C
+
+min  
+
+> ψ
+
+E(x,y ⋆)∼D 
+
+h
+
+r M(p, x ), y ⋆
+
+− ρ Dψ(y, x, p, y ⋆)i
+
+, (6) where the outer player (θ, ϕ, C) maximizes task reward r minus the critic-induced penalty ρ, and 
+
+ψ is a fixed critic acting as a frozen adversary — in this work, a prompted LLM with a verification-oriented role prompt. While Eq. (6) retains the min–max form, the inner problem is not solved during training; we adopt the structure for its component-wise gradient attribution rather than for any distributional-distance interpretation. 
+
+Attribution and additive decomposition. The penalty term is partitioned across the three trainable components by an LLM-based attribution operator 
+
+gv = Attr( ℓtext , v ),
+
+implemented as an LLM call with a role-specific prompt that scopes ℓtext to the portion attributable to variable v ∈ { ϕ, c k, θ }. Specifically: • gϕ captures generator faithfulness — whether the selected instincts were rendered accurately into p;• gck captures instinct quality — whether direc-tive ck itself was helpful, harmful, or vague; • gθ captures routing quality — whether the encoder selected the right instincts for x.Taking expectations over the training distribu-tion, the population-level penalty decomposes ad-ditively: 
+
+E(x,y ⋆)∼D 
+
+ ρ Dψ(y, x, p, y ⋆)  ≡
+
+E[ρ(gϕ)] 
+
+| {z }
+
+> Lfid
+
++ E[ρ(gθ)] 
+
+| {z }
+
+> Lroute
+
++ E
+
+ 1
+
+> S
+
+X
+
+> k∈zq
+
+ρ(gck )
+
+| {z }
+
+> Lcb
+
+, (7) where additivity holds by construction of Attr ,whose task is simplified by the structural disjoint-ness of the three failure modes (rendering, instinct content, routing) below. 
+
+Generator faithfulness Lfid . Penalizes failures of Gϕ to render the active instincts {ck}k∈zq accu-rately into p; updates flow only through ϕ.
+
+Codebook refinement Lcb . Each active entry ck
+
+is rewritten in place by an LLM update ck ←
+
+LLM upd (ck, g ck ): successful instincts are sharp-ened, failing ones revised. The remaining K − S
+
+entries are untouched, yielding localized credit as-signment absent from monolithic prompt optimiza-tion. 
+
+Routing consistency Lroute . Regularizes Eθ to-ward stable selections, preventing codebook col-lapse; operationalized at training time by ϵ-greedy exploration (Sec. 3.5). Eqs. (6) – (7) are optimized stochastically by Al-gorithm 1: one critic call produces ℓtext , Attr par-titions it into {gϕ, g θ, g ck }, and each component updates independently via LLM upd . No closed-form gradient is ever computed. 
+
+3.5 Optimization Algorithm 
+
+Since the critic, attribution operator, and per-variable updates in Eqs. (6) –(7) are all LLM calls, Algorithm 1 optimizes the objective stochastically: each step performs one forward pass, one critic call, per-variable attribution, and component-wise updates. Two design choices address pathologies specific to the discrete bottleneck. 
+
+ϵ-greedy routing. A purely encoder-driven policy starves unselected codebook entries, since Eq. (7) updates only active ck — the textual analogue of dead codes in continuous VQ (Razavi et al., 
+
+Algorithm 1 Prompt Codebook Optimization                                                                                         
+
+> Require: D;K, S ;ϵ0, γ, ϵ min , α, τ ;
+> r; frozen M,Dψ
+> 1: Init C={c1, . . . , c K}; init θ, ϕ
+> 2: ¯rk←0for all k;ϵ←ϵ0
+> 3: for epoch = 1 , . . . , T do
+> 4: for (x, y ⋆)∈ D do
+> 5: if rand() < ϵ then
+> 6: zq∼SuccWtd( {¯rk}, S, τ )
+> 7: else
+> 8: zq← E θ(x, C)
+> 9: end if
+> 10: p← G ϕ(x, {ck}k∈zq)
+> 11: y← M (p, x )
+> 12: rstep ←r(y, y ⋆)
+> 13: ℓtext ← D ψ(y, x, p, y ⋆)
+> 14: for v∈ { ϕ, θ } ∪ { ck}k∈zqdo
+> 15: gv←Attr( ℓtext , v )
+> 16: v←LLM upd (v, g v)
+> 17: end for
+> 18: for k∈zqdo
+> 19: ¯rk←(1 −α)¯ rk+α r step
+> 20: end for
+> 21: end for
+> 22: ϵ←max( ϵmin , γϵ )
+> 23: end for
+> 24: return C, θ, ϕ
+
+2019). We sample zq from the encoder with prob-ability 1−ϵ and from a success-weighted distribu-tion with probability ϵ, decaying ϵ from ϵ0=1 .0 to 
+
+ϵmin =0 .15 .
+
+Success-weighted sampling. Uniform exploration wastes calls on underperforming instincts. During exploratory steps, we sample indices with probabil-ities proportional to exp(¯ rk/τ ) (Sutton and Barto, 1998), where ¯rk denotes the EMA reward (step size α) of prompts containing ck — referred to hereafter as the success rate (sr ) of instinct k —and τ = 0 .5, the same signal used to optimize Lcb .
+
+3.6 Inference 
+
+At inference the critic, attribution operator, and up-date rules of Sec. 3.5 are discarded; only the trained 
+
+(θ⋆, ϕ ⋆, C⋆) remain. Given a held-out input x, the system executes a single forward pass through Eqs. (3) –(5) , producing a per-instance prompt px
+
+for the frozen target LLM. Crucially, px̸ = px′ for 
+
+x̸ = x′ in general — the encoder routes different inputs through different instinct compositions, real-izing the per-instance adaptive prompting regime that monolithic optimizers cannot express. 
+
+4 Experimental Setup 
+
+Benchmarks and Evaluation. We evaluate PCO on six benchmarks spanning multi-hop reasoning, mathematical reasoning, and instruction follow-ing: HotpotQA (Yang et al., 2018), HoVER (Jiang et al., 2020), AIME-2025 (Mathematical Associa-tion of America, 2025), LiveBench-Math (White et al., 2025), IFBench (Pyatkin et al., 2025), and PUPA (Li et al., 2025). Following GEPA (Agrawal et al., 2026), we adopt identical evaluation pro-tocols and feedback functions; test sets are held out exclusively for final evaluation. Experiments use locally deployed 8B models on NVIDIA A100 GPUs. 
+
+Baselines. We compare against zero-shot prompting, gradient and RL-based methods (MIPROv2 (Opsahl-Ong et al., 2024), GRPO (Shao et al., 2024)), and evolutionary methods (GEPA, GEPA+Merge (Agrawal et al., 2026)). For Qwen3-8B (Team, 2025), we report official GEPA results; for LLaMA-3.1-8B (Dubey et al., 2024), we repro-duce all baselines using the public GEPA code-base under matched settings. Due to resource constraints, we do not evaluate on proprietary models such as GPT-4.1 Mini used in concurrent work (Agrawal et al., 2026). 
+
+Implementation Details. Generation uses temper-ature 0.6, top-p = 0 .95 , top-k = 20 ; evaluation uses greedy decoding ( T = 0 .0). A single LLM serves all roles (encoder, generator, critic, execu-tor) via role-specific system prompts. PCO uses 
+
+K = 16 codebook entries, S = 4 selected per in-put, trained for 50 epochs with batch size 15 and ϵ
+
+decaying from 1.0 to 0.15 . Additional implementa-tion details are provided in the Appendix. 
+
+5 Results and Analysis 
+
+Table 3 summarizes comparisons against zero-shot baselines and prior APO methods across two 8B model families. 
+
+Observation 1: Discrete bottlenecks support modular reasoning. PCO is particularly effec-tive on compositional reasoning tasks, where dis-crete routing enables reusable instruction special-ization. On HotpotQA, PCO achieves a +30 .36 
+
+gain over zero-shot on LLaMA-3.1-8B and out-performs GEPA by +3 .34 on Qwen3-8B. As illus-trated in Figure 2, the encoder dynamically routes multi-hop queries to specialized instincts corre-sponding to sub-skills such as temporal reasoning and entity linkage. Figure 3 further shows that success-weighted ε-greedy exploration is impor-tant for maintaining codebook diversity. Without exploration, routing collapses onto a small set of overused indices (red bars), whereas PCO main-tains broader utilization across reusable reasoning                                
+
+> Step 1: Task Input
+> “Taran Killam acted in a film directed by the same person who directed
+> Ticket to Paradise. ”
+> ↓Encoder selects S=4 instincts from codebook ( K=32 )
+> Step 2: Encoder-Selected Instincts
+> z1=3 Temporal Precision: define temporal links and timelines.
+> sr =0 .646
+> z2=20 Biographical Bridge: connect claims to background/context.
+> sr =0 .568
+> z3=13 Clarify Relationships: resolve entity and causal relations.
+> sr =0 .530
+> z4=25 Reverse Focus: reason backward from target conclusion.
+> sr =0 .545
+> ↓Generator compresses instincts into a compact system prompt
+> Step 3: Deployed System Prompt
+> You are a multi-hop retrieval assistant. Identify entities and biographical context; trace directorial links temporally; work backward from the claim conclusion. Prioritize factual precision and verify the reasoning chain across all hops.
+> ↓Frozen Mexecutes multi-hop inference
+> Step 4: Multi-Hop Output & Verification Audit
+> Hop 1: Ticket to Paradise →Ol Parker Hop 2: Ol Parker →
+> Killing Hasselhoff ,Taran Killam Hop 3:
+> Cross-verify →
+> SUPPORTED ✓
+> Metric Status Evidence
+> Entity Linkage PASS correct director match Temporal Relation PASS chronology verified Final Verdict PASS all hops support claim
+
+Figure 2: PCO inference pipeline (HoVer, Qwen3-8B). Four codebook instincts, selected via success-weighted routing (where sr = ¯ rk denotes the per-instinct success rate (Section 3.5)), are compressed into a single prompt to drive multi-hop reasoning. 
+
+modules (blue bars). Together, these results suggest that discrete routing encourages the emergence of reusable reasoning subroutines rather than mono-lithic task-specific prompts. 
+
+Observation 2: Codebook compression pre-serves instruction following. Beyond composi-tional reasoning, PCO also generalizes well to strict instruction-following benchmarks. On IFBench, PCO achieves 41.33 (Qwen3-8B), exceeding GEPA by +2 .72 points, and matches GEPA on PUPA within variance. Despite compression through a fi-nite semantic bottleneck, discrete routing preserves task generalization while reducing inference-time prompt overhead (Table 1). 
+
+Observation 3: General instincts transfer to mathematical reasoning. PCO remains compet-itive on mathematical reasoning without domain-specific tuning. On AIME-25, PCO outperforms GEPA (35.67 vs. 32.00) and trails only RL-based GRPO. On LB-Math, PCO performs within one point of the strongest evolutionary methods across both architectures, suggesting that discrete seman-tic bottlenecks preserve mathematical reasoning despite aggressive prompt compression. 
+
+5.1 Prompt Efficiency 
+
+PCO substantially reduces inference-time prompt overhead while maintaining competitive down-stream performance. Table 1 compares deployed prompt lengths across methods. PCO consistently produces shorter prompts, reducing length by up to 
+
+14 .1× on HotpotQA ( 9.6× on average) relative to MIPROv2, and by up to 3.0× (2.0× on average) relative to GEPA-based approaches. Instead of rely-ing on long monolithic prompts, PCO dynamically routes inputs to a small subset of active instincts, reducing context overhead while preserving task performance.                               
+
+> Benchmark MIPROv2 GEPA GEPA+Merge PCO (Ours) Efficiency Gain
+> HotpotQA 10,071 2,142 2,650 ≤714 92.9% (14.1 ×)IFBench 2,438 381 305 ≤325 86.7% (7.5 ×)HoVer 5,252 1,419 1,876 ≤829 84.2% (6.3 ×)PUPA 7,275 1,213 790 ≤743 89.8% (9.8 ×)Aggregate 6,259 1,289 1,405 ≤653 89.6% (9.6 ×)
+
+Table 1: Token efficiency of optimized prompts for Qwen3-8B( K = 16 ). We report the maximum system-prompt token length required during inference (lower is better). 
+
+Configuration Acc CSR Entropy Improv. 
+
+(a) Components (Full Train Set, N=150) 
+
+PCO (Full) 44.00 47.33 3.78 +15.67 w/o Encoder 41.33 46.00 3.74 +13.00 w/o TextGrad 39.33 43.00 3.70 +11.00 w/o ϵ-greedy 38.00 42.33 1.74 ⋆ +9.67 Uniform Sampling 34.00 38.33 3.93 +5.67 Base LLM 28.33 31.33 – –
+
+(b) Codebook Size (Subset, N=30) 
+
+K = 4 39.33 44.00 1.99 +11.00 
+
+K = 16 41.33 45.67 3.75 +13.00 
+
+K = 32 37.33 41.67 3.10 +9.00 
+
+(c) Bottleneck Width 
+
+S = 1 34.00 38.33 2.65 +5.67 
+
+S = 4 41.33 45.67 3.75 +13.00 
+
+S = 6 37.33 41.67 3.92 +9.00 
+
+Table 2: Ablation results on IFBench (LLaMA-3.1-8B). 
+
+6 Ablation Studies 
+
+We evaluate the contribution of individual PCO components and the sensitivity of the discrete bot-tleneck design in Table 2. To reduce computational cost, sensitivity analyses in (b–c) are performed on a representative subset of the benchmark. We report task accuracy (Acc), constraint satisfaction rate (CSR), and routing entropy, where higher en-tropy corresponds to more diverse codebook uti-lization.         
+
+> 04812 16 20 24 28 31
+
+0
+
+100 
+
+200 
+
+300 
+
+400 
+
+500 
+
+> Instinct Index (Codebook Entry)
+> Usage Frequency
+> ε-greedy
+> No Epsilon
+
+Figure 3: Codebook usage for full PCO (blue) vs. with-out ε-greedy (red). 
+
+6.1 Core Component Analysis 
+
+Table 2(a) isolates the contribution of individual architectural components. The largest degradation arises from removing TextGrad, which reduces ac-curacy by 4.67 points and substantially lowers con-straint satisfaction, indicating that natural-language feedback is important for refining task-specialized behaviors. Consistent with this, Table 4 shows that iterative TextGrad refinement improves the success rate of a representative instruction from 11 .8% to 
+
+13 .6% . Performance further drops by 2.67 points when the learnable encoder is removed, highlight-ing the importance of adaptive routing for instruc-tion composition. Exploration strategy is similarly important: replacing success-weighted exploration with uniform sampling causes a substantial 10 point degradation, while disabling ϵ-greedy exploration reduces routing entropy from 3.78 to 1.74 bits, re-vealing severe codebook collapse (Figure 3). 
+
+6.2 Sensitivity Analysis: K and S
+
+Table 2(b–c) reports the effect of codebook size K
+
+and bottleneck width S on task accuracy and rout-ing diversity. The best accuracy–diversity trade-off occurs at K = 16 : smaller codebooks ( K = 4 ) un-derfit due to insufficient semantic diversity, while larger codebooks ( K = 32 ) dilute optimization signals under limited training data ( N = 30 ). Sim-ilarly, performance is maximized at S = 4 ; a sin-gle instruction ( S = 1 ) limits compositional ca-pacity, while wider bottlenecks introduce noisier instruction combinations that reduce reasoning per-formance. Together, these results suggest that effec-tive routing requires balancing semantic diversity against optimization stability. 
+
+6.3 Emergent Specialization 
+
+Table 5 reveals emergent codebook specialization. Frequently selected units exhibit broad, lower-Method HotpotQA IFBench HoVER PUPA AIME-25 LB-Math Agg. ∆
+
+Qwen3-8B 
+
+Baseline 42.33 36.90 35.33 80.82 27.33 48.70 45.23 —GRPO 43.33 35.88 38.67 86.66 38.00 51.26 48.97 +3.73 MIPROv2 55.33 36.22 47.33 81.55 20.00 46.60 47.84 +2.61 GEPA 62.33 38.61 52.33 91.85 32.00 51.95 54.85 +9.62 GEPA+Merge 64.33 28.23 51.67 86.26 32.00 51.95 52.40 +7.17 
+
+PCO † 65.67 ±2.1 41.33 ±2.6 53.67 ±2.5 88.52 ±1.8 35.67 ±3.7 50.89 ±2.5 55.96 +10.73 LLaMA-3.1-8B 
+
+Baseline 21.30 30.95 36.30 74.39 — 32.10 39.01 —GRPO 24.10 30.40 38.20 79.10 — 36.80 41.72 +2.71 MIPROv2 39.80 31.20 41.50 75.30 — 30.40 43.64 +4.63 GEPA 47.90 33.70 45.80 80.70 — 38.10 49.24 +10.23 GEPA+Merge 49.50 29.80 44.60 84.20 — 37.20 49.06 +10.05 
+
+PCO † 51.66 ±2.4 34.18 ±1.9 43.45 ±2.1 82.50 ±1.7 — 37.11 ±1.3 49.78 +10.77 
+
+Table 3: Benchmark performance for Qwen3-8B and LLaMA-3.1-8B. Green highlights the best result per column within each model block. ∆ denotes improvement over the respective baseline. Variance ( ±) is reported for PCO over 3–5 independent seeds. †Ours.            
+
+> Ep. Instruction Evolution (Instinct z20 )sr (%)
+> 1Paragraph Boundary Locking: structure prompts using explicit paragraph boundaries. 11.8 2TextGrad: align prompt structure with reader comprehension flow. 5.8 5Final: enforce focused, organized, and logi-cally flowing responses.
+> 13.6
+
+Table 4: Iterative refinement of a single instruction via TextGrad. We trace the evolution of Codebook Index 20 on IFBench (Qwen3-8B). 
+
+impact behaviors, while sparsely activated units achieve higher success rates on specialized rea-soning patterns. For example, Index 2 is selected frequently ( n = 223 ) but has a low success rate ( sr :
+
+0.50 ), whereas Index 31 activates rarely ( n = 13 )but achieves the highest sr (12 .71 ). This specializa-tion emerges without explicit supervision, suggest-ing that the routing mechanism naturally organizes instruction units into reusable functional roles. 
+
+7 Conclusion 
+
+We introduced Prompt Codebook Optimization (PCO), a framework that reformulates prompt op-timization as discrete compositional learning over reusable natural-language instincts. By replacing monolithic prompt editing with per-instance adap-tive routing, PCO enables localized credit assign-ment and structured instruction reuse. Across six benchmarks, PCO achieves gains of up to +30 .36 
+
+points over zero-shot and reduces deployed prompt length by up to 14 .1×, while consistently improv-ing over prior APO methods. Collectively, these findings indicate that discrete semantic bottlenecks provide an effective inductive bias for scalable and modular prompt optimization. Future work                      
+
+> ID Learned Instinct Usage ( n)sr (%)
+> #31 Structured multi-step verification & triple-check protocol 13 12.71
+> #30 Dynamic narrative framework & real-time analysis 19 6.75 #28 Proactive expectation alignment & assumption clarification 32 6.39 #22 Curiosity hook & structured narrative framework 76 5.29 #12 Meticulous prohibited keyword & letter sweeps 104 3.65 #2 Word count constraint prioritization & critical distillation 223 0.50
+
+Table 5: Emergent specialization within the learned codebook (LLaMA-3.1-8B). 
+
+includes scaling discrete routing to larger model families and latent spaces, cross-task transfer of learned instincts, and integration into multi-agent pipelines.. 
+
+8 Limitations 
+
+PCO introduces a trade-off between compositional abstraction and token-level flexibility: while dis-crete routing improves modular reasoning and in-struction reuse, aggressive compression can reduce syntactic precision on formatting-sensitive tasks. Additionally, PCO trails GEPA+Merge on HoVer for LLaMA-3.1-8B, suggesting that merge-based approaches may retain advantages on dense multi-hop verification tasks. In addition, textual-gradient optimization incurs higher computational overhead than heuristic search methods due to repeated cri-tique and attribution calls, though exact overhead varies with codebook size and batch configuration. Finally, PCO currently relies on fixed codebook size ( K) and bottleneck width ( S). Our ablations suggest that overly large codebooks dilute opti-mization signals, while wider bottlenecks introduce noisy instruction compositions, raising open ques-tions about scaling discrete routing to larger latent spaces and model architectures. References 
+
+Lakshya A Agrawal, Shangyin Tan, Dilara Soylu, Noah Ziems, Rishi Khare, Krista Opsahl-Ong, Ar-nav Singhvi, Herumb Shandilya, Michael J Ryan, Meng Jiang, Christopher Potts, Koushik Sen, Alex Dimakis, Ion Stoica, Dan Klein, Matei Zaharia, and Omar Khattab. 2026. GEPA: Reflective prompt evo-lution can outperform reinforcement learning. In 
+
+The Fourteenth International Conference on Learn-ing Representations (ICLR) .Martin Arjovsky, Soumith Chintala, and Leon Bottou. 2017. Wasserstein generative adversarial networks. In International Conference on Machine Learning (ICML) .Sara Câmara, Eduardo Luz, Valéria Carvalho, Ivan Meneghini, and Gladston Moreira. 2025. Moprompt: Multi-objective semantic evolution for prompt opti-mization. arXiv preprint arXiv:2508.01541 .Huiwen Chang, Han Zhang, Lu Jiang, Ce Liu, and William T. Freeman. 2022. MaskGIT: Masked gen-erative image transformer. In IEEE/CVF Confer-ence on Computer Vision and Pattern Recognition (CVPR) .Ching-An Cheng, Allen Nie, and Adith Swaminathan. 2024. Trace is the next autodiff: Generative opti-mization with rich feedback, execution traces, and llms. (NeurIPS) .Alexandre Defossez, Jade Copet, Gabriel Synnaeve, and Yossi Adi. 2022. High fidelity neural audio compres-sion. arXiv preprint arXiv:2210.13438 .Mingkai Deng, Jianyu Wang, Cheng-Ping Hsieh, Yihan Wang, Han Guo, Tianmin Shu, Meng Song, Eric P. Xing, and Zhiting Hu. 2022. RLPrompt: Optimizing discrete text prompts with reinforcement learning. In 
+
+Conference on Empirical Methods in Natural Lan-guage Processing (EMNLP) .Abhimanyu Dubey and 1 others. 2024. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 .Patrick Esser and 1 others. 2021. Taming transformers for high-resolution image synthesis. (CVPR) .Ian J. Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, and Yoshua Bengio. 2014. Generative adversarial nets. In Advances in Neural Information Processing Systems (NeurIPS) .Qingyan Guo, Rui Wang, Junliang Guo, Bei Li, Kaitao Song, Xu Tan, Guoqing Liu, Jiang Bian, and Yujiu Yang. 2024. Connecting large language models with evolutionary algorithms yields powerful prompt opti-mizers. In The Twelfth International Conference on Learning Representations(ICLR) .Yichen Jiang, Shikha Bordia, Zheng Zhong, Charles Dognin, Maneesh Singh, and Mohit Bansal. 2020. Hover: A dataset for many-hop fact extraction and claim verification. In Findings of the Association for Computational Linguistics: EMNLP 2020 , pages 3441–3460. Association for Computational Linguis-tics. Omar Khattab and 1 others. 2024. Dspy: Programming language models. arXiv preprint .Yoonho Lee, Joseph Boen, and Chelsea Finn. 2026. Feedback descent: Open-ended text optimization via pairwise comparison. In ICLR 2026 Workshop on Memory for LLM-Based Agentic Systems .Siyan Li and 1 others. 2025. Papillon: Privacy preser-vation from internet-based and local language model ensembles. In Proceedings of NAACL .Peng Liu, Lemei Zhang, and Jon Atle Gulla. 2023. Pre-train, prompt, and recommendation: A comprehen-sive survey of language modeling paradigm adapta-tions in recommender systems. Transactions of the Association for Computational Linguistics , 11:1553– 1571. Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan, Luyu Gao, Sarah Wiegreffe, Uri Alon, Nouha Dziri, Shrimai Prabhumoye, Yiming Yang, Shashank Gupta, Bodhisattwa Prasad Majumder, Katherine Hermann, Sean Welleck, Amir Yazdan-bakhsh, and Peter Clark. 2023. Self-refine: Iterative refinement with self-feedback. In Advances in Neu-ral Information Processing Systems (NeurIPS) .Mathematical Association of America. 2025. American invitational mathematics examination (AIME) 2025. Competition Benchmark. Krista Opsahl-Ong, Michael J Ryan, Josh Purtell, David Broman, Christopher Potts, Matei Zaharia, and Omar Khattab. 2024. Optimizing instructions and demon-strations for multi-stage language model programs. In Proceedings of the 2024 Conference on Empiri-cal Methods in Natural Language Processing , pages 9340–9366, Miami, Florida, USA. Association for Computational Linguistics. Reid Pryzant, Dan Iter, Jerry Li, Yin Lee, Chenguang Zhu, and Michael Zeng. 2023. Automatic prompt op-timization with “gradient descent” and beam search. In Proceedings of the 2023 Conference on Empiri-cal Methods in Natural Language Processing , pages 7957–7968, Singapore. Association for Computa-tional Linguistics. Valentina Pyatkin, Saumya Malik, Victoria Graf, Hamish Ivison, Shengyi Huang, Pradeep Dasigi, Nathan Lambert, and Hannaneh Hajishirzi. 2025. Generalizing verifiable instruction following. Ali Razavi, Aaron van den Oord, and Oriol Vinyals. 2019. Generating diverse high-fidelity images with vq-vae-2. NeurIPS .Zhihong Shao and 1 others. 2024. Deepseekmath: Push-ing the limits of mathematical reasoning in open lan-guage models. arXiv preprint arXiv:2402.03300 .Taylor Shin, Yasaman Razeghi, Robert L. Logan IV, Eric Wallace, and Sameer Singh. 2020. AutoPrompt: Eliciting knowledge from language models with au-tomatically generated prompts. In Conference on Empirical Methods in Natural Language Processing (EMNLP) .Noah Shinn, Federico Cassano, Ashwin Gopinath, Karthik R Narasimhan, and Shunyu Yao. 2023. Re-flexion: language agents with verbal reinforcement learning. In Advances in Neural Information Pro-cessing Systems (NeurIPS) .Richard S. Sutton and Andrew G. Barto. 1998. Rein-forcement Learning: An Introduction . MIT Press. Qwen Team. 2025. Qwen3 technical report. arXiv preprint .Aaron van den Oord, Oriol Vinyals, and Koray Kavukcuoglu. 2017. Neural discrete representation learning. In Advances in Neural Information Pro-cessing Systems (NeurIPS) .Colin White, Samuel Dooley, Manley Roberts, Arka Pal, Benjamin Feuer, Siddhartha Jain, Ravid Shwartz-Ziv, Neel Jain, Khalid Saifullah, Sreemanti Dey, Shubh-Agrawal, Sandeep Singh Sandha, Siddartha Venkat Naidu, Chinmay Hegde, Yann LeCun, Tom Gold-stein, Willie Neiswanger, and Micah Goldblum. 2025. Livebench: A challenging, contamination-limited LLM benchmark. In The Thirteenth International Conference on Learning Representations .Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu, Li Jiang, Xiaoyun Zhang, Shaokun Zhang, Jiale Liu, Ahmed Hassan Awadallah, Ryen W White, Doug Burger, and Chi Wang. 2024. Autogen: Enabling next-gen LLM applications via multi-agent conversations. In First Conference on Language Modeling .Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Ben-gio, William W. Cohen, Ruslan Salakhutdinov, and Christopher D. Manning. 2018. Hotpotqa: A dataset for diverse, explainable multi-hop question answer-ing. In Proceedings of the 2018 Conference on Em-pirical Methods in Natural Language Processing (EMNLP) , pages 2369–2380. Association for Com-putational Linguistics. Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan Cao. 2023. ReAct: Synergizing reasoning and acting in language models. In International Conference on Learning Representations (ICLR) .Mert Yuksekgonul, Federico Bianchi, Joseph Boen, Sheng Liu, Zhi Huang, Carlos Guestrin, and James Zou. 2024. Textgrad: Automatic "differentiation" via text. Preprint , arXiv:2406.07496. Yongchao Zhou, Andrei Ioan Muresanu, Ziwen Han, Keiran Paster, Silviu Pitis, Harris Chan, and Jimmy Ba. 2023. Large language models are human-level prompt engineers. In The Eleventh International Conference on Learning Representations .Yuxin Zuo, Kaiyan Zhang, Shang Qu, Li Sheng, Xuekai Zhu, Biqing Qi, Youbang Sun, Ganqu Cui, Ning Ding, and Bowen Zhou. 2025. Ttrl: Test-time rein-forcement learning. In Advances in Neural Informa-tion Processing Systems (NeurIPS) .
+
+A Supplementary / Appendix 
+
+This appendix provides implementation details, dataset splits, optimization configurations, prompt templates, and qualitative analyses of learned in-stincts. 
+
+A.1 Implementation Details                          
+
+> Category Hyperparameter Value
+> Codebook Size K16 Instincts per input S4EMA step size α0.1
+> ε-greedy Initial ε01.0 Decay γ(per epoch) 0.15 Minimum εmin 0.15 Generation Training temperature 0.6 Training top-p0.95 Training top-k20 Eval temperature 0.0 (greedy) Training Epochs 50 Mini-batch size 15 No-overlap epoch shuffling ✓
+> Hardware GPU NVIDIA A100 (40 GB) VRAM strategy single shared engine
+
+Table 6: Full hyperparameter configuration used across all PCO experiments unless stated otherwise. 
+
+Computational budget. PCO introduces addi-tional training overhead relative to heuristic-search baselines due to textual-gradient optimization and component-wise attribution updates. Across a full benchmark run (50 epochs, N =150 training exam-ples), training requires approximately 24 ,000 total LLM calls, including encoder, generator, critic, and attribution operations. At inference time, PCO per-forms one encoder call and one generator call in addition to the frozen target-model inference step. 
+
+A.2 Benchmarks and Evaluation Setup 
+
+Table 7 summarises dataset splits and evaluation metrics used across all experiments.                             
+
+> Benchmark Train Val Test Metric
+> HotpotQA 150 300 300 Exact Match IFBench 150 300 294 CSR HoVer 150 300 300 Doc Recall + Verify PUPA 111 111 221 Privacy+Utility AIME-2025 45 45 30 Accuracy LiveBench-Math 123 123 122 Accuracy
+
+Table 7: Dataset splits and evaluation metrics used across all benchmarks. HotpotQA. We evaluate multi-hop reasoning on HotpotQA using an iterative retrieval pipeline. The feedback signal identifies unresolved supporting evidence at each reasoning stage, enabling step-wise retrieval refinement toward the final answer. Performance is measured via exact match. 
+
+IFBench. IFBench evaluates generalisation un-der strict formatting and output constraints. We optimize a two-stage system consisting of response generation followed by constraint-aware rewriting. Feedback exposes both satisfied and violated con-straints, allowing the optimizer to adaptively im-prove instruction adherence. 
+
+AIME-2025 and LiveBench-Math. AIME-2025 and LiveBench-Math evaluate competition-level and open-domain mathematical reasoning respec-tively. Both benchmarks optimize a single-step Chain-of-Thought reasoning module under accuracy-based evaluation. 
+
+HoVer. HoVer measures multi-hop evidence re-trieval and claim verification over Wikipedia doc-uments. The optimized system performs itera-tive query generation and document summariza-tion across multiple hops, while feedback specifies retrieved gold evidence and remaining missing doc-uments. 
+
+PUPA. PUPA evaluates privacy-conscious dele-gation in compound AI systems. We optimize the PAPILLON pipeline, consisting of trusted rewrit-ing modules surrounding an untrusted model invo-cation. The reward jointly balances task utility and personally identifiable information (PII) leakage minimization. 
+
+A.3 Representative Prompt Templates 
+
+Below, we present the example snapchots of the structured templates used to construct these prompts. 
+
+Encoder ( Eθ ) Routing Prompt                                   
+
+> [Learnable Routing Policy] Select the most relevant instruction instincts for the task. Prioritize complementary reasoning strategies, robustness, constraint coverage, and efficient execution. [Execution Template] Task: {task} Available Instincts: {codebook_entries} Select {S} instincts that best address the task requirements and expected failure modes.
+> ID Epoch 1) Epoch 50
+> #18 Reflective Verification: Antici-pate counterarguments and per-form self-critical analysis to en-sure robust responses.
+> Multi-step Validation Pipeline:
+> Synchronise contextual input nodes with logical-path execution to ver-ify internal consistency and factual alignment through iterative cross-source synthesis. #8 Task Decomposition: Break complex tasks into sequential logical steps to improve clarity.
+> Interconnected Multi-Hop Synthe-sis: Decompose complex queries into semantic nodes and resolve la-tent dependencies through interme-diate inferences for high-fidelity log-ical synthesis. #5 Standard Review: Conduct a fi-nal review to ensure outputs sat-isfy guidelines and task require-ments.
+> Expert-Opinion Synthesis Frame-work: Execute a multi-stage review protocol integrating academic and empirical evidence to ensure preci-sion and trustworthiness.
+
+Table 8: Qualitative evolution of representative instincts from initialization Epoch 1 to Epoch 50. 
+
+Generator ( Gϕ) Composition Prompt        
+
+> [Learnable Composition Policy] Compose aconcise executable reasoning prompt using the selected instincts. Emphasize clarity, structured reasoning, and strict constraint satisfaction. [Execution Template] Task: {task} Selected Instincts: {active_instinct_texts}
+
+Critic ( Dψ ) Evaluation Prompt       
+
+> [Evaluation Objective] Evaluate the generated response with respect to correctness, reasoning quality, robustness, efficiency, and constraint satisfaction. [Execution Template] Response: {model_response} Identify failure modes and propose targeted corrections.
+
+A.4 Qualitative Evolution of Reasoning Instincts 
+
+Table 8 traces three representative instincts across training, from their seed values at Epoch 1 to Epoch 50. 
+
+A.5 Impact of Codebook Initialization 
+
+Table 9 compares expert-seeded and random code-book initialization on IFBench (LLaMA-3.1-8B). Expert-seeded initialization performs slightly bet-ter in a short low-data regime ( N =30 , 7 epochs), whereas random initialization achieves stronger held-out generalization under full PCO training (50 epochs, N =150 ). We attribute this behavior to exploration dynamics: expert-seeded codebooks begin closer to human-designed solutions but con-strain diversity, while random initialization enables broader codebook exploration and more effective specialization through textual-gradient optimiza-tion. Initialization Test Acc (%) CSR (%) 
+
+Expert-Seeded 40.00 43.00 Random (PCO Default) 38.33 37.67 
+
+Table 9: Initialization strategy comparison on a 30-example IFBench subset (LLaMA-3.1-8B, 7 epochs).           
+
+> ID Expert-Seeded (Epoch 1) Random-Seeded (Epoch 1)
+> #0 Constraint verification: verify project scope, stakeholder expec-tations, and alignment before final-ising. A strategic framework for refin-ing user-centric language, foster-ing clear and concise interactions that prioritise nuance. #1 Strategic formatting: employ hier-archical structure with numbered lists and flowcharts to illustrate complex concepts. A structured methodology for iter-ating and embracing diverse per-spectives to ensure effective, re-silient solutions. #2 When a specific word count is re-quested, prioritise clarity and con-cise storytelling. Amplify creative potential by em-bracing diverse perspectives and promoting innovative solutions through calculated risks. #3 Craft prompts that amplify diverse voices and perspectives, prioritis-ing empathy and constructive dia-logue. Employ a multi-faceted approach incorporating user feedback, con-text analysis, and personalised re-sponses.
+
+Table 10: Qualitative comparison of expert-seeded and random initialization strategies at Epoch 1. 
+
+A.6 Encoder Routing Dynamics 
+
+Figure 4 illustrates the evolution of encoder routing probabilities across training. The adaptive PCO en-coder (Figure 4a) progressively concentrates rout-ing toward high-performing instincts while preserv-ing exploration through ε-greedy sampling. By contrast, the static-routing ablation (Figure 4b) produces nearly invariant selection patterns across epochs, indicating that learnable routing is neces-sary for task-specialized instinct discovery. These trends are consistent with the routing-entropy gap (3.78 bits for full PCO versus 1.74 bits without 
+
+ε-greedy exploration). 
+
+A.7 Qualitative Analysis of Deployed Prompts 
+
+A central property of PCO is the discrete code-book bottleneck, which induces emergent domain-specialised prompting behaviours without task-specific supervision. The examples below illus-trate deployed system prompts generated at infer-ence time ( K=16 , S=4 ). Across domains, the encoder consistently surfaces structured reason-ing patterns appropriate to the underlying task, in-cluding invariant verification for mathematics, con-straint preservation for instruction-following, multi-hop evidence tracking for retrieval, and privacy-aware rewriting for sensitive inputs. 
+
+A.7.1 LiveBench-Math 
+
+For mathematical reasoning, the encoder priori-tises verification, invariance tracking, and edge-case analysis, producing prompts that encourage 
+
+(a) Adaptive (PCO). (b) Static encoder (ablation). 
+
+Figure 4: Codebook selection probability heatmaps across training epochs (IFBench, LLaMA-3.1-8B). 
+
+self-auditing reasoning behaviour. 
+
+Input Problem “Find the number of real roots of 
+
+P (x) = x4 − 4x3 + 12 x2 + x − 1.” 
+
+Encoder Selection (K=16 , S =4) 
+
+Slot Codebook Entry Sel. Rate 
+
+z1 Double-Entry Verification sr =0 .147 
+
+z2 Identify Invariants sr =0 .131 
+
+z3 Edge-Case Analysis sr =0 .118 
+
+z4 Clarity Over Assumption sr =0 .094 
+
+Generator-Composed Prompt 
+
+Solve the problem through explicit step-wise reasoning. Identify invariant properties, independently verify intermediate calculations, and analyse edge cases before producing the final answer. 
+
+A.7.2 IFBench 
+
+For strict instruction-following, the encoder injects formatting and constraint-preservation instincts di-rectly into the deployed prompt. Unlike reasoning tasks, verbatim insertion preserves constraint fi-delity without generator-side compression. Base Instruction 
+
+You are a strict instruction-following assistant. Follow all formatting, counting, and structural constraints exactly. 
+
+Encoder Selection (K=16 , S =4) 
+
+Slot Codebook Entry Sel. Rate 
+
+z1 Paragraph Boundary Locking 
+
+sr =0 .136 
+
+z2 Punctuation Consistency sr =0 .106 
+
+z3 Non-Standard Capitalisation sr =0 .100 
+
+z4 Constraint Alignment sr =0 .089 
+
+Deployed Prompt (Verbatim) 
+
+Preserve paragraph boundaries exactly. Maintain punctuation and capitalisation consistency throughout the output. Apply any specified non-standard casing globally. Prioritise full constraint satisfaction before stylistic fluency. 
+
+A.7.3 HoVer 
+
+For multi-hop fact verification, the encoder sur-faces retrieval strategies centred on evidence chain-ing, entity disambiguation, and temporal consis-tency across documents. 
+
+Input Claim “The director of Mulholland Drive was born in the same state as the lead actress of Blue Velvet.” 
+
+Encoder Selection (K=16 , S =4) 
+
+Slot Codebook Entry Sel. Rate 
+
+z1 Multi-Hop Chain Construction 
+
+sr =0 .152 
+
+z2 Temporal Evidence Ordering 
+
+sr =0 .129 
+
+z3 Entity Disambiguation sr =0 .111 
+
+z4 Contradiction Flagging sr =0 .097 
+
+Generator-Composed Prompt 
+
+Construct an explicit chain of supporting evidence. Resolve entity references before advancing retrieval hops, maintain temporal consistency across evidence, and flag contradictory passages before producing the final verification decision. 
+
+A.7.4 PUPA 
+
+For privacy-preserving delegation, the encoder in-dependently discovers privacy-oriented prompting strategies despite receiving no explicit supervision over PII categories during training. 
+
+Table 11: Routing diversity and codebook utilisation statistics. Entropy : Shannon entropy of the routing distribution ( max = log 2(16) ≈ 4.0 bits). Util. : frac-tion of codebook entries selected at least once. Avg SR :selection-weighted mean success rate. 
+
+Benchmark Entropy Util. Unique Avg SR 
+
+HotpotQA (Qwen3) 3.78 93.8% 15/16 0.567 HotpotQA (LLaMA) 3.71 91.2% 14/16 0.544 IFBench (Qwen3) 3.85 95.0% 16/16 0.612 IFBench (LLaMA) 3.68 89.5% 14/16 0.531 HoVer (Qwen3) 3.82 94.5% 15/16 0.598 PUPA (Qwen3) 3.91 97.0% 16/16 0.643 AIME-25 (Qwen3) 3.79 92.0% 15/16 0.521 LB-Math (Qwen3) 3.84 94.8% 16/16 0.574 
+
+Average 3.82 93.5% 15.1/16 0.572 Input Query “Summarise the patient’s discharge notes and list all identifiable personal data.” 
+
+Encoder Selection (K=16 , S =4) 
+
+Slot Codebook Entry Sel. Rate 
+
+z1 PII Detection and Redaction sr =0 .144 
+
+z2 Contextual Sensitivity sr =0 .122 
+
+z3 Minimal Disclosure Principle 
+
+sr =0 .108 
+
+z4 Audit-Trail Annotation sr =0 .091 
+
+Generator-Composed Prompt 
+
+Prioritise privacy preservation during processing. Detect and redact all personally identifiable information before summarisation, disclose only information necessary for the task, and annotate sensitive content categories to support downstream auditing.

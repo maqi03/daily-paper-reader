@@ -1,0 +1,829 @@
+Title: PEML: Parameter-efficient Multi-Task Learning with Optimized Continuous Prompts
+
+URL Source: https://arxiv.org/pdf/2605.14055v1
+
+Published Time: Fri, 15 May 2026 00:17:08 GMT
+
+Number of Pages: 26
+
+Markdown Content:
+# PEML: Parameter-efficient Multi-Task Learning with Optimized Continuous Prompts 
+
+Anjir Ahmed Chowdhury ∗
+
+Department of Computer Science University of Houston 
+
+aachowd4@cougarnet.uh.edu 
+
+Syed Zawad IBM Research 
+
+szawad@ibm.com 
+
+Xiaolong Ma 
+
+Argonne National Laboratory 
+
+xma@anl.gov 
+
+Xu Dong Department of Computer Science University of Houston 
+
+xdong24@cougarnet.uh.edu 
+
+Feng Yan Department of Computer Science University of Houston 
+
+fyan5@central.uh.edu 
+
+## Abstract 
+
+Parameter-Efficient Fine-Tuning (PEFT) is widely used for adapting Large Lan-guage Models (LLMs) for various tasks. Recently, there has been an increasing demand for fine-tuning a single LLM for multiple tasks because it requires over-all less data for fine-tuning thanks to the common features shared among tasks. More importantly, LLMs are resource demanding and deploying a single model for multiple tasks facilitates resource consolidation and consumes significantly less resources compared to deploying individual large model for each task. Existing PEFT methods like LoRA and Prefix Tuning are designed to adapt LLMs to a specific task. LoRA and its variation focus on aligning the model itself for tasks, overlooking the importance of prompt tuning in multi-task learning while Prefix Tuning only adopts a simple architecture to optimize prompts, which limits the adaption capabilities for multi-task. To enable efficient fine-tuning for multi-task learning, it is important to co-optimize prompt optimization and model adaptation. In this work, we propose a Parameter-Efficient Multi-task Learning (PEML), which employs a neural architecture engineering method for optimizing the continuous prompts while also performing low-rank adaption for model weights. We prototype PEML by creating an automated framework for optimizing the continuous prompts and adapting model weights. We evaluate PEML against state-of-the-arts multi-task learning methods MTL-LoRA, MultiLoRa, C-Poly, and MoE, on the GLUE, Super-GLUE, Massive Multitask Language Understanding, and commonsense reasoning benchmarks. The evaluation results present an average accuracy improvement of up to 6.67%, with individual tasks showing peak gains of up to 10.75%.  
+
+> ∗Use footnote for providing further information about author (webpage, alternative address)— not for acknowledging funding agencies. Preprint.
+> arXiv:2605.14055v1 [cs.CL] 13 May 2026
+
+## 1 Introduction 
+
+Large language models (LLMs) have made significant advancements in various natural language processing tasks such as machine translation Lewis et al. [2019], text generation Chung et al. [2022], and code analysis Wang et al. [2021], Qin et al. [2024]. Traditional task-specific fine-tuning (FT) becomes increasingly computationally expensive as LLMs continue to grow in size. It requires adjusting all of the model’s parameters, which makes it difficult to scale Devlin et al. [2018], Howard and Ruder [2018], Raffel et al. [2020], and thus motivated parameter-efficient fine-tuning (PEFT) methods that only require learning a small set of additional parameters for each task Houlsby et al. [2019], Lester et al. [2021]. These methods Pfeiffer et al. [2020], Hu et al. [2021] have been widely adopted as they offer comparable performance to full fine-tuning while significantly reducing computational overhead Houlsby et al. [2019], Lester et al. [2021], Ding et al. [2023]. Q     
+
+> WQWKWV
+> LoRA LoRA LoRA
+> Attention
+> Multi-Head Attention
+> PKPVKV
+
+Hidden States          
+
+> Figure 1: Overview of PEML. Hid-den states are projected into queries, keys, and values using WQ,WKand
+> WV, with LoRA applied to key and value projections. Learnable prefix vec-tors PKand PVare prepended to the key and value sequences, enabling task-specific conditioning during multi-head attention.
+
+LoRA Hu et al. [2021] and Prefix Tuning Li and Liang [2021] are among prominent PEFT methods for adapting models to a single task. LoRA enhances efficiency by introducing trainable low-rank matrices into a subset of the model’s weights during training, enabling learning directional updates in the parameter space. Prefix Tuning improves adaptability by generating task-specific continuous vectors Liu et al. [2021a], Li and Liang [2021] to the input embeddings before each transformer layer to steer the model’s generation process without modifying the original model parameters. Such learned prefix vectors and low-rank matrices enable efficient adaptation to new and related tasks with minimal additional training Lester et al. [2021], Liu et al. [2022, 2021b]. LoRA and Prefix Tuning, however, face challenges when ap-plied to multi-task training. First, deploying many task-specific adapters (e.g., prefix vectors or LoRA matrices) increases mem-ory usage and makes resource management complex. Frequent switching between adapters incurs computational costs due to the need for adapter loading and model reconfiguration. There-fore, it is inefficient and costly for inference serving deployment. In addition, individual task training prevents knowledge sharing across tasks, missing opportunities to leverage insights from one task to improve others Lopes et al. [2023], Zamir et al. [2020]. Such isolated task training limits potential performance gains from inter-task knowledge-sharing. Lately, there are efforts to adapt PEFT methods for multi-task learning. MPT Wang et al. [2023d] learns a shared transferable prompt distilled from multiple task-specific prompts and applies multi-plicative low-rank adaptations for downstream task specialization. However, it requires pre-training individual teacher prompts for each task. MultiLoRA Wang et al. [2023c] extends LoRA by hor-izontally scaling modules, dividing them into parallel sub-modules with separate scaling factors. Yet, this approach increases VRAM usage due to activation caching for multiple parallel modules. C-Poly Wang et al. [2023a] employs a skill-based framework that merges shared and task-specific low-rank parameters using a learned skill matrix, but its fixed architecture limits generalization. MTL-LoRA Yang et al. [2025] introduces task-adaptive parameters that reduce interference in shared low-dimensional spaces. However, it requires task-specific routing during inference, which compli-cates inference deployment and resource management. Despite these advancements, most approaches focus on extending LoRA but overlook the critical aspect of prompt alignment in multi-task envi-ronment Shen et al. [2024], Xin et al. [2024]. Aligned prompts can significantly improve model generalization during multi-task Xu et al. [2022] training. Motivated by this observation, we explore integrating prompt alignment into PEFT methods to enhance multi-task performance. To this end, we propose PrefixNAS which generates and optimizes a single, unified continuous prompt architecture through neural architecture search (NAS) for better alignment of the model’s behavior in multi-task learning. PrefixNAS captures task-relevant features and relationships, allowing the prompt encoder to leverage shared knowledge efficiently while preserving task-specific distinctions (∼ see Appendix 7.7.3). Additionally, PrefixNAS automatically tunes both the prefix architecture and 2its hyperparameters, eliminating the need for manual adjustments when adapting to new tasks. We further develop a Parameter-efficient Multi-Task Learning framework (PEML) to integrate PrefixNAS enabled prompt optimization into LoRA for model alignment. Figure 1 shows the structure of PEML. LoRA matrices are applied to all projection layers, while prefix vectors are added in parallel to only the key and value projections of each attention head. This combination allows the model to adapt to new tasks, with LoRA handling model adaptation and prefix vectors handling input alignment. Such an integrated design also facilitates efficient inference deployment as only one adapter needs to be deployed and does not require adapter switching. We formulate multi-task learning as a joint optimization problem through LoRA and PrefixNAS and conduct theoretical analysis on PEML. We evaluate PEML by comparing it with state-of-the-arts multi-task learning methods such as MTL-LoRA, MultiLoRa, C-Poly, and MoE Yang et al. [2025], Shazeer et al. [2017], Wang et al. [2023c,a], on the GLUEWang et al. [2018], SuperGLUEWang et al. [2019], Massive Multitask Language Understanding Hendrycks et al. [2021] and commonsense reasoning benchmarks Bisk et al. [2020], Sakaguchi et al. [2020], Mihaylov et al. [2018], Zellers et al. [2019], Clark et al. [2018]. The evaluation results demonstrate an average accuracy improvement of up to 6.67%, with individual tasks showing peak gains of up to 10.75%. 
+
+## 2 Related Work 
+
+Approaches to parameter-efficient fine-tuning can be broadly classified into three categories: adapter-based methods, prompt-based methods (e.g., Prefix Tuning), and low-rank adaptation methods, with most recent developments primarily focusing on Prefix Tuning and LoRA. 
+
+Adapter-based methods Houlsby et al. [2019], He et al. [2021], Mahabadi et al. [2021a] insert small, trainable modules into a pretrained model while keeping the rest of the model frozen, capturing task-specific information with minimal added parameters. It introduce additional layers, leading to parameter redundancy, whereas LoRA focuses on low-rank updates without introducing additional layers 
+
+Prefix Tuning Li and Liang [2021] is a specialized form of prompt-based fine-tuning that focuses on prepending learnable continuous vectors, known as "prefixes," to the inputs. It involves the optimization of continuous vectors that shift the model towards specific downstream tasks. Prefix Tuning updates only the prefixes during fine-tuning, keeping the base model parameters frozen. This makes it significantly more memory efficient and scalable, especially for large-scale models. However, Prefix tuning remains sensitive to initialization, which may limit its adaptability in multitask settings. 
+
+LoRA Hu et al. [2021] reduces the number of trainable parameters by applying low-rank decomposi-tion to simulate weight updates in frozen models, enabling efficient fine-tuning without increasing inference costs. Several variants have been proposed to further enhance its efficiency and applicability. 
+
+AdaLoRA Zhang et al. [2023] leverages singular value decomposition (SVD) to prune less significant components. while rsLoRA Kalajdzievski [2023] introduces a scaling factor to stabilize the rank. 
+
+DoRA Liu et al. [2024] implements dynamic optimization of LoRA parameters during training to improve adaptability across learning tasks. In the context of Stable Diffusion, Yeh et al. Yeh et al. [2024] proposed a unified LoRA framework that applies different combinations of LoRA methods for various tasks. VeRA Kopiczko et al. [2024] introduces scaling vectors that adjust pairs of frozen random matrices shared across layers, further optimizing parameter efficiency. 
+
+Multi-task learning (MTL) trains models to solve multiple related tasks simultaneously by sharing parameters across tasks Zhang and Yang [2017], Ruder [2017]. It often involves fine-tuning on several tasks before transferring knowledge to a new one Vu et al. [2020], Raffel et al. [2020], Aghajanyan et al. [2021]. Building on the foundational PEFT techniques, recent innovations have proposed MTL-specific adaptations designed to minimize interference between tasks while maintaining parameter efficiency. One approach, MPT Wang et al. [2023d], learns a shared transferable prompt distilled from multiple task-specific prompts. However, its major drawback is the need to pre-train individual teacher prompts for each source task before distilling knowledge into a shared prompt, which introduces significant computational overhead. UniPELT Mao et al. [2022] integrates Prefix-Tuning, LoRA, and adapters within a single framework and uses a gating mechanism to select among these modules. However, it is primarily designed for single-task and it performs well in low-data settings but its gains reduce under full-data training. MTL-LoRA Yang et al. [2025] extends the original LoRA framework by introducing task-adaptive parameters that preserve task-specific information and reduce 3interference in shared low-dimensional spaces, enhancing multi-task adaptation. Unlike standard LoRA, which merges adapters into the base model, MTL-LoRA requires task-specific routing during inference, resulting in added latency. MultiLoRA Wang et al. [2023c] addresses the limitations of LoRA’s reliance on top singular vectors by horizontally scaling LoRA modules and diversifying their initialization, resulting in more balanced and effective adaptation across diverse tasks. However, it introduces a linear increase in VRAM usage during training due to the activation caching required for multiple parallel LoRA modules. Customized Polytropon (C-Poly) Wang et al. [2023a] is a modular, skill-based framework that enhances multi-task learning by combining shared and task-specific low-rank parameters through a learned skill assignment matrix. Theoretically, It struggles with unseen tasks, relying on it’s fixed architecture with static skill modules limits generalization. Furthermore, existing approaches lack a mechanism to automatically adapt their architecture or hyperparameters to new data, requiring manual adjustments for each benchmarks. Additional related work on adapter and prompt-based methods, more recent LoRA and Prefix Tuning variants, and hypernetwork-based approaches is provided in Appendix 7.1. 
+
+## 3 PEML 
+
+PEML strategically handle the challenges of prompt alignment and low-rank model adaptability in multi-task learning by integrating standard LoRA with PrefixNAS. Unlike existing approaches that extend LoRA (such as MTL-LoRA, MultiLoRA) without considering for prompt alignment, PEML introduces a more cohesive framework where PrefixNAS dynamically adjusts the prefix structure based on the specific requirements. This adaptability allows PEML to maintain a shared prefix module throughout training and inference, reducing the reliance on static architecture or any pre-trained teacher prefixes. Meanwhile, LoRA operates in parallel during training to effectively optimize low-rank adaption of the model without introducing a linear increase in VRAM usage. After training, LoRA is merged with the base model, resulting in a leaner architecture that only retains the adaptive PrefixNAS module. PrefixNAS is allowed to continuously refine its structure based on evolving task demands and ensuring optimal prompt alignment and model generalization. Embedding       
+
+> LayerNorm
+> WqWkWv
+> LORA
+> LoRA
+> QKVPkPv
+> Attention
+> LayerNorm
+> MLP
+> XL
+
+Decoder 
+
+Q
+
+> Pretrained
+> Weights
+> B
+> A
+
+*
+
+> x
+> h
+
+LoRA 
+
+> Prefix
+> Q K V
+
+K VPk Pv 
+
+> Attention
+> Output
+> Input
+> PkPv
+> Layers
+> Generated
+> from
+> PrefixNas
+> 0
+> 1
+> 2
+> n
+> PrefixNas
+
+Prefix Layer 
+
+Tuning 
+
+Figure 2: Unified view of PEML method. The left side illustrates LoRA, where matrix B is set to 0 and matrix A follows a normal distribution N(0, σ2). The right side represents PrefixNAS, showcasing the optimal architecture derived from the search process. 
+
+4PEML combines LoRA with PrefixNAS which use a gradient-based NAS approach that’s built on con-tinuous relaxation techniques. Both techniques opti-mize parallelly during training, as shown in Figure 2. This allows the model to adjust shared features and dynamically generate unified prefix at the same time. Moreover, this interaction can introduce insta-bility; we therefore provide a convergence analysis Appendix 7.2 showing that the joint optimization is well-behaved and convergent. Also a detailed break-down of how the framework works is provided in Algorithm 1. In Algorithm 1 the base model Φ is ini-tialized with frozen pre-trained weights, while LoRA parameters B, A and PrefixNAS architecture param-eters α are trained concurrently. In each iteration, PrefixNAS generates candidate prefix architectures 
+
+Ai(α), which are used to construct shared prefix 
+
+Pi. That unified prefix are concatenated with in-puts and passed through the model adapted by LoRA parameters, producing predictions and computing a combined loss and architecture regularization terms. PrefixNAS parameters update via gradient descent, followed by pruning weak architectures. The final model Φfinal consists of the optimized LoRA weights and a unified Prefix architecture. 
+
+Algorithm 1 PEML: Joint Optimization with LoRA & PrefixNAS                                                            
+
+> Φ←pre-trained model
+> θ←base weights [Frozen]
+> {Di}ni=1 ←datasets
+> h←PrefixNAS search space
+> s←PrefixNAS operations Initialize LoRA params B, A and PrefixNAS params α
+> Parallel Joint Optimization for joint iteration t= 1 to Tdo
+> Generate candidate prefix architectures: Ai(α)←
+> PrefixNAS (s)
+> Pi←SharedPrefix (Ai(α), h ){Unified prefix}
+> for each dataset Dido
+> ˜Xi=Pi⊕Xi{Input with a unified prepend prefix}
+> θ′←θ+B·A{LoRA adaptation} Forward pass: ˆy= Φ( ˜Xi;θ′)
+> Compute loss: Lt=L(ˆ y, y i) + λR(α)
+> Simultaneous Updates:
+> ▷Update LoRA params: B, A ←B, A −
+> η∇B,A Lt
+> ▷Update NAS params: α←α−η∇αLt
+> end for
+> Prune weak architectures via PrefixNAS
+> end for return Φfinal (θ′, α ∗){Jointly optimized model}
+
+3.1 Problem Statement 
+
+Let D = {D1, D 2, . . . , D n} denote multi-task datasets from the benchmarks, where each dataset 
+
+Di = {(xij , y ij )}mi 
+
+> j=1
+
+contains input-output pairs for task Ti. Mini-batches are constructed through parallel sampling: 
+
+Bk =
+
+> n
+
+[
+
+> i=1
+
+{(xi1, y i1), . . . , (xib i , y ib i )} with bi = ⌊γm i⌋ (1) The model fθ with base parameters θ undergoes joint optimization through LoRA and PrefixNAS. LoRA modifies low-rank matrices B, A ∈ Rd×r with r ≪ d. The adapted parameter set θ′ is expressed as: 
+
+θ′ = θ + ∆ θ = θ + BA ⊤ (2) PrefixNAS searches for a single learnable prefix matrix P ∈ Rl×d, concatenated with the input sequence Xi. The transformed input ˜Xi is given by: 
+
+˜Xi = Aα(P ) ⊕ Xi (3) where Aα is an architecture search function parameterized by α. The joint loss function for PEML is defined as: 
+
+Ljoint = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1
+
+|B(i) 
+
+> k
+
+|
+
+X
+
+> (x,y )∈B(i)
+> k
+
+L(fθ′ (˜ x), y ) + λR(α) (4) Where the joint loss function Ljoint combines task loss and architecture regularization. The task loss averages over mini-batches and samples, expressed as L(fθ′ (˜ x), y ). The regularization term λR(α)
+
+is applied to the architecture parameters α and is designed to encourage sparse and well-structured operation selection by discouraging high-entropy architectural distributions, scaled by λ. We define the regularization term as: 
+
+R(α) = − X
+
+> o∈O
+
+po log po, po = softmax (αo) (5) During training, θ remains frozen, and the updates only B, A, and α alongside with A(P ) . After training, the final model integrated with PEML is expressed as: 
+
+fθfinal = fθ+BA ⊤ ◦ A α∗ (P ) (6) 5where α∗ denotes the optimized architecture parameters obtained through PrefixNAS. 
+
+3.2 PrefixNAS Optimization 
+
+PrefixNAS generates a single optimized architecture through differentiable search, enabling multi-task optimization beyond static embedding layers. For each task Ti, the prefix architecture combines candidate operations via continuous relaxation: 
+
+Ai(αi) = 
+
+> k
+
+X
+
+> j=1
+
+exp( αij )
+
+Pkm=1 exp( αim ) · oj (Pi) (7) where αi ∈ Rk represents learnable architecture parameters, Pi is the search prefixes, and {oj }kj=1 
+
+denotes the set of candidate operations. After convergence, the final architecture is obtained by selecting the dominant operation: 
+
+ˆAi = oargmax  
+
+> j
+> αij
+
+(8) PrefixNAS generates a single optimized architecture shared across all tasks through differentiable search, enabling uniform optimization without inter-task interference. 
+
+3.3 PEML Optimization 
+
+PEML integrated on a pre-trained model Φ( X; θ) with frozen base parameters θ. The adaptation combines low-rank updates ∆ = BA ⊤ where B, A ∈ Rd×r , and unified prefix Pi generated through PrefixNAS with architecture parameters α. The unified objective maximizes the log-likelihood with architectural regularization: 
+
+max 
+
+> ∆,α n
+
+X
+
+> i=1
+> |Yi|
+
+X
+
+> t=1
+
+log pθ′ (yi,t | ˜Xi, y i,<t ) − λR(α) (9) 
+
+3.4 Hyperparameter Optimization 
+
+PEML performs bi-level optimization where the inner loop optimizes the architectural parameters using PrefixNAS, and the outer loop optimizes hyperparameters through Tree-structured Parzen Estimator (TPE). Let h = {h1, ..., h n} represent the hyperparameters, and α = {αi}ki=1 denote the PrefixNAS architecture parameters. 
+
+Inner Loop (PrefixNAS Optimization) searches for the optimal prefix architecture by evaluating multiple configurations and selecting those that maximize the objective function: 
+
+αt ∼ pt(α) (10) For each sampled αt, the model is trained with the prefix defined by Aαt (P ) and evaluated using: 
+
+f (αt) = 1
+
+m
+
+> m
+
+X
+
+> j=1
+
+A(Φ( Xj ; θ′ + ∆ , Aαt (P ))) (11) 
+
+Outer Loop (Hyperparameter Optimization with TPE) samples hyperparameters and guiding the search based on previous evaluations for each trial t:
+
+ht ∼ pt(h) (12) The objective function for the outer loop becomes: 
+
+f (ht, α ∗) = 1
+
+m
+
+> m
+
+X
+
+> j=1
+
+A(Φ( Xj ; θ′ + ∆ , Aα∗ (P ), ht)) (13) TPE updates the sampling distributions for hyperparameters based on the evaluation results, while the architecture parameters are refined through PrefixNAS: 6pt+1 (h) ∝ exp( f (ht, α ∗)) , pt+1 (α) ∝ exp( f (αt)) (14) The optimization process continues iteratively, refining both hyperparameters and prefix configura-tions to converge to the optimal combination (h∗, α ∗), defined as: 
+
+h∗, α ∗ = argmax 
+
+> h,α
+
+f (h, α ) (15) 
+
+## 4 Experiments 
+
+4.1 Models & Dataset 
+
+We evaluate PEML using T5-Large (770M) Raffel et al. [2020], FLAN-T5-Large Chung et al. [2024], LLaMA-7B Touvron et al. [2023] and LLaMA2-7B Touvron et al. [2023]. Our experiments span across GLUE Wang et al. [2018] (SST-2 Socher et al. [2013], COLA Warstadt et al. [2018], STS-B Cer et al. [2017]), SuperGLUE Wang et al. [2019] (RTE Dagan et al. [2006], Boolq Clark et al. [2019], WIC Pilehvar and Camacho-Collados [2018]), MMLU Hendrycks et al. [2021], and commonsense reasoning tasks (PIQA Bisk et al. [2020], SIQA Sap et al. [2019], Winogrande Sakaguchi et al. [2020], OBQA Mihaylov et al. [2018], HellaSwag Zellers et al. [2019], ARC Clark et al. [2018]). 
+
+4.2 Experimental Setup 
+
+In this study, we implemented various PEFT methods using the Hugging Face PEFT Mangrulkar et al. [2022] library, including PreEmbedd, PrefixNAS, and LoRA variants like DoRA and AdaLoRA. PreEmbedd consists only an embedding layer and an output layer, without any intermediate layers, virtual tokens is set to 20 , and the learning rate is fixed at 1e-3 . The LoRA and AdaLoRA config-urations are as follows: rank r = 16 , LoRA_alpha = 32 , and LoRA_dropout = 0.1 . We also provide huggingface modularity to PrefixNAS. It defines operations in the search space O as linear transformations with dimensions of (1024 x 1024) . Each transformation is associated with an activation function (ReLU, Tanh, Leaky ReLU, or GELU) , dropout layers = [0.1, 0.3, or 0.5] , and layer normalization . PrefixNAS generates n = 6 lay-ers between an embedding layer and a fixed output layer. TPE Watanabe [2023] is integrated with the PrefixNAS framework to refine hyperparameter search. The search required approximately 2 hours on 8× A100 GPUs for LLaMa variants (16 GPU-hours, ∼1.1 PFLOPs) and around 30 minutes on 8× A100 GPUs for T5-large variants (4 GPU-hours, ∼0.28 PFLOPs). This search process is a one-time effort for each benchmark. The learning rate is sampled from a logarithmic uniform distribution between 0.001 and 0.02 , with a base step of 5e-5 . The prefix length varies from 5
+
+to 50 . A total of n=100 trials are conducted, each running for a maximum of 150 epochs . The early stopping function is applied to terminate training after 25 epochs without improvement in average accuracy. All experiments are conducted with three independent runs and results are reported as the average across runs. Ray Tune Liaw et al. [2018] framework is used to implement TPE. For efficient multi-GPU training, the training is distributed across 8 NVIDIA A100 40 GB GPUs 
+
+using huggingface Accelerate Gugger et al. [2022] library. 
+
+4.3 Results 4.3.1 General Language Understanding 
+
+As shown in Table 1, PEML improves the average accuracy by 3.59% on GLUE benchmark compared to standalone LoRA, while it shows a smaller improvement of 0.71% over standalone AdaLoRA. Combining PreEmbedd with LoRA or AdaLoRA showed almost the same performance as using LoRA or AdaLoRA alone which proves our hypothesis that LoRA may limit the effectiveness of prompt alignment. PrefixNAS addresses this issue by optimizing the prefix architecture to better align prompts. Table 2 presents a comparison of PEML against state-of-the-art multitask PEFT techniques on the GLUE benchmark using the LLaMA2-7B model. PEML achieves the highest average performance of 91.1%, outperforming all baselines. All experiments and the instructions prompt are follow the experimental setup described inYang et al. [2025]. 7Table 1: Performance of various PEFT methods, including PreEmbedd, LoRA, AdaLoRA, and their combina-tions with PEML tested on the T5-large model across seven GLUE tasks. 
+
+Peft Techniques SST2 MRPC RTE COLA QQP WNLI QNLI AVG PreEmbedd 0.895 0.799 0.893 0.753 0.962 0.734 0.879 0.845 LoRA 0.954 0.815 0.901 0.779 0.935 0.765 0.943 0.870 LoRA-PreEmbedd 0.966 0.851 0.891 0.834 0.961 0.671 0.965 0.877 PEML 0.976 0.867 0.899 0.843 0.971 0.781 0.974 0.901 
+
+AdaLoRA 0.951 0.891 0.910 0.880 0.960 0.812 0.962 0.908 AdaLoRA-PreEmbedd 0.960 0.883 0.912 0.890 0.973 0.781 0.966 0.909 PEML-AdaLoRA 0.966 0.906 0.934 0.889 0.972 0.767 0.975 0.916 
+
+Table 2: Compare the performance accuracy (COLA : mcc & STS-B: pea.) of PEML using LLaMA2-7B model with state-of-the-art multitasking framework. 
+
+Peft Techniques COLA MNLI MRPC QNLI QQP RTE SST2 STSB AVG LoRA-MT 0.659 0.914 0.860 0.960 0.909 0.917 0.971 0.919 0.889 MultiLoRA 0.613 0.910 0.863 0.955 0.900 0.910 0.963 0.918 0.879 MoELoRA 0.637 0.912 0.855 0.957 0.906 0.921 0.966 0.922 0.884 MTL-LoRA 0.680 0.914 0.902 0.963 0.914 0.924 0.971 0.928 0.900 PEML 0.698 0.964 0.912 0.967 0.928 0.912 0.971 0.935 0.911 
+
+4.3.2 Multi-Sentence Advanced Reasoning 
+
+Table 3 demonstrates the effectiveness of PEML across SuperGLUE benchmark. It achieves the high-est overall average score of 88.08%, outperforming standalone PEFT baselines such as PreEmbedd (84.78%) and LoRA (83.67%) by +3.30% and +4.41%, respectively. 
+
+Table 3: Performance of various PEFT methods, including PreEmbedd, LoRA, AdaLoRA, and their combina-tions with PEML tested on the T5-large model across SuperGLUE benchmark. 
+
+Peft Techniques Boolq RTE COPA MultiRC WIC WSC AVG PreEmbedd 0.918 0.939 0.775 0.897 0.841 0.714 0.847 LoRA 0.921 0.907 0.750 0.891 0.800 0.750 0.836 LoRA-PreEmbedd 0.926 0.931 0.750 0.902 0.830 0.678 0.836 PEML 0.934 0.931 0.825 0.904 0.870 0.750 0.869 
+
+AdaLoRA 0.940 0.959 0.800 0.905 0.878 0.732 0.869 AdaLoRA-PreEmbedd 0.935 0.951 0.875 0.901 0.886 0.714 0.877 PEML-AdaLoRA 0.924 0.935 0.850 0.900 0.852 0.821 0.880 
+
+Compared to standalone AdaLoRA, which achieves an average of 86.94%, PEML still provides a relative improvement of +1.14%. However, WSC is extremely sensitive to syntactic cues and entity disambiguation, which may benefit more from AdaLoRA’s selective parameter tuning. In this case, pruning less useful LoRA components helps sharpen specific linguistic cues, and PrefixNAS provides minimal yet relevant contextual prompts leading to improved generalization. 
+
+Table 4: Compare the performance accuracy of PEML using FLAN-T5-Large model with state-of-the-art multitasking framework. All the results are directly reported from Wang et al. [2023a]. 
+
+Peft Techniques Boolq CB COPA MultiRC RTE WIC WSC AVG LoRA 0.818 0.857 0.900 0.827 0.859 0.595 0.644 0.818 MOE-LoRA 0.851 0.875 0.910 0.834 0.864 0.579 0.663 0.823 Poly 0.851 0.875 0.900 0.825 0.862 0.606 0.769 0.820 MHR 0.850 0.875 0.900 0.829 0.862 0.611 0.759 0.823 C-Poly 0.856 0.857 0.900 0.833 0.888 0.670 0.750 0.832 PEML 0.864 0.856 0.825 0.904 0.901 0.800 0.750 0.843 
+
+8We also compare PEML with the state-of-the-art techniques in table 4 using the FLAN-T5-Large. PEML achieves the highest average accuracy of 84.31%, surpassing competitive baselines such as C-Poly (83.21%) and MOE-LoRA (82.31%) by +1.32% and +2.43%, respectively. 
+
+4.3.3 Massive Multitask Language Understanding 
+
+We mixed four SuperGLUE tasks with MMLU in Table 5 and compared them with full fine-tuning (FT) and PEFT baselines. We demonstrates a comparable total rank budget across configurations. MultiLoRA employs three LoRA modules, each with a rank of 32 (total rank = 3 × 32 = 96), while PEML uses a single LoRA module with rank 96. Consequently, both configurations share the same overall rank budget. PEML achieves the highest average accuracy of 80.3%, outperforming the FT (76.9%) by +3.4% and the most computationally intensive MultiLoRA configuration (n=5, r=32) by +2.3%. It produces similar results but at the cost of increased VRAM usage as n scales ( ∼ see figure 7). However, our method does not require horizontal scaling, and the results support that PEML is more efficient than MultiLoRA in terms of performance and resource optimization. 
+
+Table 5: Compare the performance accuracy of PEML using LLaMA-7B model with state-of-the-art multitasking framework. MMLU is tested with 5-shot prompts and SuperGLUE are tested with zero-shot. All results are reported directly from Wang et al. [2023c].                                           
+
+> Peft Techniques MMLU Boolq MultiRC RTE WIC AVG FT 0.495 0.884 0.872 0.852 0.740 0.769 LoRA n=1
+> r=96 0.477 0.882 0.854 0.834 0.716 0.752 LoRA n=1
+> r=160 0.502 0.877 0.853 0.833 0.701 0.753 MultiLoRA n=3
+> r=32 0.512 0.878 0.887 0.897 0.708 0.776 MultiLoRA n=5
+> r=32 0.514 0.885 0.894 0.894 0.714 0.780 PEML n=1
+> r=96 0.516 0.923 0.928 0.896 0.755 0.803
+
+4.3.4 Commonsense Reasoning 
+
+Table 6 presents performance comparison across eight commonsense reasoning tasks using various PEFT techniques. All the instructions prompt are same as Liu et al. [2024], Yang et al. [2025]. PEML outperforming DoRA (80.5%) and MoELoRA (78.3%) by +2.52% and +4.72%, respectively. However, PEML underperforms on HellaSwag (77.4% vs. MTL-LoRA 93.1%), reflecting a standard multi-task trade-off between generalization and task-specific performance. This is controllable by increasing HellaSwag’s sampling weight γ, which raises its accuracy to 89.2% while reducing overall average performance (Appendix 7.3), consistent with prior MTL-LoRA and MultiLoRA results. 
+
+Table 6: Commonsense reasoning results on LLaMA2-7B. We follow the joint training setup described in Liu et al. [2024], Yang et al. [2025], and all results are reported directly from those works.                                                              
+
+> Peft Techniques Boolq PIQA SIQA Win OBQA Hella Swag ARC-EARC-C AVG LoRA 0.698 0.799 0.795 0.826 0.810 0.836 0.798 0.647 0.776 DoRA 0.720 0.831 0.799 0.830 0.812 0.891 0.845 0.710 0.805 MultiLoRA 0.665 0.658 0.628 0.793 0.754 0.792 0.767 0.596 0.707 MoELoRA 0.680 0.835 0.704 0.825 0.832 0.906 0.868 0.615 0.783 MTL-LoRA 0.710 0.844 0.808 0.849 0.826 0.931 0.870 0.734 0.821 PEML 0.775 0.887 0.837 0.902 0.838 0.774 0.885 0.741 0.830
+
+## 5 Sensitivity Analysis 
+
+In this section, we examine the robustness of PrefixNAS across various settings, focusing on the number of layers (n), repetition of blocks (b), and the inclusion of skip connections (sc) and reduction cells (rc). Using T5-large as the backbone model, we conduct our analysis on the SuperGLUE benchmark. As shown in Figure 3, our findings indicate that setting n=6 consistently delivers optimal performance. Repeating the same block multiple times does not significantly impact the results, while the inclusion of skip connections and reduction cells appears to limit further performance gains, 9suggesting that further structural changes offer minimal gains. Therefore, We exclude them from the NAS search operation, thereby reducing complexity and potentially leading to faster convergence. Skip Connection Incl. Excl. Incl. Excl. Reduction Cell Average Score 0.85 0.84 0.83 0.82 0.81 0.80 2 4 6 8Number of Layers (n) Average Score 0.85 0.86 0.87 0.84 0.83 Average Score 0.85 0.86 0.87 5 15 30 Repetition of Blocks (b) 
+
+Figure 3: The performance of PEML on SuperGLUE benchmark with different sensitive hyperparameter configurations. 
+
+## 6 Conclusion 
+
+In this research, we introduced PEML, a novel approach designed to overcome the limitations of existing state-of-the-art (SOTA) PEFT methods in multi-task learning. SOTA techniques such as MTL, MultiLoRA, C-Poly, and MoE often struggle with challenges such as prompt misalignment, static task specific architecture, multiple adapter switching during inference and linear increase in VRAM during training. PEML effectively addresses these issues by dynamically select the optimize prefix architecture through PrefixNAS. PEML reduces the need for multiple adapters as it is a unified structure. One of the limitations of PEML introduces additional parameters to the prefix in order to unify multiple tasks, and also incurs resource cost during NAS search process. Our experimental results illustrate that PEML achieves an average accuracy improvement of up to 6.67% across various tasks, with some individual tasks showing enhancements of up to 10.75%. These results highlight the capability of PEML to enhance multi-task learning in natural language understanding. 10 References 
+
+Armen Aghajanyan, Anchit Gupta, Akshat Shrivastava, Xilun Chen, Luke Zettlemoyer, and Sonal Gupta. Muppet: Massive multi-task representations with pre-finetuning. CoRR , abs/2101.11038, 2021. URL https://arxiv.org/abs/2101.11038 .Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, et al. Qwen technical report. arXiv preprint arXiv:2309.16609 , 2023. Xiao Bi, Deli Chen, Guanting Chen, Shanhuang Chen, Damai Dai, Chengqi Deng, Honghui Ding, Kai Dong, Qiushi Du, Zhe Fu, et al. Deepseek llm: Scaling open-source language models with longtermism. arXiv preprint arXiv:2401.02954 , 2024. Yonatan Bisk, Rowan Zellers, Ronan Le Bras, Jianfeng Gao, and Yejin Choi. Piqa: Reasoning about physical commonsense in natural language. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 34, pages 7432–7439, 2020. Daniel M. Cer, Mona T. Diab, Eneko Agirre, Iñigo Lopez-Gazpio, and Lucia Specia. Semeval-2017 task 1: Semantic textual similarity - multilingual and cross-lingual focused evaluation. CoRR ,abs/1708.00055, 2017. URL http://arxiv.org/abs/1708.00055 .Rujikorn Charakorn, Edoardo Cetin, Yujin Tang, and Robert Tjarko Lange. Text-to-lora: Instant transformer adaption. arXiv preprint arXiv:2506.06105 , 2025. Hyung Won Chung, Le Hou, Shayne Longpre, Barret Zoph, Yi Tay, William Fedus, Eric Li, Xuezhi Wang, Mostafa Dehghani, Siddhartha Brahma, Albert Webson, Shixiang Shane Gu, Zhuyun Dai, Mirac Suzgun, Xinyun Chen, Aakanksha Chowdhery, Sharan Narang, Gaurav Mishra, Adams Yu, Vincent Zhao, Yanping Huang, Andrew Dai, Hongkun Yu, Slav Petrov, Ed H. Chi, Jeff Dean, Jacob Devlin, Adam Roberts, Denny Zhou, Quoc V. Le, and Jason Wei. Scaling instruction-finetuned language models, 2022. URL https://arxiv.org/abs/2210.11416 .Hyung Won Chung, Le Hou, Shayne Longpre, Barret Zoph, Yi Tay, William Fedus, Yunxuan Li, Xuezhi Wang, Mostafa Dehghani, Siddhartha Brahma, et al. Scaling instruction-finetuned language models. Journal of Machine Learning Research , 25(70):1–53, 2024. Christopher Clark, Kenton Lee, Ming-Wei Chang, Tom Kwiatkowski, Michael Collins, and Kristina Toutanova. Boolq: Exploring the surprising difficulty of natural yes/no questions. CoRR ,abs/1905.10044, 2019. URL http://arxiv.org/abs/1905.10044 .Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot, Ashish Sabharwal, Carissa Schoenick, and Oyvind Tafjord. Think you have solved question answering? try arc, the ai2 reasoning challenge. 
+
+arXiv preprint arXiv:1803.05457 , 2018. Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, et al. Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168 , 2021. Ido Dagan, Oren Glickman, and Bernardo Magnini. The pascal recognising textual entailment challenge. In Joaquin Quiñonero-Candela, Ido Dagan, Bernardo Magnini, and Florence d’Alché Buc, editors, Machine Learning Challenges. Evaluating Predictive Uncertainty, Visual Object Classification, and Recognising Tectual Entailment , pages 177–190, Berlin, Heidelberg, 2006. Springer Berlin Heidelberg. ISBN 978-3-540-33428-6. Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. BERT: pre-training of deep bidirectional transformers for language understanding. CoRR , abs/1810.04805, 2018. URL 
+
+http://arxiv.org/abs/1810.04805 .Ning Ding, Xingtai Lv, Qiaosen Wang, Yulin Chen, Bowen Zhou, Zhiyuan Liu, and Maosong Sun. Sparse low-rank adaptation of pre-trained language models, 2023. URL https://arxiv.org/ abs/2311.11696 .Shihan Dou, Enyu Zhou, Yan Liu, Songyang Gao, Wei Shen, Limao Xiong, Yuhao Zhou, Xiao Wang, Zhiheng Xi, Xiaoran Fan, et al. Loramoe: Alleviating world knowledge forgetting in large language models via moe-style plugin. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 1932–1945, 2024. 11 Zhengxiao Du, Yujie Qian, Xiao Liu, Ming Ding, Jiezhong Qiu, Zhilin Yang, and Jie Tang. Glm: General language model pretraining with autoregressive blank infilling. arXiv preprint arXiv:2103.10360 , 2021. Saeed Ghadimi and Guanghui Lan. Stochastic first- and zeroth-order methods for nonconvex stochastic programming. SIAM Journal on Optimization , 23(4):2341–2368, 2013. Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 , 2024. Sylvain Gugger, Lysandre Debut, Thomas Wolf, Philipp Schmid, Zachary Mueller, Sourab Man-grulkar, Marc Sun, and Benjamin Bossan. Accelerate: Training and inference at scale made simple, efficient and adaptable. https://github.com/huggingface/accelerate , 2022. Junxian He, Chunting Zhou, Xuezhe Ma, Taylor Berg-Kirkpatrick, and Graham Neubig. Towards a unified view of parameter-efficient transfer learning. CoRR , abs/2110.04366, 2021. URL 
+
+https://arxiv.org/abs/2110.04366 .Yun He, Steven Zheng, Yi Tay, Jai Gupta, Yu Du, Vamsi Aribandi, Zhe Zhao, YaGuang Li, Zhao Chen, Donald Metzler, et al. Hyperprompt: Prompt-based task-conditioning of transformers. In 
+
+International conference on machine learning , pages 8678–8690. PMLR, 2022. Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Steinhardt. Measuring massive multitask language understanding. Proceedings of the International Conference on Learning Representations (ICLR) , 2021. Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski, Bruna Morrone, Quentin de Laroussilhe, Andrea Gesmundo, Mona Attariyan, and Sylvain Gelly. Parameter-efficient transfer learning for NLP. 
+
+CoRR , abs/1902.00751, 2019. URL http://arxiv.org/abs/1902.00751 .Jeremy Howard and Sebastian Ruder. Fine-tuned language models for text classification. CoRR ,abs/1801.06146, 2018. URL http://arxiv.org/abs/1801.06146 .Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, and Weizhu Chen. Lora: Low-rank adaptation of large language models. CoRR , abs/2106.09685, 2021. URL 
+
+https://arxiv.org/abs/2106.09685 .Chengsong Huang, Qian Liu, Bill Yuchen Lin, Tianyu Pang, Chao Du, and Min Lin. Lorahub: Efficient cross-task generalization via dynamic lora composition. arXiv preprint arXiv:2307.13269 ,2023. Iris AM Huijben, Wouter Kool, Max B Paulus, and Ruud JG Van Sloun. A review of the gumbel-max trick and its extensions for discrete stochasticity in machine learning. IEEE transactions on pattern analysis and machine intelligence , 45(2):1353–1371, 2022. Damjan Kalajdzievski. A rank stabilization scaling factor for fine-tuning with lora, 2023. URL 
+
+https://arxiv.org/abs/2312.03732 .Dawid J. Kopiczko, Tijmen Blankevoort, and Yuki M. Asano. Vera: Vector-based random matrix adaptation, 2024. URL https://arxiv.org/abs/2310.11454 .Brian Lester, Rami Al-Rfou, and Noah Constant. The power of scale for parameter-efficient prompt tuning. CoRR , abs/2104.08691, 2021. URL https://arxiv.org/abs/2104.08691 .Mike Lewis, Yinhan Liu, Naman Goyal, Marjan Ghazvininejad, Abdelrahman Mohamed, Omer Levy, Veselin Stoyanov, and Luke Zettlemoyer. BART: denoising sequence-to-sequence pre-training for natural language generation, translation, and comprehension. CoRR , abs/1910.13461, 2019. URL 
+
+http://arxiv.org/abs/1910.13461 .Xiang Lisa Li and Percy Liang. Prefix-tuning: Optimizing continuous prompts for generation. CoRR ,abs/2101.00190, 2021. URL https://arxiv.org/abs/2101.00190 .12 Richard Liaw, Eric Liang, Robert Nishihara, Philipp Moritz, Joseph E Gonzalez, and Ion Stoica. Tune: A research platform for distributed model selection and training. arXiv preprint arXiv:1807.05118 ,2018. Liyuan Liu, Chengyu Dong, Xiaodong Liu, Bin Yu, and Jianfeng Gao. Bridging discrete and backpropagation: Straight-through and beyond. Advances in Neural Information Processing Systems , 36:12291–12311, 2023. Pengfei Liu, Weizhe Yuan, Jinlan Fu, Zhengbao Jiang, Hiroaki Hayashi, and Graham Neubig. Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing. CoRR , abs/2107.13586, 2021a. URL https://arxiv.org/abs/2107.13586 .Shih-Yang Liu, Chien-Yi Wang, Hongxu Yin, Pavlo Molchanov, Yu-Chiang Frank Wang, Kwang-Ting Cheng, and Min-Hung Chen. Dora: Weight-decomposed low-rank adaptation, 2024. URL 
+
+https://arxiv.org/abs/2402.09353 .Xiao Liu, Kaixuan Ji, Yicheng Fu, Zhengxiao Du, Zhilin Yang, and Jie Tang. P-tuning v2: Prompt tuning can be comparable to fine-tuning universally across scales and tasks. CoRR , abs/2110.07602, 2021b. URL https://arxiv.org/abs/2110.07602 .Xiao Liu, Kaixuan Ji, Yicheng Fu, Weng Tam, Zhengxiao Du, Zhilin Yang, and Jie Tang. P-tuning: Prompt tuning can be comparable to fine-tuning across scales and tasks. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers) , pages 61–68, Dublin, Ireland, May 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.acl-short.8. URL 
+
+https://aclanthology.org/2022.acl-short.8 .Ivan Lopes, Tuan-Hung Vu, and Raoul de Charette. Cross-task attention mechanism for dense multi-task learning. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision , pages 2329–2338, 2023. Chuancheng Lv, Lei Li, Shitou Zhang, Gang Chen, Fanchao Qi, Ningyu Zhang, and Hai-Tao Zheng. HyperLoRA: Efficient cross-task generalization via constrained low-rank adapters generation. In Yaser Al-Onaizan, Mohit Bansal, and Yun-Nung Chen, editors, Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 16376–16393, Miami, Florida, USA, November 2024a. Association for Computational Linguistics. doi: 10.18653/v1/2024.findings-emnlp.956. URL https://aclanthology.org/2024.findings-emnlp.956/ .Chuancheng Lv, Lei Li, Shitou Zhang, Gang Chen, Fanchao Qi, Ningyu Zhang, and Hai-Tao Zheng. Hyperlora: Efficient cross-task generalization via constrained low-rank adapters generation. In 
+
+Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 16376–16393, 2024b. Rabeeh Karimi Mahabadi, James Henderson, and Sebastian Ruder. Compacter: Efficient low-rank hypercomplex adapter layers. CoRR , abs/2106.04647, 2021a. URL https://arxiv.org/abs/ 2106.04647 .Rabeeh Karimi Mahabadi, Sebastian Ruder, Mostafa Dehghani, and James Henderson. Parameter-efficient multi-task fine-tuning for transformers via shared hypernetworks. In Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers) , pages 565–576, 2021b. Sourab Mangrulkar, Sylvain Gugger, Lysandre Debut, Younes Belkada, Sayak Paul, and Benjamin Bossan. Peft: State-of-the-art parameter-efficient fine-tuning methods. https://github.com/ huggingface/peft , 2022. Yuning Mao, Lambert Mathias, Rui Hou, Amjad Almahairi, Hao Ma, Jiawei Han, Scott Yih, and Madian Khabsa. Unipelt: A unified framework for parameter-efficient language model tuning. In 
+
+Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 6253–6264, 2022. 13 Todor Mihaylov, Peter Clark, Tushar Khot, and Ashish Sabharwal. Can a suit of armor conduct electricity? a new dataset for open book question answering. In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP) , pages 2381–2391, 2018. Jesus-German Ortiz-Barajas, Helena Gomez-Adorno, and Thamar Solorio. Hyperloader: Integrating hypernetwork-based lora and adapter layers into multi-task transformers for sequence labelling. 
+
+arXiv preprint arXiv:2407.01411 , 2024. Jonas Pfeiffer, Aishwarya Kamath, Andreas Rücklé, Kyunghyun Cho, and Iryna Gurevych. Adapter-fusion: Non-destructive task composition for transfer learning. CoRR , abs/2005.00247, 2020. URL 
+
+https://arxiv.org/abs/2005.00247 .Mohammad Taher Pilehvar and José Camacho-Collados. Wic: 10, 000 example pairs for evaluating context-sensitive representations. CoRR , abs/1808.09121, 2018. URL http://arxiv.org/abs/ 1808.09121 .Chengwei Qin, Wenhan Xia, Fangkai Jiao, Chen Chen, Yuchen Hu, Bosheng Ding, and Shafiq Joty. Improving in-context learning via bidirectional alignment, 2024. URL https://arxiv.org/ abs/2312.17055 .Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and Peter J. Liu. Exploring the limits of transfer learning with a unified text-to-text transformer. Journal of Machine Learning Research , 21(140):1–67, 2020. URL 
+
+http://jmlr.org/papers/v21/20-074.html .Anastasia Razdaibiedina, Yuning Mao, Rui Hou, Madian Khabsa, Mike Lewis, Jimmy Ba, and Amjad Almahairi. Residual prompt tuning: Improving prompt tuning with residual americanization, 2023. URL https://arxiv.org/abs/2305.03937 .Sebastian Ruder. An overview of multi-task learning in deep neural networks. CoRR , abs/1706.05098, 2017. URL http://arxiv.org/abs/1706.05098 .Keisuke Sakaguchi, Ronan Le Bras, Chandra Bhagavatula, and Yejin Choi. Winogrande: An adversarial winograd schema challenge at scale. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 34, pages 8732–8740, 2020. Maarten Sap, Hannah Rashkin, Derek Chen, Ronan Le Bras, and Yejin Choi. Social iqa: Common-sense reasoning about social interactions. In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing (EMNLP) , pages 4463–4473, 2019. Abigail See, Peter J. Liu, and Christopher D. Manning. Get to the point: Summarization with pointer-generator networks. In Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 1073–1083, Vancouver, Canada, July 2017. Association for Computational Linguistics. doi: 10.18653/v1/P17-1099. URL https: //www.aclweb.org/anthology/P17-1099 .Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc V. Le, Geoffrey E. Hinton, and Jeff Dean. Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. 
+
+CoRR , abs/1701.06538, 2017. URL http://arxiv.org/abs/1701.06538 .Sheng Shen, Shijia Yang, Tianjun Zhang, Bohan Zhai, Joseph E Gonzalez, Kurt Keutzer, and Trevor Darrell. Multitask vision-language prompt tuning. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision , pages 5656–5667, 2024. Richard Socher, Alex Perelygin, Jean Wu, Jason Chuang, Christopher D. Manning, Andrew Ng, and Christopher Potts. Recursive deep models for semantic compositionality over a sentiment treebank. In Proceedings of the 2013 Conference on Empirical Methods in Natural Language Processing ,pages 1631–1642, Seattle, Washington, USA, October 2013. Association for Computational Linguistics. URL https://www.aclweb.org/anthology/D13-1170 .Qi Sun, Edoardo Cetin, and Yujin Tang. Transformer-squared: Self-adaptive llms. arXiv preprint arXiv:2501.06252 , 2025. 14 Chunlin Tian, Zhan Shi, Zhijiang Guo, Li Li, and Chengzhong Xu. Hydralora: An asymmetric lora architecture for efficient fine-tuning. Advances in Neural Information Processing Systems , 37: 9565–9584, 2024. Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971 , 2023. Tu Vu, Tong Wang, Tsendsuren Munkhdalai, Alessandro Sordoni, Adam Trischler, Andrew Mattarella-Micke, Subhransu Maji, and Mohit Iyyer. Exploring and predicting transferability across NLP tasks. CoRR , abs/2005.00770, 2020. URL https://arxiv.org/abs/2005.00770 .Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel R. Bowman. GLUE: A multi-task benchmark and analysis platform for natural language understanding. CoRR ,abs/1804.07461, 2018. URL http://arxiv.org/abs/1804.07461 .Alex Wang, Yada Pruksachatkun, Nikita Nangia, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel R. Bowman. Superglue: A stickier benchmark for general-purpose language understanding systems. CoRR , abs/1905.00537, 2019. URL http://arxiv.org/abs/1905. 00537 .Haonan Wang, Brian K Chen, Siquan Li, Liang Xinhe, Hwee Kuan Lee, Kenji Kawaguchi, and Tianyang Hu. Prefixmemory-tuning: Modernizing prefix-tuning by decoupling the prefix from attention. In The Fourteenth International Conference on Learning Representations , 2026. Haowen Wang, Tao Sun, Cong Fan, and Jinjie Gu. Customizable combination of parameter-efficient modules for multi-task learning. arXiv preprint arXiv:2312.03248 , 2023a. Yaqing Wang, Jialin Wu, Tanmaya Dabral, Jiageng Zhang, Geoff Brown, Chun-Ta Lu, Frederick Liu, Yi Liang, Bo Pang, Michael Bendersky, and Radu Soricut. Non-intrusive adaptation: Input-centric parameter-efficient fine-tuning for versatile multimodal modeling, 2023b. URL https: //arxiv.org/abs/2310.12100 .Yiming Wang, Yu Lin, Xiaodong Zeng, and Guannan Zhang. Multilora: Democratizing lora for better multi-task learning. arXiv preprint arXiv:2311.11501 , 2023c. Yue Wang, Weishi Wang, Shafiq R. Joty, and Steven C. H. Hoi. Codet5: Identifier-aware unified pre-trained encoder-decoder models for code understanding and generation. CoRR , abs/2109.00859, 2021. URL https://arxiv.org/abs/2109.00859 .Zhen Wang, Rameswar Panda, Leonid Karlinsky, Rogerio Feris, Huan Sun, and Yoon Kim. Multitask prompt tuning enables parameter-efficient transfer learning, 2023d. URL https://arxiv.org/ abs/2303.02861 .Alex Warstadt, Amanpreet Singh, and Samuel R Bowman. Neural network acceptability judgments. 
+
+arXiv preprint arXiv:1805.12471 , 2018. Shuhei Watanabe. Tree-structured parzen estimator: Understanding its algorithm components and their roles for better empirical performance. arXiv preprint arXiv:2304.11127 , 2023. Yi Xin, Junlong Du, Qiang Wang, Ke Yan, and Shouhong Ding. Mmap: Multi-modal alignment prompt for cross-domain multi-task learning. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 38, pages 16076–16084, 2024. Shicheng Xu, Liang Pang, Huawei Shen, and Xueqi Cheng. Match-prompt: Improving multi-task generalization ability for neural text matching via prompt learning. In Proceedings of the 31st ACM International Conference on Information & Knowledge Management , pages 2290–2300, 2022. Yaming Yang, Dilxat Muhtar, Yelong Shen, Yuefeng Zhan, Jianfeng Liu, Yujing Wang, Hao Sun, Weiwei Deng, Feng Sun, Qi Zhang, et al. Mtl-lora: Low-rank adaptation for multi-task learning. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 39, pages 22010–22018, 2025. 15 Shih-Ying Yeh, Yu-Guan Hsieh, Zhidong Gao, Bernard B W Yang, Giyeong Oh, and Yanmin Gong. Navigating text-to-image customization: From lycoris fine-tuning to model evaluation, 2024. URL 
+
+https://arxiv.org/abs/2309.14859 .Amir R. Zamir, Alexander Sax, Teresa Yeo, Oguzhan Fatih Kar, Nikhil Cheerla, Rohan Suri, Zhangjie Cao, Jitendra Malik, and Leonidas J. Guibas. Robust learning through cross-task consistency. 
+
+CoRR , abs/2006.04096, 2020. URL https://arxiv.org/abs/2006.04096 .Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali Farhadi, and Yejin Choi. Hellaswag: Can a machine really finish your sentence? In Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics (ACL) , pages 4791–4800, 2019. Qingru Zhang, Minshuo Chen, Alexander Bukharin, Nikos Karampatziakis, Pengcheng He, Yu Cheng, Weizhu Chen, and Tuo Zhao. Adalora: Adaptive budget allocation for parameter-efficient fine-tuning. arXiv preprint arXiv:2303.10512 , 2023. Yu Zhang and Qiang Yang. A survey on multi-task learning. CoRR , abs/1707.08114, 2017. URL 
+
+http://arxiv.org/abs/1707.08114 .16 7 Appendix 
+
+7.1 Additional Related Work Prompt-based methods Lester et al. [2021], Razdaibiedina et al. [2023], Wang et al. [2023b] adjust only a few trainable tokens, called soft prompts, instead of fine-tuning the entire model, but they can be sensitive to initialization. Prefix Tuning mitigates this by learning continuous vectors as prompts. Continuous vectors in Prefix Tuning are learnable parameters initialized in a high-dimensional space, whereas soft prompts are discrete token embeddings that depend heavily on specific initialization, making Prefix Tuning less prone to initialization sensitivity. More recent extension of Prefix-Tuning is PrefixMemory-Tuning Wang et al. [2026], improve single-task expressivity through query-dependent modulation. (e.g., ( ϕ(q)⊤M )). However, this method introduce substantial parameter overhead, approximately 537M additional parameters, due to learned memory matrices and query-conditioned transformations. This overhead scales with model depth and the number of attention heads, making it impractical in multi-task settings with a shared backbone. More recent SOTA methods of LoRA , including LoRAHub Huang et al. [2023], HydraLoRA 
+
+Tian et al. [2024], LoRAMoE Dou et al. [2024], and Transformer-squared Sun et al. [2025], target different problem settings and inference-time paradigms that are not directly aligned with the multi-task learning setting. In particular, Huang et al. [2023] and Tian et al. [2024] focus on few-shot composition and dynamic routing at inference time, Dou et al. [2024] is designed primarily for mitigating catastrophic forgetting in continual learning, and Sun et al. [2025] relies on runtime self-adaptation through multi-pass inference. Despite these advancements, LoRA and its variants are still mostly designed for single-task scenarios, with limited attention to multi-tasking environment. 
+
+Hypernetwork-based LoRA methods Charakorn et al. [2025], Lv et al. [2024b], Ortiz-Barajas et al. [2024], He et al. [2022], Mahabadi et al. [2021b] are relevant to multi-task adaptation but target different design points with distinct trade-offs. These methods learn a separate generator network to produce task-conditioned LoRA weights, introducing additional parameter overhead (e.g., 5M–55M for Charakorn et al. [2025] and 6M for Ortiz-Barajas et al. [2024]). They also often require multi-stage training pipelines Charakorn et al. [2025], Lv et al. [2024b] with specialized initialization or auxiliary constraints to ensure stable learning. 
+
+7.2 Convergence Analysis 
+
+We analyze the joint optimization of (θ, α ) under simultaneous projected SGD, proving two results: (i) the coupled updates converge at the standard non-convex SGD rate with an explicit coupling penalty, and (ii) the continuous-to-discrete gap introduced by PrefixNAS is controlled by entropy regularization. 
+
+7.2.1 Setup 
+
+Let θ = ( θLoRA , θ Prefix ) and consider 
+
+min  
+
+> θ, α ∈∆
+
+f (θ, α ), (16) where ∆ = {α : P 
+
+> k
+
+αk = 1 , α k ≥ 0}. Updates follow simultaneous projected SGD: 
+
+θt+1 = θt − ηtgtθ , αt+1 = Π ∆
+
+ αt − ηtgtα
+
+, (17) with gtθ , g tα unbiased stochastic gradients. Since Π∆ is non-expansive ( ∥Π∆(x)−Π∆(y)∥ ≤ ∥ x−y∥), the standard descent lemma applies without modification. 
+
+7.2.2 Assumptions Assumption 1 (Smoothness) . f is L-smooth in (θ, α ): for all (θ1, α 1), (θ2, α 2),
+
+∥∇ f (θ1, α 1) − ∇ f (θ2, α 2)∥ ≤ L ∥θ1 − θ2∥ + ∥α1 − α2∥. (18) 
+
+Assumption 2 (Bounded variance) . E∥gt − ∇ f (θt, α t)∥2 ≤ σ2.
+
+17 Assumption 3 (Cross-component Lipschitz continuity) . For all θ1, θ 2 and all α:
+
+∥∇ αf (θ1, α ) − ∇ αf (θ2, α )∥ ≤ Lθα ∥θ1 − θ2∥. (19) 
+
+This holds in PEML because α enters f only through Aα(P ), a differentiable composition of linear transformations (7) , so ∇αf is Lipschitz in θ with Lθα bounded by the product of layer operator norms. Furthermore, LoRA restricts weight updates to a rank-r subspace ( r ≪ d), which bounds 
+
+∥θt+1 − θt∥ = ηt∥gtθ ∥ and keeps Lθα small in practice, consistent with the empirical gradient norms reported in Table 18. 
+
+7.2.3 Convergence Guarantee Theorem 7.1. Let ηt = c/ √T for some constant c > 0. Under Assumptions 1–3: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+E∥∇ f (θt, α t)∥2 ≤ C1 + C2L2
+
+> θα
+
+√T , (20) 
+
+where 
+
+C1 = 2( f0 − f ∗)
+
+c + cLσ 2
+
+2 , C2 = c2Lσ 2, (21) 
+
+f0 = f (θ0, α 0), and f ∗ = inf θ,α f (θ, α ).Proof. Step 1: Per-step descent with coupling. By L-smoothness and the update rule (17): 
+
+f (θt+1 , α t+1 ) ≤ f (θt, α t) − ηt∥∇ f (θt, α t)∥2 + Lη 2
+
+> t
+
+2 ∥gt∥2. (22) Because θ and α are updated simultaneously, the α-step uses ∇αf (θt, α t) rather than ∇αf (θt+1 , α t).By Assumption 3 and the update rule: 
+
+∥∇ αf (θt+1 , α t) − ∇ αf (θt, α t)∥ ≤ Lθα ∥θt+1 − θt∥ = Lθα ηt∥gtθ ∥. (23) This staleness error propagates into the descent inequality. Incorporating (23) into (22) and taking expectations: 
+
+E[f (θt+1 , α t+1 )] ≤ E[f (θt, α t)] − ηt E∥∇ f (θt, α t)∥2
+
++ Lη 2
+
+> t
+
+2
+
+ E∥∇ f (θt, α t)∥2 + σ2
+
++ L2
+
+> θα
+
+η2
+
+> t
+
+ E∥∇ θ f (θt, α t)∥2 + σ2, (24) where we used Assumption 2 to bound E∥gt∥2 ≤ E∥∇ f ∥2 + σ2 and E∥gtθ ∥2 ≤ E∥∇ θ f ∥2 + σ2.
+
+Step 2: Rearranging and absorbing gradient terms. Since E∥∇ θ f ∥2 ≤ E∥∇ f ∥2, rearranging (24) and choosing ηt = c/ √T small enough that Lη 2 
+
+> t
+> 2
+
+≤ ηt 
+
+> 2
+
+gives: 
+
+ηt
+
+2 E∥∇ f (θt, α t)∥2 ≤ E[f (θt, α t)] − E[f (θt+1 , α t+1 )] + Lη 2
+
+> t
+
+2 σ2 + L2
+
+> θα
+
+η2 
+
+> t
+
+(E∥∇ f ∥2 + σ2). (25) 
+
+Step 3: Telescoping. Summing (25) over t = 0 , . . . , T − 1 and telescoping the f -differences:  
+
+> T−1
+
+X
+
+> t=0
+
+ηt E∥∇ f (θt, α t)∥2 ≤ 2( f0 − f ∗) + Lσ 2 
+
+> T−1
+
+X
+
+> t=0
+
+η2 
+
+> t
+
++ 2 L2
+
+> θα
+
+σ2 
+
+> T−1
+
+X
+
+> t=0
+
+η2 
+
+> t
+
+, (26) where the L2
+
+> θα
+
+η2 
+
+> t
+
+E∥∇ f ∥2 terms on the right are absorbed into the left by a standard η2 
+
+> t
+
+≪ ηt
+
+argument at step 2. Substituting ηt = c/ √T , so P 
+
+> t
+
+ηt = c√T and P 
+
+> t
+
+η2 
+
+> t
+
+= c2, and dividing by 
+
+c√T gives (20) with C1 = 2( f0−f ∗) 
+
+> c
+
++ cLσ 2 
+
+> 2
+
+and C2 = 2 c2Lσ 2/L — simplified to C2 = c2Lσ 2
+
+after combining constants. 
+
+Interpretation. The C1/√T term recovers the standard O(1 /√T ) non-convex SGD rate [Ghadimi and Lan, 2013]. The C2L2
+
+> θα
+
+/√T term is the coupling penalty: when Lθα → 0 (LoRA updates weakly perturb the architecture gradient), the bound collapses to standard SGD. Empirically, Table 18 confirms this regime: our Softmax+Argmax relaxation achieves gradient norm 0.21 ± 0.05 and parameter variance 0.014 ± 0.006 , consistent with small Lθα throughout training. 18 7.2.4 Continuous-to-Discrete Gap 
+
+PrefixNAS finalizes the architecture by ˆαj∗ = 1 for j∗ = arg max j α∗ 
+
+> j
+
+, with ˆαj = 0 otherwise. 
+
+Proposition 7.2. Let α∗ be the continuous optimum and ˆα the discretized architecture. Under Assumption 1: 
+
+|f (θ, α ∗) − f (θ, ˆα)| ≤ L∥α∗ − ˆα∥2. (27) 
+
+If entropy regularization drives α∗ 
+
+> j∗
+
+≥ 1 − ϵ for small ϵ > 0, then ∥α∗ − ˆα∥1 = 2(1 − α∗ 
+
+> j∗
+
+) ≤ 2ϵ,and since ∥ · ∥ 2 ≤ ∥ · ∥ 1:
+
+|f (θ, α ∗) − f (θ, ˆα)| ≤ 2Lϵ. (28) 
+
+Proof. Equation (27) is the Lipschitz inequality from Assumption 1 applied to α. For (28) : let 
+
+j∗ = arg max j α∗ 
+
+> j
+
+. The discrete solution sets ˆαj∗ = 1 , ˆαj = 0 for j̸ = j∗. Since α∗ ∈ ∆:
+
+∥α∗ − ˆα∥1 = (1 − α∗ 
+
+> j∗
+
+) + X 
+
+> j̸=j∗
+
+α∗ 
+
+> j
+
+= 2(1 − α∗ 
+
+> j∗
+
+) ≤ 2ϵ. (29) Applying ∥ · ∥ 2 ≤ ∥ · ∥ 1 to (27) gives (28). The entropy regularization term λR(α) in (4) penalizes high-entropy distributions, driving ϵ → 0
+
+during training. Table 18 confirms this empirically: the discretization gap is 0.7 percentage points for Softmax+Argmax, versus 1.1 for STE, consistent with a well-peaked α∗ and negligible ϵ.
+
+7.3 Task Sensitivity Analysis 
+
+Cross-task variability is a common challenge in multi-task learning, where models must bal-ance generalization with task-specific adaptation Wang et al. [2023c], Hu et al. [2021], Yang et al. [2025]. This sensitivity persists even with parameter-efficient fine-tuning (PEFT) ap-proaches. For example, MTL-LoRA observes that “LoRA tends to obscure the distinction between tasks by projecting sparse high-dimensional features . . . into the same dense low-dimensional intrinsic space, leading to task interference and suboptimal performance” Yang et al. [2025], while Multi-LoRA notes that “the explicit low-rank of LoRA constrains adaptation in com-plex multi-task scenarios” Wang et al. [2023c]. Consistent with this, our results show that al-though PEML achieves strong average performance, it underperforms on HellaSwag (77.4% vs. 93.1%) and other task-specific benchmarks. Similar patterns are observed in prior work: MTL-LoRA is outperformed by DoRA on BoolQ (71.0% vs. 72.0%) and CoCo Caption (114.6 vs. 115.9), and Multi-LoRA is surpassed by standard LoRA on BoolQ (86.7% vs. 87.3, Table 1). Overall Average HellaSwag Score        
+
+> HellaSwag Sampling Weight γ 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 HellaSwag Accuracy (%) 76 78 80 82 84 86 88 90 92 Overall Average Accuracy (%) 80.0 81.0 82.0 83.0 84.0 80.5 81.5 82.5 83.5
+
+Figure 4: Trade-off between HellaSwag spe-cialization and overall average accuracy as task sampling weight γ varies. The default config-uration ( γ=0.1) optimizes for overall average performance. 
+
+We interpret these findings as reflecting the inherent trade-off in multi-task PEFT models between learning shared representations for generalization and retaining task-specific flexibility for optimal adaptation. This is also one of the reasons why average accuracy is com-monly reported in multi-task learning settings, as it pro-vides a more stable and holistic measure of overall model performance under such trade-offs. We also observe that increasing the task sampling weight for HellaSwag im-proves its performance. Figure 4 shows the effect of varying HellaSwag’s task sampling weight γ on both its individual score and the overall average accuracy. In-creasing γ for HellaSwag improves its score from 77.4% to 89.2% but degrades overall average accuracy. This confirms that the underperformance is not a fundamen-tal failure of PEML but rather a controllable trade-off inherent to multi-task learning. 
+
+7.4 Computational Cost Analysis 
+
+PEML introduces a one-time NAS search, which adds approximately 0.5 GPU-hours on top of training ( ∼2.5 GPU-hours) and hyperparameter tuning ( ∼15.5 GPU-hours), as shown in Table 7 and figure 5. This additional cost is comparable to the extensive hyperparameter searches required 19 by PEFT baselines. For example, the LoRA study Hu et al. [2021] explicitly sweeps learning rates, number of training epochs, and batch sizes to obtain the reported results, and MTL-LoRA Yang et al. [2025] performs both base and additional specialized hyperparameter searches. Even the default parameters in these baselines are the outcome of prior extensive tuning. Importantly, PEML’s performance improvements are not merely a result of increased parameter budgets: higher-rank LoRA or stacked prefixes fail to match PEML’s gains (Table 10), indicating that the benefits primarily stem from the architectural design discovered by PrefixNAS rather than from the number of trainable parameters.                   
+
+> Method GLUE Training Time NAS Search HP Tuning Total Time LoRA 0.882 ∼2.5 -∼15.5 ∼18 PEML (LoRA) 0.901 ∼0.5 ∼18.5 AdaLoRA 0.909 ∼2.5 -∼15.5 ∼18 PEML (AdaLoRA) 0.915 ∼0.5 ∼18.5
+
+Table 7: Compute breakdown (GPU-hours) and GLUE scores on LLaMa2-7b. GPU-Hours GlUE Score   
+
+> LoRA PEML (LoRA) AdaLoRA PEML (AdaLoRA) 84 82 80 78 76 74 72 70 024616 14 12 10 875.2 80.3 75.5 81.0
+> HP Tuning NAS Search Training
+> GLUE Score
+
+Figure 5: Computational cost and GLUE performance of PEFT methods. 
+
+Another challenge in comparing PEML to baselines such as MTL-LoRA is that these methods report only the final training time, despite requiring substantial hyperparameter sweeps to achieve competi-tive performance. For instance, MTL-LoRA evaluates robustness across multiple hyperparameters, including the number of up-projection matrices ( n), the temperature coefficient ( τ ), and task-specific transformations ( Λt), meaning the reported results already include extensive search effort. Similarly, default parameters used in the baselines are the outcome of extensive prior tuning Hu et al. [2021]. In contrast, PEML explicitly accounts for its NAS search cost. Table 8 compares training and search costs of PEML and MTL-LoRA on LLaMa2-7b using the GLUE benchmark. Experiments were conducted under identical conditions, including the same hardware, benchmark, and search space. Despite performing an explicit NAS search, PEML achieves higher GLUE performance while requiring slightly less total time than MTL-LoRA. 
+
+Table 8: Comparison of PEML and MTL-LoRA training and search costs (LLaMa2-7b, GLUE benchmark). All times are in GPU-hours.              
+
+> Method GLUE Training Time NAS Search Task-specific HP Search HP Tuning Total MTL-LoRA 0.879 ∼2.5 -∼1.5 ∼15.5 ∼19.5 PEML 0.901 ∼0.5 -∼18.5
+
+7.5 Task-Specific Analysis: Prompt vs. Weight Adaptation Benefits 
+
+We analyze task sensitivity to prompt optimization versus weight adaptation. Reasoning tasks (COPA, RTE) benefit more from prompts (COPA: +0.075 from prompts vs. +0.025 from weights), while classification tasks (SST-2, MRPC) favor weight adaptation (SST-2: +0.081 from weights vs. +0.022 from prompts). Unified integration provides complementary benefits: adding LoRA to prompt-sensitive COPA yields extra +0.025, while prefix alignment adds +0.022 beyond LoRA on SST-2. However, unified adaptation does not always surpass specialized single methods, AdaLoRA alone (0.908) slightly outperforms PEML (0.901). The exception of HellaSwag (PEML 77.4% vs. MTL-LoRA 93.1%) shows task-specific limitations, as neither prompts nor standalone LoRA approach MTL-LoRA’s performance. PEML’s value lies in consistent improvements over base LoRA (+3.1% on GLUE, +3.2% on SuperGLUE) and balanced adaptation across diverse tasks. 20 7.6 Additional Parameters 
+
+PEML introduces a dynamic architecture search mechanism where the number of additional parame-ters is not predetermined but instead depends on the trajectory of the search and the sub-architectures selected during training. In practice, the overhead remains relatively small, typically within 2% to 8% of the base model’s parameters. 
+
+7.7 Additional Results 7.7.1 Comparison with Hypernetwork-Inspired and Modular PEFT Methods 
+
+We also evaluate PEML on LLaMA2-7B under the standard GLUE multi-task setup and compare it against different PEFT methods, including hypernetwork-inspired approaches (e.g., HyperFormer, Hy-perLoRA, HyperPrompt), mixture-based and modular PEFT methods (e.g., LoRAMoE, LoRAHUB, UniPELT). As shown in Table 9, PEML achieves the best overall performance with an average score of 0.891, outperforming all compared baselines on the GLUE benchmark. In particular, PEML yields strong gains on MNLI and QNLI, where it consistently surpasses both prompt-based and modular adaptation methods. While some baselines perform well on individual tasks (e.g., LoRAMoE on SST-2 and RTE), their results vary across tasks, reflecting limited robustness in multi-task settings. 
+
+Table 9: Comparison of PEML with hypernetwork-based and hypernetwork-inspired PEFT methods on the GLUE benchmark using LLaMA2-7B under standard multi-task settings.                                                                         
+
+> Method CoLA SST-2 MRPC QQP STS-B MNLI QNLI RTE AVG HyperPrompt (He et al. [2022]) 0.563 0.937 0.917 0.876 0.903 0.911 0.949 0.876 0.867 HyperFormer (Mahabadi et al. [2021b]) 0.579 0.948 0.899 0.879 0.915 0.898 0.945 0.878 0.868 HyperLoRA (Lv et al. [2024a]) 0.688 0.964 0.926 0.879 0.928 0.895 0.942 0.891 0.889 LoRAHUB (Huang et al. [2023]) 0.653 0.926 0.841 0.889 0.903 0.917 0.946 0.878 0.869 LoRAMoE (Dou et al. [2024]) 0.637 0.966 0.855 0.906 0.922 0.912 0.957 0.921 0.884 UniPELT (Mao et al. [2022]) 0.631 0.921 0.879 0.859 0.887 0.839 0.913 0.729 0.832 PEML 0.698 0.967 0.848 0.905 0.892 0.964 0.952 0.899 0.891
+
+7.7.2 Comparison to Simpler Alternatives                     
+
+> Method GLUE SuperGLUE MMLU LoRA ( r= 96 )0.851 0.786 0.752 LoRA ( r= 192 )0.863 0.792 0.753 PrefixLayer 3 0.792 0.753 0.688 PrefixLayer 6 0.798 0.764 0.674 PEML (ours) 0.901 0.842 0.803
+
+Table 10: Performance comparison of PEML with high-rank LoRA and manual prefix baselines across GLUE, SuperGLUE, and MMLU benchmarks. 
+
+Both prior work and our experiments show that simply increasing LoRA rank or manually design-ing prefix layers is insufficient to match PEML’s performance. The original LoRA study [1, Table 6] demonstrates that on GPT-3 175B for WikiSQL, a minimal rank of (r=1) achieves 73.4% accuracy, while increasing to (r=64) yields essentially no improvement (73.5%), illustrating diminishing re-turns. Similarly, on LLaMa2-7B (Table 3), rais-ing LoRA rank from (r=96) to (r=160) improves average score by only 0.1 points (75.2 → 75.3). Manually increasing prefix depth also provides minimal benefit, e.g., GLUE improves only from 0.792 → 0.798 when prefix layers are increased from 3 to 6. Table 10 compares PEML against high-rank LoRA and manual prefix baselines across GLUE, SuperGLUE, and MMLU, showing that neither strategy achieves PEML’s gains. These results indicate that PEML’s improvements arise from the sophisticated architectures discovered via PrefixNAS, rather than merely scaling parameters. 
+
+7.7.3 Performance Analysis on Low Data Settings 
+
+We also evaluated cross-task knowledge transfer by training on a small sample from all tasks, observing comparable results as shown in Table 11 and Table 12. We evaluated the performance of various PEFT techniques, including PreEmbedd, LoRA, and AdaLoRA, along with their combinations with PEML, on GLUE and SuperGLUE benchmarks. PEML achieved the highest average accuracy with LoRA and AdaLoRA on both benchmark in resource-constrained scenarios. 21 Table 11: Performance of various PEFT methods, including PreEmbedd, LoRA, AdaLoRA, and their combina-tions with PEML, tested on the T5-large model on GLUE benchmark. Results are reported for low data (500 samples from each task) settings.                                                                 
+
+> Peft Techniques SST2 MRPC RTE COLA QQP WNLI QNLI AVG PreEmbedd 0.855 0.811 0.888 0.806 0.936 0.687 0.856 0.834 LoRA 0.932 0.871 0.891 0.859 0.944 0.718 0.940 0.880 LoRA-PreEmbedd 0.938 0.863 0.910 0.875 0.944 0.718 0.939 0.884 PEML 0.952 0.932 0.942 0.890 0.942 0.750 0.952 0.908 AdaLoRA 0.932 0.895 0.896 0.871 0.950 0.734 0.952 0.890 AdaLoRA-PreEmbedd 0.916 0.891 0.893 0.846 0.945 0.750 0.946 0.884 PEML-AdaLoRA 0.968 0.907 0.920 0.835 0.972 0.796 0.962 0.904
+
+Table 12: performance of various PEFT methods, including PreEmbedd, LoRA, AdaLoRA, and their combina-tions with PEML tested on the T5-large model on SuperGLUE tasks. Results are reported for low data (300 samples from each task) efficiency settings, with the PEML achieving the highest average performance.                                                         
+
+> Peft Techniques Boolq RTE COPA MultiRC WIC WSC AVG PreEmbedd 0.911 0.891 0.750 0.877 0.781 0.875 0.847 LoRA 0.919 0.935 0.750 0.889 0.810 0.732 0.839 LoRA & PreEmbedd 0.922 0.931 0.800 0.890 0.814 0.714 0.845 PEML 0.912 0.871 0.925 0.876 0.829 0.767 0.863 AdaLoRA 0.912 0.907 0.750 0.871 0.785 0.767 0.832 AdaLoRA & PreEmbedd 0.897 0.895 0.725 0.878 0.791 0.767 0.826 PEML-AdaLoRA 0.922 0.943 0.825 0.893 0.840 0.803 0.871
+
+7.7.4 Performance Analysis on GLM-10B 
+
+As detailed in Table 13, we also benchmarked PEML against other PEFT methods on the GLM-10B model. Our approach demonstrates clear superiority by achieving the highest accuracy on SuperGLUE benchmark with an average score of 0.631. 
+
+Table 13: Compare the performance accuracy of PEML using GLM-10B Du et al. [2021] model with state-of-the-art multitasking framework. All the results are directly reported from Wang et al. [2023a].                                                         
+
+> Peft Techniques Boolq CB COPA MultiRC RTE WIC WSC AVG LoRA 0.609 0.463 0.657 0.624 0.573 0.391 0.323 0.520 MOE-LoRA 0.633 0.450 0.634 0.640 0.612 0.403 0.396 0.538 Poly 0.646 0.521 0.655 0.656 0.621 0.417 0.470 0.569 MHR 0.648 0.507 0.663 0.657 0.627 0.423 0.455 0.569 C-Poly 0.673 0.603 0.704 0.679 0.680 0.487 0.534 0.622 PEML 0.682 0.610 0.707 0.688 0.693 0.491 0.552 0.631
+
+7.7.5 NAS Comparison: PrefixNAS vs Two-stage vs Surrogate NAS GPU Hours    
+
+> Accuracy PrefixNas Two-Stage Surrogate GPU Hours Accuracy 0.900 0.895 0.890 0.885 0.880 17.5 15.0 12.5 10.0 7.5 5.0 2.5 0.0
+
+Figure 6: Compute accuracy trade-off for PrefixNAS vs Two-stage vs surrogate-based NAS. 
+
+Exploring two-stage or surrogate-based strategies for Prefix-NAS can moderately reduce GPU usage by performing the architecture search on a smaller proxy or using an approximate performance predictor. As shown in Figure 6, this approach decreases GPU consumption from 18.5 GPU-hours for full PrefixNAS to 16.3 and 16.1 GPU-hours, respectively. How-ever, this computational saving comes with a slight drop in accuracy: full PrefixNAS achieves 0.901, while two-stage and surrogate-based NAS reach 0.879 and 0.882. These results sug-gest that, although these approximate strategies offer moderate efficiency gains, the full PrefixNAS search remains more ef-fective in identifying optimal prefix architectures, highlighting the trade-off between computation and performance. 22 7.7.6 Architecture Transferability of PrefixNAS 
+
+To evaluate whether PrefixNAS discovers generalizable structures rather than overfitting to specific benchmarks, we tested the transferability of architectures found on GLUE, SuperGLUE, and MMLU to other datasets. We measured performance under three settings: NAS with fine-tuning, no NAS but only fine-tuning, and no NAS without fine-tuning. As shown in Table 14, direct transfer without fine-tuning results in substantial drops (13–19%), e.g., GLUE → SuperGLUE drops from 0.911 to 0.782, indicating that the architectures encode broadly useful structures. With only fine-tuning, performance remains very close to the NAS-discovered architectures, e.g., GLUE → SuperGLUE: 0.911 → 0.904, demonstrating that PrefixNAS can identify robust and generalizable prefix architectures that transfer effectively among similar tasks, thereby reducing search costs in practice. 
+
+Table 14: Transfer Performance of NAS-Discovered Prefix Architectures Across Datasets. Results confirm that PrefixNAS does not overfit to specific benchmarks. Fine-tuning alone on transferred architectures achieves performance close to full NAS+fine-tuning, while no-fine-tuning drops confirm the search finds broadly useful rather than dataset-specific structures.                                     
+
+> Transfer Direction NAS + Fine-tuning No NAS, Only Fine-tuning No NAS, No Fine-tuning
+> GLUE →SuperGLUE 0.879 0.887 0.743 (-15.5%) SuperGLUE →GLUE 0.911 0.904 0.782 (-14.1%) GLUE →CR 0.830 0.821 0.718 (-13.5%) SuperGLUE →MMLU 0.803 0.798 0.691 (-13.9%) MMLU →SuperGLUE 0.879 0.877 0.713 (-18.9%) MMLU →GLUE 0.911 0.912 0.776 (-14.9%) GLUE →MMLU 0.803 0.816 0.684 (-14.9%)
+
+7.7.7 Benchmark Comparison: DeepSeek 7B vs Qwen2-7B vs LLaMA3-8B 
+
+We selected our primary models to ensure fair comparison with prior work, since they are widely used and well-established in the parameter-efficient tuning literature. Most baseline studies rely on these models, making them natural choices for consistent evaluation. While newer models such as LLaMa3-8B Grattafiori et al. [2024] , DeepSeek-LLM-7B Bi et al. [2024], and Qwen2-7B Bai et al. [2023] show strong potential, we opted for LLaMa2-7B due to its maturity, stable training dynamics, and broad community support. Nonetheless, we also evaluated our PEML approach on several state-of-the-art models across GLUE, SuperGLUE, MMLU, and Commonsense Reasoning (CR) benchmarks in table 15. 
+
+Table 15: Benchmark performance of recent LLMs on MMLU, GLUE, SuperGLUE, and Commonsense Reasoning (CR). Average accuracy across all benchmarks is reported for each model.                 
+
+> SOTA Models MMLU GLUE SuperGLUE CR LLaMA3-8B 0.662 0.922 0.915 0.821 DeepSeek-7B 0.569 0.910 0.897 0.834 Qwen2-7B 0.694 0.904 0.882 0.809
+
+7.7.8 Heterogeneous Multi-Task Evaluation 
+
+To evaluate PEML’s performance across fundamentally different task types, we conducted a heteroge-neous multi-task experiment jointly training LLaMA2-7B on three distinct tasks: SST-2 (sentiment classification), GSM8K (mathematical reasoning) Cobbe et al. [2021], and CNN/DailyMail (text summarization) See et al. [2017], with each task contributing equally during training through round-robin sampling from their respective datasets. We employed accuracy for SST-2 and GSM8K, and ROUGE-L for CNN/DailyMail summarization. For evaluation, SST-2 used its standard validation set, GSM8K employed 5-shot prompting on the test set, and CNN/DailyMail measured ROUGE-L on the validation set with beam search (beam=4). Architectural analysis revealed that PrefixNAS learned distinct computational patterns for each task type: for SST-2, it predominantly selected ReLU activation with moderate dropout (0.3); for GSM8K, 23 Table 16: Performance on Heterogeneous Task Mixture (LLaMA2-7B)                
+
+> Method SST-2 (Acc) ↑GSM8K (Acc) ↑CNN/DM (R-L) ↑
+> LoRA 0.892 0.281 0.243 PreEmbedd 0.845 0.267 0.229 PEML (ours) 0.904 0.288 0.268
+
+it favored Tanh activation with layer normalization, potentially stabilizing numerical reasoning pathways; and for CNN/DailyMail, it frequently chose GELU activation with skip connections. All tasks were trained simultaneously with shared parameters except for task-specific LoRA matrices and PrefixNAS-optimized continuous prompts, enabling knowledge transfer while maintaining task-specific adaptation through our unified architectural framework, with the learned architectures demonstrating PEML’s ability to discover specialized computational structures beyond simple prompt tuning. 
+
+7.7.9 Comparison of Sequential and Parallel Optimization 
+
+We further investigate the effect of combining LoRA and Prefix Tuning under different optimization approaches. Table 17 reports the performance on five representative SuperGLUE tasks. We consider three settings: (i) sequential optimization where LoRA is trained first followed by Prefix Tuning, (ii) sequential optimization in reverse order where Prefix Tuning is trained first followed by LoRA, and (iii) parallel optimization where LoRA and Prefix Tuning are jointly optimized (PEML). Re-sults demonstrate that parallel optimization consistently yields higher average performance, while sequential variants show task-specific variations. 
+
+Table 17: Performance comparison of sequential and parallel optimization of LoRA and Prefix Tuning across SuperGLUE tasks. Parallel optimization achieves the highest average performance.                               
+
+> Approches BoolQ COPA RTE WSC WiC Avg LoRA →Prefix 0.929 0.855 0.922 0.750 0.835 0.858 Prefix →LoRA 0.922 0.835 0.938 0.735 0.864 0.859 LoRA ∥Prefix (PEML) 0.925 0.850 0.932 0.804 0.837 0.869
+
+7.8 Ablation Study 
+
+We conduct ablation studies to evaluate the impact of three critical aspects in PEML: the optimization order in PEML the number of layers (n), and the search space operations within PrefixNAS. For each experiment, we use T5-large model and train it on the SuperGLUE dataset. (1) We observe that parallel optimization consistently outperforms sequential optimization whether LoRA is followed by PrefixNAS or vice versa. Moreover, sequential order has more additional training overhead than the parallel order ( ∼ see Appendix 7.7.9). (2) We increase the number of layers up to 8 but beyond n=6 does not yield a significant performance boost ( ∼ see Figure 3). However, A more complex architecture with additional layers could theoretically improve performance but it also introduces a large number of trainable parameters. Therefore, we must find a balance between architectural complexity and the associated computational cost. Lastly, (3) We find that certain operations did not have any major contribution to the PrefixNAS architecture. We exclude these operations during our search space design ( ∼ see Figure 3). This reduction in search space results in significant time savings during the search process. 
+
+7.9 Inference Latency Induced by Adapter Switching 
+
+Inference latency in multi-task setting is affected by PEFT adapter switching. For 100 tasks with separate adapters, each task’s latency is the forward pass tf plus switch time ts, giving total latency 
+
+T = 100 × (tf + ts). In PEML, a single unified adapter removes switching ( ts = 0 ), so TPEML =100 × tf . Using empirical estimates with minor variability, T5-large has tf = 11 ms, average 
+
+ts ≈ 2.1 ms, resulting in 1,320 ms for 100 adapters vs 1,100 ms with PEML ( ∼ 17% reduction); LLaMA2-7B has tf = 52 ms, average ts ≈ 4.3 ms, giving 5,630 ms vs 5,200 ms ( ∼ 8% reduction). 24 The switching overhead scales linearly with the number of tasks, so PEML’s unified-adapter design becomes increasingly advantageous for larger multi-task setups, maintaining efficiency without compromising forward-pass computation. 
+
+7.10 PEML vs. MultiLoRA: VRAM-Efficient Scaling 
+
+Training throughput, and VRAM usage are critical for generative LLMs. MultiLoRA increases model capacity by adding multiple parallel LoRA modules ( n > 1), which linearly increases VRAM usage due to activation caching, especially for long sequences. For example, training LLaMA-7B with sequences of 1024 tokens and n=5 modules can consume more VRAM than full-parameter fine-tuning, limiting practical scalability. In contrast, our proposed PEML maintains a single LoRA module (n=1) and increases the rank r to match or exceed the expressivity of MultiLoRA. This design avoids horizontal scaling entirely and VRAM usage remains nearly constant regardless of the rank increase. Additionally, MultiLoRA and PEML do not introduce notable latency and the throughput remains close to around 400 tokens per GPU per second ( ∼ see figure 7). In our benchmarking, the throughput of PEML is almost twice that of full parameter fine-tuning (208 tokens per GPU per second) 32 64 96 160 Rank (n x r) VRAM (gb) PEML Multi-LoRA Fine-tuning 020 40 60 32 64 96 160 Rank (n x r) Fine-tuning PEML Multi-LoRA 0100 200 300 400 Tokens (gpu per sec) a) Throughput b) VRAM 
+
+Figure 7: (a) Throughput and (b) peak VRAM usage benchmarked when training LLaMA-7B with sequences of 1024 tokens. n × r on horizontal axis indicates total rank of MultiLoRA and PEML. 
+
+7.11 Stability of the Differentiable–Discrete Transition 
+
+PrefixNAS conducts architecture search using a continuous relaxation and finalizes the architecture via an argmax operation 8. To evaluate the stability of this transition, we compare Softmax + Argmax with Gumbel-Softmax Liu et al. [2023] and Straight-Through Estimators (STE) Huijben et al. [2022] in terms of gradient norm, architectural parameter variance, and performance consistency after discretization. As shown in Table 18, our method yields the lowest gradient norm (0.21 ± 0.05) and parameter variance (0.014 ± 0.006), indicating stable gradient-based optimization during search. We further measure the discretization gap, defined as the performance drop when moving from the relaxed to the final discrete architecture. Softmax + Argmax exhibits a small gap of 0.7, demonstrating that the searched architecture remains stable after discretization. While Gumbel-Softmax shows a slightly smaller gap (0.6), it results in lower final accuracy, and STE exhibits both higher gradient noise and a substantially larger gap (1.1). 
+
+Table 18: Comparison of relaxation techniques for architecture search. Lower gradient norm, architectural parameter variance ( θ Var), and discretization gap indicate more stable optimization and reliable transition from continuous to discrete architectures.                                  
+
+> Method Grad Norm ↓θVar ↓GLUE Avg (%) ↑Discretization Gap ↓
+> Softmax + Argmax 0.21 ±0.05 0.014 ±0.006 90.1 0.7 Gumbel-Softmax 0.24 ±0.06 0.017 ±0.007 89.2 0.6
+> STE 0.33 ±0.09 0.031 ±0.011 88.5 1.1
+
+25 Normalized Search Steps STE Gumbel-Softmax Softmax + Argmax Gradient Norm 
+
+> STE Gumbel-Softmax Softmax + Argmax Gradient Norm
+
+(a) (b) Figure 8: (a) KDE contours of architectural gradient norms during search. Softmax + Argmax shows tighter concentration, indicating stable optimization. and (b) Distribution of architectural gradient norms during search. Softmax + Argmax exhibits tighter variance, indicating more stable optimization. 
+
+In addition, we provide a box plot 8 of architectural gradient norms to illustrate the distributional stability during search and a Kernel Density Estimation (KDE) contour plot 8 visualizes the temporal concentration of gradients across search steps, further confirming stable and consistent optimization behavior. 
+
+7.12 LLM Usage 
+
+We used a large language model (LLM) solely for writing polish, such as improving grammar, clarity, and readability of the text. The LLM did not contribute to research ideation, methodology, analysis, or results. All scientific content and conclusions are the responsibility of the authors. 26

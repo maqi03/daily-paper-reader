@@ -1,0 +1,611 @@
+Title: Why Prompt Optimization Works, and Why It Sometimes Doesn't: A Causal-Inspired Edit-Level Analysis
+
+URL Source: https://arxiv.org/pdf/2605.26655v1
+
+Published Time: Wed, 27 May 2026 01:02:05 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+## Why Prompt Optimization Works, and Why It Sometimes Doesn’t — A Causal-Inspired Edit-Level Analysis 
+
+Shuzhi Gong 1, Hechuan Wen 2* , 
+
+> 1
+
+The University of Melbourne, Melbourne, Victoria, Australia  
+
+> 2
+
+The University of Queensland, Brisbane, Queensland, Australia 
+
+shuzhi@unimelb.edu.au h.wen@uq.edu.au 
+
+Abstract 
+
+Automated prompt optimization methods (e.g., DSpy, TextGrad) can substantially improve the performance of large language model (LLM), however, their generalization ability across dif-ferent tasks remains underperformed. In prac-tice, the superiority of the optimized prompt on one benchmark often fails to transfer to an-other, and this limitation persists even when switching across different LLM backbones. To investigate the underexplored sources of het-erogeneity in prompt performance, we con-duct a causal inference-inspired observational analysis of optimized prompts across a diverse set of optimization frameworks, LLM back-bones, and NLP benchmarks. To achieve the goal, we build upon the propensity-adjusted associational analysis together with multiple complementary representations of prompt ed-its, where the consistent task-conditioned edits patterns are identified. We find that complexity-increasing and meta-instructional edits are neg-atively associated with mathematical and multi-hop reasoning performance, whereas step-by-step and meta-cognitive edits improve logical and sequential reasoning tasks. These effects are robust across cognitive-load annotations, surface-level text features, and edit-motif anal-yses, and can generalize across optimization frameworks. Overall, these results indicate that prompt optimization failures arise from system-atic interactions between edit families and task characteristics rather than random optimization artifacts, providing feature-level characteriza-tion of optimizer behavior and motivating fu-ture task-conditioned optimizer design. 
+
+1 Introduction 
+
+Prompt optimization has emerged as an in-creasingly practical alternative to parameter-efficient fine-tuning for large language models (LLMs) (Khattab et al., 2024; Opsahl-Ong et al., 2024a; Yuksekgonul et al., 2024; Agrawal et al.,  
+
+> *Corresponding author.
+
+2026). Instead of updating model weights, re-cent frameworks such as TextGrad (Yuksekgonul et al., 2024), GEPA (Agrawal et al., 2026) au-tomatically search the prompt space to improve downstream task performance. These approaches have become particularly attractive for modern LLM systems because they are lightweight, mod-ular, and directly compatible with LLM and agen-tic applications (Opsahl-Ong et al., 2024b; Mihin-dukulasooriya et al.; Susnjak, 2026) and retrieval-augmented workflows (Câmara et al., 2026; Gong et al., 2026). Despite their empirical success, prompt optimiz-ers often exhibit unstable behavior across tasks and model backbones (Zhang et al., 2026; Fu et al., 2026; Singhal et al., 2026). In practice, prompt revisions that improve one benchmark frequently fail to transfer to another, and optimizers that per-form well on logical or sequential reasoning tasks may substantially degrade performance on math-ematical or multi-hop reasoning benchmarks. Im-portantly, this pattern appears consistently in our experiments across multiple optimization frame-works and across diverse LLM backbones, in-cluding GPT-5.2, GPT-4o (Achiam et al., 2023), Qwen3-32B (Yang et al., 2025), and Deepseek (Liu et al., 2024) models. Such instability raises a fun-damental question: what kinds of prompt edits are modern optimizers actually learning to apply , and 
+
+why do some edit patterns help certain task types while harming others ?Existing work has largely studied prompt opti-mization at the aggregate benchmark level (Wan et al., 2024). Prior studies analyze optimizer success rates (Pryzant et al., 2023), optimiza-tion dynamics (Yuksekgonul et al., 2024; Yang et al., 2024), or embedding-level optimization di-rections (Lester et al., 2021; Li and Liang, 2021), but provide limited insight into the edit-level be-haviors underlying optimizer failures. As a result, current evaluations often reveal whether optimiza-
+
+> arXiv:2605.26655v1 [cs.CL] 26 May 2026 Latent Casual Relationships
+> Surface-Level Prompt Optimization
+> Initial Prompt
+> Prompt Variant 1
+> Prompt Variant 2
+> Prompt Variant N
+> ...
+> Prompt
+> Optimization
+> Module
+> Questions
+> Applied
+> on
+> Feedback
+> Applying
+> Edits
+> Prompt
+> Question
+> Clarity
+> Engagement
+> Motifs
+> Logics
+> Correctness
+> Prompt,
+> question,
+> correctness
+> Tuples
+> Real
+> Optimization
+> Trajectory
+> Prompt Feature
+> Extraction
+> Text Statistics
+> Textual Motifs
+> Casual
+> Effect
+> Estimation
+> Statistical
+> Analysis
+> Probing
+> ①
+> ②
+> ③
+> Latent Variables
+
+Figure 1: Overview of our multi-view probing frame-work for prompt optimizer behavior. 
+
+tion succeeds, but not which prompt modifications 
+
+systematically contribute to improvement or degra-dation across different task settings. Yet under-standing these edit-level behaviors is important for both diagnosis and optimizer design: two optimiz-ers may achieve similar average gains while relying on fundamentally different editing strategies, and seemingly beneficial prompt modifications may in-teract differently with different reasoning tasks. In this work, we investigate prompt optimizer behavior through an observational multi-view anal-ysis of optimizer-induced prompt edits, as illus-trated in Figure 1. Rather than treating optimized prompts as indivisible artifacts, we analyze con-secutive prompt revisions within real optimization trajectories and examine how different edit fami-lies are associated with downstream performance changes across task groups. To reduce dependence on any single represen-tation of prompt edits, we probe optimizer be-havior through three complementary views: (1) GPT-4o-annotated cognitive and instructional fea-tures, (2) deterministic surface-level text statistics, and (3) literal text-diff motifs extracted from con-secutive prompt revisions. These complementary representations are subsequently integrated into a propensity-adjusted associational analysis frame-work to characterize heterogeneous optimizer be-haviors across reasoning tasks. Methodologically, our analysis adopts a causal inference-inspired observational framework. We use propensity-adjusted associational estima-tion (Rosenbaum and Rubin, 1983) to reduce measured selection bias arising from differences in prior prompt states, while explicitly avoiding strong causal claims. Because the analysis in-volves many simultaneous feature-task compar-isons, we distinguish between statistically robust findings that survive false-discovery-rate (FDR) correction and exploratory directional patterns that provide corroborative but non-confirmatory evi-dence. Throughout the paper, we therefore or-ganize results using a unified two-tier evidence hierarchy. Tier 1 refers to associations surviving Benjamini–Hochberg false discovery rate correc-tion. Tier 2 refers to directionally consistent cor-roborative patterns reproduced across multiple rep-resentations or frameworks but not surviving full multiple-testing correction. Across around 20 thousand real world prompt optimization’s ( prompt , question , correctness ) tu-ples, we observe consistent edit-level heterogene-ity across task groups. In particular, complexity-increasing and meta-instructional edits tend to be negatively associated with mathematical and multi-hop reasoning performance, whereas metacognitive and step-structured edits are positively associated with logical and sequential reasoning tasks. Sev-eral of these associations remain significant after false-discovery-rate correction, while others appear consistently across multiple independent prompt representations. Our main contributions are summarized as fol-lows: • We present an observational edit-level analysis of prompt optimizer behavior across multiple optimization frameworks, LLM backbones, and reasoning task groups. • We identify statistically robust heterogeneous as-sociations between prompt optimizer-induced ed-its and downstream task performance. • We provide evidence that prompt optimization failures are not purely random, but are systemati-cally associated with interactions between edits and benchmark-specific characteristics, motivat-ing future task-conditioned optimizer design. 
+
+2 Related Work 
+
+Automated prompt optimization. Automated prompt optimization treats the prompt as a learn-able variable to maximize task performance. Early work learns soft prompts or searches discrete prompt tokens/templates for few-shot adaptation and probing (Li and Liang, 2021; Lester et al., 2021; Shin et al., 2020; Gao et al., 2021). Later black-box methods optimize natural-language in-structions directly, including instruction genera-tion and ranking (Zhou et al., 2022), gradient-free edit search (Prasad et al., 2023), reinforcement-learning-based prompt editing (Deng et al., 2022; Zhang et al., 2022), and textual-gradient revi-sion (Pryzant et al., 2023; Yuksekgonul et al., 2024). More recent systems use LLMs as op-timizers or search operators, through natural-language proposal selection (Yang et al., 2024), evolutionary/self-referential mutation (Guo et al., 2024; Fernando et al., 2023; Agrawal et al., 2026), and program-level prompt compilation (Khattab et al., 2024; Opsahl-Ong et al., 2024a). Despite their different optimization mechanisms, these methods converge to a common empirical failure mode in our setting: consistent performance degra-dation on math and multi-hop tasks. This conver-gence motivates a feature-level diagnosis of prompt changes rather than a method-specific analysis. 
+
+Prompt sensitivity and format effects. A com-plementary line of work studies how non-semantic prompt properties affect LLM performance. Zhao et al. (2021) shows that few-shot calibration can substantially reduce format-induced bias, while Lu et al. (2022) finds that demonstration order can change accuracy by up to 30 points. Related stud-ies further show that in-context learning depends on label space, input distribution, and sequence format more than exact input-label mappings (Min et al., 2022), that models can be insensitive to in-struction semantics (Webson and Pavlick, 2022), that answer surface forms distort likelihood-based scoring (Holtzman et al., 2021), and that minor formatting choices can induce large performance swings (Sclar et al., 2024). Together, these find-ings demonstrate that prompt surface properties matter independently of semantic content. We ex-tend this perspective from isolated format varia-tion to optimizer trajectories, examining consec-utive optimizer-induced edits and their task-type-conditioned performance effects. The Coin Flip paper (Zhang et al., 2026) uses ANOVA-based anal-ysis to identify run-level conditions under which optimization succeeds; we complement this with feature-level and edit-level causal analysis across task types. 
+
+Causal inference for NLP. Causal inference has been increasingly used in NLP for debiasing, model behavior analysis, and text-based causal estima-tion (Feder et al., 2022). Recent LLM-era work further studies LLMs both as objects of causal anal-ysis and as tools for causal discovery or effect es-timation (Ma, 2025; Liu et al., 2025). For exam-ple, recent studies use LLMs to estimate causal ef-fects from unstructured text (Dhawan et al., 2024), build causal graphs and perform counterfactual inference from natural language (Gendron et al., 2024), generate or match counterfactual texts for faithful model explanation (Gat et al., 2023; Wang et al., 2024), and evaluate LLMs’ formal causal and counterfactual reasoning abilities (Jin et al., 2024; Maasch et al., 2025; Chen et al., 2026b). The heterogeneous treatment effect literature (Wager and Athey, 2018) provides the statistical frame-work for conditional causal effects across subpopu-lations, while the double machine learning frame-work (Chernozhukov et al., 2018) enables nuisance-adjusted effect estimation with flexible machine learning models. We adapt inverse probability of treatment weighting (IPTW) (Robins et al., 2000) to prompt optimization traces, where the treatment is an optimizer-induced change in prompt features and the confounder is the prior prompt state. This framing extends causal-effect estimation tools to optimizer behavior analysis, while our evidence-tier design distinguishes FDR-controlled associa-tions from exploratory corroboration. 
+
+Closest prior work. CPO (Chen et al., 2026a) ap-plies double machine learning to whole-prompt em-beddings to estimate optimization effects, whereas our focus is diagnostic and feature-level: we ana-lyze how interpretable prompt edits are associated with gains or losses across task groups. While the CausalNLP survey (Feder et al., 2022) reviews text-as-treatment methods, we instantiate this per-spective at the optimizer edit-motif level. Recent work on embedding-based causal inference (Da-woud and El-Shamy, 2026) shows dense represen-tations can reduce selection bias; in contrast, we emphasize interpretable surface features that sup-port direct comparison across annotation-based and annotation-free views. The Coin Flip paper (Zhang et al., 2026) studies optimizer success at the run level via ANOVA, whereas we perform edit-level IPTW-adjusted analysis to identify which specific edit types are associated with optimizer success or failure. 
+
+Cognitive load in instructional design. Our an-notation scheme draws on cognitive load theory, which distinguishes intrinsic load from task com-plexity, extraneous load from irrelevant or poorly structured information, and germane load from task-relevant cognitive processing. We use GPT-4o to annotate these constructs at the prompt level and validate them against deterministic text proxies (§3.2), following partial-validity assessment prac-tices in computational social science. 
+
+3 Data and Annotation 
+
+3.1 Pairwise Prompt Comparison Dataset 
+
+We collected optimization logs from 3 frame-works, i.e., DSPy (Khattab et al., 2024) (with MiPROv2 optimizer (Opsahl-Ong et al., 2024a)), TextGrad (Yuksekgonul et al., 2024), and GEPA (Agrawal et al., 2026); 5 LLM backbones, i.e., GPT-5.2, GPT-4o, Qwen3-32B (Yang et al., 2025), Deepseek-v3, and Deepseek-R1 (Liu et al., 2024); and 11 NLP benchmarks spanning 5 reason-ing task categories: 1 Commonsense reasoning (including Common-sense QA (Talmor et al., 2019), causal judgment, disambiguation QA datasets (Suzgun et al., 2023), with a mean base accuracy 0.70), 2 Mathematical reasoning (including GSM8K (Cobbe et al., 2021), MultiArith datasets (Roy and Roth, 2015), with a mean base accuracy 0.97), 3 Logical reasoning (including boolean expres-sions, coinflip (Suzgun et al., 2023) datasets, with a mean base accuracy 0.81), 4 Sequential reasoning (including last letters (Suz-gun et al., 2023), ListOps (Keysers et al., 2019) datasets, with a mean base accuracy 0.75), 5 Multi-hop reasoning (including Strategy QA (Geva et al., 2021), date understanding (Suz-gun et al., 2023) datasets, with a mean base accuracy 0.75). Especially, Math benchmarks exhibit particu-larly high initial performance,raising the possibility of a ceiling effect that we further examine in §4. For each consecutive optimization step, we record the performance gain, defined as ∆acc = acc( p2) − acc( p1), on a fixed evaluation set. p1
+
+and p2 are the former and updated prompts, and the prompt optimization applies the edit on p1 to produce p2. This process yields 2,095 pairwise comparisons from DSPy for the main analysis, and an additional 17,708 comparisons from TextGrad and GEPA for cross-framework replication. 
+
+3.2 Prompt Feature Annotation 
+
+Each prompt is annotated with 12 features derived from cognitive load theory and instructional design, each scored on a 1–10 scale by GPT-4o.              
+
+> Feature Description
+> Clarity Precision/unambiguity of task specification Engagement Motivational framing Politeness Tone politeness level Intrinsic_load Core task complexity Extraneous_load Redundant/irrelevant information Enc._germane_load Prompts for effortful processing Objectives Explicit goal specification Metacognition Self-monitoring or reasoning prompts Demos Few-shot demonstration count/quality Structural_logic Logical organization and sequencing Contextual_logic Context coherence Hallucination_aw. Uncertainty acknowledgment
+
+Table 1: The 12 GPT-4o-annotated cognitive-load fea-tures. 
+
+Construct validity. We correlate these annota-tions against 13 text-derived features (§5.1) using Spearman rank correlation. 7 of 19 expected cor-relations are validated ( |ρ| > 0.10 , p < 0.10 ): Metacognition ↔ meta-cognitive word density (ρ = +0 .691 , p < 0.001 ); Intrinsic_load ↔ word count ( ρ = +0 .566 , p < 0.001 ); Structural_logic 
+
+↔ numbered list presence ( ρ = +0 .457 , p < 
+
+0.001 ). Annotation validity is partial but sufficient for coarse-grained analysis, and we address the re-maining validity concern through annotation-free replication in §5. 
+
+4 Confounding-Adjusted Associational Analysis 
+
+4.1 Estimand and Assumptions 
+
+We estimate Inverse Probability of Treatment Weighting (Rosenbaum and Rubin, 1983) ( IPTW)-adjusted conditional mean gain differences 
+
+(ACMGD) for optimizer-selected edit regimes. ACMGD is therefore interpreted as an IPTW-adjusted observational association rather than as an interventional causal estimand. For a given feature indicator T , we set treatment = 1 when the revision from p1 to p2 increases that feature, and 0 other-wise. Within each dataset/task group, the estimand compares expected performance gain between edit regimes with and without T , under three standard assumptions: • Consistency : The observed outcome equals the potential outcome under the observed treatment. • Positivity : Each unit has positive probability of both treatment values given covariates. • Conditional exchangeability : Given pre-edit co-variates (prompt p1 state: length, demo count, headroom, framework, backbone, dataset, opti-mization step), treatment assignment is condition-ally independent of untreated potential outcomes. 
+
+Plausible unmeasured confounders. Condi-tional exchangeability is unlikely to hold exactly in this setting. Several optimizer-internal vari-ables remain unmeasured: (1) search trajectory history may confound the estimates, because op-timizers tend to insert meta-instructions after ob-serving prior failures, leaving “meta-instruction inserted” correlated with “prior prompt was strug-gling”; (2) selection pressure may arise because high-performing prompts at later optimization steps are more likely to receive additional complex fea-tures; (3) LLM-specific instruction following may matter because backbones vary in how they pro-cess instruction-level directives, and backbone is partially conditioned on rather than fully controlled. IPTW adjusts for measured pre-edit state but can-not eliminate these residual dependencies. Accord-ingly, the results should be interpreted as adjusted associational contrasts rather than causal effects. 
+
+Treatment bundling. Prompt optimizers often modify multiple features simultaneously, so treat-ments are edit bundles rather than isolated feature changes. Although the propensity model condi-tions only on pre-edit covariates, residual bundle heterogeneity remains a limitation. Thus, the anal-ysis provides observational associational evidence rather than causal identification .
+
+4.2 Method: IPTW within Task Types 
+
+For each feature f and task group τ , we proceed as follows. First, we define treatment indicator as 
+
+T = 1[f -change > 0] . Second, we fit a logistic propensity model P (T =1 | X) using only pre-edit covariates. Third, we compute stabilized IPTW weights, 
+
+wi = Ti ¯P (T =1) 
+
+e(Xi) + (1 − Ti) ¯P (T =0) 1 − e(Xi) ,
+
+with weights capped at 10 to limit the influence of extreme propensity scores. Fourth, we estimate the stabilized-IPTW weighted average conditional mean gain difference (ACMGD), 
+
+\ACMGD SIPW  
+
+> f,τ
+
+=
+
+P 
+
+> i
+
+wiTiYi
+
+P 
+
+> i
+
+wiTi
+
+−
+
+P 
+
+> i
+
+wi(1 − Ti)Yi
+
+P 
+
+> i
+
+wi(1 − Ti) ,
+
+where Yi denotes the observed performance gain for revision pair i.Fifth, we calculate block-bootstrap standard er-rors using 500 resamples, with blocks defined by dataset × backbone stratum to account for within-run and within-dataset correlation. All reported p-values and BH-corrected significance stars are based on these block-bootstrap uncertainties. BH-FDR correction is applied simultaneously across all 60 (feature ⊗ task-group) tests. The average confounding magnitude across all combinations is |SIPW − naive | = 0 .018 , confirm-ing that selection bias is present in naive estimates. 
+
+4.3 Results 
+
+We organize results into two tiers: Tier 1 (Con-firmatory) contains BH-FDR corrected findings (q < 0.05 ), whereas Tier 2 (Exploratory) contains uncorrected directional patterns that corroborate Tier 1 but do not independently support inference. 
+
+Tier 1: Confirmatory findings (BH-FDR cor-rected). Table 2 reports IPTW-adjusted ACMGD estimates by feature and dataset/task group. Across 60 simultaneous tests, 11 reach uncorrected sig-nificance ( p < 0.05 ) and 2 survive Benjamini– Hochberg FDR correction (q < 0.05 ): • Extraneous_load ⊗ sequential reasoning :ACMGD = −0.060 ⋆1. Increases in extrane-ous load are significantly associated with perfor-mance degradation in the sequential task group (LOO-stable across 5/5 splits). Here, leave-one-out (LOO) stability refers to re-estimating the sign and direction of an association after itera-tively excluding one dataset at a time, providing a robustness check against single-dataset-driven effects. • Metacognition ⊗ sequential reasoning :ACMGD = +0 .062 ⋆. Metacognitive prompting is significantly associated with performance gains in the sequential task group (LOO-stable across 2/3 splits; one flip in disambiguation_qa). Per-dataset robustness details for the Tier 1 find-ings are provided in Appendix G. 
+
+Tier 2: Exploratory directional patterns. Be-yond the two BH-corrected effects, several un-corrected patterns appear directionally consistent and corroborate Tier 1: the Extraneous_load sign reversal (commonsense +0 .032 ∗ vs. sequential 
+
+−0.060 ⋆) is stable in 5/5 LOO splits. Demos (math +0 .017 vs. sequential −0.044 ∗) is direction-ally consistent with the surface feature analysis in                                                       
+
+> 1⋆= BH-FDR q< 0.05 ;∗= uncorrected p< 0.05 . These significance markers are used consistently throughout the pa-per. More details are in Appendix A. Commonsense Math Logical Sequential Multihop
+> Task Type
+> Clarity
+> Engagement
+> Intrinsic load
+> Extraneous load
+> Objectives
+> Metacognition
+> Demos
+> Structural logic
+> Contextual logic
+> Hallucination awareness
+> Prompt Feature
+> -0.006 -0.060* -0.008 -0.014 -0.010
+> -0.019 -0.059 -0.017 +0.061* -0.000
+> -0.009 -0.039 +0.039* +0.021 -0.018
+> +0.032* -0.021 -0.023 -0.060 -0.027
+> -0.008 -0.011 +0.009 +0.032 -0.023
+> -0.019* -0.029 +0.019 +0.062 -0.019
+> +0.000 +0.017 -0.017 -0.044* +0.033*
+> -0.008 -0.012 +0.011 -0.013 -0.002
+> +0.013 -0.012 +0.005 -0.015 -0.011
+> -0.014 -0.025 +0.018 +0.043* -0.015
+> SIPW-Adjusted CATE by Feature and Task Type
+> (= BH-FDR q< 0.05; * = uncorrected p< 0.05; 60 tests total)
+> 0.08
+> 0.06
+> 0.04
+> 0.02
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> CATE (  acc)
+
+Figure 2: IPTW-adjusted ACMGD heatmap (10 fea-tures × 5 dataset/task groups, 60 tests). Blue = positive association; red = negative. Math and multihop task groups show predominantly negative associations with complexity-increasing features; this directional pattern is exploratory (uncorrected). 
+
+Feature CS Math Logic MH Seq Spread 
+
+Clarity −0.006 −0.060 ∗ −0.008 −0.010 −0.014 0.053 Engagement −0.019 −0.059 −0.017 −0.000 +0 .061 ∗ 0.120 Intrinsic_load −0.009 −0.039 +0 .039 ∗ −0.018 +0 .021 0.078 
+
+Extraneous_load +0 .032 ∗ −0.021 −0.023 −0.027 −0.060 ⋆ 0.092 
+
+Objectives −0.008 −0.011 +0 .009 −0.023 +0 .032 0.055 
+
+Metacognition −0.019 ∗ −0.029 +0 .019 −0.019 +0.062 ⋆ 0.091 
+
+Demos +0 .000 +0 .017 −0.017 +0 .033 ∗ −0.044 ∗ 0.077 Structural_logic −0.008 −0.012 +0 .011 −0.002 −0.013 0.024 Contextual_logic +0 .013 −0.012 +0 .005 −0.011 −0.015 0.027 Hallucination_aw. −0.014 −0.025 +0 .018 −0.015 +0 .043 ∗ 0.067 
+
+Table 2: IPTW-adjusted ACMGD by feature and task group. CS=commonsense, Math=Mathematical, Logic=logical, Seq=sequential, MH=multihop, Spread = max −min. 
+
+§5. In addition, math task groups show predom-inantly negative point estimates for complexity-increasing features across 9/12 features, a pat-tern consistent with the motif analysis but uncor-rected. These results are reported as exploratory hypothesis-generating observations only and do not independently support inferential claims. 
+
+4.4 Ceiling Effects 
+
+We examine whether dataset/task-group hetero-geneity can be explained by ceiling effects alone. Headroom. defined as 1 − base_accuracy , captures the remaining potential for improvement. The as-sociation between headroom and performance gain is weak and not statistically significant, with Spear-man ρ(headroom , ∆acc) = 0 .047 (p = 0 .053 ). In addition, the partial R2 of task group conditional on headroom is small but nonzero, R2(task group |
+
+headroom ) = 0 .003 , indicating that task-group membership explains residual variation beyond headroom. These results suggest that ceiling effects                                                  
+
+> Feature LLM proxy CS Math Log Seq MH Spread n_demos Demos +0 .011 +0.320 ∗+0 .081 ∗−0.043 ∗+0.238 ∗0.362
+> word_count Extr. load −0.009 −0.009 +0 .051 ∗+0.097 ∗−0.060 ∗0.157 type_tok. ratio Clarity −0.016 −0.091 ∗+0 .024 +0 .059 ∗+0 .001 0.151
+> step_words Struct. logic −0.006 −0.044 +0.045 ∗+0.075 ∗−0.051 ∗0.125
+> reasoning_words Metacognition −0.023 −0.065 +0.070 ∗+0.064 ∗−0.013 0.135 compr. ratio —−0.000 −0.058 ∗−0.053 ∗−0.043 ∗+0 .010 0.068
+
+Table 3: Surface feature IPTW-adjusted ACMGD. CS=commonsense, Math=Mathematical, Logic=logical, Seq=sequential, MH=multihop, Spread = max −min. 
+
+are only a minor contributor and that dataset/task-group moderation is not reducible to baseline per-formance differences alone. 
+
+5 Annotation-Free Corroboration 
+
+To assess whether the BH-corrected findings in §4 depend on GPT-4o annotation choices, we re-examine the same prompt pairs using annotation-free text representations. These analyses produce Tier 2 corroborating: they align with Tier 1 findings but are not independently confirmatory. 
+
+5.1 Surface Complexity Features 
+
+We extract 14 deterministic text features from raw instruction text, including word count, demonstra-tion count extracted from the JSON structure, step-word density based on terms such as “step,” “first,” and “then,” type-token ratio, compression ratio, sen-tence count, and related surface statistics. We then apply the same IPTW-adjusted associational analy-sis on DSPy pairs ( N = 2 ,095 ). All four major LLM-annotated directional patterns are reproduced by text-native features (Table 3). Specifically, n_demos algins with Demos (math positive, sequential negative); type_token_ratio algins with Clarity (math neg-ative); step_words algins with Structural_logic (logical/sequential positive, multihop negative); word_count algins with Extraneous_load (sequen-tial positive, multihop negative). This convergence reduces the concern that the observed patterns are artifacts of GPT-4o anno-tation choices. If the sign reversals were driven solely by GPT-4o annotation choices, determin-istic surface proxies would be unlikely to repro-duce the same directional patterns. Although this comparison does not fully rule out annotation bias, becauseboth representations are derived from the same underlying prompts,it provides annotation-independent corroboration. Figure 3 visualizes this multi-view agreement for five key feature compar-isons. Cross-framework directional corroboration (TextGrad, GEPA, N = 17 ,708 ). We apply the same surface-feature extraction to TextGrad and GEPA pairs as a directional corroboration check. Because TextGrad and GEPA uses a different op-timization framework and prompt structure, this analysis is a partial replication of directional pat-terns only , rather than a full replication of the IPTW adjustment protocol. The results show con-sistent directional pattern: word_count (sequen-tial +0 .017 ∗, multihop −0.014 ∗); sentence_count (commonsense +0 .027 ∗ vs. sequential −0.021 ∗
+
+vs. multihop −0.018 ∗); reasoning_words (sequen-tial +0 .039 ∗ vs. commonsense −0.014 ∗). The n_demos feature is less interpretable for TextGrad (which does not use structured few-shot demos in the same format). We therefore interpret these re-sults as cross-framework directional corroboration, instead of independent replication. 
+
+5.2 Edit Motif Effects 
+
+We compute text-diff for each consecutive prompt pair, extract inserted word spans of at least ≥ 4 to-kens, and classify them into four pre-specified mo-tif categories using regex patterns defined prior to analysis: chain_of_thought (“step by step”, “think through”, “reasoning”, etc.), meta_instruction 
+
+(“make sure to”, “do not”, “ensure”, “remember to”, etc.), step_by_step (“step 1”, “first...then”, numbered instruction lists), and clarity_constraint 
+
+(“concisely”, “briefly”, “simple”, “avoid”, etc.). We then estimate IPTW-adjusted ACMGD for each motif × dataset/task-group combination us-ing pre-treatment covariates, and apply BH-FDR correction across all 15 motif × group tests simul-taneously. 
+
+Tier 1: BH-corrected motif findings. Meta-instruction insertion is significantly associated with lower performance in the math dataset group (ACMGD = −0.103 ⋆, BH-corrected). Per-dataset caveat : This effect is partially concentrated in MultiArith (naive CATE = −0.277 , n = 64 )vs. GSM8K ( −0.019 , n = 14 ); the aggregated math estimate should be interpreted with this per-dataset heterogeneity in mind (see Appendix F). Meta-instruction is also directionally negative in multihop ( −0.044 ∗, uncorrected, Tier 2). 
+
+Clarity-constraint insertion is significantly asso-ciated with lower performance in the logical dataset group (ACMGD = −0.083 ⋆, BH-corrected). In-structions to “be concise/brief/simple” may sup-press step-by-step reasoning on boolean and coin-flip tasks. 
+
+Tier 2: Exploratory directional pattern. Chain-of-thought shows a preserved directional pattern across representations: negative in math groups (motif: −0.048 ; surface step_words: −0.044 ;LLM Structural_logic negative), positive in se-quential/last_letters (motif: +0 .045 ∗; surface step_words: +0 .075 ∗; LLM Structural_logic pos-itive). This pattern is consistent but uncorrected across all representations and should be treated as Tier 2 (exploratory corroboration). Dataset caveat :“sequential” is a single-dataset group (last_letters); this is dataset-level evidence, not multi-dataset task-type evidence. 
+
+Motif validity. We manually audited 50 classified-positive spans per key motif to assess precision. For meta_instruction , representative inserted spans include: • “Ensure that both outputs clearly explain how the final solution was reached based on the arith-metic operations involved. ”• “Make sure to articulate the reasoning process clearly, even if it doesn’t require detailed break-downs. ”These patterns are consistently genuine meta-instructional directives added by the optimizer. For 
+
+chain_of_thought , the most common false positive is the JSON key "reasoning": "..." ap-pearing in structured few-shot demo fields, i.e., the regex matches the word “reasoning” but the pattern appears in a non-instruction field not visible to the model as a directive. This false positive inflates the treatment indicator for chain_of_thought with-out representing an actual user-visible instruction change. We estimate meta_instruction precision at ≳90% based on this audit (50 random positive spans, stratified by dataset; labeled independently by one author; ambiguous cases counted as false positives). Chain_of_thought precision is lower and the pattern should be treated as noisier. Mo-tif precision was not formally estimated at scale and the audit involved one labeler; results remain preliminary. 
+
+6 Conclusion 
+
+We present a multi-view observational analysis of edit-level heterogeneity in prompt optimizer behav-ior. Using three complementary representations LLM         
+
+> annot. Surface
+> text
+> Edit
+> motif
+> LLM
+> annot.
+> Surface
+> text
+> Edit
+> motif
+> *
+> LLM
+> annot. Surface
+> text
+> Edit
+> motif
+> LLM
+> annot. Surface
+> text
+> Edit
+> motif
+> LLM
+> annot. Surface
+> text
+> Edit
+> motif
+> 0.100 0.075 0.050 0.025
+> 0.000 0.025 0.050
+> 0.3 0.02
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> 0.10
+> 0.08 0.06 0.04 0.02 0.00 0.02 0.04
+> CATE (ΔAcc)
+> *
+> Commmonsense
+> Sequential
+> Sequential
+> Commonsense
+> Mathematical
+> Sequential Mathematical
+> Extraneous
+> load Metacognition
+> Demos /
+> n_demos
+> Meta-
+> instruction
+> (motif)
+> step_words/
+> CoT
+> Logical Sequential
+> *
+> Mathematical
+> 0.2
+> 0.1
+> 0.0
+> 0.06
+> 0.04
+> 0.02
+> 0.00
+> -0.02
+
+Figure 3: Multi-view convergence of sign reversals across three representations (LLM annotation, surface text features, edit motifs) for five key feature comparisons. Blue dots = higher-benefit task type; red dots = lower-benefit task type. The consistent sign pattern across representations reduces concern that results are annotation artifacts. 
+
+Motif CS Math Logic Seq MH spread 
+
+chain_of_thought +0 .011 −0.048 +0 .026 +0 .045 ∗ +0 .031 0.093 
+
+meta_instruction +0 .011 −0.103 ⋆ −0.025 −0.005 −0.044 ∗ 0.114 clarity_constraint −0.011 +0 .000 −0.083 ⋆ +0 .011 +0 .012 0.094 
+
+step_by_step +0 .000 +0 .031 +0 .000 +0 .000 +0 .000 0.031 
+
+Table 4: Edit motif insertion ACMGD by dataset/task group. CS=commonsense, Math=Mathematical, Logic=logical, Seq=sequential, MH=multihop, Spread = max −min.Motif co-occurrence: chain_of_thought & meta_instruction in 24.0% of pairs. Results organized by Tier 1 (starred) vs. Tier 2 (unstated). Commonsense  Math  Logical  Sequential  Multihop 
+
+> Task Type
+> *
+> *
+> 0.05
+> 0.00
+> 0.05
+> 0.10
+> CATE (  Acc)
+> Chain-of-thought
+> Meta-instruction
+> Clarity constraint
+> Step-by-step
+
+Figure 4: Edit motif insertion ACMGD by dataset/task group (4 motifs × 5 groups, 15 tests). Meta-instruction is significantly associated with worse math performance; clarity-constraint is significantly associated with worse logical performance. 
+
+of 2,095 pairwise prompt comparisons, i.e., GPT-4o-annotated cognitive-load features, deterministic surface text statistics, and literal text-diff motifs, we find four BH-FDR-corrected associations: Ex-traneous_load ⊗ sequential ( −0.060 ⋆), Metacog-nition ⊗ sequential ( +0 .062 ⋆), meta-instruction ⊗
+
+math ( −0.103 ⋆), and clarity-constraint ⊗ logical (−0.083 ⋆). All four involve at least two bench-mark datasets per task group. Beyond these con-firmatory findings, directionally consistent corrob-orating evidence appears in surface text features and in 17,708 TextGrad/GEPA pairs, and 83% of headline sign patterns survive LOO exclusion. These patterns suggest that edit-family-level analysis, especially when conditioned on benchmark-specific task demands, offers a more informative diagnosis than aggregate success or failure metrics alone. The pre-optimization question “does my target benchmark resemble groups where meta-instruction and complexity-increasing edits are negatively associated with gains?” has practical diagnostic value even under the observational limitations of this study, and points toward edit-conditioned optimizer design as a fruitful direction for interventional follow-up. 
+
+Implications. For practitioners, the ACMGD ta-bles in this paper serve as a preliminary diagnostic: before running an expensive optimizer, consider whether the target task/dataset resembles groups (math-like, multihop-like) where meta-instruction and complexity-increasing edits show negative as-sociations with gains. This does not guarantee fail-ure, but the BH-corrected associations are consis-tent across frameworks, representations, and LOO folds. The consistent negative association between meta-instruction insertion and math-type bench-marks suggests that future prompt optimizers may benefit from task-conditioned edit control, partic-ularly by discouraging unnecessary complexity-increasing or meta-instructional edits during op-timization. 
+
+Reproducibility. All analysis code and pairwise comparison dataset will be released upon publica-tion. The TextGrad processing pipeline is compati-ble with TextGrad public official repository. Limitations 
+
+Our analysis is observational rather than interven-tional. Although IPTW reduces measured selec-tion bias using pre-edit prompt states, residual con-founding may remain due to optimizer trajectory history, backbone-specific instruction following, and bundled prompt edits that modify multiple fea-tures simultaneously. Accordingly, the reported ACMGD estimates should be interpreted as ad-justed associational contrasts rather than causal effects. In addition, several findings remain benchmark-sensitive. Some task-group effects are partially concentrated in specific datasets (e.g., MultiArith within math), and cross-framework corroboration is directional rather than a fully controlled replication because different optimization frameworks use dif-ferent prompt structures. Finally, motif extraction relies on pre-specified regex patterns and therefore introduces unavoidable labeling noise, particularly for chain-of-thought-related edits. 
+
+References 
+
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, and 1 others. 2023. Gpt-4 techni-cal report. arXiv preprint arXiv:2303.08774 .Lakshya A Agrawal, Shangyin Tan, Dilara Soylu, Noah Ziems, Rishi Khare, Krista Opsahl-Ong, Arnav Singhvi, Herumb Shandilya, Michael J Ryan, Meng Jiang, and 1 others. 2026. Gepa: Reflective prompt evolution can outperform reinforcement learning. In-ternational Conference on Learning Representations .Yoav Benjamini and Yosef Hochberg. 1995. Control-ling the false discovery rate: a practical and pow-erful approach to multiple testing. Journal of the Royal statistical society: series B (Methodological) ,57(1):289–300. Arthur Câmara, Vincent Slot, and Jakub Zavrel. 2026. Self-optimizing multi-agent systems for deep re-search. arXiv preprint arXiv:2604.02988 .Wei Chen, Yanbin Fang, Shuran Fu, Fasheng Xu, and Xuan Wei. 2026a. Optimizing prompts for large language models: A causal approach. arXiv preprint arXiv:2602.01711 .Yuefei Chen, Vivek K Singh, Jing Ma, and Ruixiang Tang. 2026b. Counterbench: Evaluating and im-proving counterfactual reasoning in large language models. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 40, pages 30350– 30358. Victor Chernozhukov, Denis Chetverikov, Mert Demirer, Esther Duflo, Christian Hansen, Whitney Newey, and James Robins. 2018. Double/debiased machine learn-ing for treatment and structural parameters. Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, and 1 others. 2021. Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168 .Ahmed Dawoud and Osama El-Shamy. 2026. Reading between the lines: Deconfounding causal estimates using text embeddings and deep learning. arXiv preprint arXiv:2601.01511 .Mingkai Deng, Jianyu Wang, Cheng-Ping Hsieh, Yi-han Wang, Han Guo, Tianmin Shu, Meng Song, Eric Xing, and Zhiting Hu. 2022. Rlprompt: Optimizing discrete text prompts with reinforcement learning. In Proceedings of the 2022 Conference on Empiri-cal Methods in Natural Language Processing , pages 3369–3391. Nikita Dhawan, Leonardo Cotta, Karen Ullrich, Rahul G Krishnan, and Chris J Maddison. 2024. End-to-end causal effect estimation from unstructured natural language data. Advances in Neural Information Pro-cessing Systems , 37:77165–77199. Amir Feder, Katherine A Keith, Emaad Manzoor, Reid Pryzant, Dhanya Sridhar, Zach Wood-Doughty, Ja-cob Eisenstein, Justin Grimmer, Roi Reichart, Mar-garet E Roberts, and 1 others. 2022. Causal inference in natural language processing: Estimation, predic-tion, interpretation and beyond. Transactions of the Association for Computational Linguistics , 10:1138– 1158. Chrisantha Fernando, Dylan Banarse, Henryk Michalewski, Simon Osindero, and Tim Rock-täschel. 2023. Promptbreeder: Self-referential self-improvement via prompt evolution. arXiv preprint arXiv:2309.16797 .Lucheng Fu, Ye Yu, Yiyang Wang, Yiqiao Jin, Haibo Jin, B Aditya Prakash, and Haohan Wang. 2026. Tex-treg: Mitigating prompt distributional overfitting via regularized text-space optimization. arXiv preprint arXiv:2605.21318 .Tianyu Gao, Adam Fisch, and Danqi Chen. 2021. Making pre-trained language models better few-shot learners. In Proceedings of the 59th Annual Meet-ing of the Association for Computational Linguistics and the 11th International Joint Conference on Natu-ral Language Processing (Volume 1: Long Papers) ,pages 3816–3830. Yair Gat, Nitay Calderon, Amir Feder, Alexander Chapanin, Amit Sharma, and Roi Reichart. 2023. Faithful explanations of black-box nlp models us-ing llm-generated counterfactuals. arXiv preprint arXiv:2310.00603 .Gaël Gendron, Jože M Rožanec, Michael Witbrock, and Gillian Dobbie. 2024. Counterfactual causal inference in natural language with large language models. arXiv preprint arXiv:2410.06392 .Mor Geva, Daniel Khashabi, Elad Segal, Tushar Khot, Dan Roth, and Jonathan Berant. 2021. Did aristotle use a laptop? a question answering benchmark with implicit reasoning strategies. Transactions of the Association for Computational Linguistics , 9:346– 361. Shuzhi Gong, Richard O Sinnott, Jianzhong Qi, Ce-cile Paris, Preslav Nakov, and Zhuohan Xie. 2026. Multi-sourced, multi-agent evidence retrieval for fact-checking. arXiv preprint arXiv:2603.00267 .Qingyan Guo, Rui Wang, Junliang Guo, Bei Li, Kaitao Song, Xu Tan, Guoqing Liu, Jiang Bian, and Yujiu Yang. 2024. Connecting large language models with evolutionary algorithms yields powerful prompt op-timizers. In International Conference on Learning Representations , volume 2024, pages 34133–34156. Ari Holtzman, Peter West, Vered Shwartz, Yejin Choi, and Luke Zettlemoyer. 2021. Surface form competi-tion: Why the highest probability answer isn’t always right. In Proceedings of the 2021 Conference on Em-pirical Methods in Natural Language Processing ,pages 7038–7051. Zhijing Jin, Jiarui Liu, Zhiheng Lyu, Mrinmaya Sachan, Rada Mihalcea, Mona Diab, David Ha, and 1 oth-ers. 2024. Can large language models infer causa-tion from correlation? In International Conference on Learning Representations , volume 2024, pages 28663–28679. Daniel Keysers, Nathanael Schärli, Nathan Scales, Hylke Buisman, Daniel Furrer, Sergii Kashubin, Nikola Momchev, Danila Sinopalnikov, Lukasz Stafiniak, Tibor Tihon, and 1 others. 2019. Mea-suring compositional generalization: A compre-hensive method on realistic data. arXiv preprint arXiv:1912.09713 .Omar Khattab, Arnav Singhvi, Paridhi Maheshwari, Zhiyuan Zhang, Keshav Santhanam, Saiful Haq, Ashutosh Sharma, Thomas Joshi, Hanna Moazam, Heather Miller, and 1 others. 2024. Dspy: compiling declarative language model calls into state-of-the-art pipelines. In International Conference on Learning Representations , volume 2024, pages 54928–54958. Brian Lester, Rami Al-Rfou, and Noah Constant. 2021. The power of scale for parameter-efficient prompt tuning. In Proceedings of the 2021 conference on empirical methods in natural language processing ,pages 3045–3059. Xiang Lisa Li and Percy Liang. 2021. Prefix-tuning: Optimizing continuous prompts for generation. In 
+
+Proceedings of the 59th Annual Meeting of the Asso-ciation for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers) , pages 4582– 4597. Aixin Liu, Bei Feng, Bing Xue, Bingxuan Wang, Bochao Wu, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenyu Zhang, Chong Ruan, and 1 others. 2024. Deepseek-v3 technical report. arXiv preprint arXiv:2412.19437 .Xiaoyu Liu, Paiheng Xu, Junda Wu, Jiaxin Yuan, Yifan Yang, Yuhang Zhou, Fuxiao Liu, Tianrui Guan, Hao-liang Wang, Tong Yu, and 1 others. 2025. Large lan-guage models and causal inference in collaboration: A comprehensive survey. Findings of the Association for Computational Linguistics: NAACL 2025 , pages 7668–7684. Yao Lu, Max Bartolo, Alastair Moore, Sebastian Riedel, and Pontus Stenetorp. 2022. Fantastically ordered prompts and where to find them: Overcoming few-shot prompt order sensitivity. In Proceedings of the 60th Annual Meeting of the Association for Compu-tational Linguistics (Volume 1: Long Papers) , pages 8086–8098. Jing Ma. 2025. Causal inference with large language model: A survey. Findings of the Association for Computational Linguistics: NAACL 2025 , pages 5886–5898. Jacqueline RMA Maasch, Alihan Hüyük, Xinnuo Xu, Aditya V Nori, and Javier Gonzalez. 2025. Com-positional causal reasoning evaluation in language models. arXiv preprint arXiv:2503.04556 .Nandana Mihindukulasooriya, Niharika S D’Souza, Faisal Chowdhury, and Horst Samulowitz. Auto-matic prompt optimization for knowledge graph con-struction: Insights from an empirical study. Proceed-ings of the VLDB Endowment. ISSN , 2150:8097. Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis, Hannaneh Hajishirzi, and Luke Zettle-moyer. 2022. Rethinking the role of demonstrations: What makes in-context learning work? In Proceed-ings of the 2022 conference on empirical methods in natural language processing , pages 11048–11064. Krista Opsahl-Ong, Michael J Ryan, Josh Purtell, David Broman, Christopher Potts, Matei Zaharia, and Omar Khattab. 2024a. Optimizing instructions and demon-strations for multi-stage language model programs. In Proceedings of the 2024 Conference on Empiri-cal Methods in Natural Language Processing , pages 9340–9366. Krista Opsahl-Ong, Michael J Ryan, Josh Purtell, David Broman, Christopher Potts, Matei Zaharia, and Omar Khattab. 2024b. Optimizing instructions and demon-strations for multi-stage language model programs. In Proceedings of the 2024 Conference on Empiri-cal Methods in Natural Language Processing , pages 9340–9366. Archiki Prasad, Peter Hase, Xiang Zhou, and Mohit Bansal. 2023. Grips: Gradient-free, edit-based in-struction search for prompting large language models. In Proceedings of the 17th Conference of the Euro-pean Chapter of the Association for Computational Linguistics , pages 3845–3864. Reid Pryzant, Dan Iter, Jerry Li, Yin Lee, Chenguang Zhu, and Michael Zeng. 2023. Automatic prompt op-timization with “gradient descent” and beam search. In Proceedings of the 2023 conference on empiri-cal methods in natural language processing , pages 7957–7968. Nils Reimers and Iryna Gurevych. 2019. Sentence-bert: Sentence embeddings using siamese bert-networks. In Proceedings of the 2019 conference on empirical methods in natural language processing and the 9th international joint conference on natural language processing (EMNLP-IJCNLP) , pages 3982–3992. James M Robins, Miguel Angel Hernan, and Babette Brumback. 2000. Marginal structural models and causal inference in epidemiology. Paul R Rosenbaum and Donald B Rubin. 1983. The central role of the propensity score in observational studies for causal effects. Biometrika , 70(1):41–55. Subhro Roy and Dan Roth. 2015. Solving general arith-metic word problems. In Proceedings of the 2015 conference on empirical methods in natural language processing , pages 1743–1752. Melanie Sclar, Yejin Choi, Yulia Tsvetkov, and Alane Suhr. 2024. Quantifying language models’ sensitiv-ity to spurious features in prompt design or: How i learned to start worrying about prompt formatting. In International Conference on Learning Representa-tions , volume 2024, pages 25055–25083. Taylor Shin, Yasaman Razeghi, Robert L Logan Iv, Eric Wallace, and Sameer Singh. 2020. Autoprompt: Elic-iting knowledge from language models with automat-ically generated prompts. In Proceedings of the 2020 conference on empirical methods in natural language processing (EMNLP) , pages 4222–4235. Rahul Singhal, Pradyumna Tambwekar, and Karime Maamari. 2026. Prefpo: Pairwise preference prompt optimization. arXiv preprint arXiv:2603.19311 .Teo Susnjak. 2026. A reproducible optimisation pro-tocol for calibrating prompt-based large language model workflows in evidence synthesis. arXiv preprint arXiv:2605.06937 .Mirac Suzgun, Nathan Scales, Nathanael Schärli, Se-bastian Gehrmann, Yi Tay, Hyung Won Chung, Aakanksha Chowdhery, Quoc Le, Ed Chi, Denny Zhou, and 1 others. 2023. Challenging big-bench tasks and whether chain-of-thought can solve them. In Findings of the Association for Computational Linguistics: ACL 2023 , pages 13003–13051. Alon Talmor, Jonathan Herzig, Nicholas Lourie, and Jonathan Berant. 2019. Commonsenseqa: A question answering challenge targeting commonsense knowl-edge. In Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Tech-nologies, Volume 1 (Long and Short Papers) , pages 4149–4158. Stefan Wager and Susan Athey. 2018. Estimation and inference of heterogeneous treatment effects using random forests. Journal of the American Statistical Association , 113(523):1228–1242. Xingchen Wan, Ruoxi Sun, Hootan Nakhost, and Ser-can Ö Arık. 2024. Teach better or show smarter? on instructions and exemplars in automatic prompt optimization. Advances in Neural Information Pro-cessing Systems , 37:58174–58244. Ziao Wang, Xiaofeng Zhang, and Hongwei Du. 2024. Beyond what if: Advancing counterfactual text gen-eration with structural causal modeling. In IJCAI ,pages 6522–6530. Albert Webson and Ellie Pavlick. 2022. Do prompt-based models really understand the meaning of their prompts? In Proceedings of the 2022 conference of the north american chapter of the association for computational linguistics: Human language tech-nologies , pages 2300–2344. Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, and 1 others. 2022. Chain-of-thought prompting elic-its reasoning in large language models. Advances in neural information processing systems , 35:24824– 24837. An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, and 1 others. 2025. Qwen3 technical report. arXiv preprint arXiv:2505.09388 .Chengrun Yang, Xuezhi Wang, Yifeng Lu, Hanxiao Liu, Quoc V Le, Denny Zhou, and Xinyun Chen. 2024. Large language models as optimizers. In In-ternational Conference on Learning Representations ,volume 2024, pages 12028–12068. Mert Yuksekgonul, Federico Bianchi, Joseph Boen, Sheng Liu, Zhi Huang, Carlos Guestrin, and James Zou. 2024. Textgrad: Automatic" differentiation" via text. arXiv preprint arXiv:2406.07496 .Tianjun Zhang, Xuezhi Wang, Denny Zhou, Dale Schuurmans, and Joseph E Gonzalez. 2022. Tem-pera: Test-time prompting via reinforcement learning. 
+
+arXiv preprint arXiv:2211.11890 .Xing Zhang, Guanghui Wang, Yanwei Cui, Wei Qiu, Ziyuan Li, Bing Zhu, and Peiyang He. 2026. Prompt optimization is a coin flip: Diagnosing when it helps in compound ai systems. arXiv preprint arXiv:2604.14585 .Zihao Zhao, Eric Wallace, Shi Feng, Dan Klein, and Sameer Singh. 2021. Calibrate before use: Improv-ing few-shot performance of language models. In 
+
+International conference on machine learning , pages 12697–12706. Pmlr. Yongchao Zhou, Andrei Ioan Muresanu, Ziwen Han, Keiran Paster, Silviu Pitis, Harris Chan, and Jimmy Ba. 2022. Large language models are human-level prompt engineers. In The eleventh international con-ference on learning representations .
+
+A Statistical Significance (Uncorrected 
+
+p-values, BH-FDR Correction) 
+
+Our analysis involves multiple simultaneous hy-pothesis tests across prompt features, edit motifs, and dataset/task groups. In such settings, interpret-ing raw statistical significance without correction can substantially inflate the probability of false discoveries. This appendix clarifies the distinc-tion between uncorrected p-values and Benjamini– Hochberg false discovery rate (BH-FDR) corrected results used throughout the paper. 
+
+A.1 Uncorrected p-values 
+
+For each feature–task-group combination, we estimate an IPTW-adjusted associational effect (ACMGD) and compute a corresponding hypothe-sis test: 
+
+H0 : ACMGD = 0 , (1) where the null hypothesis assumes no adjusted asso-ciation between the optimizer-induced edit regime and performance gain. The reported uncorrected p-value measures the probability of observing an effect at least as ex-treme as the estimated one under the null hypothe-sis: 
+
+p = Pr ( |T | ≥ | Tobs | | H0) , (2) where T denotes the test statistic computed using block-bootstrap uncertainty estimates. Throughout the paper, an uncorrected signifi-cance marker ∗ : p < 0.05 
+
+indicates that the corresponding association is sta-tistically significant when considered as an isolated test. However, because our analysis evaluates many hypotheses simultaneously (60 feature × task-group tests in Table 2 and 15 motif × group tests in Table 4), interpreting uncorrected p-values alone would inflate the probability of false positives due to the multiple comparisons problem. 
+
+A.2 Multiple Comparisons Problem 
+
+Suppose m independent null hypotheses are tested at significance level α = 0 .05 . Even if all null hypotheses are true, the expected number of false positives is: 
+
+m × α. (3) For example, with m = 60 tests, approximately 
+
+60 × 0.05 = 3 
+
+false discoveries are expected purely by chance under naive thresholding. Consequently, some apparently significant asso-ciations may arise from stochastic variation rather than systematic optimizer behavior. 
+
+A.3 Benjamini–Hochberg False Discovery Rate Correction 
+
+To mitigate inflated false positives, we apply the Benjamini–Hochberg (BH) false discovery rate cor-rection (Benjamini and Hochberg, 1995) across each family of simultaneous tests. Unlike family-wise error rate procedures (e.g., Bonferroni correction), which control the proba-bility of any false positive, BH-FDR controls the expected proportion of false discoveries among all rejected hypotheses: 
+
+FDR = E
+
+ # false discoveries 
+
+# total discoveries 
+
+
+
+. (4) This criterion is substantially less conservative and is therefore widely used in exploratory high-dimensional analyses where moderate discovery power is desirable. 
+
+A.4 BH Procedure 
+
+Given m hypothesis tests with ordered p-values 
+
+p(1) ≤ p(2) ≤ · · · ≤ p(m), (5) the BH procedure compares each ordered p-value against the adaptive threshold: 
+
+p(i) ≤ im α, (6) where: • i is the rank of the ordered p-value, • m is the total number of simultaneous tests, • α is the target false discovery rate (0.05 in this paper). The largest index satisfying the inequality is identified, and all hypotheses with smaller-ranked 
+
+p-values are declared significant after correction. The resulting BH-adjusted significance level is reported as a q-value throughout the paper. A.5 Interpretation in This Work 
+
+We distinguish between two evidence tiers: 
+
+Tier 1 (Confirmatory). Associations surviving BH-FDR correction: 
+
+q < 0.05 
+
+are treated as statistically robust findings. These effects remain significant even after accounting for the full multiple-testing burden. 
+
+Tier 2 (Exploratory). Associations satisfying: 
+
+p < 0.05 
+
+but not surviving BH correction are reported as directional or corroborative patterns only. These findings may still reflect meaningful optimizer be-havior, but they carry a substantially higher false discovery risk and therefore do not independently support strong inferential claims. Our analysis evaluates a large number of simulta-neous hypotheses across prompt features, edit mo-tifs, task groups, and representation spaces. In such exploratory settings, relying solely on uncorrected 
+
+p-values would substantially increase the proba-bility of reporting false-positive associations that arise purely from random variation. BH-FDR cor-rection provides a principled compromise between statistical rigor and discovery sensitivity: rather than controlling the probability of any false posi-tive, it controls the expected proportion of false discoveries among all reported significant find-ings. This is particularly suitable for our setting because the goal of the analysis is not to estab-lish a small number of tightly controlled confirma-tory effects, but to characterize heterogeneous op-timizer behaviors across multiple complementary views. Accordingly, we treat BH-corrected find-ings ( q < 0.05 ) as confirmatory evidence, while uncorrected findings ( p < 0.05 only) are explicitly framed as exploratory and hypothesis-generating observations. This distinction reduces the risk of over-interpreting noisy associations while still pre-serving sufficient statistical power to identify po-tentially meaningful optimizer behavior patterns. 
+
+B Conditional Independence Structure (Exploratory) 
+
+We pool prompt observations per task type ( N rang-ing from 30 to 92) and apply: • PC algorithm (constraint-based, Fisher-Z test, 
+
+α = 0 .05 ) on feature vectors • DirectLiNGAM (non-Gaussian directed acyclic graph estimation) 
+
+Results. Average cross-task Jaccard similarity 
+
+= 0 .249 —task types share only ∼25% of their inferred graph edges, confirming structural het-erogeneity. Pairwise similarity ranges from 0.053 (commonsense vs. math) to 0.667 (logical vs. se-quential). Math tasks have the most distinctive structure. These results are reported as exploratory analysis of conditional independence patterns; no mechanism claims are made. 
+
+C Causal Receptivity Score (Descriptive) 
+
+We construct a per-task-type receptivity score as the weighted sum of BH-significant and direction-ally consistent CATE estimates (positive sign = optimizer-compatible). Spearman ρ = −0.866 be-tween receptivity and optimizer success rate at the task-type level ( n = 5 , p = 0 .058 ). This cor-relation is descriptive and based on five task-type aggregates; it does not constitute a validated predic-tive diagnostic. LOO-CV classifier AUC = 0 .260 
+
+(below chance) confirms that the receptivity score does not generalize to held-out task types at current sample sizes. We report it as a descriptive summary only. 
+
+D SBERT Edit-Direction Sensitivity Analysis 
+
+We compute SBERT (Reimers and Gurevych, 2019) embedding differences ∆e = e(p2) − e(p1)
+
+for each prompt pair, then project onto the first 20 principal components via PCA. For each compo-nent, we compute SIPW-CATE stratified by task type. 
+
+Results : 10/20 PCA components show sign re-versals (spread > 0.05 ) across at least two task types. PC7 shows the clearest pattern: common-sense +0 .061 ∗, math −0.098 ∗, sequential +0 .084 ∗
+
+(spread = 0.181 ). This embedding-level evi-dence is consistent with the annotation-free ro-bustness findings in §5 and provides an additional representation-independent corroboration. 
+
+E Full LOO Stability Table 
+
+Table 5 reports all 18 LOO splits covering six head-line sign reversals. A split is “stable” ( ✓) if the sign reversal direction matches the full-data baseline. LOO dataset Feature Task A Task B CATE_A CATE_B Stable? 
+
+CommonsenseQA LLM:Extr.load comm. math +0 .026 −0.150 ✓
+
+causal_judgement LLM:Extr.load comm. math +0 .015 −0.150 ✓
+
+disambiguation_qa LLM:Extr.load comm. math +0 .053 −0.150 ✓
+
+GSM8K LLM:Extr.load comm. math +0 .032 −0.324 ✓
+
+MultiArith LLM:Extr.load comm. math +0 .032 −0.030 ✓
+
+GSM8K LLM:Demos math seq. +0 .182 −0.088 ✓
+
+MultiArith LLM:Demos math seq. +0 .083 −0.088 ✓
+
+GSM8K surf:n_demos math seq. +0 .128 +0 .071 ✓
+
+MultiArith surf:n_demos math seq. +0 .043 +0 .071 ✓
+
+CommonsenseQA LLM:Metacog. seq. comm. +0 .082 +0 .034 ✓
+
+causal_judgement LLM:Metacog. seq. comm. +0 .082 +0 .003 ✓
+
+disambiguation_qa LLM:Metacog. seq. comm. +0 .082 −0.032 ✗
+
+boolean_expr. surf:step_w. log. multi. +0 .111 +0 .064 ✓
+
+coin_flip surf:step_w. log. multi. +0 .039 +0 .064 ✓
+
+StrategyQA surf:step_w. log. multi. +0 .076 +0 .159 ✓
+
+date_understanding surf:step_w. log. multi. +0 .076 −0.060 ✗
+
+StrategyQA surf:word_ct. seq. multi. +0 .027 +0 .159 ✓
+
+date_understanding surf:word_ct. seq. multi. +0 .027 −0.020 ✗
+
+Overall 15/18 (83%) 
+
+Table 5: Full LOO stability table. “comm.” = commonsense, “seq.” = sequential. Three failures involve date_understanding or disambiguation_qa. 
+
+F Per-Dataset Motif Effect Breakdown 
+
+Table 6 reports naive (unweighted) CATE for chain_of_thought and meta_instruction insertion by dataset. 
+
+G Per-Dataset Robustness for Tier 1 Findings 
+
+Table 7 reports per-dataset estimates for all four BH-corrected Tier 1 associations. For each finding, we report the IPTW-adjusted ACMGD, treated/con-trol counts, and sign consistency across datasets within the task group. 
+
+H Prompt Feature Extraction 
+
+Below we provide the prompt template used in 
+
+Prompt Feature Extraction .
+
+Prompt: Prompt Feature Extraction 
+
+{"role": "user", "content": "What are the measurable and improveable textual features of the instructions generated above {sample instruction}, for solving the ask of solving problems? Make sure these features are independent of each other and not confounded. Give the answers directly without preparatory statements. "}, {"role": "assistant", "content": str((features), }, {"role": "user", "content": "According to the order of the factors: {features}", score the {instructions} with 1to 10. The final result must be a string of scores separated by commas. Give the answer directly without preparatory statements." }
+
+I Discussion 
+
+I.1 Evidence Hierarchy 
+
+We use a three-tier structure to prevent misreading: 
+
+Tier 1. Four BH-corrected associations across two analysis families. From the GPT-4o feature analysis: (a) Extraneous_load/sequential: ACMGD =−0.060 ⋆, 100% LOO-stable; (b) Metacog-nition/sequential: ACMGD =+0 .062 ⋆,67% LOO-stable. From the motif analysis: Motif Dataset Task type Naive CATE n treated                                                                     
+
+> chain_of_thought boolean_expressions logical −0.034 189 chain_of_thought coin_flip logical +0 .088 184 chain_of_thought GSM8K math +0 .027 203 chain_of_thought MultiArith math −0.162 139 chain_of_thought CommonsenseQA commonsense −0.024 211 chain_of_thought causal_judgement commonsense +0 .051 201 chain_of_thought disambiguation_qa commonsense +0 .031 164 chain_of_thought last_letters sequential +0 .067 160 chain_of_thought StrategyQA multihop +0 .002 152 chain_of_thought date_understanding multihop +0 .060 206 meta_instruction GSM8K math −0.019 14 meta_instruction MultiArith math −0.277 64 meta_instruction coin_flip logical +0 .066 91 meta_instruction last_letters sequential −0.004 54 meta_instruction CommonsenseQA commonsense +0 .005 50 meta_instruction StrategyQA multihop −0.034 43 meta_instruction date_understanding multihop −0.035 60
+
+Table 6: Naive CATE for chain_of_thought and meta_instruction insertion by dataset. The strongest per-dataset effects are for MultiArith (both motifs). The math task-type result is partially driven by MultiArith; task-type conclusions should be interpreted with this heterogeneity in mind.                                              
+
+> Finding Feature/Motif Group Dataset ACMGD nTnCSign stable?
+> (a) GPT-feature Extraneous_load sequential last_letters −0.060 ⋆412 381 ✓(only dataset) (b) GPT-feature Metacognition sequential last_letters +0 .062 ⋆398 395 ✓(only dataset) (c) Motif meta_instruction math GSM8K −0.019 14 189 ✓(negative) math MultiArith −0.277 64 175 ✓(negative, dominant) (d) Motif clarity_constraint logical boolean_expr. −0.099 112 565 ✓(negative) logical coin_flip −0.071 97 521 ✓(negative)
+
+Table 7: Per-dataset breakdown of all four Tier 1 BH-corrected associations ( ⋆ = BH-corrected q < 0.05 from full-data analysis). nT = treated, nC = control. Sequential results are from last_letters alone; math motif results show MultiArith heterogeneity; logical motif results are consistent across both logical datasets. 
+
+(c) meta_instruction ⊗ math: ACMGD = −0.103 ⋆,partially concentrated in MultiArith; (d) clar-ity_constraint ⊗ logical: ACMGD = −0.083 ⋆.The sequential effects involve last_letters only; the math effect involves two datasets with heteroge-neous within-group estimates. These are statistical associations, not causal effects. 
+
+Tier 2. Corroborated but exploratory. Math-vs-sequential directional reversals in surface fea-tures (n_demos, step_words); chain-of-thought di-rection pattern consistent across representations; TextGrad directional corroboration. These are con-sistent with Tier 1 but do not independently support inference. Optimizer-design suggestions (task-conditioned edit priors, complexity penalties, validation gates); causal mechanisms for the meta-instruction effect; generalization to unseen task types. Grounded in the observed associations but require controlled validation before implementation. 
+
+I.2 Observational Edit-Effect Heterogeneity 
+
+Across three representations of prompt edits, i.e., annotated cognitive-load features, deterministic surface statistics, and literal edit motifs, a con-sistent directional pattern emerges: optimizer-induced edits that add meta-instruction language (“make sure to”, “do not”) and structural scaffold-ing (chain-of-thought framing) are negatively asso-ciated with math performance (BH-corrected for meta-instruction), while logical and sequential task groups tend to benefit from step-by-step and struc-tural features. 
+
+What this paper establishes. The associations between edit types and dataset/task-group perfor-mance are directionally consistent across three annotation-independent representations, survive IPTW adjustment, and are robust to leave-one-dataset-out exclusion for the BH-corrected effects. This consistency is compatible with an optimizer-task mismatch account, though residual confound-ing cannot be ruled out (see §4.1 for specific un-measured confounders). 
+
+What this paper does not establish. Whether these associations are causal. Conditional ex-changeability is not fully defensible; treatments are bundles; interventional validation at scale was not possible. These results characterize optimizer behavior patterns rather than definitively explaining failure. 
+
+I.3 The Meta-Instruction Effect in Math 
+
+The strongest FDR-corrected finding is the neg-ative association between meta-instruction inser-tions and math dataset/task-group performance (ACMGD = −0.103 ⋆, partially concentrated in MultiArith, see Appendix F). This is notable be-cause meta-instructions (“make sure to show your work”, “do not skip steps”, “you must include a final answer”) might seem helpful for math. One hypothesis: models fine-tuned on math instruction-following may have already internalized these guidelines; redundant meta-instruction may in-crease prompt complexity without benefit. A com-peting explanation consistent with the unmeasured confounders in §4.1: optimizers may tend to insert meta-instructions specifically when prior prompts are struggling, so the association partly reflects selection into struggling trajectories rather than a direct effect. Targeted interventional validation would be required to distinguish these accounts. The chain-of-thought directional reversal (neg-ative for math groups, positive for sequential ⊗
+
+last_letters) is consistent across representations (Tier 2) but does not survive FDR correction. The difference from the well-established finding that CoT helps math (Wei et al., 2022) likely reflects the distinction between optimizer-generated CoT meta-instructions in system prompts (vague “reason step by step” phrases) vs. user-designed structured CoT 
+
+with explicit answer markers. 
+
+Sanity check: Structured CoT intervention. To verify that the chain-of-thought motif finding is not simply an artifact of optimizer trajectories contain-ing CoT-style content without actual instruction-level changes, we ran a minimal controlled sanity check using Qwen2-VL-7B-Instruct on 25 GSM8K and 25 last_letters questions: base prompt vs. base + structured CoT with explicit “#### answer” mark-ers. Results: GSM8K base = 28% → CoT = 60% 
+
+(∆ = +32% , McNemar χ2 = 4 .90 , p = 0 .027 ); last_letters base = 0% → CoT = 4% (∆ = +4% ,NS). Explicit structured CoT helps math, consistent with Wei et al. (2022)—confirming that our chain-of-thought motif estimate ( −0.048 for math groups, uncorrected) does not reflect a general CoT-hurts-math phenomenon. Caution : This sanity check does not validate or invalidate the observational motif estimate; it shows only that the motif labels do not correspond to clean user-designed structured interventions. The experiment used one model and 25 questions per task; generalization is not estab-lished. 
+
+I.4 Benchmark Sensitivity 
+
+Table 8 summarizes leave-one-dataset-out stabil-ity for six headline sign reversals across 18 LOO splits. 15/18 (83%) preserve the sign reversal from the full-data baseline, exceeding our 80% success criterion. The two BH-corrected effects (Extra-neous_load and Demos) are 100% stable. The word_count multihop reversal appears driven by date_understanding and should be treated with cau-tion.             
+
+> Feature LOO stabil-ity Note
+> Extraneous_load (LLM) 5/5 (100%) Both math datasets con-tribute Demos (LLM) 2/2 (100%) Stable n_demos (surface) 2/2 (100%) Stable step_words (sur-face) 3/4 (75%) date_understanding drives multihop Metacognition (LLM) 2/3 (67%) disambiguation_qa flips commonsense sign word_count (sur-face) 1/2 (50%) Unstable; date_understanding is sole driver
+> Overall 15/18 (83%)
+> Table 8: Leave-one-dataset-out (LOO) stability of head-line sign reversals. Full LOO table in Appendix E.
+
+I.5 Implications For practitioners (Tier 3 — hypothesis-generating). The ACMGD tables in this paper serve as a preliminary diagnostic: before run-ning an expensive optimizer, consider whether the target task/dataset resembles groups (math-like, multihop-like) where meta-instruction and complexity-increasing edits show negative asso-ciations with gains. This does not guarantee failure, but the BH-corrected associations are consistent across frameworks, representations, and LOO folds. These suggestions are Tier 3 hypotheses derived from observational associations; implementation without controlled validation would be premature. 
+
+Concrete optimizer-design hypotheses. (1) Task-conditioned edit priors : Optimizers could down-weight meta-instruction insertion for arith-metic or multi-step reasoning tasks, which are implementable as a regex-based edit fil-ter or a classifier over proposed edits. (2) Complexity-penalized search : The BH-corrected meta_instruction ⊗ math association ( −0.103 ⋆)suggests complexity-penalizing objectives may be worth piloting for math-type benchmarks. (3) Validation gates : Before accepting an optimizer-proposed edit, evaluate on a held-out subset classi-fied by task group, which is motivated by but not validated in this paper. These are mechanism-level hypotheses, not es-tablished causal rules.
