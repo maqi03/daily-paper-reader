@@ -170,11 +170,21 @@
         return candidateBase + '/' + normalizePath(path);
       }
 
+      function isAppOwnedAsset(path) {
+        return /^app\/(?!vendor\/)/i.test(normalizePath(path));
+      }
+
       function shouldLoadStylesheetFromCdn(path, useCdn) {
         if (!useCdn) return false;
+        if (isAppOwnedAsset(path)) return false;
         // KaTeX CSS 会继续请求 fonts/*.woff2。EdgeOne Pages 当前未给字体返回
         // Access-Control-Allow-Origin，本地/GitHub Pages 跨域引用会被浏览器拦截。
         return !/\/katex\.min\.css$/i.test(normalizePath(path));
+      }
+
+      function shouldLoadScriptFromCdn(path, useCdn) {
+        if (!useCdn) return false;
+        return !isAppOwnedAsset(path);
       }
 
       function appendStylesheet(path, useCdn) {
@@ -221,7 +231,7 @@
         var link = document.createElement('link');
         link.rel = 'preload';
         link.as = 'script';
-        link.href = useCdn ? cdnUrl(path) : localUrl(path);
+        link.href = shouldLoadScriptFromCdn(path, useCdn) ? cdnUrl(path) : localUrl(path);
         document.head.appendChild(link);
       }
 
@@ -241,7 +251,7 @@
             }
           }, ASSET_TIMEOUT_MS);
           script.async = false;
-          script.src = useCdn ? cdnUrl(path) : localUrl(path);
+          script.src = shouldLoadScriptFromCdn(path, useCdn) ? cdnUrl(path) : localUrl(path);
           script.onload = function () {
             if (finished) return;
             finished = true;
