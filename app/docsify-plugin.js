@@ -950,6 +950,14 @@ window.$docsify = {
           .replace(/'/g, '&#39;');
       };
 
+      const renderInlineMarkdown = (value) => {
+        const text = escapeHtml(String(value || ''));
+        return text
+          .replace(/`([^`\n]{1,120})`/g, '<code>$1</code>')
+          .replace(/\*\*([^*\n]{1,200})\*\*/g, '<strong>$1</strong>')
+          .replace(/(^|[^*])\*([^*\n]{1,120})\*(?!\*)/g, '$1<em>$2</em>');
+      };
+
       // 自定义表格渲染：检测 Markdown 表格块并手写生成 <table>，
       // 其他内容仍交给 marked 渲染。
       // 同时保护 LaTeX 公式块，避免被 marked 误解析。
@@ -4396,10 +4404,10 @@ window.$docsify = {
         // 左侧：Evidence 和 TLDR
         lines.push('<div class="paper-meta-left">');
         if (meta.evidence) {
-          lines.push(`<p><strong>Evidence</strong>: ${escapeHtml(meta.evidence)}</p>`);
+          lines.push(`<p><strong>Evidence</strong>: ${renderInlineMarkdown(meta.evidence)}</p>`);
         }
         if (meta.tldr) {
-          lines.push(`<p><strong>TLDR</strong>: ${escapeHtml(meta.tldr)}</p>`);
+          lines.push(`<p><strong>TLDR</strong>: ${renderInlineMarkdown(meta.tldr)}</p>`);
         }
         lines.push('</div>');
 
@@ -4433,22 +4441,22 @@ window.$docsify = {
 
           lines.push('<div class="paper-glance-col">');
           lines.push('<div class="paper-glance-label">Motivation</div>');
-          lines.push(`<div class="paper-glance-content">${escapeHtml(meta.motivation || '-')}</div>`);
+          lines.push(`<div class="paper-glance-content">${renderInlineMarkdown(meta.motivation || '-')}</div>`);
           lines.push('</div>');
 
           lines.push('<div class="paper-glance-col">');
           lines.push('<div class="paper-glance-label">Method</div>');
-          lines.push(`<div class="paper-glance-content">${escapeHtml(meta.method || '-')}</div>`);
+          lines.push(`<div class="paper-glance-content">${renderInlineMarkdown(meta.method || '-')}</div>`);
           lines.push('</div>');
 
           lines.push('<div class="paper-glance-col">');
           lines.push('<div class="paper-glance-label">Result</div>');
-          lines.push(`<div class="paper-glance-content">${escapeHtml(meta.result || '-')}</div>`);
+          lines.push(`<div class="paper-glance-content">${renderInlineMarkdown(meta.result || '-')}</div>`);
           lines.push('</div>');
 
           lines.push('<div class="paper-glance-col">');
           lines.push('<div class="paper-glance-label">Conclusion</div>');
-          lines.push(`<div class="paper-glance-content">${escapeHtml(meta.conclusion || '-')}</div>`);
+          lines.push(`<div class="paper-glance-content">${renderInlineMarkdown(meta.conclusion || '-')}</div>`);
           lines.push('</div>');
 
           lines.push('</div>');
