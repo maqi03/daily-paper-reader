@@ -950,9 +950,62 @@ window.$docsify = {
           .replace(/'/g, '&#39;');
       };
 
+      let pendingLatexFragments = [];
+      const stashLatexFragment = (match, display) => {
+        const idx = pendingLatexFragments.length;
+        pendingLatexFragments.push(match);
+        return `DPRLATEX${display ? 'BLOCK' : 'INLINE'}${idx}DPR`;
+      };
+
+      const protectLatexInMarkdown = (markdown) => {
+        pendingLatexFragments = [];
+        let text = normalizeLatexInText(markdown || '');
+        text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match) =>
+          stashLatexFragment(match, true),
+        );
+        text = text.replace(/\\\[([\s\S]*?)\\\]/g, (match) =>
+          stashLatexFragment(match, true),
+        );
+        text = text.replace(/\\\(([^\n]*?)\\\)/g, (match) =>
+          stashLatexFragment(match, false),
+        );
+        text = text.replace(/\$([^\$\n]+?)\$/g, (match) =>
+          stashLatexFragment(match, false),
+        );
+        return text;
+      };
+
+      const restoreLatexInHtml = (html) => {
+        if (!html || !pendingLatexFragments.length) return html;
+        return String(html).replace(
+          /DPRLATEX(?:BLOCK|INLINE)(\d+)DPR/g,
+          (_, idx) => escapeHtml(pendingLatexFragments[parseInt(idx, 10)] || ''),
+        );
+      };
+
+      const normalizeStrongMarkdown = (markdown) => {
+        let inFence = false;
+        return String(markdown || '')
+          .split('\n')
+          .map((line) => {
+            if (/^\s*(```|~~~)/.test(line)) {
+              inFence = !inFence;
+              return line;
+            }
+            if (inFence) return line;
+            return line
+              .replace(/\\(?:emph|textit)\{([^{}\n]{1,200})\}/g, '<em>$1</em>')
+              .replace(/\\textbf\{([^{}\n]{1,200})\}/g, '<strong>$1</strong>')
+              .replace(/\*\*([^*\n]{1,200})\*\*/g, '<strong>$1</strong>');
+          })
+          .join('\n');
+      };
+
       const renderInlineMarkdown = (value) => {
-        const text = escapeHtml(String(value || ''));
+        const text = escapeHtml(normalizeLatexInText(String(value || '')));
         return text
+          .replace(/\\(?:emph|textit)\{([^{}\n]{1,200})\}/g, '<em>$1</em>')
+          .replace(/\\textbf\{([^{}\n]{1,200})\}/g, '<strong>$1</strong>')
           .replace(/`([^`\n]{1,120})`/g, '<code>$1</code>')
           .replace(/\*\*([^*\n]{1,200})\*\*/g, '<strong>$1</strong>')
           .replace(/(^|[^*])\*([^*\n]{1,120})\*(?!\*)/g, '$1<em>$2</em>');
@@ -4485,18 +4538,25 @@ window.$docsify = {
         // 只对论文页面处理
         if (!isPaperRouteFile(file)) {
           latestPaperRawMarkdown = '';
+          pendingLatexFragments = [];
           return content;
         }
         latestPaperRawMarkdown = content || '';
 
         const { meta, body } = parseFrontMatter(content);
         if (!meta) {
+          pendingLatexFragments = [];
           return content;
         }
 
         // 生成论文页面 HTML + 正文
         const paperHtml = renderPaperFromMeta(meta);
-        return paperHtml + body;
+        const protectedBody = normalizeStrongMarkdown(protectLatexInMarkdown(body));
+        return paperHtml + protectedBody;
+      });
+
+      hook.afterEach(function (html) {
+        return restoreLatexInHtml(html);
       });
 
       const refreshDeferredPageEnhancements = () => {
