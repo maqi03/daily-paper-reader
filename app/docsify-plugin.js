@@ -886,6 +886,16 @@ window.$docsify = {
           console.error('Zotero meta update failed:', e);
         });
 
+      // 兼容一些非标准的 LaTeX 写法（例如 \mathbf{b}{sem}(t)）
+      // 修正为 \mathbf{b}_{\mathrm{sem}}(t)，避免 KaTeX 渲染失败
+      const normalizeLatexInText = (text) => {
+        if (!text) return '';
+        return String(text).replace(
+          /\\mathbf\{([^{}]+)\}\{(sem|exp)\}(?![_^])/g,
+          (match, base, tag) => `\\mathbf{${base}}_{\\mathrm{${tag}}}`,
+        );
+      };
+
       // 公共工具：在指定元素上渲染公式
       const renderMathInEl = (el) => {
         if (!window.renderMathInElement || !el) return;
@@ -897,6 +907,7 @@ window.$docsify = {
             { left: '\\[', right: '\\]', display: true },
           ],
           throwOnError: false,
+          preProcess: (latex) => normalizeLatexInText(latex),
         });
       };
 
@@ -943,7 +954,7 @@ window.$docsify = {
       // 其他内容仍交给 marked 渲染。
       // 同时保护 LaTeX 公式块，避免被 marked 误解析。
       const renderMarkdownWithTables = (markdown) => {
-        const text = normalizeTables(markdown || '');
+        const text = normalizeLatexInText(normalizeTables(markdown || ''));
 
         // 保护 LaTeX 公式：先用占位符替换，渲染后再恢复
         const latexBlocks = [];
