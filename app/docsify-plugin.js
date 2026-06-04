@@ -967,6 +967,20 @@ window.$docsify = {
           return `%%LATEX_BLOCK_${idx}%%`;
         });
 
+        // 保护块级公式 \[...\]
+        protectedText = protectedText.replace(/\\\[([\s\S]*?)\\\]/g, (match) => {
+          const idx = latexBlocks.length;
+          latexBlocks.push(match);
+          return `%%LATEX_BLOCK_${idx}%%`;
+        });
+
+        // 保护行内公式 \(...\)
+        protectedText = protectedText.replace(/\\\(([^\n]*?)\\\)/g, (match) => {
+          const idx = latexBlocks.length;
+          latexBlocks.push(match);
+          return `%%LATEX_INLINE_${idx}%%`;
+        });
+
         // 保护行内公式 $...$（不跨行）
         protectedText = protectedText.replace(/\$([^\$\n]+?)\$/g, (match) => {
           const idx = latexBlocks.length;
