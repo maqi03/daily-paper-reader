@@ -1,0 +1,5307 @@
+Title: FedOne: Query-Efficient Federated Learning for  Black-box Discrete Prompt Learning
+
+URL Source: https://openreview.net/pdf?id=QwTDQXllam
+
+Number of Pages: 33
+
+Markdown Content:
+# FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Ganyu Wang * 1 Jinjie Fang * 2 Maxwell J. Yin 1 Bin Gu 2 Xi Chen 3 Boyu Wang 1 4 Yi Chang 2 Charles Ling 1 4 
+
+## Abstract 
+
+Black-Box Discrete Prompt Learning is a prompt-tuning method that optimizes discrete prompts without accessing model parameters or gradients, making the prompt tuning on a cloud-based Large Language Model (LLM) feasible. Adapting fed-erated learning to BDPL could further enhance prompt tuning performance by leveraging data from diverse sources. However, all previous re-search on federated black-box prompt tuning had neglected the substantial query cost associated with the cloud-based LLM service. To address this gap, we conducted a theoretical analysis of query efficiency within the context of federated black-box prompt tuning. Our findings revealed that degrading FedAvg to activate only one client per round, a strategy we called FedOne , enabled optimal query efficiency in federated black-box prompt learning. Building on this insight, we pro-posed the FedOne framework, a federated black-box discrete prompt learning method designed to maximize query efficiency when interacting with cloud-based LLMs. We conducted numerical ex-periments on various aspects of our framework, demonstrating a significant improvement in query efficiency, which aligns with our theoretical re-sults. 
+
+## 1. Introduction 
+
+Prompt tuning has emerged as a vital technique for adapting LLMs (Liu et al., 2019; Brown et al., 2020) to specific tasks without retraining the entire model. Traditionally, many tuning methods require access to the model’s intermediate           
+
+> *Equal contribution 1Western University, London, Ontario, Canada 2Jilin University, Changchun, Jilin, China 3McGill Univer-sity, Montreal, Quebec, Canada 4Vector Institute, Toronto, Ontario, Canada. Correspondence to: Bin Gu <jsgubin@gmail.com >,Charles Ling <charles.ling@uwo.ca >.
+> Proceedings of the 42 nd International Conference on Machine Learning , Vancouver, Canada. PMLR 267, 2025. Copyright 2025 by the author(s).
+
+representations (Brown et al., 2020; Li & Liang, 2021; Liu et al., 2021; Lester et al., 2021), categorizing them as white-box approaches. However, when such access is unavailable, black-box prompt tuning becomes essential. This approach focuses on tuning the input prompts without access to the internal processes of the model (Sun et al., 2022; Diao et al., 2022; Deng et al., 2022; Xiao et al., 2023). Federated Learning (FL) (McMahan et al., 2017; Li et al., 2020; 2021; Karimireddy et al., 2020; Gu et al., 2020; Mishchenko et al., 2022) has emerged as a promising ap-proach for leveraging decentralized data from multiple clients while preserving privacy. Applying federated learn-ing to prompt tuning offers a valuable opportunity to im-prove client capabilities and enhance model performance. Most federated prompt tuning methods to date have focused on white-box scenarios where clients have access to model parameters (Zhao et al., 2023; Zhang et al., 2023). In those approaches, only the trainable parameters (prompts) are trained by the client and shared with the server, significantly reducing both the number of trainable parameters and the communication costs compared to fine-tuning baselines. However, several practical limitations hinder the applica-bility of federated prompt tuning that relies on white-box access. First, white-box prompt learning is not applicable to closed-source LLM that are accessed via APIs, as these models are not openly shared. In such scenarios, users are restricted to interacting with the model through the API end-points without access to the internal structure or weights of the LLM. This limitation prevents the application of white-box prompt learning techniques. Second, FL is typically applied in scenarios involving thousands of edge devices, each with limited computational resources. However, white-box prompt learning demands substantial computational power, as it requires devices to perform computation on the entire LLM. These operations are computationally in-tensive, rendering them impractical for edge devices with constrained capabilities. This presents a significant chal-lenge when trying to implement white-box prompt learning in FL environments, as it can lead to excessive resource demands on the participating devices. In contrast, applying black-box prompt tuning to FL offers several distinct benefits (Lin et al., 2023; Zhang et al., 2023; 1FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Figure 1: Query-Efficiency Comparison of FedOne and Federated BDPL Che et al., 2023), enhancing both the practicality and ef-fectiveness. First, this approach preserves the privacy of closed-source LLMs by not requiring access to their inter-nal model weights or architecture. For example, Diao et al. (2022) proposed Black-box Discrete Prompt Learning (BDPL) 1 , which exclusively utilizes discrete prompts as in-puts and optimizes them based solely on the model’s output loss. Besides, black-box prompt tuning reduces the com-putational burden on the client, as it eliminates the need for computation on the entire model, thereby enabling par-ticipation from edge devices with limited computational resources. Moreover, the communication costs associated with discrete prompts are lower compared to white-box prompt tuning methods, as the white-box prompt tuning require transmitting large matrices of numerical values. Despite these advantages, the application of black-box prompt tuning in FL still faces two significant unresolved challenges, tempering its overall promise. First, previous research (Lin et al., 2023; Sun et al., 2023) has neglected the substantial cost associated with queries to the LLM cloud service (Figure 1, left). Second, a convergence analysis of Federated BDPL for optimizing discrete prompts has not yet been conducted. Targeting the above problems, we introduce a novel fed-erated learning framework, FedOne, designed to optimize query efficiency in federated BDPL. We offer the first con-vergence analysis of federated BDPL in this context and further extend the analysis of the query efficiency towards the cloud-based LLM server. The results demonstrate that by limiting activation to a single client per round, FedOne achieves optimal query efficiency (Figure 1, right). Our 
+
+> 1The term “BDPL” is explicitly used to refer to the work by Diao et al. (2022), whereas “black-box prompt tuning” is used to denote the broader research area.
+
+approach is particularly well-suited for scenarios involving limited computational resources, such as mobile devices or IoT systems, where local training of LLMs is impractical. Formally, this paper makes the following key contributions: • We identify that existing federated black-box prompt tun-ing methods overlook the significant costs associated with querying cloud-based LLM services. • To address this gap, we present the first theoretical anal-ysis of federated BDPL, with a focus on understanding and evaluating the query efficiency when interacting with cloud-based LLMs. • Based on our theoretical result, we introduce the FedOne framework, a novel approach designed to optimize query efficiency in federated black-box prompt tuning by acti-vating only one client per round. 
+
+## 2. Method 
+
+2.1. Federated Black-box Prompt Learning Framework 
+
+In the federated black-box prompt tuning framework, there is one central aggregation server and K clients. Each client, indexed by k, possesses a dataset Dk, consisting of input sentences Ψk and their corresponding labels Y k, i.e., Dk =
+
+{Ψk, Y k}. The dataset Ψk contains a total of M k input sentences, each represented as ψkm, i.e., Ψk = ψkm 
+
+> Mk
+> m=1
+
+.Similarly, the corresponding labels ykm comprise Y k, i.e. 
+
+Y k = ykm 
+
+> Mk
+> m=1
+
+.Each client generates a discrete sequence of prompt to-kens Φk = ϕk 
+
+> 1
+
+· · · ϕki · · · ϕkn from a trainable parameter 
+
+αααk ∈ Rn×N . This learnable parameter, αααk, is transmitted to the FL aggregation server for averaging. Details of how to generate the discrete prompt Φk from αααk and the local train-2FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+ing of αααk through interaction with the cloud-based LLM service will be discussed in the next subsection regarding the local black-box prompt learning on the client. The server and clients collaboratively solve a minimization problem, aiming to reduce a global loss function that aggre-gates the local loss functions from the clients. This can be expressed as: 
+
+min 
+
+> Φ
+
+(
+
+L(Φ; Ψ) ≜
+
+> K
+
+X
+
+> k=1
+
+M k
+
+M Lk(Φ; Ψ k)
+
+)
+
+where: Lk(Φ; Ψ k) = 1
+
+M kM k
+
+X
+
+> m=1
+
+ℓ  Φ; ψkm, y km
+
+ (1) where L(Φ; Ψ) represents the global objective function of the FL, Ψ = Ψk Kk=1 . Lk(·, Ψk) is the local objective function of client k. ℓ(·; ·) denotes the loss function. 
+
+2.2. Black-box Discrete Prompt Learning on the Client 
+
+We now discuss the local training process of the client through interactions with the cloud-based LLM service. In this section, all variables have the superscript k, indicating that they belong to the k-th client. However, the reader can ignore this superscript and treat it as a standalone training process on a single machine. 
+
+Generating the Discrete Prompt Sequence Φk The se-quence of the discrete prompt Φk is generated from a vo-cabulary V = {V [j]}Nj=1 , which contains a total of N token options. Each token ϕki in the prompt sequence Φk is se-lected from the vocabulary, i.e., Φk = ϕk 
+
+> 1
+
+· · · ϕki · · · ϕkn =
+
+V[jk 
+
+> 1
+
+] · · · V [jki ] · · · V [jkn]. For the i-th token ϕki , the prompt index jki is sampled from the categorical distribution pppki ,i.e., jki ∼ Cat (pppki ). Note that pppki = [ pki, 1, ...p ki,N ], where the element pki,j represents the probability that the token ϕki is selected as V [j] from the vocabulary V.Directly optimizing the pppki may cause trouble in the con-vergence analysis as the gradient of the categorical dis-tribution is biased. To address this, we re-parameterize the categorical distribution pppki using the Gumbel-Softmax technique (Jang et al., 2016) and introduce the parameter 
+
+αααki = [ αki, 1, ...α ki,N ] as the learnable parameter. The re-parameterization is shown below: 
+
+pki,j =exp 
+
+ log( αki,j )+ gki,j 
+
+> τ
+
+PNl=1 exp 
+
+ log( αki,l )+ gki,l 
+
+> τ
+
+ (2) where τ > 0 is the temperature parameter, gki,j ∼
+
+Gumbel(0 , 1) is the Gumbel random variable. We denote the Gumbel-Softmax function as GS, i.e. pppk = GS (αααk).
+
+Optimizing the Learnable Parameter αααk To compute the gradient with respect to the learnable parameter αααk, we first define the expected loss over the sequence of prompts in Eq. 3. The i-th token ϕki is generated from the vocabulary by sampling the prompt index from the categorical distribution, i.e. ϕki = V[jki ], where jki ∼ Cat (pppki ). For brevity, this sampling process is denoted as ϕki ∼ pppki . We can define the expectation of the loss for the distribution of the prompt as follows: 
+
+EΦk ∼pppk
+
+L(Φ k, Ψk)
+
+= X 
+
+> ϕk
+> 1∼pppk
+> 1
+
+· · · X
+
+> ϕkn∼pppkn
+
+L(Φ k, Ψk)
+
+> n
+
+Y
+
+> i=1
+
+P (ϕki )
+
+!
+
+(3) Following the same steps in (Diao et al., 2022, Eq. (2)), we can estimate the gradient w.r.t. αααki by: 
+
+∇αααki EΦk ∼GS (αααk )
+
+L(Φ k, Ψk)
+
+= EΦk ∼GS (αααk )
+
+h
+
+L(Φ k, Ψk)∇αααki log P (ϕki )
+
+i
+
+(4) The j-th component of ∇αααki log P (ϕki ) could be explicitly computed as follows (with detailed steps provided in Ap-pendix A.2): 
+
+∇αki,j log P (ϕki ) = ∇αki,j log pki,j ki
+
+=
+
+
+
+> 1−pki,j ki
+> τ α ki,j ki
+
+j = jki
+
+− pki,j 
+
+> τ α ki,j
+
+j̸ = jki
+
+(5) Then, we employ the mini-batch stochastic variance-reduced policy (MB-SVRP) estimator (Diao et al., 2022; Williams, 1992) to reduce the variance of the sampling when com-puting the gradient. This involves sampling the prompt sequence Φk from the distribution pppk multiple times, with the number of samplings denoted by I. The MB-SVRP estimator is then computed as follows: 
+
+ˆ∇αααki f k(αααk, Bk)= 1
+
+I − 1
+
+> I
+
+X
+
+> r=1
+
+h ℓ(Φ k,r ; Bk) − ℓavg 
+
+ ∇αααki log P (ϕk,r i )
+
+i
+
+(6) where ℓavg = 1
+
+> I
+
+PIw=1 ℓ(Φ k,w ; Bk), and Φk,r Ir=1 are sampled independently from pppk = GS (αααk). The mini-batch 
+
+Bk, with size Bk, is sampled from the dataset Ψk. Note that the clients are unable to directly compute ℓ(Φ k, ∗, Bk)
+
+on their own. They must transmit both the sampled prompt 
+
+Φk and the mini-batch Bk to the cloud-based LLM service, which then computes the loss ℓ(Φ k, ∗, Bk) and returns the result. Finally, with the learning rate set to η, the update of 
+
+αααki at the t-th iteration is expressed as follows: 
+
+αααki, (t+1) = αααki, (t) − η · ˆ∇αααki f k(αααk, Bkt ) (7) 3FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+2.3. Algorithm 
+
+Algorithm 1 outlines the Fed-BDPL framework, which in-tegrates federated averaging with local client training with Gumbel-Softmax-BDPL (GS-BDPL). The FL aggregation server randomly selects a subset of clients and broadcasts the trainable parameters to them. Each selected client k
+
+then performs local training on the parameters and return the updated parameters αααk to the server. The local train-ing of the selected client is conducted through black-box prompt learning by querying the cloud-based LLM service, as detailed in Section 2.2. Finally, the server aggregates the updates by averaging the parameters from all participat-ing clients. This process is iteratively repeated throughout the training. Specifically, in the FedOne framework, the number of activated clients is set to 1, as highlighted in the light green box. The reasons behind FedOne’s high query efficiency on cloud-based LLM services will be formally analyzed in the next section. 
+
+Algorithm 1 Fed-BDPL. C denotes the sampling ratio of the clients. K∗ represents the number of selected clients, and U is the set of selected clients. 
+
+1: Server executes: 
+
+2: Initialize ααα
+
+3: for s = 0 , 1, . . . S − 1 do 
+
+4: FedAvg: K∗ ← max( C · K, 1) 
+
+5: FedOne: K∗ ← 1
+
+6: Us ← (sampling K∗ clients) 
+
+7: for k ∈ Us in parallel do 
+
+8: αααk ← ααα
+
+9: αααk ← Client Update (k, α ααk)
+
+10: end for 
+
+11: ααα ← 1
+
+> K∗
+
+P 
+
+> k∈Us
+
+αααk
+
+12: end for 
+
+13: Client executes: 
+
+14: function Client Update( k, α ααk): 
+
+15: for e = 1 , ..., E do 
+
+16: Re-parameterize the categorical distribution pppk =
+
+GS (αααk) using Eq. 2. 
+
+17: Query the cloud-based LLM server to obtain 
+
+L(Φ k,r , Bke ) Ir=1 .
+
+18: Compute ˆ∇αααki f k(αααk, Bke ) using Eq. 6. 
+
+19: αααki ← αααki − η · ˆ∇αααki f k(αααk, Bke )
+
+20: end for 
+
+21: Return αααk
+
+## 3. Convergence Analysis 
+
+3.1. Assumptions Assumption 3.1. Unbiasedness and Bounded Variance of Stochastic Gradient: We assume that the stochastic gradient is unbiased and has bounded variance. 
+
+Eψkm
+
+h
+
+∇αααki f k(αααk, ψ km)
+
+i
+
+= ∇αααki F (αααk, Ψk) (8) 
+
+Eψkm ∇αααki f k(αααk, ψ km) − Eψkm
+
+h
+
+∇αααki f k(αααk, ψ km)
+
+i 2
+
+≤ σ2
+
+> ψ
+
+(9) Assumption 3.1 is the basic assumption for solving non-convex optimization problems using stochastic gradient de-scent (Ghadimi & Lan, 2013; Hazan & Kale, 2014; Xu et al., 2019; Liu et al., 2020). 
+
+Assumption 3.2. Bounded Loss : At the k-th client, 
+
+∀ ψkm ∈ Ψk, and Φk sampled by pppk, the loss function l(·, ·)
+
+is upper bounded by a constant G, i.e., 
+
+ℓ(Φ k, ψ km) ≤ G (10) Assumption 3.2 ensures that the loss value is bounded, pri-marily to regulate the loss during I-sample estimation in stochastic policy gradient, thereby facilitating theoretical analysis (Ghadimi & Lan, 2013; Zhang et al., 2019; Liu et al., 2022). 
+
+Assumption 3.3. Bounded Clients’ Heterogeneity: For client k = 1 , ..., K with sampling probability vector qqq =
+
+q[k] Kk=1 , and ∇αααki F k(αααk, Ψk) is local gradient of αααi w.r.t. all input sentence in client k. We assume that λ is the upper bound on the weighted gradient diversity across local objectives, i.e. 
+
+Λ( αααi, q qq) ≜
+
+PKk=1 q[k] · ∇αααki F k(αααk, Ψk) 2
+
+PKk=1 q[k] · ∇ αααki F k(αααk, Ψk) 2 ≤ λ (11) Assumption 3.3 states that the gradient diversity among clients is bounded. Following Yin el al. (2018) and Haddad-pour et al. (2019), we use gradient diversity as a measure of client heterogeneity and assume an upper bound on it. 
+
+3.2. The Convergence of Federated BDPL Theorem 3.4. Suppose that assumption 3.1, 3.2 and 3.3 hold, algorithm 1 is used to solve the FedBDPL problem defined in Eq. 1. Let B = min B1, ..., B K where Bk
+
+represents the local mini-batch size for each client. Set 
+
+αi,j ≥ ν > 0. The variance of the variance-reduced policy gradient is given by σ2 
+
+> α
+
+= 8G2Nτ 2ν2 . EΦk ∼GS (αααk )
+
+L(Φ k, Ψk)
+
+is L-smooth w.r.t. αααk where L = nGN (τ +1)   
+
+> τ2ν2
+
+. The learn-ing rate η < min  1 
+
+> Lλ
+
+, 1 
+
+> L
+
+. Then, the expected gradient 
+
+∇αααF (αααt, Ψk) of Fed-BDPL, can be bounded as follows: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααF (αααt, Ψk) 2
+
+≤ 4GηT + 2( E + 1) nσ 2 
+
+> ψ
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> ψ
+
+B
+
+4FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
++ 2( E + 1) nσ 2
+
+> α
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> α
+
+I2 (12) 
+
+The proof of Theorem 3.4 is provided in Appendix A. 
+
+Corollary 3.5. Convergence Rate of Fed-BDPL: Let η =min 
+
+n 1 
+
+> Lλ
+
+, 1√T , 1
+
+> L
+
+o
+
+, B = √T and I = T 14 , Fed-BDPL achieves a sub-linear convergence rate, i.e. 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∥∇ αααF (αααt, Ψ) ∥2 = O( 1
+
+√T ) (13) 
+
+Corollary 3.6. The Impact of K∗ (FedOne) : Let Qϵ denote the minimum number of queries submitted to the cloud-based LLM service to achieve an ϵ-solution , formulated as a function of K∗, i.e., Qϵ(K∗). We derive its explicit form in Eq. 45 (in Appendix A.4): 
+
+Qϵ(K∗) = c
+
+
+
+c1
+
+pK∗ + c2
+
+1
+
+√K∗
+
+2
+
+(14) 
+
+and establish that the minimum of Qϵ(K∗) is achieved when 
+
+0 < K ∗ < 1. Consequently, Qϵ(K∗) is a monotonically increasing function within the feasible region of K∗, for 
+
+K∗ = 1 , 2, . . . , K . Thus, to minimize query overhead and achieve optimal efficiency, the optimal choice is K∗ = 1 .Remark 3.7 . The intuition behind Corollary 3.6 is that while increasing the number of activated clients K∗ leads to a sublinear improvement in the convergence rate, it simultane-ously incurs a linear increase in the number of queries to the cloud-based LLM in Fed-BDPL. As a result, the marginal gains in convergence do not justify the increasing query overhead in the LLM model. A toy experiment in the next section will further illustrate this trade-off. 
+
+## 4. Experiment 
+
+The experiment aimed to evaluate the performance of Fed-BDPL, analyze various aspects of the framework, and ex-amine the query efficiency advantages of FedOne. The im-plementation is available at: https://github.com/ GanyuWang/FedOne-BDPL .
+
+A Toy Experiment on the Intuition of FedOne To illus-trate the intuition behind FedOne, we began with a toy experiment examining the trade-off between query effi-ciency and the number of activated clients K∗ in a federated learning setting using the MNIST dataset (LeCun et al., 2010). 2 The dataset is evenly distributed across 100 clients. We train for 2 epochs with a learning rate of 0.01 and a batch size of 32, varying the number of active clients, i.e., 
+
+K∗ ∈ { 1, 5, 10 , 20 , 40 }. The model for each client is a   
+
+> 2A similar experiment on the impact of K∗using the SST-2 dataset for Federated BDPL is presented in Appendix C.1.
+
+Figure 2: Toy Example on the Intuition of FedOne Multilayer Perceptron (MLP). It includes a flattening input layer, a fully connected layer with 512 neurons and ReLU activation, a dropout layer with 0.2 dropout rate, and a fi-nal fully connected layer that outputs to 10 classes via a Softmax function. As illustrated in Figure 2, utilizing the minimum number of activated clients (FedOne) achieved optimal query efficiency for convergence. 3
+
+It is a widely held belief that, in traditional federated learn-ing scenarios, increasing the number of participating clients accelerates convergence by leveraging more local updates per round (Li et al., 2019). However, in the context of fed-erated black-box prompt tuning, the number of queries to the LLM server increases linearly with the number of par-ticipating clients. This rise in query numbers outpaces the benefits gained from faster convergence due to increased client participation. As a result, FedOne provides a more efficient trade-off by reducing query overhead while still enabling effective model training. 
+
+4.1. Experiment Setup 
+
+For our experiment, we utilized the GLUE bench-mark (Wang et al., 2018), which includes a wide range of tasks including MNLI (Williams et al., 2018), QQP (Iyer et al., 2017), SST-2 (Socher et al., 2013), MRPC (Dolan & Brockett, 2005), CoLA (Warstadt et al., 2019), QNLI (Wang et al., 2018), and RTE (Dagan et al., 2005; Haim et al., 2006; Giampiccolo et al., 2007; Bentivogli et al., 2009). In the baseline experiment within the federated learning framework, we employed 100 clients. In the FedOne frame-work, there was only one client activated per round for training and aggregation. We adopted the k-shot framework from (Perez et al., 2021), adapting it to a federated learning context. Each client received a k-shot dataset comprising k
+
+samples per class. 
+
+> 3Additional experiments on varying levels of client heterogene-ity are provided in Appendix C.3.
+
+5FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Table 1: The overall performance on the RoBERTa-large. Each trial runs across three random seeds.                                                                         
+
+> Dataset MNLI QQP SST-2 MRPC CoLA QNLI RTE Avg.
+> Manual Prompt 35 .91.349 .80.977 .21.170 .41.60.60.049 .21.148 .20.647.33 In Context Learning 37 .21.650 .10.982 .82.172 .12.31.10.450 .80.549 .32.349.06 FineTuning 50.8 1.260 .81.986.5 2.078 .41.320.4 1.953.2 1.855 .62.357.96 FedOne-PromptTuning 41 .50.966 .40.277 .92.179 .50.50.81.149 .61.053 .10.652.69 FedOne-P-Tuning v2 42 .70.766 .70.182 .90.380 .60.11.01.052 .40.256 .40.454.67 FedOne-BBT 41 .90.466 .30.276 .81.680 .60.32.51.351 .10.455 .31.053.50 FedOne-BDPL 41 .01.266 .70.180 .86.081.1 0.15.22.451 .71.457 .11.954.80 FedOne-GS-BDPL 41 .10.466.9 0.280 .80.481 .00.15.31.152 .10.857.1 1.154.90
+
+The model architecture employed is RoBERTa-large (Liu et al., 2019). The trainable prompts were placed at differ-ent positions in the model depending on the algorithm of the baselines. For the training procedure, we conducted a hyperparameter tuning phase using a grid search approach to explore learning rates of [3 e − 4, 1e − 4, 3e − 5, 1e − 5] .The batch size was set at 32, and the optimization algorithm employed was AdamW (Loshchilov & Hutter, 2017). Fur-ther details about the dataset and evaluation metrics of them are available in Appendix B.1. 
+
+4.2. Baselines 
+
+We evaluated several approaches categorized as standalone and federated learning models. The standalone model base-line includes Manual Prompt Tuning, In-Context Learn-ing (Brown et al., 2020), and Fine-tuning (Diao et al., 2022, Table 7). In the domain of Federated Prompt Tuning for white-box scenarios, we adapted two established white-box prompt tuning methods to federated learning. Specifically, we implemented prompt-tuning (Lester et al., 2021) and prefix-tuning v2 (Liu et al., 2021) across distributed clients. In the prompt tuning approach, a prompt was integrated into the embedding layer of the model for each client. Each client then undertook local training solely on their respec-tive prompt. In prefix-tuning v2, the prompt was utilized across all embedding layers of the model, providing more trainable parameters and enhancing the capability to adapt to downstream tasks. In the federated prompt tuning for the black-box scenario, we adapted the Black-Box Tuning (BBT) (Sun et al., 2022) to FedOne, incorporating projec-tion from a low-dimensional vector and the Covariance Matrix Adaptation Evolution Strategy (CMA-ES) into feder-ated black-box prompt learning. Each client held a distinct low-dimensional vector, while the projection matrix A was shared among all clients. For every client, the population size of CMA-ES is set to 20 , and the dimension of the low-dimensional vector is set to 500 , as recommended by (Sun et al., 2022). Finally, we adapted the BDPL (Diao et al., 2022) and Gumbel-Softmax BDPL (GS-BDPL) to the Fed-erated Learning, employing policy gradient methods and Gumbel-Softmax as outlined in Algorithm 1. 
+
+4.3. Result Test Accuracy The performance results were summarized in Table 1, we observed significant variations in the effec-tiveness of different learning approaches when applied to the RoBERTa-large model across various NLP tasks. Tra-ditional fine-tuning methods outperformed both Manual Prompt and In-Context Learning techniques, achieving the highest average score of 57 .96 across all datasets. This result underscores the effectiveness of complete model re-training over other methods that involve fewer parameter updates or rely solely on contextual adjustments. Although Manual Prompt performed well on some datasets, its perfor-mance lacks stability. White-box federated prompt tuning methods demonstrate improvements over Manual Prompt and In Context Learning techniques. Generally, the black-box method (BDPL and GS-BDPL) exhibits performance that is comparable to, or slightly better than, the white-box tuning method (PromptTuning and P-Tuning v2). 
+
+Computational Efficiency and Resource Utilization Ta-ble 2 presents the performance metrics for various federated prompt tuning methods, focusing on the computational and communication efficiencies of these methods. We measured the computation time required for model training. Notably, in the white-box method, training occurs on the client side. We only measure the time for forward and backward propa-gation of the local model, along with the time for parameter updates. In the black-box prompt learning method, the computation time for model training includes both the ex-ecution of the black-box algorithm and the wait time for responses from the LLM model. Regarding GPU memory usage, white-box methods require substantial computational resources, such as GPUs, which may not be feasible in FL environments. In contrast, black-box methods signifi-cantly reduce GPU memory consumption. A comparison between the FedOne framework and the federated frame-work with 10 activated clients demonstrates that FedOne reduces both computation time and FL server communica-tion costs compared with traditional FL. Within black-box prompt learning, although BBT has a slightly smaller train-able parameter size, it requires a significantly longer training 6FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Table 2: Evaluation of computational efficiency and resource utilization                                                                                                    
+
+> Baseline Comp. Time for Training (s) FL Server Comm. Cost (MB) FL Server # Queries LLM Server # Query Per Client Trainable Parameter Size (MB) Per Client Loaded GPU Memory (MB)
+> Fed-Prompt-Tuning 224 .26 156 .25 1000 -7.8×10 −23564 (Model, Grad., Prompt) Fed-P-Tuning v2 276 .23 11417 .20 1000 -5.73656 (Model, Grad., Prompt) Fed-BBT 24501 .83 3.81 1000 200000 1.9×10 −31.90 ×10 −3(Prompt Only) Fed-BDPL 2407 .05 30 .52 1000 20000 1.5×10 −21.52 ×10 −2(Prompt Only) Fed-GS-BDPL 2400 .60 30 .52 1000 20000 1.5×10 −21.52 ×10 −2(Prompt Only) FedOne-Prompt-Tuning 16 .99 15 .63 100 -7.8×10 −23564 (Model, Grad., Prompt) FedOne-P-Tuning v2 19 .95 1141 .72 100 -5.73656 (Model, Grad., Prompt) FedOne-BBT 5036 .15 0.38 100 20000 1.9×10 −31.90 ×10 −3(Prompt Only) FedOne-BDPL 234 .92 3.05 100 2000 1.5×10 −21.52 ×10 −2(Prompt Only) FedOne-GS-BDPL 234 .73 3.05 100 2000 1.5×10 −21.52 ×10 −2(Prompt Only)
+
+Table 3: Federated discrete black-box prompt learning on GPT-3.5 Turbo MNLI QQP SST-2 MRPC CoLA QNLI RTE Avg. No Prompt 14 .05 0.00 68 .04 0.00 91 .35 0.00 79 .62 0.00 36 .01 0.00 56 .22 0.00 72 .20 0.00 59 .64 
+
+Prompt w/o. Training 9.17 1.31 62 .94 4.94 79 .47 2.71 79 .88 1.94 25 .53 1.10 56 .69 4.76 72 .16 2.51 54 .41 
+
+FedOne-BDPL 13 .67 0.17 68 .25 3.05 87 .77 3.82 81 .69 0.70 32 .16 6.51 70 .58 1.35 77 .62 1.62 61.67 FedOne-GS-BDPL 16.00 1.78 69.92 2.85 92.58 2.71 82.93 0.67 36.20 2.95 72.05 1.64 80.33 2.32 64.28 
+
+time, making it less practical. In contrast, BDPL achieves a more balanced trade-off between computational efficiency and training performance. The advantage of black-box prompt learning lies primarily in its reduced communication costs and the efficiency of the trainable parameter size, as well as in avoiding the need to store and train the entire LLM on the client. As illustrated in the table, the federated black-box prompt tuning method features a significantly smaller parameter size and eliminates the GPU requirement on the client. This allows devices with limited computational resources, such as edge devices, to participate in the federated prompt learning process. 
+
+4.4. Experiment on Real-world Cloud-based LLM 
+
+We implemented the Fed-BDPL framework using GPT-3.5 Turbo, a widely recognized and powerful closed-source language model. We leveraged the OpenAI API (OpenAI, 2024) to enable individual clients to conduct local training. In this implementation of the federated black-box prompt learning, clients sent prompts and input sentences to GPT-3.5, which returns the logarithm of the token probabilities at each position. A key challenge was that OpenAI API only provides probabilities for the top 20 tokens for each position. Consequently, we needed to transform the predic-tions on these tokens into the categorical prediction of the input sentence, instead of using the straightforward model output as we did in the RoBERTa experiment. To solve this problem, we appended a template question at the end of the input sentence to query the target label token. For example, in the QQP task, we added the phrase “equivalent? yes or no” to the end of the input sentence. This allowed us to retrieve the top probabilities for all class label tokens (“yes”, “no”) in the top 20 probability. and use the probability of the target token as the logit output, for the following procedure. The results were presented in table 3, indicating that GPT-3.5 Turbo achieves a certain level of performance without any prompts. Introducing a random, untrained prompt led to a performance decline, while prompt tuning significantly improved results, surpassing the no-prompt baseline. Ad-ditionally, the table highlights that the GS-BDPL method consistently outperforms other black-box approaches. In summary, this method enables prompt tuning in Federated Learning with minimal computational resources while lever-aging advanced cloud-based LLMs. 
+
+## 5. Related Works 
+
+5.1. White-box and Black-box Prompt Tuning 
+
+Prompt tuning is a technique for adapting LLM to down-stream tasks. It tailors the model’s responses to specific tasks or styles without requiring the retraining of the entire model. In white-box prompt tuning, the learner is granted full access to the LLM, allowing them to modify and ac-cess intermediate results of the model and acquire the gra-dient. Li et al. (2021) and Lester et al. (2021) proposed a lightweight and modular alternative to full model fine-tuning for natural language generation tasks, which optimizes a sequence of continuous soft prompts, prepend in the em-bedding layers of the LLM. Liu et al. (2021) proposed the P-tuning v2. Instead of only applying the prompt in the input 7FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+layer as used in Li et al. (2021), they adapt trainable param-eters on all layers’ inputs, which can effectively match the performance of fine-tuning across a wide range of models. In situations where the learner cannot access the intermedi-ate result of the LLM model, the learner has to use a black-box prompt tuning method. In the black-box prompt tuning, the learner can only query the output of the LLM with the input of the model. Most of the research assumes the input is at the soft prompt layer of the LLM (Sun et al., 2022; Chen et al., 2023). Others research use the discrete prompt which is concrete with the input text, which is more portable, and is usable for any cloud-based LLM API (Diao et al., 2022). Xiao et al. (2023) presented a privacy-preserving, efficient transfer learning method that adapts large foundation mod-els to specific tasks. This method does not require access to the full model or compromise data privacy. It utilizes a lightweight adapter and a compressed emulator for model tuning. Chen et al. (2023) introduces an efficient method for optimizing instructions for black-box LLMs using Bayesian optimization of soft prompts. This approach significantly improves LLM performance across a variety of tasks with-out requiring direct access to the model’s internals. Deng et al. (2022) proposed an efficient method to optimize discrete text prompts using reinforcement learning, demonstrating superior performance compared to other prompt optimiza-tion techniques across a variety of tasks. Sun et al. (2022) proposed black-box tuning (BBT), a method that optimizes continuous prompts by optimizing a lower-dimensional vec-tor and projecting them to the prompt searching space. They use the Covariance Matrix Adaptation Evolution Strategy (CMA-ES) for optimizing the vector. Diao et al. (2022) introduced BDPL which optimizes the discrete prompt with the policy gradient method. The black-box prompt tuning method is versatile and appli-cable to various tasks and models without model-specific modifications. However, its major drawback is compu-tational inefficiency, requiring multiple forward passes through the model, which leads to high costs and ex-tended training times. Additionally, the convergence of the derivation-free optimization method is often slow. 
+
+5.2. Federated Learning 
+
+Federated learning (McMahan et al., 2017; Karimireddy et al., 2020; Li et al., 2020; 2021; Marfoq et al., 2022; Mishchenko et al., 2022; Chen et al., 2020; Wang et al., 2023; Zhang et al., 2024; Wang et al., 2024; 2025), first introduced by Mcmahan et al. (2017), is a paradigm that enables devices to collaboratively train a shared predictive model by locally aggregating updates. In this framework, each client maintains a copy of the model for local train-ing, and the server selects a subset of clients in each round for aggregation. Since the introduction of FedAvg, it has lacked formal theoretical convergence guarantees. As a result, researchers have made significant efforts to estab-lish and demonstrate its convergence (Zhou & Cong, 2017; Stich, 2018). Partial client activation is a key area of research in federated learning and has gained significant attention due to its im-pact on improving convergence rates and system efficiency. Stich et al. (2018) shows that in the convex case, increas-ing the number of activated clients significantly improves convergence rates in federated learning with independent and identically distributed (IID) data, achieving a linear speed-up. Li et al. (2019) extended the understanding of federated learning by analyzing the convergence of the Fe-dAvg algorithm, under the convex case. They demonstrate that under the non-IID setting, the convergence rate has a weak dependence on the number of activated clients. This implies that FedAvg cannot achieve linear speedup in this scenario, allowing for a lower participation ratio to mitigate the straggler effect without compromising convergence. 
+
+5.3. Federated Prompt Tuning 
+
+Applying federated learning to prompt tuning can enhance the model by incorporating additional data. This approach leverages distributed datasets to improve model performance while adhering to data privacy. To apply white-box prompt tuning in FL, each client maintains the entire model but trains only the prompt parameters. These parameters are then shared and aggregated across clients (Zhao et al., 2023; Zhang et al., 2023; Che et al., 2023). However, this method assumes white-box access to LLM, which is impractical for closed-source LLMs. Consequently, black-box prompt learning has been adapted for FL to address these limita-tions (Lin et al., 2023; Sun et al., 2023). Lin et al. (2023), applied the BDPL (Diao et al., 2022) to the FL, where the client can train the probability matrix for the discrete prompt via querying the cloud-based LLM API. Sun et al. (2023) applied the BBT to FL. In this approach, clients train only low-dimensional vectors using CMA-ES via querying the cloud-based LLM API. For federated prompt tuning, most existing research has fo-cused on conventional issues in FL, such as data heterogene-ity (Zhao et al., 2023), privacy (Zhang et al., 2023), security (Zhao et al., 2023), and client computation-communication efficiency (Lin et al., 2023; Sun et al., 2023). However, the query efficiency of federated black-box prompt tuning, a novel challenge arising from deploying black-box prompt tuning via cloud-based APIs, remains unexplored. 
+
+## 6. Discussions and Future Works 
+
+Heterogeneous Clients Theorem 3.4 and Corollary 3.6 explicitly consider bounded client heterogeneity, and the 8FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+result that K∗ = 1 achieves optimal query cost (FedOne) remains valid under the heterogeneous case. This is because the core intuition behind FedOne continues to hold: the query cost to the LLM increases linearly with the number of activated clients, while increasing K∗ is not able to provide a linear speedup in convergence (Haddadpour & Mahdavi, 2019; Li et al., 2019). However, the trade-off is that fewer activated clients per round lead to a slower convergence rate. Besides, we further include an additional experiment in Ap-pendix C.3 to evaluate FedOne’s performance under varying levels of client heterogeneity, demonstrating consistency with the theoretical results. 
+
+Cost-aware Client Participation in FL In conventional FL, increasing the number of participating clients typically improves per-round convergence and is generally considered beneficial. However, when the per-client cost (queries to a black-box oracle, communication, computation, encryption, etc.) becomes significant, a new trade-off arises between convergence rate and the overall system cost. This trade-off becomes particularly important as FL systems transition from small, local models to interactions with large-scale models, such as LLMs. Consequently, rising per-client costs have motivated the development of strategies like FedOne, which prioritize cost-efficiency by limiting client participa-tion. Importantly, FedOne is not limited to scenarios involv-ing cloud-based LLM query costs; it is broadly applicable to any FL setting where per-client costs are non-negligible. Exploring the general balance between convergence and system-level efficiency remains an important direction for future work. 
+
+## 7. Conclusion 
+
+We identified that previous research on federated black-box prompt tuning had overlooked the significant query costs associated with cloud-based LLM services. To address this issue, we conducted a theoretical analysis of query effi-ciency in the context of federated black-box prompt tuning, revealing the relationship between query efficiency and the number of activated clients. Based on our theoretical result, we propose the FedOne framework, which achieves optimal query efficiency with respect to the number of activated clients. We conducted extensive numerical experiments on various aspects of its performance and further validated its advantage through real-world experiments using GPT-3.5. 
+
+## Acknowledgments 
+
+This work has been supported by the Natural Sciences and Engineering Research Council of Canada (NSERC), Dis-covery Grants program. 
+
+## Impact Statement 
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none of which we feel must be specifically highlighted here. 
+
+## References 
+
+Bentivogli, L., Clark, P., Dagan, I., and Giampiccolo, D. The fifth pascal recognizing textual entailment challenge. In TAC , 2009. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al. Language models are few-shot learners. 
+
+Advances in neural information processing systems , 33: 1877–1901, 2020. Che, T., Liu, J., Zhou, Y., Ren, J., Zhou, J., Sheng, V. S., Dai, H., and Dou, D. Federated learning of large lan-guage models with parameter-efficient prompt tuning and adaptive optimization. arXiv preprint arXiv:2310.15080 ,2023. Chen, L., Chen, J., Goldstein, T., Huang, H., and Zhou, T. Instructzero: Efficient instruction optimization for black-box large language models. arXiv preprint arXiv:2306.03082 , 2023. Chen, T., Jin, X., Sun, Y., and Yin, W. Vafl: a method of vertical asynchronous federated learning. arXiv preprint arXiv:2007.06081 , 2020. Dagan, I., Glickman, O., and Magnini, B. The pascal recog-nising textual entailment challenge. In Machine Learning Challenges Workshop , pp. 177–190. Springer, 2005. Deng, M., Wang, J., Hsieh, C.-P., Wang, Y., Guo, H., Shu, T., Song, M., Xing, E. P., and Hu, Z. Rlprompt: Optimizing discrete text prompts with reinforcement learning. arXiv preprint arXiv:2205.12548 , 2022. Diao, S., Huang, Z., Xu, R., Li, X., Lin, Y., Zhou, X., and Zhang, T. Black-box prompt learning for pre-trained lan-guage models. arXiv preprint arXiv:2201.08531 , 2022. Dolan, W. B. and Brockett, C. Automatically construct-ing a corpus of sentential paraphrases. In Proceedings of the Third International Workshop on Paraphrasing (IWP2005) , 2005. URL https://aclanthology. org/I05-5002 .Ghadimi, S. and Lan, G. Stochastic first-and zeroth-order methods for nonconvex stochastic programming. SIAM journal on optimization , 23(4):2341–2368, 2013. 9FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Giampiccolo, D., Magnini, B., Dagan, I., and Dolan, B. The third PASCAL recognizing textual entailment challenge. In Proceedings of the ACL-PASCAL Workshop on Textual Entailment and Paraphrasing , pp. 1–9, Prague, 2007. Association for Computational Linguistics. URL https: //aclanthology.org/W07-1401 .Gu, B., Xu, A., and Deng, C. heng huang. 2020. privacy-preserving asynchronous federated learning algorithms for multi-party vertically collaborative learning. arXiv preprint arXiv:2008.06233 , 2020. Haddadpour, F. and Mahdavi, M. On the convergence of lo-cal descent methods in federated learning. arXiv preprint arXiv:1910.14425 , 2019. Haim, R. B., Dagan, I., Dolan, B., Ferro, L., Giampiccolo, D., Magnini, B., and Szpektor, I. The second pascal recog-nising textual entailment challenge. In Proceedings of the Second PASCAL Challenges Workshop on Recognising Textual Entailment , volume 7, 2006. Hazan, E. and Kale, S. Beyond the regret minimization barrier: optimal algorithms for stochastic strongly-convex optimization. The Journal of Machine Learning Research ,15(1):2489–2512, 2014. Iyer, S., Dandekar, N., Csernai, K., et al. First quora dataset release: Question pairs. data. quora. com , 2017. Jang, E., Gu, S., and Poole, B. Categorical repa-rameterization with gumbel-softmax. arXiv preprint arXiv:1611.01144 , 2016. Karimireddy, S. P., Kale, S., Mohri, M., Reddi, S., Stich, S., and Suresh, A. T. Scaffold: Stochastic controlled averag-ing for federated learning. In International Conference on Machine Learning , pp. 5132–5143. PMLR, 2020. LeCun, Y., Cortes, C., and Burges, C. Mnist hand-written digit database. ATT Labs [Online]. Available: http://yann.lecun.com/exdb/mnist , 2, 2010. Lester, B., Al-Rfou, R., and Constant, N. The power of scale for parameter-efficient prompt tuning. arXiv preprint arXiv:2104.08691 , 2021. Li, T., Sahu, A. K., Zaheer, M., Sanjabi, M., Talwalkar, A., and Smith, V. Federated optimization in heterogeneous networks. Proceedings of Machine Learning and Systems ,2:429–450, 2020. Li, X., Huang, K., Yang, W., Wang, S., and Zhang, Z. On the convergence of FedAvg on non-iid data. arXiv preprint arXiv:1907.02189 , 2019. Li, X., Jiang, M., Zhang, X., Kamp, M., and Dou, Q. FedBN: Federated learning on non-IID features via local batch normalization. In International Conference on Learning Representations , 2021. URL https://openreview. net/pdf?id=6YEQUn0QICG .Li, X. L. and Liang, P. Prefix-tuning: Optimizing continuous prompts for generation. arXiv preprint arXiv:2101.00190 ,2021. Lin, T., Kong, L., Stich, S. U., and Jaggi, M. Ensemble distillation for robust model fusion in federated learning. 
+
+Advances in neural information processing systems , 33: 2351–2363, 2020. Lin, Z., Sun, Y., Shi, Y., Wang, X., Huang, L., Shen, L., and Tao, D. Efficient federated prompt tuning for black-box large pre-trained models. arXiv preprint arXiv:2310.03123 , 2023. Liu, M., Zhuang, Z., Lei, Y., and Liao, C. A communication-efficient distributed gradient clipping algorithm for train-ing deep neural networks. Advances in Neural Informa-tion Processing Systems , 35:26204–26217, 2022. Liu, X., Ji, K., Fu, Y., Tam, W. L., Du, Z., Yang, Z., and Tang, J. P-tuning v2: Prompt tuning can be comparable to fine-tuning universally across scales and tasks. arXiv preprint arXiv:2110.07602 , 2021. Liu, Y., Ott, M., Goyal, N., Du, J., Joshi, M., Chen, D., Levy, O., Lewis, M., Zettlemoyer, L., and Stoyanov, V. Roberta: A robustly optimized BERT pretraining approach. arXiv preprint arXiv:1907.11692 , 2019. Liu, Y., Gao, Y., and Yin, W. An improved analysis of stochastic gradient descent with momentum. Advances in Neural Information Processing Systems , 33:18261– 18271, 2020. Loshchilov, I. and Hutter, F. Decoupled weight decay regu-larization. arXiv preprint arXiv:1711.05101 , 2017. Marfoq, O., Neglia, G., Vidal, R., and Kameni, L. Per-sonalized federated learning through local memorization. In International Conference on Machine Learning , pp. 15070–15092. PMLR, 2022. McMahan, B., Moore, E., Ramage, D., Hampson, S., and y Arcas, B. A. Communication-efficient learning of deep networks from decentralized data. In Artificial intelli-gence and statistics , pp. 1273–1282. PMLR, 2017. Mishchenko, K., Malinovsky, G., Stich, S., and Richt ´arik, P. Proxskip: Yes! local gradient steps provably lead to com-munication acceleration! finally! In International Con-ference on Machine Learning , pp. 15750–15769. PMLR, 2022. Nesterov, Y. et al. Lectures on convex optimization , volume 137. Springer, 2018. 10 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+OpenAI. Openai api, 2024. URL https://openai. com/index/openai-api/ . Accessed: 2024-09-30. Perez, E., Kiela, D., and Cho, K. True few-shot learning with language models. Advances in neural information processing systems , 34:11054–11070, 2021. Reddi, S. J., Hefny, A., Sra, S., Poczos, B., and Smola, A. Stochastic variance reduction for nonconvex optimization. In Balcan, M. F. and Weinberger, K. Q. (eds.), Proceed-ings of The 33rd International Conference on Machine Learning , volume 48 of Proceedings of Machine Learn-ing Research , pp. 314–323, New York, New York, USA, 20–22 Jun 2016. PMLR. Socher, R., Perelygin, A., Wu, J., Chuang, J., Manning, C. D., Ng, A., and Potts, C. Recursive deep models for semantic compositionality over a sentiment treebank. In 
+
+Proceedings of the 2013 Conference on Empirical Meth-ods in Natural Language Processing , pp. 1631–1642, Seattle, Washington, USA, 2013. Association for Compu-tational Linguistics. URL https://aclanthology. org/D13-1170 .Stich, S. U. Local sgd converges fast and communicates little. arXiv preprint arXiv:1805.09767 , 2018. Sun, J., Xu, Z., Yin, H., Yang, D., Xu, D., Chen, Y., and Roth, H. R. Fedbpt: Efficient federated black-box prompt tuning for large language models. arXiv preprint arXiv:2310.01467 , 2023. Sun, T., Shao, Y., Qian, H., Huang, X., and Qiu, X. Black-box tuning for language-model-as-a-service. In Inter-national Conference on Machine Learning , pp. 20841– 20855. PMLR, 2022. Wang, A., Singh, A., Michael, J., Hill, F., Levy, O., and Bowman, S. R. Glue: A multi-task benchmark and anal-ysis platform for natural language understanding. arXiv preprint arXiv:1804.07461 , 2018. Wang, G., Gu, B., Zhang, Q., Li, X., Wang, B., and Ling, C. A unified solution for privacy and communication efficiency in vertical federated learning. In Thirty-seventh Conference on Neural Information Processing Systems ,2023. Wang, G., Zhang, Q., Li, X., Wang, B., Gu, B., and Ling, C. X. Secure and fast asynchronous vertical federated learning via cascaded hybrid optimization. Machine Learning , 113(9):6413–6451, 2024. Wang, G., Wang, B., Gu, B., and Ling, C. Event-driven online vertical federated learning. In Thirteenth Interna-tional Conference on Learning Representations , 2025. Warstadt, A., Singh, A., and Bowman, S. R. Neural network acceptability judgments. Transactions of the Association for Computational Linguistics , 7:625–641, 2019. doi: 10. 1162/tacl a 00290. URL https://aclanthology. org/Q19-1040 .Williams, A., Nangia, N., and Bowman, S. A broad-coverage challenge corpus for sentence understanding through inference. In Proceedings of the 2018 Con-ference of the North American Chapter of the Associ-ation for Computational Linguistics: Human Language Technologies, Volume 1 (Long Papers) , pp. 1112–1122, New Orleans, Louisiana, 2018. Association for Compu-tational Linguistics. doi: 10.18653/v1/N18-1101. URL 
+
+https://aclanthology.org/N18-1101 .Williams, R. J. Simple statistical gradient-following algo-rithms for connectionist reinforcement learning. Machine learning , 8:229–256, 1992. Xiao, G., Lin, J., and Han, S. Offsite-tuning: Transfer learn-ing without full model. arXiv preprint arXiv:2302.04870 ,2023. Xu, Y., Jin, R., and Yang, T. Non-asymptotic analysis of stochastic methods for non-smooth non-convex regular-ized problems. Advances in Neural Information Process-ing Systems , 32, 2019. Yin, D., Pananjady, A., Lam, M., Papailiopoulos, D., Ram-chandran, K., and Bartlett, P. Gradient diversity: a key ingredient for scalable distributed learning. In Storkey, A. and Perez-Cruz, F. (eds.), Proceedings of the Twenty-First International Conference on Artificial Intelligence and Statistics , volume 84 of Proceedings of Machine Learn-ing Research , pp. 1998–2007. PMLR, 09–11 Apr 2018. URL https://proceedings.mlr.press/v84/ yin18a.html .Yurochkin, M., Agarwal, M., Ghosh, S., Greenewald, K., Hoang, N., and Khazaeni, Y. Bayesian nonparametric federated learning of neural networks. In International conference on machine learning , pp. 7252–7261. PMLR, 2019. Zhang, J., He, T., Sra, S., and Jadbabaie, A. Why gradient clipping accelerates training: A theoretical justification for adaptivity. In International Conference on Learning Representations , 2019. Zhang, K., Wang, G., Li, H., Wang, Y., Chen, H., and Gu, B. Asynchronous vertical federated learning for kernelized auc maximization. In Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining , pp. 4244–4255, 2024. 11 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Zhang, Z., Yang, Y., Dai, Y., Wang, Q., Yu, Y., Qu, L., and Xu, Z. FedPETuning: When federated learning meets the parameter-efficient tuning methods of pre-trained lan-guage models. In Annual Meeting of the Association of Computational Linguistics 2023 , pp. 9963–9977. Associ-ation for Computational Linguistics (ACL), 2023. Zhao, H., Du, W., Li, F., Li, P., and Liu, G. Fedprompt: Communication-efficient and privacy-preserving prompt tuning in federated learning. In ICASSP 2023-2023 IEEE International Conference on Acoustics, Speech and Sig-nal Processing (ICASSP) , pp. 1–5. IEEE, 2023. Zhou, F. and Cong, G. On the convergence properties of a k-step averaging stochastic gradient descent al-gorithm for nonconvex optimization. arXiv preprint arXiv:1708.01012 , 2017. 12 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+## A. Convergence Analysis 
+
+A.1. Notations and Omitted Mathematical Steps 
+
+t = 0 , ..., T − 1 Number of global iterations 
+
+e = 1 , ..., E Number of local iterations 
+
+s = 0 , ..., S Number of client-server interactions 
+
+∥·∥ The default 2-norm in this paper Cat (·) Categorical distribution function 
+
+ϕi ∼ pppi Abbreviation for ji ∼ Cat (pppi)
+
+Dk Dataset for client k
+
+Ψ = ψkm  
+
+> Mk
+> m=1
+
+Input sentence 
+
+Y k = ykm  
+
+> Mk
+> m=1
+
+The category corresponding to the input sentence 
+
+K The number of all clients 
+
+qqq = q[k] Kk=1 Probability of each client being selected 
+
+K∗ The number of selected clients. 
+
+U The set of selected clients. 
+
+αααk = αααki 
+
+> ni=1
+
+Gumbel-Softmax parameters for k-th client 
+
+ααα = 1
+
+> K∗
+
+P 
+
+> k∈Ut
+
+αααk Average of αααk
+
+Φk = ϕk 
+
+> 1
+
+· · · ϕkn Prompt 
+
+V Vocabulary list of total N tokens choice 
+
+pppki = [ pki, 1, · · · , p ki,N ] The probability distribution over the N token indexes. 
+
+∇αααki F k(·, ·) The local full gradient of the client k (17) 
+
+∇αααki f k(·, ·) The local stochastic mini-batch gradient of the client k (16) 
+
+ˆ∇αααki f k(·, ·) The local stochastic mini-batch variance-reduced policy gradient of the client k (6) 
+
+∇αααki F ∗(·, ·) The average full gradient of the client group Ut (31) 
+
+∇αααki f ∗(·, ·) The average stochastic mini-batch gradient of the client group Ut (32) 
+
+ˆ∇αααki f ∗(·, ·) The average stochastic mini-batch variance-reduced policy gradient of the client group Ut (33) 
+
+∇αααki F (αααk, ·) The average full gradient of all K clients for αααk Kk=1 (30) 
+
+∇αααi F (ααα, ·) The average full gradient of all K clients for ααα (29) Table 4: Notation Table For i = 1 , ..., n , we define the stochastic gradient, stochastic mini-batch gradient and full gradient with respect to αααki as following: 
+
+∇αααki f k(αααk, ψ km) def 
+
+= ∇αααki EΦk ∼GS (αααk )
+
+L(Φ k, ψ km) (15) 
+
+∇αααki f k(αααk, Bk) def 
+
+= ∇αααki
+
+1
+
+Bk
+
+X
+
+> ψkm∈B k
+
+EΦk ∼GS (αααk )[L(Φ k, ψ km)] (16) 
+
+∇αααki F k(αααk, Ψk) def 
+
+= ∇αααki
+
+1
+
+M k
+
+X
+
+> ψkm∈Ψk
+
+EΦk ∼GS (αααk )[L(Φ k, ψ km)] (17) 
+
+A.2. The Omitted Derivative Process for Eq. 5 
+
+∂ log pki,j ki
+
+∂α ki,j 
+
+= ∂∂α ki,j 
+
+log 
+
+
+
+exp 
+
+ log( αki,j ki
+
+> )+ gki,j ki
+> τ
+
+PNl=1 exp 
+
+ log( αki,l )+ gki,l 
+
+> τ
+
+
+
+13 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+= 1
+
+pki,j ki
+
+·
+
+∂
+
+
+
+exp 
+
+
+
+> log( αki,j ki
+> )+ gki,j kiτ
+
+PNl=1 exp log( αki,l )+ gki,l τ
+
+!
+
+
+
+∂
+
+ log( αki,j )+ gki,j 
+
+τ
+
+ ·
+
+∂
+
+ log( αki,j )+ gki,j 
+
+τ
+
+
+
+∂α ki,j 
+
+= 1
+
+τ α ki,j pki,j ki
+
+·
+
+∂
+
+
+
+exp 
+
+
+
+> log( αki,j ki
+> )+ gki,j kiτ
+
+PNl=1 exp log( αki,l )+ gki,l τ
+
+!
+
+
+
+∂
+
+ log( αki,j )+ gki,j 
+
+τ
+
+ (18) According to the derivation rule of the Softmax function, when j = jki :
+
+∂p ki,j ki
+
+∂α ki,j ki
+
+= 1
+
+τ α ki,j ki
+
+pki,j ki
+
+·
+
+
+
+1 − pki,j ki
+
+
+
+· pki,j ki
+
+=
+
+
+
+1 − pki,j ki
+
+
+
+τ α ki,j ki
+
+(19) when j̸ = jki :
+
+∂p ki,j ki
+
+∂α ki,j 
+
+= 1
+
+τ α ki,j pki,j ki
+
+· (−pki,j ki
+
+· pki,j ) = −pki,j 
+
+τ α ki,j 
+
+(20) 
+
+A.3. Lemmas 
+
+The following lemma shows that the unbiasedness and bounded variance of variance-reduced policy gradient. This is important for bounding the randomness introduced by prompt sampling. 
+
+Lemma A.1. Unbiasedness and bounded variance of variance-reduced policy gradient: At the k-th client, ∀ ψkm ∈ Ψk,
+
+r = 1 , · · · , I denotes the r-th sampling of Φk from pppk w.r.t. Φk,r Ir=1 ∼ pppk, pppk = GS (αααk), αi,j ≥ ν > 0 for i = 1 , ..., n 
+
+and j = 1 , ..., N , τ > 0 is the temperature parameter, and σ2
+
+α = 8G2Nτ 2ν2 , then the variance-reduced policy gradient is unbiased and bounded by : 
+
+E{Φk,r ∼GS (αααk )}Ir=1 
+
+h ˆ∇αααki f k(αααk, ψ km)
+
+i
+
+= ∇αααki f k(αααk, ψ km) (21) 
+
+E{Φk,r ∼GS (αααk )}Ir=1 
+
+
+
+ˆ∇αααki f k(αααk, ψ km) − E{Φk,r ∼GS (αααk )}Ir=1 
+
+h ˆ∇αααki f k(αααk, ψ km)
+
+i 2
+
+≤ σ2
+
+α
+
+I2 (22) 
+
+Proof. We abbreviate E{Φk,r ∼GS (αααk )}Ir=1 as E{Φk,r }Ir=1 .1) The unbiasedness of variance-reduced policy gradient: 
+
+E{Φk,r ∼GS (αααk )}Ir=1 
+
+h ˆ∇αααki f k(αααk, ψ km)
+
+i
+
+= E{Φk,r }Ir=1 
+
+(
+
+1
+
+I − 1
+
+IX
+
+r=1 
+
+"
+
+L(Φ k,r , ψ km) − 1
+
+I
+
+IX
+
+w=1 
+
+L(Φ k,w , ψ km)
+
+!
+
+∇αααki log P (ϕk,r i )
+
+#) 
+
+= E{Φk,r }Ir=1 
+
+
+
+1
+
+I − 1
+
+IX
+
+r=1 
+
+
+
+I − 1
+
+I · L (Φ k,r , ψ km) − 1
+
+I
+
+IX
+
+w = 1 
+
+w̸ = r
+
+L(Φ k,w , ψ km)
+
+
+
+∇αααki log P (ϕk,r i )
+
+
+
+= E{Φk,r }Ir=1 
+
+"
+
+1
+
+I
+
+IX
+
+r=1 
+
+
+
+L(Φ k,r , ψ km) · ∇ αααki log P (ϕk,r i )
+
+#
+
+14 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+− E{Φk,r }Ir=1 
+
+
+
+1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+L(Φ k,w , ψ km)
+
+
+
+∇αααki log P (ϕk,r i )
+
+
+
+> (1)
+
+= 1
+
+I
+
+> I
+
+X
+
+> r=1
+
+EΦk,r 
+
+h
+
+L(Φ k,r , ψ km) · ∇ αααki log P (ϕk,r i )
+
+i
+
+− 1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦw L(Φ k,w , ψ km)
+
+
+
+EΦr ∇αααki log P (ϕk,r i )
+
+
+
+= EΦ
+
+h
+
+L(Φ k, ψ km) · ∇ αααki log P (ϕki )
+
+i
+
+− 1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦw
+
+L(Φ k,w , ψ km)
+
+EΦr
+
+h
+
+∇αααki log P (ϕk,r i )
+
+i
+
+= ∇αααki f k(αααk, ψ km) − 1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦw
+
+L(Φ k,w , ψ km)
+
+· EΦr
+
+∇αααki P (ϕk,r i )
+
+P (ϕk,r i )
+
+!
+
+= ∇αααki f k(αααk, ψ km) − 1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦw
+
+L(Φ k,w , ψ km)
+
+· X 
+
+> ϕk,r i∼pppki
+
+∇αααki P (ϕk,r i )
+
+P (ϕk,r i ) · P (ϕk,r i )
+
+!
+
+= ∇αααki f k(αααk, ψ km) − 1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦw
+
+L(Φ k,w , ψ km)
+
+· X 
+
+> ϕk,r i∼pppki
+
+
+
+∇αααki P (ϕk,r i )
+
+
+
+> (2)
+
+= ∇αααki f k(αααk, ψ km) − 1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦw
+
+L(Φ k,w , ψ km)
+
+· ∇ αααki
+
+ X 
+
+> ϕk,r i∼pppki
+
+P (ϕk,r i )
+
+
+
+> (3)
+
+= ∇αααki f k(αααk, ψ km) − 1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦw
+
+L(Φ k,w , ψ km)
+
+· ∇ αααki (1) = ∇αααki f k(αααk, ψ km)
+
+15 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+where (1) uses independence of each sampling for Φk; (2) is because n is not infinite and the GS function is continuous and derivable with respect to αααi; (3) uses the property that the elements of probability vector sum to 1. 2) The bounded variance of variance-reduced policy gradient: 
+
+Var {Φk,r ∼GS (αααk )}Ir=1 
+
+h ˆ∇αααki f k(αααk, ψ km)
+
+i
+
+= E{Φk,r ∼GS (αααk )}Ir=1 
+
+
+
+ˆ∇αααki f k(αααk, ψ km) − ∇ αααki f k(αααk, ψ km) 2
+
+= E{Φk,r }Ir=1 
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+> r=1
+
+"
+
+L(Φ k,r , ψ km) − 1
+
+I
+
+> I
+
+X
+
+> w=1
+
+L(Φ k,w , ψ km)
+
+!
+
+∇αααki log P (ϕk,r i )
+
+#
+
+− ∇ αααki f k(αααk, ψ km)
+
+> 2
+
+
+
+= E{Φk,r }Ir=1 
+
+
+
+1
+
+I
+
+> I
+
+X
+
+> r=1
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+ L(Φ k,r , ψ km) − L (Φ k,w , ψ km) ∇αααki log P (ϕk,r i ) − ∇ αααki f k(αααk, ψ km)
+
+
+
+> 2
+
+
+
+> (1)
+
+= 1
+
+I2
+
+> I
+
+X
+
+> r=1
+
+EΦk,r 
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+ L(Φ k,r , ψ km) − L (Φ k,w , ψ km) ∇αααki log P (ϕk,r i ) − ∇ αααki f k(αααk, ψ km)
+
+> 2
+
+
+
+> (2)
+
+≤ 1
+
+I2(I − 1) 2
+
+> I
+
+X
+
+> r=1
+
+EΦk,r 
+
+
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+ L(Φ k,r , ψ km) − L (Φ k,w , ψ km) ∇αααki log P (ϕk,r i )
+
+> 2
+
+
+
+> (3)
+
+≤ 4G2
+
+I2(I − 1) 2
+
+> I
+
+X
+
+> r=1
+
+EΦk,r 
+
+
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+∇αααki log P (ϕk,r i )
+
+> 2
+
+
+
+> (4)
+
+≤ 4G2NI(I − 1) τ 2ν2(5) 
+
+≤ 8G2NI2τ 2ν2
+
+where (1) uses 
+
+E{Φk,r }Ir=1 
+
+
+
+1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+ L(Φ k,r , ψ km) − L (Φ k,w , ψ km) ∇αααki log P (ϕk,r i ) − ∇ αααki f k(αααk, ψ km)
+
+
+
+= 1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦk,r ,Φk,w ,w ̸ =r
+
+h L(Φ k,r , ψ km) − L (Φ k,w , ψ km) ∇αααki log P (ϕk,r i )
+
+i
+
+− ∇ αααki f k(αααk, ψ km)= 1
+
+I − 1
+
+> I
+
+X
+
+w = 1 
+
+w̸ = r
+
+EΦk,r 
+
+h
+
+L(Φ k,r , ψ km)∇αααki log P (ϕk,r i )
+
+i
+
+− ∇ αααki f k(αααk, ψ km)= 0 
+
+16 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+and the independence of each sampling for Φk. (2) uses inequality E ∥a − Ea∥2 ≤ E ∥a∥2; (3) uses Assumption 3.2; (4) uses αk,r i,j ≥ ν > 0 and (5): 
+
+∇αααki log P (ϕk,r i ) ≤
+
+vuutN · max 
+
+( 1 − pk,r i,j i
+
+τ α k,r i,j i
+
+, − pk,r i,j 
+
+τ α k,r i,j 
+
+)2
+
+≤
+
+r Nτ 2ν2
+
+5) is because when I ≥ 2:
+
+1
+
+I(I − 1) ≤ 2
+
+I2
+
+The following lemma shows that the EΦk ∼GS (αααk )
+
+L(Φ k, Ψk) is L-smooth for ααα. This is crucial for the later convergence analysis of BDPL and Fed-BDPL and is a necessity for convergence proofs. 
+
+Lemma A.2. L-smooth for αααk: At the k-th client, the Φk is sampled from probability matrix pppk, and pppk = GS (αααk),
+
+αi,j ≥ ν > 0 for i = 1 , ..., n and j = 1 , ..., N , τ > 0 is the temperature parameter, EΦk ∼GS (αααk )
+
+L(Φ k, Ψk) is L-smooth for αααk and L = nGN (τ +1) 
+
+τ 2ν2 , and then for t-th iteration, the following inequality is satisfied: 
+
+EΦkt+1 ∼GS (αααkt+1 )
+
+L(Φ kt+1 , Ψk) − EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk)
+
+≤
+
+D
+
+∇αααk EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk) , α ααkt+1 − αααkt
+
+E
+
++ L
+
+2 αααkt+1 − αααkt
+
+2
+
+Proof. The objective function: 
+
+EΦk ∼GS (αααk )
+
+L(Φ k, Ψk) = X
+
+ϕk 
+
+> 1
+
+∼GS (αααk 
+
+> 1
+
+)
+
+· · · X
+
+ϕkn∼GS (αααkn)
+
+L(Φ k, Ψk)
+
+nY
+
+i=1 
+
+P (ϕki )
+
+!
+
+We can compute the Hessian of the objective function, ∀i′, i ′′ ∈ 1, · · · , n and j′, j ′′ ∈ 1, · · · , N :If i′̸ = i′′ :
+
+∂2
+
+∂α i′,j ′ ∂α i′′ ,j ′′ 
+
+EΦk ∼GS (αααk )
+
+L(Φ k, Ψk)
+
+= X
+
+ϕk 
+
+> 1
+
+∼pppk
+
+> 1
+
+· · · X
+
+ϕkn∼pppkn
+
+L(Φ k, Ψk) ∂2
+
+∂α i′,j ′ ∂α i′′ ,j ′′ 
+
+nY
+
+i=1 
+
+P (ϕki )
+
+!
+
+= X
+
+ϕk 
+
+> 1
+
+∼pppk
+
+> 1
+
+· · · X
+
+ϕki′−1∼pppki′−1
+
+X
+
+ϕki′+1 ∼pppki′+1 
+
+· · · X
+
+ϕki′′ −1∼pppki′′ −1
+
+X
+
+ϕki′′ +1 ∼pppki′′ +1 
+
+· · · X
+
+ϕkn∼pppkn
+
+ X
+
+ϕki′ ∼pppki′
+
+X
+
+ϕki′′ ∼pppki′′ 
+
+L(Φ k, Ψk) ∂2
+
+∂α i′,j ′ ∂α i′′ ,j ′′ 
+
+nY
+
+i=1 
+
+P (ϕki )
+
+!
+
+= X
+
+ϕk 
+
+> 1
+
+∼pppk
+
+> 1
+
+· · · X
+
+ϕki′−1∼pppki′−1
+
+X
+
+ϕki′+1 ∼pppki′+1 
+
+· · · X
+
+ϕki′′ −1∼pppki′′ −1
+
+X
+
+ϕki′′ +1 ∼pppki′′ +1 
+
+· · · X
+
+ϕkn∼pppkn
+
+
+
+L(Φ k, Ψk) ∂2 P (ϕki′ )P (ϕki′′ )
+
+∂α i′,j ′ ∂α i′′ ,j ′′ 
+
+nY
+
+i = 1 
+
+i̸ = i′
+
+i̸ = i′′ 
+
+P (ϕki )
+
+
+
+17 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Then: 
+
+∂2 P (ϕki′ )P (ϕki′′ )
+
+∂α i′,j ′ ∂α i′′ ,j ′′ 
+
+=
+
+
+
+1−pki′,j ′
+
+> i
+
+τ α ki′,j ′
+
+> i
+
+· 1−pki′′ ,j ′′ 
+
+> i
+
+τ α ki′′ ,j ′′ 
+
+> i
+
+, if j′ = j′
+
+i and j′′ = j′′ 
+
+i
+
+1−pki′,j ′
+
+> i
+
+τ α ki′,j ′
+
+> i
+
+·
+
+
+
+− pki′′ ,j ′′ 
+
+τ α ki′′ ,j ′′ 
+
+
+
+, if j′ = j′
+
+i and j′′ ̸ = j′′ 
+
+i
+
+− pki′,j ′
+
+τ α ki′,j ′
+
+· 1−pki′′ ,j ′′ 
+
+> i
+
+τ α ki′′ ,j ′′ 
+
+> i
+
+, if j′̸ = j′
+
+i and j′′ = j′′ 
+
+i
+
+− pki′,j ′
+
+τ α ki′,j ′
+
+·
+
+
+
+− pki′′ ,j ′′ 
+
+τ α ki′′ ,j ′′ 
+
+
+
+, if j′̸ = j′
+
+i and j′′ ̸ = j′′ 
+
+i
+
+(23) Based on αki,j ≥ ν > 0:
+
+∂2 P (ϕki′ )P (ϕki′′ )
+
+∂α i′,j ′ ∂α i′′ ,j ′′ 
+
+≤ 1
+
+τ 2ν2 (24) Further, based on Assumption 3.2: 
+
+∂2
+
+∂α i′,j ′ ∂α i′′ ,j ′′ 
+
+EΦk ∼GS (αααk )
+
+L(Φ k, Ψk)
+
+≤ X
+
+ϕk 
+
+> 1
+
+∼pppk
+
+> 1
+
+· · · X
+
+ϕki′−1∼pppki′−1
+
+X
+
+ϕki′+1 ∼pppki′+1 
+
+· · · X
+
+ϕki′′ −1∼pppki′′ −1
+
+X
+
+ϕki′′ +1 ∼pppki′′ +1 
+
+· · · X
+
+ϕkn∼pppkn
+
+
+
+L(Φ k, Ψk)
+
+nY
+
+i = 1 
+
+i̸ = i′
+
+i̸ = i′′ 
+
+P (ϕki )
+
+
+
+· 1
+
+τ 2ν2
+
+≤ Gτ 2ν2
+
+If i′ = i′′ :
+
+∂2
+
+∂α i′,j ′ ∂α i′,j ′′ 
+
+EΦk ∼GS (αααk )
+
+L(Φ k, Ψk)
+
+= X
+
+ϕk 
+
+> 1
+
+∼pppk
+
+> 1
+
+· · · X
+
+ϕki′−1∼pppki′−1
+
+X
+
+ϕki′+1 ∼pppki′+1 
+
+· · · X
+
+ϕkn∼pppkn
+
+
+
+L(Φ k, Ψk) ∂2 P (ϕki′ )
+
+∂α i′,j ′ ∂α i′,j ′′ 
+
+nY
+
+i = 1 
+
+i̸ = i′
+
+P (ϕki )
+
+
+
+Similar to the analysis in case i′̸ = i′′ , we can get: 
+
+∂2 P (ϕki′ )
+
+∂α i′,j ′ ∂α i′,j ′′ 
+
+≤ max {p, 1 − p} · (τ + 1) 
+
+τ 2ν2 ≤ τ + 1 
+
+τ 2ν2
+
+∂2
+
+∂α i′,j ′ ∂α i′,j ′′ 
+
+EΦk ∼GS (αααk )
+
+L(Φ k, Ψk) ≤ (τ + 1) Gτ 2ν2 (25) Finally, with H(ααα) denoting the Hessian matrix of EΦk ∼GS (αααk )
+
+L(Φ k, Ψk), we can get: 
+
+∥H(ααα)∥2 ≤ ∥ H(ααα)∥F ≤
+
+s
+
+n(n − 1) N 2
+
+ Gτ 2ν2
+
+2
+
++ nN 2
+
+ (τ + 1) Gτ 2ν2
+
+2
+
+≤ nGN (τ + 1) 
+
+τ 2ν2 (26) According to Lemma 1.2.2 in (Nesterov et al., 2018), EΦk ∼GS (αααk )
+
+L(Φ k, Ψk) is L-smooth for αααk and L = nGN (τ +1) 
+
+τ 2ν2 ,18 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Lemma A.3. Convergence of BDPL : Suppose Assumption 3.1 and 3.2 hold, for t = 0 , ..., T − 1, αi,j ≥ ν > 0 for 
+
+i = 1 , ..., n and j = 1 , ..., N , τ > 0 is the temperature parameter, EΦk ∼GS (αααk )
+
+L(Φ k, Ψk) is L-smooth for αααk and 
+
+L = nGN (τ +1) 
+
+τ 2ν2 , σ2
+
+ψ is the variance of the stochastic gradient, σ2
+
+α = 8G2Nτ 2ν2 is the variance of the variance-reduced policy gradient. Let η ≤ 1
+
+L , then the BDPL’s full gradient ∇F k(αααkt , Ψk) satisfies the following inequality: 
+
+1
+
+T
+
+T −1X
+
+t=0 
+
+∇αααk F k(αααkt , Ψk) 2 ≤ 4GT η + 2ηnLσ 2
+
+ψ
+
+Bk + 2ηnLσ 2
+
+α
+
+I2 (27) 
+
+Proof. According to Lemma A.2: 
+
+EΦkt+1 ∼GS (αααkt+1 )
+
+L(Φ kt+1 , Ψk) − EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk)
+
+≤
+
+D
+
+∇αααk EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk) , α ααkt+1 − αααkt
+
+E
+
++ L
+
+2 αααkt+1 − αααkt
+
+2
+
+≤
+
+nX
+
+i=1 
+
+D
+
+∇αααki F k(αααkt , Ψk), −η · ˆ∇αααki f k(αααkt , Bkt )
+
+E
+
++ Lη 2
+
+2 ˆ∇αααki f k(αααkt , Bkt ) 2
+
+Both sides take expectations for E{Φrt ∼GS (αααt)}Ir=1 and EBt at the same time, we abbreviate E{Φr ∼GS (ααα}Ir=1 as E{Φr }Ir=1 :
+
+E{Φr }Ir=1 EBt
+
+n
+
+EΦkt+1 ∼GS (αααkt+1 )
+
+L(Φ kt+1 , Ψk) − EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk)o
+
+≤ E{Φr }Ir=1 EBt
+
+( nX
+
+i=1 
+
+D
+
+∇αααki F k(αααkt , Ψk), −η · ˆ∇αααki f k(αααkt , Bkt )
+
+E
+
++ Lη 2
+
+2 ˆ∇αααki f k(αααkt , Bkt ) 2)
+
+=
+
+nX
+
+i=1 
+
+E{Φr }Ir=1 EBt
+
+D
+
+∇αααki F k(αααkt , Ψk), −η · ˆ∇αααki f k(αααkt , Bkt )
+
+E
+
++ Lη 2
+
+2 ˆ∇αααki f k(αααkt , Bkt ) 2| {z }
+
+a)
+
+For a): 
+
+E{Φr }Ir=1 EBt
+
+D
+
+∇αααki F k(αααkt , Ψk), −η · ˆ∇αααki f k(αααkt , Bkt )
+
+E
+
++ Lη 2
+
+2 ˆ∇αααki f k(αααkt , Bkt ) 2
+
+=
+
+D
+
+∇αααki F k(αααkt , Ψk), −η · E{Φr }Ir=1 EBt
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+iE 
+
++ Lη 2
+
+2 E{Φr }Ir=1 EBt
+
+
+
+ˆ∇αααki f k(αααkt , Bkt ) 2
+
+(1) 
+
+=
+
+D
+
+∇αααki F k(αααkt , Ψk), −η · EBt E{Φr }Ir=1 
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+iE 
+
++ Lη 2
+
+2
+
+
+
+E{Φr }Ir=1 EBt
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+i 2
+
++ Var Bt,{Φr }Ir=1 
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+i
+
+(2) 
+
+= −η ·
+
+D
+
+∇αααki F k(αααkt , Ψk), ∇αααki F k(αααkt , Ψk)
+
+E
+
++ Lη 2
+
+2 ∇αααki F k(αααkt , Ψk) 2
+
++ Lη 2
+
+2 E{Φr }Ir=1 EBt
+
+
+
+ˆ∇αααki f k(αααkt , Bkt ) − E{Φr }Ir=1 EBt
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+i 2
+
+(3) 
+
+≤
+
+ Lη 2
+
+2 − η
+
+
+
+∇αααki F k(αααkt , Ψk) 2
+
++ Lη 2 · E{Φr }Ir=1 EBt
+
+
+
+ˆ∇αααki f k(αααkt , Bkt ) − EBt
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+i 2
+
++ Lη 2 · EBt E{Φr }Ir=1 
+
+
+
+EBt
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+i
+
+− E{Φr }Ir=1 EBt
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+i 2
+
+=
+
+ Lη 2
+
+2 − η
+
+
+
+∇αααki F k(αααkt , Ψk) 2
+
++ Lη 2 · E{Φr }Ir=1 Var Bt
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+i
+
++ Lη 2 · EBt Var {Φr }Ir=1 
+
+h
+
+EBt
+
+h ˆ∇αααki f k(αααkt , Bkt )
+
+ii 
+
+19 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+> (4)
+
+≤
+
+ Lη 2
+
+2 − η
+
+
+
+∇αααki F k(αααkt , Ψk) 2
+
++ Lη 2 · σ2
+
+> ψ
+
+B + Lη 2 · EBt Var {Φr }Ir=1 
+
+h ˆ∇αααi f k(αααkt , Ψk)
+
+i
+
+> (5)
+
+≤
+
+ Lη 2
+
+2 − η
+
+
+
+∇αααki F k(αααkt , Ψk) 2
+
++ Lη 2 · σ2
+
+> ψ
+
+B + Lη 2 · σ2
+
+> α
+
+I2
+
+where (1) uses the independence between Ψ sampling and Φ sampling; (2) use the unbiasedness of stochastic gradient and variance-reduced policy gradient in Assumption 3.1 and Lemma A.1; (3) use the inequality ∥a + b∥2 ≤ 2 ∥a∥2 + 2 ∥b∥2; (4) and (5) use the bounded variance of stochastic gradient and variance-reduced policy gradient in Assumption 3.1 and Lemma A.1. Then: 
+
+EΦt+1 ∼GS (αααkt+1 )
+
+L(Φ kt+1 , Ψk) − EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk)
+
+≤
+
+> n
+
+X
+
+> i=1
+
+" Lη 2
+
+2 − η
+
+
+
+∇αααki F k(αααkt , Ψk) 2
+
++ Lη 2 · σ2
+
+> ψ
+
+B + Lη 2 · σ2
+
+> α
+
+I2
+
+#
+
+We combine the gradient of αααi for each prompt token: 
+
+EΦkt+1 ∼GS (αααt+1 )
+
+L(Φ kt+1 , Ψk) − EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk)
+
+≤
+
+ Lη 2
+
+2 − η
+
+
+
+∇αααk F k(αααkt , Ψk) 2 + nLη 2 · σ2
+
+> ψ
+
+B + nLη 2 · σ2
+
+> α
+
+I2
+
+where αααk = ( αααk 
+
+> 1
+
+, · · · , α ααki , · · · αααkn).We let η ≤ 1 
+
+> L
+
+, then both sides accumulate with respect to t = 0 , 1, · · · , T − 1 and divide by T :
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+
+
+η − Lη 2
+
+2
+
+
+
+∇αααk F k(αααkt , Ψk) 2
+
+≤ 1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+h
+
+EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk) − EΦkt+1 ∼GS (αααkt+1 )
+
+L(Φ kt+1 , Ψk)i
+
++ nLη 2σ2
+
+> ψ
+
+B + nLη 2σ2
+
+> α
+
+I2
+
+Then, 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααk F k(αααkt , Ψk) 2
+
+≤ EΦk  
+
+> 0∼GS (αααk
+> 0)
+
+L(Φ k 
+
+> 0
+
+, Ψk) − EΦkT ∼GS (αααkT )
+
+L(Φ kT , Ψk)
+
+T
+
+22η − Lη 2 + 2η
+
+2 − Lη 
+
+nLσ 2
+
+> ψ
+
+B + nLσ 2
+
+> α
+
+I2
+
+!
+
+≤
+
+2
+
+
+
+EΦk  
+
+> 0∼GS (αααk
+> 0)
+
+L(Φ k 
+
+> 0
+
+, Ψk) − EΦkT ∼GS (αααkT )
+
+L(Φ kT , Ψk)
+
+T η + 2ηnLσ 2
+
+> ψ
+
+B + 2ηnLσ 2
+
+> α
+
+I2
+
+According to Assumption 3.2 , EΦk  
+
+> 0∼GS (αααk
+> 0)
+
+L(Φ k 
+
+> 0
+
+, Ψk) − inf t EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk) ≤ 2G, then: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααk F k(αααkt , Ψk) 2 ≤ 4GT η + 2ηnLσ 2
+
+> ψ
+
+B + 2ηnLσ 2
+
+> α
+
+I2
+
+Remark A.4 . The convergence term of BDPL consists of three parts. The first term is typical of first-order optimization algorithms converging to non-convex functions. The second term is the stochasticity due to random mini-batch gradients. The first term and second term can be combined when η = c√T and c =
+
+q 2Bk GnLσ 2
+
+> ψ
+
+:
+
+4GT η + 2ηnLσ 2
+
+> ψ
+
+Bk = 4
+
+√T
+
+s
+
+2nLσ 2 
+
+> ψ
+
+GB ,
+
+20 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+which can decrease as the number of iterations and mini-batch size increase (Reddi et al., 2016); and the third term is the stochasticity due to prompt sampling, which decreases with the number of prompt samples. 
+
+Remark A.5 . According to the definition of Gumbel-Softmax (2) , there is randomness about u = {ui}ni=1 ∼ Uniform (0, 1n)
+
+in ∇αααF k(αααkt , Ψk) i.e. pppk = GS (αααk, u) in fact and Φk ∼ pppk, we can further discuss the result in Lemma A.3: 
+
+Eu ∇αααk F k(αααkt , Ψk) 2 =
+
+Z 10
+
+∇αααk F k(αααkt , Ψk) 2 1ndu ≤ ∇αααk F k(αααkt , Ψk) 2
+
+Considering the randomness of u, we can still obtain the convergence of BDPL. In subsequent analyzes of Fed-BDPL, we can obtain similar result for u.
+
+Corollary A.6. Convergence rate of BDPL : Let η = min 
+
+n 1 
+
+> L
+
+, 1√T
+
+o
+
+, we can get the following convergence rate for BDPL: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααk F k(αααkt , Ψk) 2 ≤ O ( 1
+
+√T ) (28) 
+
+Proof. Convergence rate: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααk F k(αααkt , Ψk) 2 = 4G
+
+√T + 1
+
+√T · 2nLσ 2
+
+> ψ
+
+B + 1
+
+√T · 2nLσ 2
+
+> α
+
+I2 = O
+
+ 1
+
+√T
+
+
+
+A.4. Convergence Analysis of Federated Prompt Tuning 
+
+Definition in the Federated Black-box Discrete Prompt Learning: 
+
+Data slicing : The data slices in each client are defined as Dk = Dk Kk=1 = Ψk, Y k Kk=1 , where Ψk = ψkm  
+
+> Mk
+> m=1
+
+denote the input sentence and Y k = ykm  
+
+> Mk
+> m=1
+
+denote the label, k is the index of the client, and m is the index of the sample, there are totally M k samples in the dataset Dk. The clients hold the sampling probability vector qqq = q[k] Kk=1 =
+
+n M k
+
+> M
+
+oKk=1 
+
+.
+
+K∗ is the number of clients selected and Ut is the set of corresponding clients. 
+
+Average parameter ααα:
+
+αααt = 1
+
+K∗
+
+X
+
+> k∈Ut
+
+αααkt
+
+αααi, (t) = 1
+
+K∗
+
+X
+
+> k∈Ut
+
+αααki, (t)
+
+Average loss :
+
+EΦt∼GS (αααt) [L(Φ t, Ψ)] = 
+
+> K
+
+X
+
+> k=1
+
+q[k] · EΦkt ∼GS (αααkt )
+
+L(Φ kt , Ψk)
+
+Average gradient :
+
+∇αααi F (ααα, Ψk) def 
+
+=
+
+> K
+
+X
+
+> k=1
+
+q[k] · ∇ αααi F k(ααα, Ψk) (29) 
+
+∇αααki F (αααk, Ψk) def 
+
+=
+
+> K
+
+X
+
+> k=1
+
+q[k] · ∇ αααki F k(αααk, Ψk) (30) 
+
+∇αααki F ∗(αααk, Ψk) def 
+
+= 1
+
+K∗
+
+X
+
+> k∈Ut
+
+∇αααki F k(αααk, Ψk) (31) 21 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+∇αααki f ∗(αααk, Bk) def 
+
+= 1
+
+K∗
+
+X
+
+> k∈Ut
+
+∇αααki f k(αααk, Bk) (32) 
+
+ˆ∇αααki f ∗(αααk, Bk) def 
+
+= 1
+
+K∗
+
+X
+
+> k∈Ut
+
+ˆ∇αααi f k(αααk, Bk) (33) 
+
+Average mini-batch stochastic variance-reduced policy gradient descent :
+
+αααi, (t+1) = αααi, (t) − η · ˆ∇αααki f ∗(αααkt , Bk)
+
+Note that when t̸ = sE , although the above some definitions don’t exist in algorithm and experiment, we can still calculate and analyze them. In order to facilitate the analysis of the iteration process, we assume that they exist. The following lemma shows that the local gradient is biased compared to the global gradient due to the fact that the distribution of data on different clients may be different (heterogeneity), and the bias of the gradient can be analyzed using the bias about ααα ((Haddadpour & Mahdavi, 2019)). 
+
+Lemma A.7. Bound bias between local and average ααα. Let αi,j ≥ ν > 0 for i = 1 , ..., n and j = 1 , ..., N , η is the learning rate, let E represents E{Φk,r t ∼GS (αααkt )}Ir=1 
+
+and EBkt , the bias between the local and the average ααα can be bounded: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+> K
+
+X
+
+> k=1
+
+q[k] · E αααi, (t) − αααki, (t)
+
+> 2
+
+≤ Eη 2 2σ2
+
+> ψ
+
+B + 2σ2
+
+> α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
++ 2η2E2λT
+
+
+
+1 + 1
+
+K∗
+
+ T −1X
+
+> t=0
+
+∇αααki F (αααkt , Ψk) 2
+
+Proof. Define: 
+
+tc ≜ ⌊ tE ⌋Eαααi, (tc) = 1
+
+K∗
+
+X
+
+> k∈Utc
+
+αααki, (tc)
+
+Then, for tc + 1 ≤ t < t c + E:
+
+αααki, (t) = αααi, (tc) −
+
+> t−1
+
+X
+
+> ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ ) (34) 
+
+αααi, (t) = αααi, (tc) − 1
+
+K∗
+
+X
+
+> k∈Uρ
+> t−1
+
+X
+
+> ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ ) (35) For the k-th client, let E represents E{Φk,r }Ir=1 
+
+and EBkt , and we take E for αααi, (t) − αααki, (t)
+
+> 2
+
+:
+
+E αααi, (t) − αααki, (t)
+
+> 2
+
+= E αααi, (tc) − 1
+
+K∗
+
+X
+
+> k∈Uρ
+> t−1
+
+X
+
+> ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ ) − αααi, (tc) +
+
+> t−1
+
+X
+
+> ρ=tc
+
+η · ˆ∇αααi f k(αααkρ , Bkρ )
+
+> 2
+
+= E
+
+> t−1
+
+X
+
+> ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ ) − 1
+
+K∗
+
+X
+
+> k∈Uρ
+> t−1
+
+X
+
+> ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ )
+
+> 2(1)
+
+≤ 2
+
+E
+
+> t−1
+
+X
+
+> ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ )
+
+> 2
+
++ E 1
+
+K∗
+
+X
+
+> k∈Uρ
+> t−1
+
+X
+
+> ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ )
+
+> 2
+
+
+
+22 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+(2) 
+
+= 2 E
+
+t−1X
+
+ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ ) − E
+
+" t−1X
+
+ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ )
+
+# 2
+
++ 2 E
+
+" t−1X
+
+ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ )
+
+# 2
+
++ 2 E 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ ) − E
+
+ 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ )
+
+
+
+2
+
++ 2 E
+
+ 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ )
+
+
+
+2(3) 
+
+= 2 E
+
+t−1X
+
+ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ ) −
+
+t−1X
+
+ρ=tc
+
+η · ∇ αααki F k(αααkρ , Ψk)
+
+2
+
++ 2 
+
+t−1X
+
+ρ=tc
+
+η · ∇ αααki F k(αααkρ , Ψk)
+
+2
+
++ 2 E 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η · ˆ∇αααki f k(αααkρ , Bkρ ) − 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η · ∇ αααki F k(αααkρ , Ψk)
+
+2
+
++ 2 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η · ∇ αααki F k(αααkρ , Ψk)
+
+2
+
+= 2 E
+
+t−1X
+
+ρ=tc
+
+η ·
+
+h ˆ∇αααki f k(αααkρ , Bkρ ) − ∇ αααki F k(αααkρ , Ψk)
+
+i 2
+
++ 2 
+
+t−1X
+
+ρ=tc
+
+η · ∇ αααki F k(αααkρ , Ψk)
+
+2
+
++ 2 E 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η ·
+
+h ˆ∇αααki f k(αααkρ , Bkρ ) − ∇ αααki F k(αααkρ , Ψk)
+
+i 2
+
++ 2 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η · ∇ αααki F k(αααkρ , Ψk)
+
+2(4) 
+
+= 2 η2
+
+t−1X
+
+ρ=tc
+
+E ˆ∇αααki f k(αααkρ , Bkρ ) − ∇ αααki F k(αααkρ , Ψk) 2
+
++ 2 
+
+t−1X
+
+ρ=tc
+
+η · ∇ αααki F k(αααkρ , Ψk)
+
+2
+
++ 2η2
+
+K2
+
+∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+E ˆ∇αααki f k(αααkρ , Bkρ ) − ∇ αααki F k(αααkρ , Ψk) 2
+
++ 2 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+η · ∇ αααki F k(αααkρ , Ψk)
+
+2(5) 
+
+= 2 η2
+
+t−1X
+
+ρ=tc
+
+E ˆ∇αααki f k(αααkρ , Bkρ ) − ∇ αααki F k(αααkρ , Ψk) 2
+
++ 2 η2(t − tc)
+
+t−1X
+
+ρ=tc
+
+∇αααki F k(αααkρ , Ψk) 2
+
++ 2η2
+
+K2
+
+∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+E ˆ∇αααki f k(αααkρ , Bkρ ) − ∇ αααki F k(αααkρ , Ψk) 2
+
++ 2η2(t − tc)
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+∇αααki F k(αααkρ , Ψk) 2(6) 
+
+≤ 2η2
+
+t−1X
+
+ρ=tc
+
+2σ2
+
+ψ
+
+Bk + 2σ2
+
+α
+
+I2
+
+!
+
++ 2η2
+
+K2
+
+∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+2σ2
+
+ψ
+
+Bk + 2σ2
+
+α
+
+I2
+
+!
+
++ 2 η2(t − tc)
+
+t−1X
+
+ρ=tc
+
+∇αααki F k(αααkρ , Ψk) 2
+
++ 2η2(t − tc)
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+∇αααki F k(αααkρ , Ψk) 2
+
+= 2 η2
+
+t−1X
+
+ρ=tc
+
+2σ2
+
+ψ
+
+Bk + 2σ2
+
+α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
++ 2 η2(t − tc)
+
+
+
+t−1X
+
+ρ=tc
+
+∇αααki F k(αααkρ , Ψk) 2
+
++ 1
+
+K∗
+
+X
+
+k∈Uρ
+
+t−1X
+
+ρ=tc
+
+∇αααki F k(αααkρ , Ψk) 2
+
+
+
+where (1) use inequality ∥a − b∥2 ≤ 2 ∥a∥2 +2 ∥b∥2; (2) use E ∥x − E [x]∥2 = E ∥x∥2 −∥ E [x]∥2; (3) use the unbiasedness of stochastic gradient and variance-reduced policy gradient in Assumption 3.1 and Lemma A.1; (4) use the independence 23 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+of mini-batch and prompt sampling in each client; (5) use inequality ∥ PZz=1 az ∥2 ≤ Z PZz=1 ∥az ∥2; (6) use the bounded variance of stochastic gradient and variance-reduced policy gradient in Assumption 3.1 and Lemma A.1. Then, we sum both sides with respect to k ∈ Uρ:
+
+X
+
+> k∈Uρ
+
+E αααi, (t) − αααki, (t)
+
+> 2
+
+≤ 2η2
+
+> t−1
+
+X
+
+> ρ=tc
+
+2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+!
+
+(K∗ + 1) + 2 η2(t − tc)
+
+
+
+1 + 1
+
+K∗
+
+ X
+
+> k∈Uρ
+> t−1
+
+X
+
+> ρ=tc
+
+∇αααki F k(αααkρ , Ψk) 2
+
+We take the expectation of both sides about EUρ :
+
+EUρ
+
+ X
+
+> k∈Uρ
+
+E αααi, (t) − αααki, (t)
+
+> 2
+
+
+
+= K∗
+
+> K
+
+X
+
+> k=1
+
+q[k] · E αααi, (t) − αααki, (t)
+
+> 2(1)
+
+≤ 2η2
+
+> t−1
+
+X
+
+> ρ=tc
+
+2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+!
+
+(K∗ + 1) + 2 η2(t − tc) ( K∗ + 1) 
+
+> K
+
+X
+
+> k=1
+> t−1
+
+X
+
+> ρ=tc
+
+q[k] · ∇αααki F k(αααkρ , Ψk) 2
+
+where (1) is because we sample client set Uρ uniformly at random where client k is sampled with probability q[k] for 
+
+1 ≤ k ≤ K with replacement, and we define Uρ = {k1, ..., k b, ..., k K∗ }, then 
+
+EUρ
+
+ X
+
+> k∈Uρ
+
+∇αααki F k(αααkρ , Ψk) 2
+
+
+
+=
+
+> K∗
+
+X
+
+> b=1
+
+Ekb
+
+
+
+∇αααki F k(αααkb 
+
+> ρ
+
+, Ψkb ) 2
+
+=
+
+> K∗
+
+X
+
+> b=1
+> K
+
+X
+
+> k=1
+
+q[k] · ∇αααki F k(αααkρ , Ψk) 2
+
+= K∗
+
+> K
+
+X
+
+> k=1
+
+q[k] · ∇αααki F k(αααkρ , Ψk) 2
+
+Thus: 
+
+> K
+
+X
+
+> k=1
+
+q[k] · E αααi, (t) − αααki, (t)
+
+> 2
+
+≤ 2η2
+
+> t−1
+
+X
+
+> ρ=tc
+
+2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
++ 2 η2(t − tc)
+
+
+
+1 + 1
+
+K∗
+
+ KX
+
+> k=1
+> t−1
+
+X
+
+> ρ=tc
+
+q[k] · ∇αααki F k(αααkρ , Ψk) 2
+
+We take υ = ρ − tc, γ = t − 1 − tc, and add iteration on both sides:  
+
+> T−1
+
+X
+
+> t=0
+> K
+
+X
+
+> k=1
+
+q[k] · E αααi, (t) − αααki, (t)
+
+> 2
+
+=   
+
+> ⌊T−1
+> E⌋
+
+X
+
+> s=0
+> E−1
+
+X
+
+> γ=0
+> K
+
+X
+
+> k=1
+
+q[k] · E αααi, (sE +γ) − αααki, (sE +γ)
+
+> 2
+
+≤   
+
+> ⌊T−1
+> E⌋
+
+X
+
+> s=0
+> E−1
+
+X
+
+> γ=0
+
+2η2
+
+> γ
+
+X
+
+> υ=0
+
+2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
+24 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
++   
+
+> ⌊T−1
+> E⌋
+
+X
+
+> s=0
+> E−1
+
+X
+
+> γ=0
+
+2η2(γ + 1) 
+
+
+
+1 + 1
+
+K∗
+
+ KX
+
+> k=1
+> γ
+
+X
+
+> υ=0
+
+q[k] · ∇αααki F k(αααksE +υ , Ψk) 2(1) 
+
+≤ (E + 1) T η 2 2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
++   
+
+> ⌊T−1
+> E⌋
+
+X
+
+> s=0
+
+2η2E2
+
+
+
+1 + 1
+
+K∗
+
+ KX
+
+> k=1
+> E−1
+
+X
+
+> υ=0
+
+q[k] · ∇αααki F k(αααksE +υ , Ψk) 2
+
+≤ (E + 1) T η 2 2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
++ 2 η2E2
+
+
+
+1 + 1
+
+K∗
+
+ KX 
+
+> k=1
+> T−1
+
+X
+
+> t=0
+
+q[k] · ∇αααki F k(αααkt , Ψk) 2
+
+where (1) use 0 ≤ γ ≤ E − 1 and 1 + ... + E = E(E+1) 2 .Finally multiply both sides simultaneously by 1 
+
+> T
+
+:
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+> K
+
+X
+
+> k=1
+
+q[k] · E αααi, (t) − αααki, (t)
+
+> 2
+
+≤ (E + 1) η2 2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
++ 2η2E2
+
+T
+
+
+
+1 + 1
+
+K∗
+
+ KX 
+
+> k=1
+> T−1
+
+X
+
+> t=0
+
+q[k] · ∇αααki F k(αααkt , Ψk) 2(1) 
+
+≤ (E + 1) η2 2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
++ 2η2E2λT
+
+
+
+1 + 1
+
+K∗
+
+ T −1X
+
+> t=0
+> K
+
+X
+
+> k=1
+
+q[k] · ∇ αααki F k(αααkt , Ψk)
+
+> 2
+
+= ( E + 1) η2 2σ2
+
+> ψ
+
+Bk + 2σ2
+
+> α
+
+I2
+
+! 
+
+1 + 1
+
+K∗
+
+
+
++ 2η2E2λT
+
+
+
+1 + 1
+
+K∗
+
+ T −1X
+
+> t=0
+
+∇αααki F (αααkt , Ψk) 2
+
+where (1) use Assumption 3.3. 
+
+Theorem 3.4 . Suppose Assumption 3.1, 3.2 and 3.3 hold, for t = 0 , 1, ..., T − 1, B = min B1, ..., B K where Bk is the local mini-batch size. αi,j ≥ ν > 0 for i = 1 , ..., n and j = 1 , ..., N , I is the sampling times for prompt. σ2 
+
+> α
+
+= 8G2Nτ 2ν2 is the variance of the variance-reduced policy gradient, σ2 
+
+> ψ
+
+is the variance of the stochastic gradient, EΦk ∼GS (αααk )
+
+L(Φ k, Ψk) is L-smooth for αααk and L = nGN (τ +1)   
+
+> τ2ν2
+
+, and η satisfies the following inequality: 
+
+0 < η < 1
+
+Lλ (36) Then, the Fed-BDPL’s full gradient ∇αααF (αααt, Ψk) satisfies the following inequality: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααF (αααt, Ψk) 2
+
+≤ 4GηT + 2( E + 1) nσ 2 
+
+> ψ
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> ψ
+
+B + 2( E + 1) nσ 2
+
+> α
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> α
+
+I2
+
+Proof. According to Lemma A.2: 
+
+EΦt+1 ∼GS (αααt+1 ) [L(Φ t+1 , Ψ)] − EΦt∼GS (αααt) [L(Φ t, Ψ)] 
+
+≤ ∇αααEΦt∼GS (αααt) [L(Φ t, Ψ)] , α ααt+1 − αααt + L
+
+2 ∥αααt+1 − αααt∥2
+
+≤
+
+> n
+
+X
+
+> i=1
+
+D
+
+∇αααi F (αααt, Ψk), −η · ˆ∇αααki f ∗(αααkt , Bkt )
+
+E
+
++ Lη 2
+
+2 ˆ∇αααki f ∗(αααkt , Bkt ) 2
+
+25 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+We take the expectations about Φk,r Ir=1 , Bkt and Ut on both sides respectively: 
+
+E{Φk,r }Ir=1 
+
+EBkt EUt
+
+EΦt+1 ∼GS (αααt+1 ) [L(Φ t+1 , Ψ)] − EΦt∼GS (αααt) [L(Φ t, Ψ)] 
+
+≤
+
+nX
+
+i=1 
+
+
+
+E{Φk,r }Ir=1 
+
+EBkt EUt
+
+hD 
+
+∇αααi F (αααt, Ψk), −η · ˆ∇αααki f ∗(αααkt , Bkt )
+
+Ei | {z }
+
+a)
+
+
+
++
+
+nX
+
+i=1 
+
+
+
+Lη 2
+
+2 E{Φk,r }Ir=1 
+
+EBkt EUt
+
+
+
+ˆ∇αααki f ∗(αααkt , Bkt ) 2| {z }
+
+b)
+
+
+
+For a): 
+
+E{Φk,r }Ir=1 
+
+EBkt EUt
+
+hD 
+
+∇αααi F (αααt, Ψk), −η · ˆ∇αααki f ∗(αααkt , Bkt )
+
+Ei 
+
+=
+
+D
+
+∇αααi F (αααt, Ψk), −η · E{Φk,r }Ir=1 
+
+EBkt EUt
+
+h ˆ∇αααki f ∗(αααkt , Bkt )
+
+iE 
+
+=
+
+*
+
+∇αααi F (αααt, Ψk), −η · EUt E{Φk,r }Ir=1 
+
+EBkt
+
+"
+
+1
+
+K∗
+
+X
+
+k∈Ut
+
+ˆ∇αααi f k(αααk, Ψk)
+
+#+ 
+
+=
+
+*
+
+∇αααi F (αααt, Ψk), −η · EUt
+
+"
+
+1
+
+K∗
+
+X
+
+k∈Ut
+
+∇αααki F k(αααk, Ψk)
+
+#+ 
+
+=
+
+*
+
+∇αααi F (αααt, Ψk), −η · 1
+
+K∗
+
+"
+
+K∗
+
+KX
+
+k=1 
+
+q[k] · ∇ αααki F k(αααk, Ψk)
+
+#+ 
+
+(1) 
+
+= η
+
+2
+
+− ∇αααi F (αααt, Ψk) 2 − ∇αααki F (αααkt , Ψk) 2
+
++ ∇αααi F (αααt, Ψk) −
+
+KX
+
+k=1 
+
+q[k] · ∇ αααki F k(αααk, Ψk)
+
+2
+
+= η
+
+2
+
+− ∇αααi F (αααt, Ψk) 2 − ∇αααki F (αααkt , Ψk) 2
+
++
+
+KX
+
+k=1 
+
+q[k] ·
+
+
+
+∇αααi F k(αααt, Ψk) − ∇ αααki F k(αααk, Ψk)
+
+ 2
+
+(2) 
+
+≤ η
+
+2
+
+"
+
+− ∇αααi F (αααt, Ψk) 2 − ∇αααki F (αααkt , Ψk) 2
+
++
+
+KX
+
+k=1 
+
+q[k] · ∇αααi F k(αααt, Ψk) − ∇ αααki F k(αααk, Ψk) 2
+
+#
+
+= η
+
+2
+
+
+
+− ∇αααi F (αααt, Ψk) 2 − ∇αααki F (αααkt , Ψk) 2
+
++ η
+
+2 ·
+
+KX
+
+k=1 
+
+q[k] · 1
+
+M k
+
+X
+
+ψkm∈Ψk
+
+∇αααi EΦt∼GS (αααt)[L(Φ t, ψ km)] − 1
+
+M k
+
+X
+
+ψkm∈Ψk
+
+∇αααki EΦkt ∼GS (αααkt )[L(Φ kt , ψ km)] 
+
+2(3) 
+
+≤ − η
+
+2
+
+
+
+∇αααi F (αααt, Ψk) 2 + ∇αααki F (αααkt , Ψk) 2
+
++ η
+
+2
+
+" KX
+
+k=1 
+
+q[k]L2 · αααi, (t) − αααki, (t)
+
+2
+
+#
+
+where (1) use inequality 2⟨a, b ⟩ = ∥a∥2 + ∥b∥2 − ∥ a − b∥2; (2) use the convexity of ℓ2 norm; (3) use L-smooth in Lemma A.2. For b): 
+
+Lη 2
+
+2 E{Φk,r }Ir=1 
+
+EBkt EUt
+
+
+
+ˆ∇αααki f ∗(αααkt , Bkt ) 2
+
+= EUt
+
+ Lη 2
+
+2 E{Φk,r }Ir=1 
+
+EBkt
+
+
+
+ˆ∇αααki f ∗(αααkt , Bkt ) 2 
+
+26 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+(1) 
+
+= EUt
+
+ Lη 2
+
+2 E{Φk,r }Ir=1 
+
+EBkt
+
+
+
+ˆ∇αααki f ∗(αααkt , Bkt ) − E{Φk,r }Ir=1 
+
+EBkt
+
+h ˆ∇αααki f ∗(αααkt , Bkt )
+
+i 2 
+
++ EUt
+
+ Lη 2
+
+2 E{Φk,r }Ir=1 
+
+EBkt
+
+h ˆ∇αααki f ∗(αααkt , Bkt )
+
+i 2
+
+(2) 
+
+= EUt
+
+ Lη 2
+
+2 E{Φk,r }Ir=1 
+
+EBkt
+
+
+
+ˆ∇αααki f ∗(αααkt , Bkt ) − ∇ αααki F ∗(αααkt , Ψk) 2 
+
++ EUt
+
+ Lη 2
+
+2 ∇αααki F ∗(αααkt , Ψk) 2
+
+(3) 
+
+≤ Lη 2
+
+2 EUt ∇αααki F ∗(αααkt , Ψk) 2
+
++ EUt
+
+
+
+Lη 2E{Φk,r }Ir=1 
+
+EBkt
+
+
+
+ˆ∇αααki f ∗(αααkt , Bkt ) − E{Φk,r }Ir=1 
+
+ˆ∇αααki f ∗(αααkt , Bkt ) 2 
+
++ EUt
+
+
+
+Lη 2E{Φk,r }Ir=1 
+
+EBkt
+
+
+
+E{Φk,r }Ir=1 
+
+ˆ∇αααki f ∗(αααkt , Bkt ) − E{Φk,r }Ir=1 
+
+EBkt
+
+ˆ∇αααki f ∗(αααkt , Bkt ) 2 
+
+(4) 
+
+≤ Lη 2
+
+2 EUt ∇αααki F ∗(αααkt , Ψk) 2
+
++ Lη 2 · EUt
+
+ σ2
+
+α
+
+I2
+
+
+
++ Lη 2 · EUt
+
+" σ2
+
+ψ
+
+B
+
+#
+
+= Lη 2
+
+2
+
+KX
+
+k=1 
+
+q[k] · ∇αααki F k(αααkt , Ψk) 2
+
++ Lη 2σ2
+
+α
+
+I2 + Lη 2σ2
+
+ψ
+
+B
+
+(5) 
+
+≤ Lη 2λ
+
+2
+
+KX
+
+k=1 
+
+q[k] · ∇ αααki F k(αααkt , Ψk)
+
+2
+
++ Lη 2σ2
+
+α
+
+I2 + Lη 2σ2
+
+ψ
+
+B (37) where (1) use E ∥x − E [x]∥2 = E ∥x∥2 − ∥ E [x]∥2; (2) use the unbiasedness of stochastic gradient and variance-reduced policy gradient in Assumption 3.1 and Lemma A.1; (3) use ∥a + b∥2 ≤ 2 ∥a∥2 + 2 ∥b∥2; (4) use the bounded variance of stochastic gradient and variance-reduced policy gradient in Assumption 3.1 and Lemma A.1; (5) use Assumption 3.3. Combining a) and b): 
+
+1
+
+T
+
+T −1X
+
+t=0 
+
+EΦt+1 ∼GS (αααt+1 ) [L(Φ t+1 , Ψ)] − EΦt∼GS (αααt) [L(Φ t, Ψ)] 
+
+≤ 1
+
+T
+
+T −1X
+
+t=0 
+
+nX
+
+i=1 
+
+(
+
+− η
+
+2
+
+
+
+∇αααi F (αααt, Ψk) 2 + ∇αααki F (αααkt , Ψk) 2
+
++ η
+
+2
+
+" KX
+
+k=1 
+
+q[k]L2 · αααi, (t) − αααki, (t)
+
+2
+
+#) 
+
++ 1
+
+T
+
+T −1X
+
+t=0 
+
+nX
+
+i=1 
+
+
+
+Lη 2λ
+
+2
+
+KX
+
+k=1 
+
+q[k] · ∇ αααki F k(αααkt , Ψk)
+
+2
+
++ Lη 2σ2
+
+α
+
+I2 + Lη 2σ2
+
+ψ
+
+B
+
+
+
+(1) 
+
+≤ − η
+
+21
+
+T
+
+T −1X
+
+t=0 
+
+∇αααF (αααt, Ψk) 2 +
+
+
+
+− η
+
+2 + λLη 2
+
+2 + η3L2E(1 + 1
+
+K∗
+
+)
+
+ 1
+
+T
+
+T −1X
+
+t=0 
+
+∇αααk F (αααkt , Ψk) 2
+
++ (E + 1) L2η3nσ 2
+
+ψ (1 + 1
+
+K∗ ) + nLη 2σ2
+
+ψ
+
+B + (E + 1) L2η3nσ 2
+
+α(1 + 1
+
+K∗ ) + nLη 2σ2
+
+α
+
+I2
+
+where (1) use Lemma A.7. Then,we can get: 
+
+1
+
+T
+
+T −1X
+
+t=0 
+
+∇αααF (αααt, Ψk) 2
+
+≤ EΦ0∼GS (ααα0) [L(Φ 0, Ψ)] − EΦT ∼GS (αααt) [L(Φ T , Ψ)] 
+
+ηT 
+
++
+
+
+
+−1 + λLη + 2 η2L2E(1 + 1
+
+K∗
+
+)
+
+ 1
+
+T
+
+T −1X
+
+t=0 
+
+∇αααk F (αααkt , Ψk) 2
+
+27 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
++ 2( E + 1) L2η2nσ 2 
+
+> ψ
+
+(1 + 1 
+
+> K∗
+
+) + 2 nLησ 2
+
+> ψ
+
+B + 2( E + 1) L2η2nσ 2
+
+> α
+
+(1 + 1 
+
+> K∗
+
+) + 2 nLησ 2
+
+> α
+
+I2
+
+Based on Assumption 3.2, EΦ0∼GS (ααα0) [L(Φ 0, Ψ)] − inf t EΦt∼GS (αααt) [L(Φ t, Ψ)] ≤ 2G and: 
+
+−1 + λLη + 2 η2L2E(1 + 1
+
+K∗
+
+) ≤ 00 < η ≤ η∗ =
+
+−λL +
+
+r
+
+λ2L2 + 8 L2E
+
+
+
+1 + 1
+
+> K∗
+
+
+
+4L2E
+
+
+
+1 + 1
+
+> K∗
+
+
+
+According to Taylor’s inequality: √1 + x ≥ 1 + x 
+
+> 2
+
+for x ≥ 0:
+
+s
+
+λ2L2 + 8 L2E
+
+
+
+1 + 1
+
+K∗
+
+
+
+= λL 
+
+vuut1 + 8L2E
+
+
+
+1 + 1
+
+> K∗
+
+
+
+λ2L2
+
+≥ λL 
+
+1 + 4E
+
+
+
+1 + 1
+
+> K∗
+
+
+
+λ2
+
+ (38) Then, we can get: 
+
+−λL +
+
+r
+
+λ2L2 + 8 L2E
+
+
+
+1 + 1
+
+> K∗
+
+
+
+4L2E
+
+
+
+1 + 1
+
+> K∗
+
+
+
+≥−λL + λL 
+
+
+
+1 + 4E(1+ 1 
+
+> K∗
+
+)
+
+> λ2
+
+
+
+4L2E
+
+
+
+1 + 1
+
+> K∗
+
+
+
+= 1
+
+Lλ (39) Finally: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααF (αααt, Ψk) 2
+
+≤ 4GηT + 2( E + 1) L2η2nσ 2 
+
+> ψ
+
+(1 + 1 
+
+> K∗
+
+) + 2 nLησ 2
+
+> ψ
+
+B + 2( E + 1) L2η2nσ 2
+
+> α
+
+(1 + 1 
+
+> K∗
+
+) + 2 nLησ 2
+
+> α
+
+I2
+
+≤ 4GηT + 2( E + 1) nσ 2 
+
+> ψ
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> ψ
+
+B + 2( E + 1) nσ 2
+
+> α
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> α
+
+I2 (40) 
+
+Corollary 3.5. Convergence Rate of Fed-BDPL :Let η = min 
+
+n 1 
+
+> Lλ
+
+, 1√T , 1
+
+> L
+
+o
+
+, B = √T and I = T 14 , the following holds: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∥∇ αααF (αααt, Ψ) ∥2 = O( 1
+
+√T ) (41) 28 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Proof. Let η = min 
+
+n 1 
+
+> Lλ
+
+, 1√T , 1
+
+> L
+
+o
+
+, B = √T and I = T 14 , plunging in Eq. 40, then we have: 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααF (αααt, Ψk) 2
+
+≤ 1
+
+√T (4 G) + 1
+
+√T
+
+ 2nσ 2 
+
+> ψ
+
++ 2 nσ 2
+
+> α
+
+ + 1
+
+√T
+
+
+
+2( E + 1) nσ 2 
+
+> ψ
+
+(1 + 1
+
+K∗
+
+) + 2( E + 1) nσ 2
+
+> α
+
+(1 + 1
+
+K∗
+
+)
+
+
+
+(42) Therefore, 1
+
+> T
+
+PT −1 
+
+> t=0
+
+∥∇ αααF (αααt, Ψ) ∥2 = O( 1√T ).
+
+Corollary 3.6 . The Impact of K∗ (FedOne) : Let Qϵ denote the minimum number of queries submitted to the cloud-based LLM service to achieve an ϵ-solution, formulated as a function of K∗, i.e., Qϵ(K∗). We derive its explicit form in Eq. 45 and show that Qϵ(K∗) is a monotonically increasing function of K∗ for K∗ = 1 , 2, . . . , K . Therefore, to minimize query overhead and achieve optimal efficiency, the optimal choice is K∗ = 1 .
+
+Proof. Considering the iterative complexity based on Eq. 42, to obtain an ϵ-solution satisfying 
+
+1
+
+T 
+
+> T−1
+
+X
+
+> t=0
+
+∇αααF (αααt, Ψk) 2 ≤ 1
+
+√T
+
+
+
+(4 G) +  2nσ 2 
+
+> ψ
+
++ 2 nσ 2
+
+> α
+
+ + 2( E + 1) nσ 2 
+
+> ψ
+
+(1 + 1
+
+K∗
+
+) + 2( E + 1) nσ 2
+
+> α
+
+(1 + 1
+
+K∗
+
+)
+
+
+
+≤ ϵ2
+
+(43) the minimum number of iterations, Tϵ, to achieve the ϵ-solution can be derived as follows 4:
+
+Tϵ =
+
+"
+
+4Gϵ2 + 2( E + 1) nσ 2 
+
+> ψ
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> ψ
+
+ϵ2 + 2( E + 1) nσ 2
+
+> α
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> α
+
+ϵ2
+
+#2
+
+. (44) Note that the minimum number of LLM queries Qϵ required to achieve an ϵ-solution is given by Qϵ = c · TϵK∗, where c is a constant representing the number of query per iteration per client. 5 The term TϵK∗ can be represented as the following: 
+
+Qϵ = cT ϵK∗ = c
+
+"
+
+4Gϵ2 + 2( E + 1) nσ 2 
+
+> ψ
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> ψ
+
+ϵ2 + 2( E + 1) nσ 2
+
+> α
+
+(1 + 1 
+
+> K∗
+
+) + 2 nσ 2
+
+> α
+
+ϵ2
+
+#2
+
+· K∗
+
+= c
+
+"
+
+4Gϵ2 + 2( E + 2) nσ 2
+
+> ψ
+
+ϵ2 + 2( E + 2) nσ 2
+
+> α
+
+ϵ2
+
+!
+
+· pK∗ + 2( E + 1) nσ 2
+
+> ψ
+
+ϵ2 + 2( E + 1) nσ 2
+
+> α
+
+ϵ2
+
+!
+
+· 1
+
+√K∗
+
+#21) 
+
+= c
+
+
+
+c1
+
+pK∗ + c2
+
+1
+
+√K∗
+
+2
+
+(45) where 1) substituting c1 = 4Gϵ2 + 2( E+2) nσ 2 
+
+> ψ
+> ϵ2
+
++ 2( E+2) nσ 2 
+
+> α
+> ϵ2
+
+and c2 = 2( E+1) nσ 2 
+
+> ψ
+> ϵ2
+
++ 2( E+1) nσ 2 
+
+> α
+> ϵ2
+
+for brevity. Observe that Eq. 45 is a function of K∗. Analyzing its main form, c1
+
+√K∗ + c2 1√K∗
+
+, and considering its graph and solving it using calculus, we determine that its minimum occurs at Kopt  
+
+> ∗
+
+= c2 
+
+> c1
+
+, i.e.: 
+
+Kopt  
+
+> ∗
+
+= c2
+
+c1 = 
+
+> 2( E+1) nσ 2
+> ψ
+> ϵ2
+
++ 2( E+1) nσ 2 
+
+> α
+> ϵ2
+> 4Gϵ2
+
++ 2( E+2) nσ 2 
+
+> ψ
+> ϵ2
+
++ 2( E+2) nσ 2
+
+> α
+> ϵ2
+> 1)
+
+< 1
+
+where 1) note that c1 = c2 + 4Gϵ2 + 2nσψ 2 
+
+> ϵ2
+
++ 2nσα 2 
+
+> ϵ2
+
+, therefore the denominator ( c1) is greater than the numerator ( c2). Finally, considering K∗ ∈ N+, we observe that Qϵ increases monotonically within the feasible region of K∗. This implies that the optimal K∗ for query efficiency is K∗ = 1 .
+
+> 4
+
+Tϵ can be regarded as a function of K∗, treating all other variables as constants. 
+
+> 5
+
+Qϵ = c · TϵK∗ can be expressed as: (number of query per iteration per client) × (number of iteration to achieve ϵ-solution) ×
+
+(number of activated clients per iteration) 
+
+29 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+## B. Experiment Details 
+
+B.1. GLUE Dataset Metrics 
+
+Below is the table for the detail of the dataset we use, and their associated tasks, metrics, and data domains. 
+
+Dataset |L| |Train | |Dev | |Test | Type Metrics Domain 
+
+MNLI 3 393K 9.8K 9.8K NLI acc. fiction, reports QQP 2 364K 40K 391K paraphrase F1 Quora SST-2 2 6.7K 872 1.8K sentiment acc. movie reviews MRPC 2 3.7K 408 1.7K paraphrase F1 news CoLA 2 8.6K 1K 1K acceptability Matthews corr. books, articles QNLI 2 105K 5.5K 5.5K NLI acc. Wikipedia RTE 2 2.5K 277 3K NLI acc. news, Wikipedia Table 5: The statistics and metrics of seven datasets in GLUE benchmark, |L|: number of classes for classification tasks. 
+
+## C. Supplement Experiment 
+
+C.1. Impact of Activated Clients K∗ on Query Efficiency in Federated Black-Box Prompt Learning 
+
+We also evaluated the impact of K∗ on query efficiency in Federated Black-box Prompt Tuning, as presented in Table 6. The SST2 dataset was used to explore how varying the number of activated clients per round affects model convergence efficiency in FL environments. We tested the number of activated clients per round within the range of [1 , 3, 10 , 30] . For each configuration, we monitored the number of queries required to achieve target accuracy on the validation dataset. Specifically, we evaluated the prompt at the end of each epoch and stop training once the target accuracy was reached, reporting the number of LLM queries at that point. To ensure reliability and account for variability in the learning process, each experimental setup was replicated 20 times, and outliers in the number of queries were removed. The primary aim of our study was to explore how the number of activated clients affects the speed and efficiency of model convergence in FL, specifically to demonstrate the query efficiency of the FedOne approach. The results presented in Table 6 demonstrate a clear trend where fewer activated clients are associated with greater query efficiency. This relationship is evidenced by a consistent decrease in the number of cloud-based LLM queries as the number of activated clients is reduced, a pattern observed across both the Federated BDPL and Federated BBT. Table 6: Query Efficiency in Federated Black-Box Prompt Learning AC Fed-BDPL Fed-BBT # Epoch # LLM Queries # Epoch # LLM Queries 1 25 .4±19 .2 528.6 ±382 .4 10 .8±4.4 2350.0 ±870 .3
+
+3 13 .8±5.2 889 .4±310 .9 5.4±2.3 3825 .0±1356 .2
+
+10 11 .5±6.8 2430 .8±1378 .8 4.2±1.8 10444 .4±3624 .3
+
+30 3.5±2.8 2672 .7±1625 .4 1.7±0.9 16000 .0±5656 .9
+
+C.2. Impact of Prompt Length n on Federated BDPL 
+
+To explore the impact of prompt length on the performance of the FedOne framework, we conducted additional experiments using various prompt lengths across multiple tasks from the GLUE benchmark. We varied the length of the discrete prompts by increasing the number of prompt tokens while keeping other hyperparameters constant. The tested prompt lengths included n ∈ { 10 , 20 , 40 , 60 }.Figure 3 presents the results of these experiments, where test accuracy is reported as the mean across five independent runs with different random seeds, and error bars represent the standard deviation. The results indicate that the overall performance remains relatively stable across different prompt lengths, with minor fluctuations. Notably, the shortest prompt lengths 30 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+(n = 10 ) and largest prompt lengths ( n = 60 ) explore a larger variance, the medium prompt length explores a more stable result. 
+
+Figure 3: The impact of prompt length 
+
+C.3. Experiments on Heterogeneous Client 
+
+We further included an additional experiment to demonstrate FedOne’s performance under varying levels of client hetero-geneity. Following prior works from Lin et al. (2020) and Yurochin et al. (2019), we model heterogeneity using a Dirichlet distribution with concentration parameters α = 0 .5 for medium heterogeneity and α = 0 .1 for high heterogeneity. Each experiment is conducted independently three times. The full results, including three figures corresponding to varying levels of heterogeneity, are presented in Figures 4, 5, and 6. As observed from the results, activating a single client consistently yields the optimal query efficiency, which is aligned with the theoretical result. 
+
+Figure 4: IID client 31 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Figure 5: Medium Heterogeneity Clients 
+
+Figure 6: High Heterogeneity Clients 
+
+C.4. Test Metrics for the RoBERTa-Large Experiment for FedAvg 
+
+To complement our main results in table 1, we present the detailed test metrics for the RoBERTa-Large experiment using the FedAvg algorithm with 10 activated clients per round. Table 7 serves as a supplementary to Table 1, providing the FedAvg result of each prompt tuning methods. 32 FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning 
+
+Table 7: The test metrics on the RoBERTa-large of FedAvg ( K∗ = 10 ). Each trial runs across three random seeds. 
+
+Dataset MNLI QQP SST-2 MRPC CoLA QNLI RTE Avg. 
+
+Fed-PromptTuning 41 .80.0 66 .30.1 78 .30.2 80 .70.2 0.60.0 51 .10.0 51 .40.3 52 .89 
+
+Fed-P-Tuning v2 42 .40.1 66 .60.1 82 .40.5 80 .60.4 0.90.1 52 .90.1 53 .70.4 54 .21 
+
+Fed-BBT 41 .41.2 66 .70.2 77 .60.4 80 .11.2 2.70.6 51 .90.6 52 .30.7 53 .24 
+
+Fed-BDPL 40 .81.0 67 .00.2 82 .92.8 80 .51.6 5.90.2 52 .00.6 53 .80.5 54 .70 
+
+Fed-GS-BDPL 41 .20.4 67 .10.1 82 .81.4 80 .51.0 5.80.5 52 .30.2 54 .50.4 54 .89 
+
+C.5. Test Accuracy for Various Total Number of Clients 
+
+To demonstrate the scalability of FedOne, we further report the test accuracy of FedOne-BDPL and FedOne-GS-BDPL on the SST-2 dataset under varying total numbers of clients (100, 1,000, and 10,000). Both methods exhibit stable performance as the number of clients increases, demonstrating strong scalability. Table 8: Performance of FedOne on SST-2 with varying total number of clients 
+
+Framework 100 clients 1000 clients 10000 clients 
+
+FedOne-BDPL 80 .86.0 79 .91.7 79 .72.4
+
+FedOne-GS-BDPL 80 .80.4 79 .71.6 79 .81.0
+
+33

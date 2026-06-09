@@ -1,0 +1,1343 @@
+Title: Sample Efficient Demonstration Selection for In-Context Learning
+
+URL Source: https://openreview.net/pdf?id=cuqvlLBQK6
+
+Number of Pages: 24
+
+Markdown Content:
+# Sample Efficient Demonstration Selection for In-Context Learning 
+
+Kiran Purohit * 1 Venktesh V * 2 Sourangshu Bhattacharya 1 Avishek Anand 2
+
+## Abstract 
+
+The in-context learning paradigm with LLMs has been instrumental in advancing a wide range of natural language processing tasks. The selection of few-shot examples (exemplars / demonstration samples) is essential for constructing effective prompts under context-length budget constraints. In this paper, we formulate the exemplar selec-tion task as a top-m best arms identification prob-lem. A key challenge in this setup is the exponen-tially large number of arms that need to be eval-uated to identify the m-best arms. We propose CASE ( Challenger Arm Sampling for Exemplar selection), a novel sample-efficient selective ex-ploration strategy that maintains a shortlist of “challenger” arms, which are current candidates for the top-m arms. In each iteration, only one of the arms from this shortlist or the current top-
+
+m set is pulled, thereby reducing sample com-plexity and, consequently, the number of LLM evaluations. Furthermore, we model the scores of exemplar subsets (arms) using a parameterized linear scoring function, leading to stochastic lin-ear bandits setting. CASE achieves remarkable efficiency gains of up to 7× speedup in runtime while requiring 7× fewer LLM calls (87% reduc-tion) without sacrificing performance compared to state-of-the-art exemplar selection methods. We release our code and data. 1
+
+## 1. Introduction 
+
+In-context learning (ICL) and Chain-of-Thought (COT) have emerged as important techniques for enhancing the capabilities of large language models (LLMs) across a range of natural language tasks (Yang et al., 2018; Roy & Anand, 2022; Nanekhan et al., 2025; V et al., 2023). ICL allows 
+
+> *
+
+Equal contribution. 1Indian Institute of Technology, Kharagpur, India 2Delft University of Technology (TU Delft), Netherlands. 
+
+Proceedings of the 42 nd International Conference on Machine Learning , Vancouver, Canada. PMLR 267, 2025. Copyright 2025 by the author(s). 
+
+> 1
+
+https://github.com/kiranpurohit/CASE Exemplar/ 
+
+> Demonstration subsets
+> Demonstration
+> samples: (S)
+> e1
+
+: Can drinking     
+
+> lemon water provide
+> vitamin C ?
+> e2: Is a Boeing 737
+> cost covered by
+> Wonder Woman (2017
+> fi lm) box o ffi ce?
+> Multi-arm bandit
+> based selection
+> Train set
+> E1: Can drinking water
+> provide Vitamin C?
+> E3: Can a telescope
+> help in seeing Jupiter ?
+> E10: Is boeing 737 cost
+> covered by Avatar Movie
+> Collection?
+> E3: Can chordata
+> breathe in water?
+> Exponential
+> search space: |S| C2
+
+…
+
+…
+
+.  
+
+> LLM
+> Sample-e ffi cient
+> reward estimation
+> Inference Stage
+> Top-m exemplar/
+> demonstration
+> subsets
+> Top-m exemplar
+> subsets
+> LLM Prediction
+> Prompt generator
+> ()π
+> Lowest validation
+> loss top-1 subset
+> selection
+> Diversity based
+> top-1 subset selection
+> (MMR)
+> Similarity based top-1
+> subset selection (KNN)
+> Can a human heart
+> last from NYC to
+> Rayleigh?
+> Test Question
+> Selection Stage
+
+…
+
+> Reward
+> from LLM
+> LLM
+> call
+
+Figure 1: Overview of CASE for selection of top-m best exemplar subsets (arms) .LLMs to perform tasks by conditioning on a context that includes demonstration examples or instructions, without the need for additional fine-tuning, making it flexible and adaptable. COT facilitates stepwise problem-solving by employing rationales. However, one key challenge in maxi-mizing the effectiveness of ICL is the careful selection of few-shot examples along with their corresponding rationales (Lu et al., 2022; Zhao et al., 2021). We refer to the triplet of (input, rationale, output) as an exemplar/demonstration examples. Most existing approaches for selecting demonstration exam-ples are based on heuristics or trial-and-error methods (Fu et al., 2023; Brown et al., 2020), with only a few attempting to address the problem in a more principled way (Xiong et al., 2024). Exemplar / demonstration example selection can be classified into two categories: task-level , where a static set of exemplars representative of the task is chosen for inference, and instance-level , where exemplars are dy-namically selected for each test instance during inference (Rubin et al., 2022; Xiong et al., 2024; Ye et al., 2023b), which introduces overhead during inference. Additionally, these methods do not consider the positive and negative 1Sample Efficient Demonstration Selection for In-Context Learning 
+
+interactions between the exemplars. In contrast, selecting a static set of exemplars not only eliminates inference-time overhead but also enables prompt caching, allowing for the reuse of key-value (KV) attention states (Gim et al., 2024). In this work, we propose a hybrid approach where first mul-tiple sets of exemplars are selected at task-level, and then test example-specific prompts are constructed at inference time over the reduced search space (task-level exemplars). The approaches closest to us are LENS (Li & Qiu, 2023), which use marginal gains in accuracy as selection metric, and EXPLORA (Purohit et al., 2024), which uses a heuristic contrastive learning based exploration scheme, incurring relatively high computational costs. In this work, our primary goal is to propose a principled and sample efficient exemplar selection approach without compromising task performance. Recent studies aimed at developing theoretically grounded models for ICL (Zhang et al., 2023) primarily focus on linear functions and linear transformers. We propose to use a linear function based on sentence similarities between the in-context examples and validation examples as the surrogate model for modeling the goodness of in-context learning. This approach leads to a linear reward model for a multi-armed bandit-based exem-plar selection, leading to the linear stochastic bandits setting (Abbasi-Yadkori et al., 2011). In this setting, our problem is posed a multiple exemplar-subset selection (MESS). We formulate the selection of top-m exemplar subsets as the problem of identification of top-m arms (Réda et al., 2021) in the stochastic linear bandit setting (Réda et al., 2021). The GIFA framework (Réda et al., 2021) proposed an efficient gap-index based top-m arms identification algo-rithm with reduced sample complexity. However, the com-putation of challenger arm (current candidates for top-m
+
+arms), requires computation of gap-indices between all cur-rently estimated top-m arms and the remaining arms. This is impractical in our setting since each arm corresponds to a k-sized subset of the training exemplar set, leading to an exponential number of candidate arms. Hence we need an algorithm that can sample arms from the candidate sets. While some uniform sampling algorithms for top-m
+
+arms identification exist, (Chen et al., 2017; Kaufmann & Kalyanakrishnan, 2013) for the general multi-arm bandit setting, to the best of our knowledge, there are no sampling-based algorithms for identification of top-m arms in the stochastic linear bandits setting. In this work, we propose CASE ( Challenger Arm Sampling for Exemplar Selection) where we propose a principled sampling of challenger arms to form a shortlist challenger set, pruning the space of possible candidate arms (see fig. 1). Our key idea is to iteratively create a low-regret set of selected challenger arms, in addition to the current top-m
+
+arms, from uniformly sampled arms. This leads to a se-lective exploration-based algorithm that is sample-efficient .We concurrently apply the state-of-the-art gap-index-based algorithm rule for selecting top-m arms out of the total exploration set. We also provide theoretical arguments to justify our novel approach of combined selective exploration and gap-index based identification of top-m arms. When applied to exemplar selection, we observe improvements in task performance of upto 15.19% compared to state-of-the-art methods like LENS, competitive performance with competitive approaches like EXPLORA and reduces num-ber of LLM calls (about 7x ) with speedup of upto 7x when compared to state-of-the-art exemplar selection approaches. 
+
+## 2. Related Work 
+
+Exemplar Selection for ICL. The rise of LLMs has transformed them into general-purpose answering engines through emergent capabilities like ICL (Brown et al., 2020; Wei et al., 2022; 2023; Wang et al., 2023a; Kojima et al., 2023; Chen et al., 2022a) where a few examples are pro-vided to LLMs to demonstrate the task. To eliminate manual selection, several automated methods have emerged, such as reinforcement learning (Zhang et al., 2022; Lu et al., 2023), trained retrievers (Xiong et al., 2024), Determinantal Point Processes (Ye et al., 2023a) and constrained optimization (Tonglet et al., 2023). Additionally, dynamic selection meth-ods that are learning-free, such as similarity-based (Rubin et al., 2022), complexity-based (Fu et al., 2023), and MMR (Ye et al., 2023b), have been explored. However, dynamic methods increase inference-time computational costs. To address this, a pre-selected, representative set of exemplars is chosen for ICL, akin to coreset selection methods (Guo et al., 2022), though the key difference is that ICL does not involve parameter updates. To the best of our knowledge, there has been very little research on a sample efficient ap-proach for exemplar selection, with the closest work being LENS (Li & Qiu, 2023) and EXPLORA (Purohit et al., 2024). LENS is expensive in number of LLM calls and is unsuitable for black-box models. EXPLORA proposes a heuristic exploration approach which is computationally intensive in terms of number of LLM calls and hence not sample efficient. We propose a novel sample efficient exem-plar selection approach for black-box and open LLMs. 
+
+Identification of Top-m Arms in Stochastic Linear Ban-dits. The top-m arms identification problem aims to es-timate a subset of m arms with the highest means. Vari-ous methods have been proposed in both fixed-confidence (Kalyanakrishnan et al., 2012) and fixed-budget settings (Bubeck et al., 2013). In this paper, we focus on the fixed-confidence setting, where the error probability in estimating the top-m arms should be smaller than a predefined parame-ter δ ∈ (0 , 1) . Adaptive sampling algorithms like UGapE (Gabillon et al., 2012) and LUCB (Kalyanakrishnan et al., 2Sample Efficient Demonstration Selection for In-Context Learning 
+
+2012), along with uniform sampling methods (Kaufmann & Kalyanakrishnan, 2013; Chen et al., 2017), have been intro-duced for the fixed confidence setup, but they lack efficiency in terms of sample complexity. While efficient adaptive sampling methods for linear bandits, such as (Fiez et al., 2019), RAGE (Zhang et al., 2023), LTS (Jedra & Proutiere, 2020), PEPS (Li et al., 2023), LinGapE (Xu et al., 2017) and LinGame (Degenne et al., 2020), have been proposed, they primarily address best-arm identification ( m = 1 ). To the best of our knowledge, GIFA (Réda et al., 2021) was the first unified framework for efficient top-m arm identifi-cation with low sample complexity. However, algorithms implemented in GIFA framework require large number of gap-index computations and comparisons, leading to high sample complexity. This is due to its challenger arm sam-pling mechanism, which considers the complement of the current top-m estimate as the challenger set, resulting in a large search space. In this work, we propose a novel and ef-ficient algorithm with applications to exemplar selection for diverse tasks in LLMs. Possible other formulations could be learning to rank (LTR) or online learning to rank (Zoghi et al., 2017; Grotov & De Rijke, 2016; Li et al., 2019). LTR relies on static relevance estimates assigned to samples or on user clicks, in an online setting. In contrast, our prob-lem requires dynamic feedback from LLMs to determine the importance of exemplars. Therefore, learning to rank approaches are not well-suited to our problem setup. 
+
+## 3. CASE: Challenger Arm Sampling-based Exploration for Exemplar-subset Selection 
+
+In-context learning (ICL) enables LLMs to acquire task-specific knowledge from just a few demonstration examples without updating the model’s parameter. However, due to the financial and computational costs and the limitations of LLMs in effectively processing large input contexts, provid-ing all available demonstration examples for a given task is ineffective and impractical. Therefore, a key challenge is the 
+
+efficient and optimal selection of demonstration examples 
+
+(also called exemplars), particularly in a black-box setting where access to the model’s parameters or confidence esti-mates is unavailable. To address this, we propose a novel algorithm for exemplar subset selection. We formulate the task of constructing an optimal prompt as a multiple exem-plar subset selection problem (section 3.1). This is posed as a top-m arm selection problem in stochastic linear bandits (Kalyanakrishnan & Stone, 2010; Réda et al., 2021) (section 3.2), leading to a novel sample efficient approach for top-m
+
+arm selection, which we call as CASE (section 3.3). 
+
+3.1. Problem Setup- Multiple Exemplar-subset Selection 
+
+For a given task, let u denote the input examples and v
+
+denote the output labels. For simplicity, we include ratio-nales / chain-of-thought reasoning used in the demonstra-tion samples in the example u. Let X = {ui, v i}ni=1 be the set of all n potential exemplars and (utest , v test ) de-note a test input example and desired output. A prompt 
+
+P is constructed from a subset S ⊆ X of k exemplars, which is used for the prediction of utest . Hence, P =[S, u test ] = [( ui1 , v i1 ), ..., (uik , v ik ), u test ]. The prompt P
+
+is then passed to a response generator function f which uses a sampling / decoding mechanism to generate responses from an LLM (given by the distribution PLLM . Hence, 
+
+f (P ) ∼ (PLLM (r|P )) . The final step is a post-processing 
+
+δ applied to an LLM-generated response f (P ) for extract-ing the task-specific output ˆvtest . Commonly used post-processing strategies include regular-expression matching (δregex ) and self-consistency ( δSC ) (Wang et al., 2023b). While the above-described basic mechanism can be used for in-context learning, a single subset of k-exemplars of-ten may not capture all the diverse aspects of a given task. Hence, prompt generators π are used to generate prompts specific to a given test input utest , from a shortlist of multiple high-scoring exemplar subsets S1, ..., S m, where 
+
+Si ⊆ X , ∀i = 1 , ..., m . Hence, prompt P is calculated as P = π(S1, ..., S m, u test ). Popular prompt generators include similarity-based ( πKN N ), which selects the subset with the highest semantic similarity to the test example, and diversity-based ( πM M R ) (discussed in section 4). Hence, the entire output generation process can be described as: 
+
+ˆvtest = δ(f (P )) , where P = π(U, u test ),
+
+and U = ( S1, ..., S m) (1) Here, U = ( S1, ..., S m) is a set of m subsets of the potential exemplar set X .The main challenge in this paper is to select U , a high-scoring set of subsets of exemplars, Si, that can be used by a given prompt generator π to generate dynamic prompts (test example-specific) that maximize the performance on a given task. We use a separate validation set for measuring the performance of U , a selected set of exemplar subsets. Let V be the set of n′ validation examples {u′
+
+> i
+
+, v ′
+
+> i
+
+}n′
+
+> i=1
+
+, and let the validation accuracy for a prompt P be defined as: 
+
+A(P, V) = 1
+
+> n′
+
+Pn′ 
+
+> i=1
+
+1(v′ 
+
+> i
+
+= δ(f (π(U, u ′
+
+> i
+
+)))) . Our prob-lem can be formulated as finding a set U ∗ of m-subsets of 
+
+X such that the corresponding prompt P generated by the prompt generator π maximizes the total validation accuracy. 
+
+U ∗ = arg max   
+
+> U∈S (X)m
+
+A(π(U ), V)
+
+where S(X )is the set of all k-sized subsets of X (2) We call this as multiple exemplar-subset selection (MESS) formulation for finding the optimal prompt. 3Sample Efficient Demonstration Selection for In-Context Learning 
+
+3.2. Top-m Arm Selection formulation for MESS 
+
+The MESS problem defined above cannot be solved effec-tively using naive or heuristic search-based algorithms due to two reasons: (1) the search space S(X )m is doubly expo-nentially large in k and m (|S (X )| = O(|X | k), and (2) the function A(P, V) is computationally expensive due to LLM inference. In this section, we take a multi-armed bandit-based approach to implicitly estimate the function A(P, V)
+
+in a sample-efficient manner, minimizing the number of queries to the LLM. Let a ∈ { 0, 1}n such that ∥a∥0 = k denote the 1-hot en-coding for an exemplar subset of size k, chosen from the potential exemplar set X (|X | = n). The multi-armed bandit instance is constructed as arms ai ∈ S (X ) where 
+
+i ∈ { 1, ..., |S (X )|} . Note that the number of arms is expo-nential in both k and n. The reward for an arm a is given by the accuracy A(π(a), V), where π is the prompt generated by the subset corresponding to a, and V is the validation set. We further assume that the reward for an arm a, ρ(a), can be modeled as a linear function of its features, aligning with the linear stochastic bandit setting (Abbasi-Yadkori et al., 2011). Intuitively, given an arm a, the reward scoring function ρ(a)
+
+should be a function of the similarity between the inputs of the selected exemplars, ui, such that a(i) = 1 , and the validation exemplar u′ 
+
+> j
+
+∈ V . In this work, we use a normal-ized BERT-based similarity score, Sim ij = ϕ(ui)T ϕ(u′   
+
+> j)
+> ∥ϕ(ui)∥∥ ϕ(u′
+> j)∥
+
+,where ϕ(u) is the sentence encoding vector obtained from a pre-trained transformer model, e.g. SentenceBERT. Let, 
+
+α = {αi|i = 1 , ..., n } denote the vector of linear coeffi-cients, where each αi corresponds to the ith potential exem-plar coefficient in the reward scoring function. Our linear model for the reward of an arm a is given by: 
+
+ρ(a) ≡ ρ(a; α) = 1
+
+n′
+
+> n′
+
+X
+
+> j=1
+> n
+
+X
+
+> i=1
+
+(αia(i)Sim ij ) = αT xa (3) where xa(i) = a(i)
+
+ 1
+
+> n′
+
+Pn′ 
+
+> j=1
+
+Sim i,j 
+
+
+
+. Here, xa ∈ Rn
+
+denotes the vector of features of the arm a, with non-zero components only for the exemplars that are part of the arm 
+
+a. The observed reward is given by ˆρ(a; α) = ρ(a; α) + η,where η is a subgaussian noise, i.e. E[eλη ] ≤ exp( λ2ξ2/2) ,for some variance ξ2. The MAB learning algorithm itera-tively estimates the unknown coefficients ( ˆαt), such that the empirical estimate of reward ˆρt(a) ≡ ˆρ(a; αt) ≈ ρ(a; α)
+
+for the high scoring arms a and a large time index t > τ .Under the above multi armed bandit setup, we approximate the problem of MESS as finding the set of top-m arms, denoted as U ∗ = {a1, ..., a m}.Under this stochastic linear bandits assumption, the prob-lem of identifying top-m arms can be solved using the Gap-index based algorithms (Xu et al., 2018; Réda et al., 2021), which were unified under the GIFA framework (Réda et al., 2021). The GIFA framework is a class of iterative algorithms that maintain a set of estimated m-best arms, Ut. In each iteration t, the most ambiguous arm from Ut, say bt = arg max b∈Ut max a∈U ct Bt(a, b ),and the most ambiguous arm from U ct (called the chal-lenger arm), say ct = arg max c∈U ct Bt(c, b t), are com-puted. The arm with the highest variance between bt and 
+
+ct is pulled, and the model parameters are updated. Here 
+
+Bt(a, b ) is called the gap index between arms a and b. For parameter updation, the design matrix ˆVt+1 is computed as: 
+
+ˆVt+1 = λI n + P 
+
+> a∈S
+
+NaxaxTa , where Na is the number of times an arm a was pulled. The updated parameters ˆαt+1 
+
+are computed as: ˆαt+1 = ( ˆVt+1 )−1(Pt+1  
+
+> l=1
+
+rlxal ), where 
+
+rl is the reward received by computing the accuracy of the prompt generated by the current arm. The gap-index between any two arms i, j is computed as: Bt(i, j ) = ˆρt(i) − ˆρt(j) + Wt(i, j ), where the confidence term is defined as: Wt(i, j ) = Ct,δ (|| xi|| ˆΣλt
+
++ || xj || ˆΣλt
+
+), where, 
+
+Ct,δ =
+
+r
+
+2 ln   1
+
+> δ
+
+ + N ln 
+
+
+
+1 + (t+1) L2
+
+> λ2N
+
+
+
++ √λσ S, S and L
+
+are constants, N is the total number of arms pulled, and 
+
+ˆΣλt = σ2( ˆVt)−1.
+
+3.3. CASE: Challenger-arm sampling-based top-m arm selection 
+
+Implementing gap-index-based schemes for top-m arm iden-tification, for settings with exponentially large number of arms is infeasible. The key problem is to identify the most ambiguous arms in each iteration. We propose to mitigate this problem using: (a) identify a low-regret subset Nt of m′
+
+next-best arms after Ut, and (b) use a GIFA-based algorithm to identify the top-m arms from the set Ut ∪ Nt. The prob-lem of combinatorial blowup of arms in the linear bandit setting has been sparsely studied, with selective exploration as one of the strategies (e.g. Algorithm 13, Chapter 23 of (Lattimore & Szepesvári, 2020)). Since it is impractical to explore all arms, the selective exploration scheme uniformly samples arms from the unexplored set and then selects the highest-scoring arms according to the current model. It then pulls the selected arms to update the model parameters. Algorithm 1 describes the proposed challenger-arm sam-pling based exploration technique, called CASE. The set of top-m subsets (arms), U0, is initialized to a random set sampled from S. In lines 11 – 13, we compute the up-dated Ut by moving the highest scoring arm from Nt−1
+
+if its score is higher than that of the lowest scoring arm in Ut−1, which is then moved to Nt−1. Using the selec-tive exploration idea, CASE uniformly samples m′ arms from (Ut ∪ Nt−1)c, to generate the set Mt, and then selects the top-m′ arms from Mt ∪ Nt−1 to generate the updated 
+
+Nt. Nt ∪ Ut is the high-reward selected set, from which 4Sample Efficient Demonstration Selection for In-Context Learning 
+
+we explore using the selection rule. We use the greedy selection rule proposed in (Réda et al., 2021), where we select the arm that minimizes the variance between st and 
+
+bt: a∗ = arg min a∈Nt∪Ut || xbt − xst || ( ˆVt−1+xaxTa )−1 . We call the LLM (line 21 in Algorithm 1) after the selection rule, where an arm (i.e., a set of exemplars) is sampled. Specifically, A(π(a(t)) , V) denotes the computation of ac-curacy on the validation subset, which requires LLM to generate predictions. This ensures that the LLM’s rationale and output generation processes are explicitly integrated into our algorithm. By doing so, we effectively leverage the gap-index-based multi-arm bandit framework to optimize exemplar selection for ICL using LLMs. Steps 17 and 18 in algorithm 1 compute the revised most ambiguous arms 
+
+bt ∈ Ut and st ∈ Nt. st is sampled challenger arm selected from the selected set of next best arms Nt using the gap index Bt(a, b ) = ˆ ρt(a) − ˆρt(b) + Wt(a, b ). Finally, the revised parameters ˆαt+1 are computed using the revised design matrix ˆVt+1 and the least squares estimation formu-lae described in lines 22 and 23 of algorithm 1. Note that, 
+
+ˆVt+1 can be computed from ˆVt using the incremental update formula ˆVt+1 = ˆVt + xat+1 xTat+1 . Hence, ( ˆVt+1 )−1 can be calculated in O(n2) time using the Sherman-Morrison for-mula. We stop the updates when the convergence criteria for switching the arms between Ut and Nt have been achieved, i.e. Bt(st, b t) ≤ ϵ. The time complexity for each iteration of our algorithm is O(mm ′ + n2 + LLM_inference_time )
+
+which is due to lines 17, 21 and 23. Next, we discuss some theoretical results related to our method. 
+
+3.4. Sample Complexity bounds for the top-m selection 
+
+The ability of CASE to identify the top-m arms and cor-rectly estimate the model parameters α rests on two argu-ments. Firstly, the selective exploration strategy results in a low regret set of arms Ut ∪ NT . Specifically, we assume the average regret (total regret / #iterations) of the set UT ∪ NT
+
+to upper bounded by ϵ. While we postpone a rigorous deriva-tion of the regret bound for CASE to a later study, we justify our assumption by using the SETC Algorithm (Algo 13 in (Lattimore & Szepesvári, 2020)), which follows a similar uniform exploration and commitment strategy in the linear bandit setting. SETC has a regret bound of O(dpn log( n)) 
+
+where n is the number of time steps. Hence, the algorithm will achieve an average regret of at most ϵ after at most 
+
+exp( W ( ϵ2 
+
+> C2d2
+
+)) timesteps, where W is Lambert’s function, and C is the constant for the regret bound. Secondly, once a low regret UT ∪ NT set is achieved, the gap-index-based algorithm correctly identifies the top-
+
+m arms from the set UT ∪ NT . Following (Réda et al., 2021), we obtain a high probability ( 1 − δ) upper bound for the sample complexity of CASE on the event E ≜
+
+T
+
+> t> 0
+
+T
+
+> i,j ∈[K]
+
+
+
+ρi − ρj ∈ [−Bt(j, i ), B t(i, j )] 
+
+
+
+, Let S⋆m
+
+Algorithm 1 CASE 
+
+1: Input: X : set of all training exemplars, k: prompt size, S :
+
+all k-subsets of X , a ∈ S : an arm or k-subset 2: Define: Ut: set of currently estimated top-m arms. 3: Nt: set of currently estimated next best-m′ arms. 4: bt: the most ambiguous arm from Ut
+
+5: st: the most ambiguous sampled arm from Nt
+
+6: Initialize: U0 ← set of random m arms from S,
+
+t ← 1,⃗ α 1 ← N (0 , 1) 
+
+7: while ¬ (Bt(st, b t) ≤ ϵ) do 
+
+8: Construct Ut by replacing nt with potentially better arm ct
+
+9: nt = arg min a∈Ut−1 ˆρt(a)
+
+10: ct = arg max a∈Nt−1 ˆρt(a)
+
+11: if ˆρt(ct) ≥ ˆρt(nt) then 
+
+12: Ut, N t ← swap (nt, c t) from Ut−1, N t−1
+
+13: end if 
+
+14: Mt ← s′ ∼m′ (Ut ∪ Nt−1)c // Randomly sample 
+
+15: Nt←top m′ (Mt∪Nt−1; ˆ ρ(t)) // Update Nt from Nt−1 &Mt
+
+16: Compute the revised most ambiguous arms for convergence 
+
+17: bt+1 = arg max b∈Ut max a∈Nt [Bt(a, b )] 
+
+18: st+1 = arg max s∈Nt [Bt(s, b t+1 )] 
+
+19: Pull selected arm, receive reward, and update parameters 
+
+20: at+1 ← selection_rule (Ut, N t)
+
+21: rt+1 = A(π(a(t)) , V) // LLM inference call 
+
+22: ˆVt+1 =λI n +P 
+
+> a∈S
+
+NaxaxTa // λ regularized design matrix 
+
+23: ˆαt+1 = ( ˆVt+1 )−1(Pt+1  
+
+> l=1
+
+rlxal ) // Least-squares estimate 
+
+24: t ← t + 1 
+
+25: end while 
+
+26: Output: UT : Set of m arms which have the highest reward 
+
+be the true set of top-m arms. We define the true gap of an arm i as ∆( i) ≜ ρ(i) − ρ(m + 1) if i ∈ S ⋆m, ρ(m) − ρ(i)
+
+otherwise ( ∆( i) ≥ 0 for any i ∈ [K]). 
+
+Theorem 1. For CASE , on event E on which the algo-rithm is ( ε, m, δ )-PAC, stopping time τδ satisfies τδ ≤
+
+inf {u ∈ ρ∗+ : u > 1 + Hε(μ)C2 
+
+> δ,u
+
++ O(K)}, where, for algorithm with the largest variance selection rule 2 :Hε(μ) ≜ 4σ2 X
+
+> a∈[K]
+
+max  ε, ε+∆ a
+
+> 3
+
+−2 ,
+
+Above theorem essentially adopts the result in Theorem 2 from (Réda et al., 2021) to the setting where we restrict ourselves to arms in UT ∪NT . It mentions that the ϵ-optimal top-m arms from UT ∪NT are present in UT with prob. 1−δ,if T > τ δ . K is the size of UT ∪ NT .
+
+Proof Overview : The proof builds upon the proofs for clas-sical Top-m linear bandits, LinGapE (Xu et al., 2018) and LinGIFA (Réda et al., 2021) while additionally account-ing for the challenger arms shortlist in Nt proposed in this work. To prove it, one of the key components is the fol-lowing lemma, which holds for any gap indices of the form 
+
+Bt(i, j ) ≜ ˆρt(i) − ˆρt(j) + Wt(i, j ) for i, j ∈ [K]2.
+
+> 2
+
+or pulling both arms in {bt, c t} at time t
+
+5Sample Efficient Demonstration Selection for In-Context Learning 
+
+Lemma 1. On the event E, for all t > 0,
+
+Bt(st, b t)( t) ≤ min( −(∆( bt) ∨ ∆( st)) +2 Wt(bt, s t), 0) + Wt(bt, s t)
+
+, where a ∨ b = max (a, b ).
+
+Proof for Lemma 1 is provided in Appendix A.1. In sum-mary, Theorem 1 and Lemma 1 together provide an upper bound on the expected number of arm pulls required by the algorithm, which translates to the number of LLM calls needed when applying CASE to complex reasoning tasks. 
+
+## 4. Experiments and Results 
+
+We aim to address the following research questions: 
+
+RQ I. How sample efficient is CASE compared to state-of-the-art exemplar selection and stochastic linear bandit methods? 
+
+RQ II. Can CASE, choose task-level demonstration sam-ples without sacrificing task performance, compared to state-of-the-art exemplar selection methods? 
+
+RQ III. Can CASE work without exploration? 
+
+4.1. Experimental Setup Synthetic Experiments For synthetic experiments, we adopt a setup similar to (Réda et al., 2021) and present results on simulated data. We set σ = 0 .5, ϵ = 0 , and 
+
+δ = 0 .05 across all experiments. Each experiment is con-ducted over 500 simulations. We explore various numbers of arms K ∈ [7 , 10 , 20] , and set the number of top arms to be identified with the highest means as m = 3 . We choose a challenger set Nt of size 3 and feature dimension is 3.TASK LEVEL EXEMPLAR SELECTION FOR ICL 
+
+Datasets and Metrics: We evaluate on well-known datasets that require numerical and commonsense reasoning. For numerical reasoning, we use GSM8K, FinQA, TabMWP and AquaRAT; for commonsense reasoning, we use Strat-egyQA. Detailed descriptions of the datasets are provided in Appendix A.3. We report performance using the official metrics: Exact Match (EM) and Cover-EM (Rosset et al., 2021) for respective datasets. 
+
+Hyperparameters (LLMs): For LLMs, we set the temper-ature to 0.3 to reduce randomness. To reduce repetition, we apply a presence penalty of 0.6 and a frequency penalty of 
+
+0.8. The max _length for generation is set to 900. 
+
+Hyperparameters (CASE): We begin by clustering the training set into 5 clusters. We then form the set of exemplar subsets ( S), by sampling one exemplar from each cluster 
+
+with replacement . This approach allows us to explore vari-ous combinations of exemplars. Note that the training set to form S are same across baselines for a fair comparison. We set m = |Ut| = 10 to identify the top scoring subsets (arms) and choose a challenger set Nt of size 5. We set the number of validation examples V to, 20 and ϵ = 0 .1.
+
+Baselines: We compare against instance-level exemplar selection methods, such as MMR (Ye et al., 2023b) and KNN (Rubin et al., 2022), which use diversity and similarity-based measures to select exemplars for each test example. We configure MMR with λ = 0 .5 to balance similarity and diversity. We also evaluate against coreset selection methods like Graphcut and Facility Location (Iyer & Bilmes, 2013). Finally, we compare with LENS (Li & Qiu, 2023) and EXPLORA (Purohit et al., 2024), state-of-the-art task-level exemplar selection approaches. 
+
+CASE Hybrid Variants: We also propose hybrid variants of CASE, where we select instance-level exemplars subset from the top-m subsets identified by CASE using KNN or MMR, thereby reducing the search space. Our hybrid approach scores entire subsets by aggregating the similarity scores of each exemplar within the subset to the test instance, thereby preserving the interactions between exemplars. 
+
+4.2. Performance of CASE Compared to Existing Gap-Index-Based Approaches 
+
+To address RQ1 , we conduct synthetic experiments follow-ing the setup in Section 4.1. We evaluate metrics such as average runtime, the average number of comparisons for gap index computation, for multi-armed bandit (MAB) ap-proaches including LinGapE, LinGIFA, and CASE. The results for K = 20 , m = 3 , and N = 3 are shown in Figure 2. Other synthetic experiments are presented in Appendix A.9. In Figure 2(a), we observe that CASE significantly reduces the number of comparisons required for gap index computations compared to state-of-the-art gap-index-based MAB approaches like LinGapE, LinGIFA. This improve-ment is largely due to the principled challenger arm sam-pling strategy, pruning the space of possible challenger arms (Nt), resulting in efficient gap index computations. The efficiency gains stem from the fact that |Nt| < |U ct |, where existing gap-index frameworks use the entire U ct to select challenger arms. From Figure 2(b), we also observe that run-time of CASE is lower when compared to LinGapE (about 
+
+5.6x ) and LinGIFA (about 12x ) due to lower number of arm comparisons and gap-index computations. In Figures 2(c) and 2(d), we analyze the gap index ( Bt(st, b t)) and simple regret across rounds (averaged across simulations) and observe that they approach 0 as the number of rounds increases. This demonstrates that, CASE samples good arms with our shortlist of Nt serving as a good approxima-tion of challenger arms. CASE converges with much lower gap index computations and has lower runtime compared to existing state-of-the-art gap-index MAB algorithms. Since, EXPLORA uses an exploration based setting for se-6Sample Efficient Demonstration Selection for In-Context Learning 
+
+> CASE
+> LinGapE
+> LinGIFA
+> 0
+> 1
+> 2
+> ·10 6
+> Avg no. of comparisons (in  10 5)
+
+(a) Avg. no. of Comparisons across simulations CASE LinGapE LinGIFA 
+
+> 0
+> 500
+> 1,000
+> Average runtime
+
+(b) Average runtime (in seconds) 
+
+200 400 600 
+
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+
+Rounds 
+
+> Gap Index
+> CASE
+> LinGapE
+> LinGIFA
+
+(c) Gap Index Comparison 
+
+0 200 400 600 
+
+> 0
+> 0.1
+> 0.2
+
+Rounds 
+
+> Simple Regret
+> CASE
+> LinGapE
+> LinGIFA
+
+(d) Simple regret Comparison 
+
+Figure 2: Top-m arm identification by CASE, LinGIFA and LinGapE for K= 20 , m= 3, N= 3.
+
+GSM Aqua Tab Fin Strat 
+
+> 50
+> 100
+> 150
+> 200
+> Avg LLM calls / iteration  EXPLORA
+> CASE
+
+(a) Average number of LLM calls/iteration. GSM Aqua Tab Fin Strat  
+
+> 0
+> 1
+> 2
+> 3
+> 4·10 4
+> LLM Calls (in  10 4) LENS
+> EXPLORA
+> CASE
+
+(b) LLM calls LENS, EXPLORA vs CASE GSM Aqua Tab Fin Strat 
+
+> 0
+> 20
+> 40
+> 60
+> Time (in  hours )
+> LENS
+> EXPLORA
+> CASE
+
+(c) Runtime LENS, EXPLORA vs CASE 
+
+Figure 3: Sample efficiency of CASE compared to LENS and EXPLORA. lecting ICL demonstrations, we compare number of LLM calls per-iteration as shown in Figure 3a. We observe that CASE requires 8 × less calls per-iteration on average per iteration, proving to be extremely sample efficient. We also compare the total number of LLM calls made by CASE, EXPLORA and LENS (shown in Figure 3(b)) for the ap-plication of exemplar selection for ICL. We observe that CASE reduces LLM calls significantly compared to LENS (about 6x to 10.5x ). CASE is also sample efficient when compared to EXPLORA requiring upto 7x less LLM calls (reduces number of LLM calls from 9986 when using EX-PLORA for TabMWP to 1420 in CASE & 3619 to 480 
+
+for GSM8K ) and also reduces the exemplar selection time by 7x (shown in Figure 3(c)). We observe that the total number of LLM calls for CASE is slightly higher than EX-PLORA on AquaRat. This is primarily because EXPLORA is heuristic and stops after 10 iterations, while CASE runs till convergence criteria is met. However, as mentioned earlier, per-iteration CASE requires 8x fewer calls than EXPLORA rendering it more sample efficient. This effi-ciency gains are due to extensive LLM calls by LENS for all training samples. EXPLORA though more efficient than LENS, employs a heuristic approach for arm pulls (LLM calls with exemplar subsets) which results in exploration of less significant exemplar subsets (arms) and is less sample efficient. In contrast, CASE employs a novel challenger set sampling mechanism dramatically reduces the number of subsets (arms) that need to be explored and evaluated. 
+
+4.3. Performance Comparison on Exemplar Selection 
+
+To address RQ II , we compare CASE and its variants against state-of-the-art exemplar selection methods. Ta-ble 1 shows that CASE consistently outperforms random, as well as Few-Shot COT (Wei et al., 2023) methods, which rely on random or hand-picked samples without account-ing for the interactions between exemplars and task-level performance. We observe that smaller LLMs are unable to fit more than 5 exemplars due to context length limits, and their performance plateaus beyond this point (Table 2). Hence, we employ 5-shot examples in our approach and all baselines. Furthermore, classical coreset selection methods like Graph Cut and Facility Location, perform worse or on par with random selection as they were not designed for the ICL paradigm. We also observe that CASE outperforms dy-namic selection methods like KNN, PromptPG, and MMR. We also report the performance of CASE on open-source 7Sample Efficient Demonstration Selection for In-Context Learning 
+
+Table 1: Results across datasets (we use 5-shot for all methods). Percentage improvements are reported over EXPLORA (Purohit et al., 2024). † indicates statistical significance (t-test) over EXPLORA at 0.05 level and ‡ at 0.01 level over LENS. Additionally, all CASE and it’s variants are statistically significant over LENS at 0.05 level and not indicated here. 
+
+Method GSM8K AquaRat TabMWP FinQA StrategyQA GPT-3.5-turbo Instance level 
+
+KNN (S-BERT) (Rubin et al., 2022) 53.07 52.75 77.95 52.65 81.83 MMR (Ye et al., 2023b) 54.36 51.18 77.32 49.87 82.86 KNN+SC (Wang et al., 2023b) 80.21 62.59 83.08 54.49 83.88 MMR+SC (Wang et al., 2023b) 78.01 59.45 81.36 50.74 83.88 PromptPG (Lu et al., 2023) - - 68.23 53.56 -
+
+Task level 
+
+Manual Few-Shot COT (Wei et al., 2023) 73.46 44.88 71.22 52.22 73.06 Random 67.79 49.80 55.89 53.70 81.02 PS+ (Wang et al., 2023a) 59.30 46.00 - - -GraphCut (Iyer & Bilmes, 2013) 66.19 47.24 60.45 52.31 80.00 FacilityLocation (Iyer & Bilmes, 2013) 68.61 48.43 67.66 36.79 81.63 Active-prompt (Diao et al., 2024) 71.20 51.57 - - 74.49 EXPLORA (Purohit et al., 2024) 77.86 53.54 83.07 59.46 85.71 LENS (Li & Qiu, 2023) 69.37 48.82 77.27 54.75 79.79 
+
+Our Approach CASE 79.91 (▲2.63%) ‡ 54.72 (▲2.20%) 83.42 (▲0.04%) ‡ 59.72 (▲0.43%) 84.49 
+
+Hybrid Variants (Ours) CASE+KNN+SC 87.49 (▲12 .36%) †‡ 64.17 (▲19 .85%) †‡ 86.23 (▲3.80%) ‡ 64.25 (▲8.05%) †‡ 85.92 ‡
+
+CASE+MMR+SC 85.60 (▲9.94%) †‡ 62.60 (▲16 .92%) †‡ 85.91 (▲3.41%) ‡ 63.47 (▲6.74%) †‡ 84.69 ‡
+
+GPT-4o-mini 
+
+LENS (Li & Qiu, 2023) 76.19 64.56 86.34 69.31 92.85 
+
+CASE 91.13 73.23 89.73 72.89 95.92 
+
+models like Mistral-7b and Llama2-7b (see Appendix A.4 ). Beyond the efficiency gained during inference, task-level ex-emplars demonstrate greater robustness (see Appendix A.5) compared to dynamic methods. The independent selection of exemplars in dynamic methods may result in negative interactions or skill redundancy, where lexically different exemplars may represent similar skills. To further support the claim that CASE selects more representative task-level exemplars, we conduct a qualitative analysis comparing ex-emplars chosen by LENS and CASE (see Appendix A.8 ). We find that CASE consistently selects exemplars with di-verse skills required for solving tasks similar to EXPLORA, while being significantly efficient, whereas LENS selects exemplars with redundant skills. Hence, we observe that CASE is competitive with EXPLORA in terms of task per-formance while being significantly sample-efficient (upto 
+
+7x ) which is the primary goal of our work. For CASE, we evaluate the performance of gpt-3.5-turbo by re-using exem-plars selected by smaller models, such as Llama2-7b (see 
+
+Appendix A.6 , Figure 4). In Table 1 we show the results Table 2: Different values of k for Manual k-shot COT. 
+
+Datasets GSM Aqua Tab Fin Strat 
+
+Zero-shot 67.02 38.15 57.10 47.51 59.75 1-shot 67.55 38.58 66.30 49.26 68.16 3-shot 68.99 41.33 70.50 51.93 70.00 5-shot 73.46 44.88 71.22 52.22 73.06 
+
+7-shot 68.84 44.88 70.09 52.26 70.61 
+
+of exemplar reuse from Mistral-7b. We observe that exem-plars selected by CASE using smaller LLMs transfer well to larger LLMs, promoting exemplar reuse and efficiency. 
+
+4.4. Ablation Studies 
+
+To answer RQ3 , we conduct several ablation studies (shown in Table 3), including one-time sampling of all exemplar subsets and a variant of CASE without exploration, to high-light the need for an exploration-based MAB approach. In one-time sampling approach, we sample each subset once, evaluate them on validation set, and select the subset with lowest validation loss. Inference results using the selected subset are presented in Table 3. We observe that one-time sampling underperforms compared to CASE as it evaluates all arms only once and lacks sufficient information to confi-dently identify the best arms. This method tends to overfit the validation set and leads to suboptimal selection without incorporating exploration or exploitation mechanisms. Table 3: Ablation studies: one-time sampling, w/o explo-ration vs proposed exploration (CASE).                          
+
+> Datasets GSM Aqua Tab Fin Strat
+> One-time sampling 76.72 50.39 81.23 54.14 80.20 CASE (-exploration) 76.57 47.64 77.17 45.95 80.00
+> CASE ( from Llama) 77.79 56.30 83.65 57.72 82.24 CASE (from Mistral) 79.91 54.72 83.42 59.72 84.49
+
+8Sample Efficient Demonstration Selection for In-Context Learning 
+
+Furthermore, we conduct an ablation where we fit the linear model once on a set of S subsets (as shown in Table 3) and select the subset with the highest mean for test set inference. Unlike CASE, which models the top-m subsets in each round, this ablation fits the linear model once for all subsets. Since, this ablation is devoid of exploration mechanism it does not result in confident estimation of top-m arms resulting in suboptimal performance. 
+
+## 5. Conclusion 
+
+In this work, we propose an efficient exemplar subset se-lection method that identifies highly informative exemplar subsets for ICL. Our approach significantly reduces the number of LLM calls, offering a clear advantage over state-of-the-art methods in terms of sample efficiency without sac-rificing task performance. Additionally, exemplars selected using smaller LLMs can be reused for larger models. In the future, we also plan to extend and apply CASE to adap-tive retrieval methods scrnarios (Rathee et al., 2025b;a;c) and question answering (Venktesh et al., 2025). Specifically, using the challenger arm sampling techniques we could care-fully choose relevant documents to re-rank from the first stage retrieval given LLM signals to make robust prompts. This is particularly useful for question that need quantita-tive, numerical, and temporal matching (Wallat et al., 2025; Venktesh et al., 2024). We also plan to derive a rigorous regret bound for CASE, and the role of exemplars in ICL. 
+
+## Impact Statement 
+
+Our work focuses on efficient exemplar selection to enhance in-context learning, emphasizing both efficiency and sus-tainability . By improving sample efficiency, our approach reduces the number of calls to LLMs, thereby lowering computational costs and minimizing the energy demands associated with LLM inference. While we employ LLMs, we primarily use them for Question Answering on publicly available benchmarks and do not use any private informa-tion. We also would like to highlight that LLMs are known to hallucinate and may result in factually inaccurate answers at times, though we try to mitigate this in our approach by providing relevant context and by generating rationales. 
+
+## Contributions 
+
+Kiran Purohit and Venktesh V contributed equally to this work. Kiran played a major role in the conceptualization and implementation of the algorithm, conducted real-world experiments for CASE and baselines on Llama and Mis-tral, and played a major role in writing the paper. Venktesh V contributed to the algorithm’s conceptualization and im-plementation, provided the sample complexity proof, con-ducted synthetic experiments, real-world baselines, GPT-4 experiments, and contributed to the writing of the paper. Sourangshu contributed to the formulation and writing of Section 3 and ideation of the proof. Sourangshu and Avishek mentored the project and contributed to the idea conceptual-ization, ideation, and writing of the paper. 
+
+## Acknowledgements 
+
+We thank the reviewers for their valuable and insightful feedback. Sourangshu Bhattacharya is thankful to ANRF Core Research Grant (File no: CRG/2023/004600), Govt. of India for supporting this project. 
+
+## References 
+
+Abbasi-Yadkori, Y., Pál, D., and Szepesvári, C. Improved algorithms for linear stochastic bandits. Advances in neural information processing systems , 24, 2011. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D., Wu, J., Winter, C., Hesse, C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I., and Amodei, D. Language models are few-shot learners. In Larochelle, H., Ranzato, M., Hadsell, R., Balcan, M., and Lin, H. (eds.), Advances in Neural Information Processing Systems , volume 33, pp. 1877–1901. Curran Associates, Inc., 2020. Bubeck, S., Wang, T., and Viswanathan, N. Multiple iden-tifications in multi-armed bandits. In Dasgupta, S. and McAllester, D. (eds.), Proceedings of the 30th Interna-tional Conference on Machine Learning , volume 28 of 
+
+Proceedings of Machine Learning Research , pp. 258–265, Atlanta, Georgia, USA, 17–19 Jun 2013. PMLR. Chen, L., Li, J., and Qiao, M. Nearly Instance Optimal Sample Complexity Bounds for Top-k Arm Selection. In Singh, A. and Zhu, J. (eds.), Proceedings of the 20th International Conference on Artificial Intelligence and Statistics , volume 54 of Proceedings of Machine Learning Research , pp. 101–110. PMLR, 20–22 Apr 2017. Chen, W., Ma, X., Wang, X., and Cohen, W. W. Program of thoughts prompting: Disentangling computation from reasoning for numerical reasoning tasks, 2022a. Chen, Z., Chen, W., Smiley, C., Shah, S., Borova, I., Lang-don, D., Moussa, R., Beane, M., Huang, T.-H., Routledge, B., and Wang, W. Y. Finqa: A dataset of numerical rea-soning over financial data, 2022b. Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun, H., Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano, 9Sample Efficient Demonstration Selection for In-Context Learning 
+
+R., Hesse, C., and Schulman, J. Training verifiers to solve math word problems, 2021. Degenne, R., Menard, P., Shang, X., and Valko, M. Gam-ification of pure exploration for linear bandits. In III, H. D. and Singh, A. (eds.), Proceedings of the 37th In-ternational Conference on Machine Learning , volume 119 of Proceedings of Machine Learning Research , pp. 2432–2442. PMLR, 13–18 Jul 2020. Diao, S., Wang, P., Lin, Y., Pan, R., Liu, X., and Zhang, T. Active prompting with chain-of-thought for large lan-guage models. In Ku, L.-W., Martins, A., and Srikumar, V. (eds.), Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pp. 1330–1350, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.acl-long.73. Fiez, T., Jain, L., Jamieson, K., and Ratliff, L. Sequential experimental design for transductive linear bandits, 2019. Fu, Y., Peng, H., Sabharwal, A., Clark, P., and Khot, T. Complexity-based prompting for multi-step reasoning. In The Eleventh International Conference on Learning Representations , 2023. Gabillon, V., Ghavamzadeh, M., and Lazaric, A. Best arm identification: A unified approach to fixed budget and fixed confidence. In Pereira, F., Burges, C., Bottou, L., and Weinberger, K. (eds.), Advances in Neural Informa-tion Processing Systems , volume 25. Curran Associates, Inc., 2012. Geva, M., Khashabi, D., Segal, E., Khot, T., Roth, D., and Berant, J. Did aristotle use a laptop? a question answering benchmark with implicit reasoning strategies. Transac-tions of the Association for Computational Linguistics , 9: 346–361, 2021. Gim, I., Chen, G., seob Lee, S., Sarda, N., Khandelwal, A., and Zhong, L. Prompt cache: Modular attention reuse for low-latency inference, 2024. Grotov, A. and De Rijke, M. Online learning to rank for information retrieval: Sigir 2016 tutorial. In Proceed-ings of the 39th International ACM SIGIR conference on Research and Development in Information Retrieval , pp. 1215–1218, 2016. Guo, C., Zhao, B., and Bai, Y. Deepcore: A comprehensive library for coreset selection in deep learning, 2022. Iyer, R. K. and Bilmes, J. A. Submodular optimization with submodular cover and submodular knapsack constraints. 
+
+Advances in neural information processing systems , 26, 2013. Jedra, Y. and Proutiere, A. Optimal best-arm identifica-tion in linear bandits. Advances in Neural Information Processing Systems , 33:10007–10017, 2020. Kalyanakrishnan, S. and Stone, P. Efficient selection of multiple bandit arms: Theory and practice. In ICML ,volume 10, pp. 511–518, 2010. Kalyanakrishnan, S., Tewari, A., Auer, P., and Stone, P. Pac subset selection in stochastic multi-armed bandits. In 
+
+Proceedings of the 29th International Coference on Inter-national Conference on Machine Learning , ICML’12, pp. 227–234, Madison, WI, USA, 2012. Omnipress. ISBN 9781450312851. Kaufmann, E. and Kalyanakrishnan, S. Information com-plexity in bandit subset selection. In Shalev-Shwartz, S. and Steinwart, I. (eds.), Proceedings of the 26th An-nual Conference on Learning Theory , volume 30 of Pro-ceedings of Machine Learning Research , pp. 228–251, Princeton, NJ, USA, 12–14 Jun 2013. PMLR. Kojima, T., Gu, S. S., Reid, M., Matsuo, Y., and Iwasawa, Y. Large language models are zero-shot reasoners, 2023. Lattimore, T. and Szepesvári, C. Bandit algorithms . Cam-bridge University Press, 2020. Li, S., Lattimore, T., and Szepesvári, C. Online learning to rank with features. In International Conference on Machine Learning , pp. 3856–3865. PMLR, 2019. Li, X. and Qiu, X. Finding support examples for in-context learning. In The 2023 Conference on Empirical Methods in Natural Language Processing , 2023. Li, Z., Jamieson, K., and Jain, L. Optimal exploration is no harder than thompson sampling, 2023. Ling, W., Yogatama, D., Dyer, C., and Blunsom, P. Program induction by rationale generation: Learning to solve and explain algebraic word problems. In Proceedings of the 55th Annual Meeting of the Association for Computa-tional Linguistics (Volume 1: Long Papers) , pp. 158–167, Vancouver, Canada, July 2017. Association for Computa-tional Linguistics. doi: 10.18653/v1/P17-1015. Lu, P., Qiu, L., Chang, K.-W., Wu, Y. N., Zhu, S.-C., Ra-jpurohit, T., Clark, P., and Kalyan, A. Dynamic prompt learning via policy gradient for semi-structured mathe-matical reasoning. In ICLR , 2023. Lu, Y., Bartolo, M., Moore, A., Riedel, S., and Stene-torp, P. Fantastically ordered prompts and where to find them: Overcoming few-shot prompt order sensi-tivity. In Muresan, S., Nakov, P., and Villavicencio, A. (eds.), Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 
+
+10 Sample Efficient Demonstration Selection for In-Context Learning 
+
+1: Long Papers) , pp. 8086–8098, Dublin, Ireland, May 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.acl-long.556. Nanekhan, K., Martin, E., Vatndal, H., Setty, V., and Anand, A. Flashcheck: Exploration of efficient evidence retrieval for fast fact-checking. In European Conference on Infor-mation Retrieval , 2025. Press, O., Zhang, M., Min, S., Schmidt, L., Smith, N. A., and Lewis, M. Measuring and narrowing the composi-tionality gap in language models, 2023. Purohit, K., V, V., Devalla, R., Yerragorla, K. M., Bhat-tacharya, S., and Anand, A. EXPLORA: Efficient ex-emplar subset selection for complex reasoning. In Al-Onaizan, Y., Bansal, M., and Chen, Y.-N. (eds.), Proceed-ings of the 2024 Conference on Empirical Methods in Natural Language Processing , pp. 5367–5388, Miami, Florida, USA, November 2024. Association for Compu-tational Linguistics. doi: 10.18653/v1/2024.emnlp-main. 307. URL https://aclanthology.org/2024. emnlp-main.307/ .Rathee, M., MacAvaney, S., and Anand, A. Guiding re-trieval using llm-based listwise rankers. In European Con-ference on Information Retrieval , pp. 230–246. Springer Nature Switzerland Cham, 2025a. Rathee, M., MacAvaney, S., and Anand, A. Quam: Adaptive retrieval through query affinity modelling. In Proceedings of the Eighteenth ACM International Conference on Web Search and Data Mining , pp. 954–962, 2025b. Rathee, M., Venktesh, V., MacAvaney, S., and Anand, A. Breaking the lens of the telescope: Online relevance es-timation over large retrieval sets. Proceedings of the International ACM SIGIR Conference on Research and Development in Information Retrieval , 2025c. Réda, C., Kaufmann, E., and Delahaye-Duriez, A. Top-m identification for linear bandits. In International Confer-ence on Artificial Intelligence and Statistics , pp. 1108– 1116. PMLR, 2021. Rosset, C., Xiong, C., Phan, M., Song, X., Bennett, P., and Tiwary, S. Knowledge-aware language model pretraining, 2021. Roy, R. S. and Anand, A. Question answering for the curated web: Tasks and methods in qa over knowledge bases and text collections, 2022. Rubin, O., Herzig, J., and Berant, J. Learning to re-trieve prompts for in-context learning. In Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies , pp. 2655–2671, Seattle, United States, July 2022. Association for Computational Linguis-tics. doi: 10.18653/v1/2022.naacl-main.191. Réda, C., Kaufmann, E., and Delahaye-Duriez, A. Top-m identification for linear bandits, 2021. Tonglet, J., Reusens, M., Borchert, P., and Baesens, B. Seer : A knapsack approach to exemplar selection for in-context hybridqa, 2023. V, V., Bhattacharya, S., and Anand, A. In-context ability transfer for question decomposition in complex qa, 2023. URL https://arxiv.org/abs/2310.18371 .Venktesh, V., Anand, A., Anand, A., and Setty, V. Quantemp: A real-world open-domain benchmark for fact-checking numerical claims. arXiv preprint arxiv:2403.17169 , 2024. Venktesh, V., Rathee, M., and Anand, A. Sunar: Seman-tic uncertainty based neighborhood aware retrieval for complex qa. arXiv preprint arXiv:2503.17990 , 2025. Wallat, J., Abdallah, A., Jatowt, A., and Anand, A. A study into investigating temporal robustness of llms. In Find-ings of the Association for Computational Linguistics: ACL , 2025. Wang, L., Xu, W., Lan, Y., Hu, Z., Lan, Y., Lee, R. K.-W., and Lim, E.-P. Plan-and-solve prompting: Improving zero-shot chain-of-thought reasoning by large language models. In Rogers, A., Boyd-Graber, J., and Okazaki, N. (eds.), Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pp. 2609–2634, Toronto, Canada, July 2023a. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-long.147. Wang, X., Wei, J., Schuurmans, D., Le, Q. V., Chi, E. H., Narang, S., Chowdhery, A., and Zhou, D. Self-consistency improves chain of thought reasoning in lan-guage models. In The Eleventh International Conference on Learning Representations , 2023b. Wei, J., Tay, Y., Bommasani, R., Raffel, C., Zoph, B., Borgeaud, S., Yogatama, D., Bosma, M., Zhou, D., Met-zler, D., Chi, E. H., Hashimoto, T., Vinyals, O., Liang, P., Dean, J., and Fedus, W. Emergent abilities of large language models, 2022. Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi, E., Le, Q., and Zhou, D. Chain-of-thought prompting elicits reasoning in large language models, 2023. Xiong, J., Li, Z., Zheng, C., Guo, Z., Yin, Y., Xie, E., YANG, Z., Cao, Q., Wang, H., Han, X., Tang, J., Li, C., 11 Sample Efficient Demonstration Selection for In-Context Learning 
+
+and Liang, X. DQ-lore: Dual queries with low rank ap-proximation re-ranking for in-context learning. In The Twelfth International Conference on Learning Represen-tations , 2024. Xu, L., Honda, J., and Sugiyama, M. Fully adaptive algo-rithm for pure exploration in linear bandits, 2017. Xu, L., Honda, J., and Sugiyama, M. A fully adaptive algo-rithm for pure exploration in linear bandits. In Interna-tional Conference on Artificial Intelligence and Statistics ,pp. 843–851. PMLR, 2018. Yang, G., Hu, E. J., Babuschkin, I., Sidor, S., Liu, X., Farhi, D., Ryder, N., Pachocki, J., Chen, W., and Gao, J. Tensor programs v: Tuning large neural networks via zero-shot hyperparameter transfer, 2022. Yang, Z., Qi, P., Zhang, S., Bengio, Y., Cohen, W., Salakhut-dinov, R., and Manning, C. D. HotpotQA: A dataset for di-verse, explainable multi-hop question answering. In Pro-ceedings of the 2018 Conference on Empirical Methods in Natural Language Processing , pp. 2369–2380, Brus-sels, Belgium, October-November 2018. Association for Computational Linguistics. doi: 10.18653/v1/D18-1259. Ye, J., Wu, Z., Feng, J., Yu, T., and Kong, L. Compositional exemplars for in-context learning, 2023a. Ye, X., Iyer, S., Celikyilmaz, A., Stoyanov, V., Durrett, G., and Pasunuru, R. Complementary explanations for effective in-context learning. In Findings of the Asso-ciation for Computational Linguistics: ACL 2023 , pp. 4469–4484, Toronto, Canada, July 2023b. Association for Computational Linguistics. Zhang, R., Frei, S., and Bartlett, P. L. Trained transformers learn linear models in-context, 2023. Zhang, Y., Feng, S., and Tan, C. Active example selection for in-context learning. In Goldberg, Y., Kozareva, Z., and Zhang, Y. (eds.), Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing ,pp. 9134–9148, Abu Dhabi, United Arab Emirates, De-cember 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.emnlp-main.622. Zhao, T. Z., Wallace, E., Feng, S., Klein, D., and Singh, S. Calibrate before use: Improving few-shot performance of language models, 2021. Zoghi, M., Tunys, T., Ghavamzadeh, M., Kveton, B., Szepesvari, C., and Wen, Z. Online learning to rank in stochastic click models. In International conference on machine learning , pp. 4199–4208. PMLR, 2017. 12 Sample Efficient Demonstration Selection for In-Context Learning 
+
+## A. Appendix 
+
+A.1. Proof of lemma 1 
+
+Proof. We primarily follow the proof structure of GIFA framework (Réda et al., 2021) with some modifications required for CASE due to the shortlist Nt and our swapping rule to compute Ut. Let S⋆m be the true set of top-m arms and (S∗
+
+> m
+
+)c denote the true set remaining worst arms. To prove Lemma 1, we introduce the following property, 
+
+Property 1 : For bt ∈ Ut and st ∈ Nt it holds that ˆρt(bt) ≥
+
+ˆρt(st). Hence, it follows that Bt(st, b t) = ˆ∆t(st, b t) + 
+
+Wt(bt, s t) ≤ Wt(bt, s t) as ˆ∆t(st, b t) < 0 From property 1, we can establish that Bt(st, b t) ≤ Wt(bt, s t). Hence, to show that 
+
+Bt(st, b t) ≤ − (∆( bt) ∨ ∆( st)) + 3 Wt(bt, s t)
+
+we consider the following scenarios: 
+
+(i) bt ∈ S ⋆m and st /∈ S ⋆m: In that case, 
+
+∆( bt) = ρ(bt) − ρ(m + 1); ∆( st) = ρ(m) − ρ(st)
+
+As event E holds, 
+
+Bt(st, b t) = −Bt(bt, s t) + 2 Wt(bt, s t)
+
+≤ ∆( st, b t) + 2 Wt(bt, s t)
+
+As st /∈ S ⋆m,
+
+ρ(st) ≤ ρ(m + 1) ∆( st, b t) ≤ ρ(m + 1) − ρ(bt) = −∆( bt)
+
+But as bt ∈ S ⋆m, it also holds that ρ(bt) ≥ ρ(m), and 
+
+∆( st, b t) ≤ ρ(st) − ρ(m) = −∆( st). Hence, 
+
+Bt(st, b t) ≤ − (∆( bt) ∨ ∆( st)) + 2 Wt(bt, c t)
+
+≤ − (∆( bt) ∨ ∆( st)) + 3 Wt(bt, c t).
+
+(ii) bt /∈ S ⋆m and st ∈ S ⋆m :
+
+∆( st) = ρ(st) − ρ(m + 1); ∆( bt) = ρ(m) − ρ(bt)
+
+By Property 1, 
+
+Bt(st, b t) ≤ Wt(bt, s t)
+
+≤ ˆ∆t(bt, s t) + Wt(bt, s t) = Bt(bt, s t)
+
+as ˆρt(bt) ≥ ˆρt(st). Further, as E holds, 
+
+Bt(bt, s t) = −Bt(st, b t) + 2 Wt(bt, s t)
+
+≤ ∆( bt, s t) + 2 Wt(bt, s t)
+
+As bt /∈ S ⋆m, ρ(bt) ≤ ρ(m + 1) and hence ∆( bt, s t) ≤
+
+ρ(m + 1) − ρ(st) = −∆( st) As st ∈ S ⋆m, ρ(st) ≥ ρ(m)
+
+and hence ∆( bt, s t) ≤ ρ(bt) − ρ(m) = −∆( bt). Hence, 
+
+Bt(st, b t) ≤ − (∆( bt) ∨ ∆( st)) + 2 Wt(bt, c t)
+
+≤ − (∆( bt) ∨ ∆( st)) + 3 Wt(bt, c t).
+
+(iii) bt /∈ S ⋆m and st /∈ S ⋆m: We state that there exists a 
+
+b ∈ S ⋆m that belongs to Nt. At any time t, 
+
+Mt ← s′ ∼m′ (Ut ∪ Nt−1)c
+
+Nt ← top m′ (Mt ∪ Nt−1; ˆ ρ(t−1) )
+
+Due to the above sampling approach adopted for Nt which captures the next m’ arms with the highest means, we posit that Nt captures at least one arm in S⋆m. Assuming the event 
+
+E holds and b ∈ S ⋆m,
+
+Wt(bt, s t) ≥ Bt(st, b t) ≥ Bt(b, b t)
+
+st by the definition is one of the most ambiguous arms with largest gap to bt Bt(st, b t) ≥ Bt(b, b t). Hence, 
+
+Bt(st, b t) ≥ Bt(b, b t). From this and event E it follows 
+
+Bt(st, b t) ≥ Bt(b, b t) ≥ ρ(b) − ρ(bt) ≥ ρ(m) − ρ(bt)
+
+. Hence Wt(bt, s t) ≥ Bt(st, b t) ≥ ∆( bt). Using event E,
+
+Bt(st, b t) ≤ ∆( st, b t) + 2 Wt(bt, s t) = ( ρ(st) − ρ(m))+ (ρ(m) − ρ(bt)) + 2 Wt(bt, s t)
+
+From above Eq and since Bt(st, b t) ≥ ∆( bt),
+
+Bt(st, b t) ≤ − ∆( st) + ∆( bt) + 2 Wt(bt, s t)
+
+≤ − ∆( st) + 3 Wt(bt, s t)
+
+Also from Property 1 and Wt(bt, s t) ≥ ∆( bt), it holds that 
+
+Bt(st, b t) ≤ Wt(bt, s t) = −Wt(bt, s t) + 2 Wt(bt, s t)
+
+≤ − ∆( bt) + 2 Wt(bt, s t) ≤ − ∆( bt) + 3 Wt(bt, s t)
+
+Hence Bt(st, b t) ≤ − (∆( bt) ∨ ∆( st)) + 3 Wt(bt, c t).
+
+(iv) bt ∈ S ⋆m and st ∈ S ⋆m: Then there exists a s / ∈ S∗
+
+> m
+
+and s ∈ Ut In that case, 
+
+∆( bt) = ρ(bt) − ρ(m + 1); ∆( st) = ρ(st) − ρ(m + 1) 
+
+13 Sample Efficient Demonstration Selection for In-Context Learning 
+
+Also by definition of bt and st, it holds that Bt(st, b t) = max i∈Ut max j∈Nt [Bt(j, i )] Since there exists s ∈ Ut and 
+
+st ∈ Nt,
+
+Bt(st, b t) = max 
+
+> i∈Ut
+
+max 
+
+> j∈Nt
+
+[Bt(j, i )] ≥ max 
+
+> j∈Nt
+
+Bt(j, s )
+
+≥ Bt(st, s ) ≥ ρ(st) − ρ(s) ≥ ρ(st) − ρ(m + 1) 
+
+As ρ(st) − ρ(m + 1) = ∆( st), Bt(st, b t) ≥ ∆( st) By property 1, Bt(st, b t) ≤ Wt(bt, s t). Hence, 
+
+∆( st) ≤ Bt(st, b t) ≤ Wt(bt, s t)
+
+On event E it follows that Bt(st, b t) ≤ ρ(st) − ρ(bt) + 2Wt(bt, s t) as (B(st, b t) ≤ Wt(bt, s t). Then ρ(st) − ρ(bt)
+
+can be expressed as ρ(st) − ρ(m + 1) + ρ(m + 1) − ρ(bt).hence, 
+
+Bt(st, b t) ≤ ρ(st) − ρ(m + 1) + ρ(m + 1) − ρ(bt)+2 Wt(bt, s t) ≤ ∆( st) − ∆( bt) + 2 Wt(bt, s t)
+
+We already know that Bt(st, b t) ≥ ∆( st) resulting in, 
+
+(a) Bt(st, b t) ≤ − ∆( bt) + 3 Wt(bt, s t)
+
+Now to prove Bt(st, b t) ≤ − ∆( st) + 3 Wt(bt, s t), we rely on property 1, 
+
+B(st, b t) ≤ Wt(bt, s t) ≤ − Wt(bt, s t) + 2 Wt(bt, s t)
+
+As Wt(bt, s t) ≥ ∆( st), −Wt(bt, s t) ≤ − ∆( st). Hence, 
+
+(b) B(st, b t) ≤ Wt(bt, s t) ≤ − Wt(bt, s t) + 2 Wt(bt, s t)
+
+≤ − ∆( st) + Wt(bt, s t) ≤ − ∆( st) + 3 Wt(bt, s t)
+
+From (a) and (b) Bt(st, b t) ≤ −(∆( bt) ∨ ∆( st)) + 3Wt(bt, c t).
+
+A.2. Proof Structure for Theorem 1 
+
+Proof. Combining Lemma 4 with stopping rule 
+
+Bt(st, b t) ≤ ϵ following Lemma 8 in (Réda et al., 2021) directly yields 
+
+Nat (t) ≤ 4σ2C2 
+
+> δ,t
+
+max 
+
+
+
+ε, ε + ∆ at
+
+3
+
+−2
+
+where Nat (t) is the number of times arms a is sampled.This is equivalent to the sample complexity term Hε(μ) in Theo-rem 1. Hence, maximum number of samplings on event E
+
+is upper-bound by inf u∈R∗+ {u > 1 + Hε(μ)C2
+
+> δ,u
+
+}, where Hε(μ) ≜ 4σ2 P 
+
+> a∈[K]
+
+max  ε, ε+∆ a
+
+> 3
+
+−2.
+
+A.3. Datasets Description 
+
+An overview of the dataset statistics and examples are shown in Table 4. 
+
+FinQA : Comprises financial questions over financial re-ports that require numerical reasoning with structured and unstructured evidence. Here, 23.42% of the questions only require the information in the text to answer; 62.43% of the questions only require the information in the table to answer; and 14.15% need both the text and table to answer. Meanwhile, 46.30% of the examples have one sentence or one table row as the fact; 42.63% has two pieces of facts; and 11.07% has more than two pieces of facts. This dataset has 1147 questions in the evaluation set. 
+
+AquaRat : It comprises 100,000 algebraic word problems in the train set with dev and test set each comprising 254 problems. The problems are provided along with answers and rationales providing the step-by-step solution to the problem. An examples problem is shown in Table 4. 
+
+TabMWP : It is a tabular-based math word problem-solving dataset with 38,431 questions. TabMWP is rich in diversity, where 74.7% of the questions in TabMWP belong to free-text questions, while 25.3% are multi-choice. We evaluate on the test set with 7686 problems. 
+
+GSM8K : This dataset consists of linguistically diverse math problems that require multi-step reasoning. The dataset consists of 8.5K problems and we evaluate on the test set of 1319 questions. 
+
+StrategyQA : To prove the generality of our approach for reasoning tasks, we evaluate on StrategyQA (Geva et al., 2021), a dataset with implicit and commonsense reasoning questions. Since there is no public test set with ground truth answers, we perform stratified sampling done on 2290 full train set to split into 1800 train and 490 test. 
+
+Metrics : For TabMWP and StrategyQA we employ cover-EM (Rosset et al., 2021; Press et al., 2023), a relaxation of Exact Match metric which checks whether the ground truth answer is contained in the generated answer. This helps handle scenarios where LLM generates "24 kilograms" and the ground truth is "24". For other numerical reasoning datasets, we employ Exact match. 
+
+A.4. Results using Alternate Open Source LLMs 
+
+We also report the performance of exemplars from CASE on open-source models like Mistral-7b and LLama2-7b. The results are shown in Table 6. We observe that the abso-lute performance across baselines and CASE is lower for smaller LLMs like Llama2 and Mistral-7b when compared to gpt-3.5-turbo or gpt-4o-mini. We observe that this is due to the scale of the Language models as Mistral and LlAMA2 models have 7 billion parameters while gpt-3.5-turbo is of 14 Sample Efficient Demonstration Selection for In-Context Learning 
+
+Dataset #Train #Test Example Question Description 
+
+The red car is 40% cheaper than the blue car. multi-step 
+
+GSM8K (Cobbe et al., 2021) 7473 1319 The price of the blue car is $100. How much arithmetic word 
+
+do both cars cost? problems 
+
+John found that the average of 15 numbers is multi-step 
+
+AquaRat (Ling et al., 2017) 97467 254 40. If 10 is added to each number then the arithmetic word 
+
+mean of number is? problems 
+
+A newspaper researched how many grocery stores Table based 
+
+TabMWP (Lu et al., 2023) 23059 7686 there are in each town. What is the mean of numerical 
+
+the numbers? reasoning 
+
+what is the percentage change in the the gross Table and Text 
+
+FinQA (Chen et al., 2022b) 6251 1147 liability for unrecognized tax benefits during based numerical 
+
+2008 compare to 2007? reasoning 
+
+Does the United States Secretary of State multi-step 
+
+StrategyQA (Geva et al., 2021) 1800 490 answer the phones for the White House? reasoning 
+
+Table 4: Overview of the Complex QA datasets used in this study. much larger scale and the emergent capabilities like ICL, reasoning capabilities are more pronounced in large scale models (Wei et al., 2022). However, we still observe that CASE leads to reasonable performance gains over other static exemplar selection meth-ods across the smaller open-source LLMs. We also observe that CASE is competitive with instance-level/dynamic ex-emplar selection methods. Our main experiments are carried out in an exemplar reuse setup where exemplar selection is done using small open source LLMs and transferred to larger LLMs. This is done to reduce the LLM inference cost during exemplar selection. This setup also leverages the reasoning and emergent capa-bilities of large scale LLMs. This philosophy is inspired from the work μP (Yang et al., 2022) where the language model hyperparameters are tuned using smaller LM and transferred to a larger LM for the task under consideration. 
+
+A.5. Robustness of exemplars selected by CASE 
+
+We compare the robustness of CASE to other exemplar se-lection methods. We measure standard deviation of perfor-mance across different subsets of the evaluation set through 10-fold cross validation, as shown in Table 5. We observe that in 3 out of 4 datasets, exemplars chosen by CASE has                                              
+
+> Datasets GSM8K AquaRat TabMWP FinQA StrategyQA
+> Zero-Shot COT ±5.18 ±7.08 ±1.84 ±4.50 ±4.19 Few-Shot COT ±4.48 ±12.03 ±1.66 ±4.76 ±5.67 KNN ±3.76 ±5.49 ±1.27 ±4.17 ±4.85 MMR ±4.00 ±10.53 ±1.68 ±6.10 ±5.70 Graph Cut ±6.38 ±8.18 ±2.03 ±5.29 ±7.62 Facility Location ±4.23 ±6.71 ±1.74 ±4.94 ±5.93 LENS ±5.04 ±6.67 ±1.59 ±5.81 ±3.98
+> CASE ±3.47 ±6.86 ±0.88 ±3.72 ±2.91
+
+Table 5: Comparison of robustness of CASE to other ap-proaches. We report standard deviation (lower is better) with scores from different splits of the evaluation set. less variance in task performance when compared to other exemplar selection methods. Exemplars selected through instance-level approaches are not optimized for the task but rather on a per-test-example basis. Consequently, this leads to greater variance in final task performance. Hence, CASE helps select exemplars for the task which are more robust than other static methods or instance-level selection methods. 
+
+A.6. Exemplar Reuse by CASE 
+
+For CASE, we evaluate the performance of gpt-3.5-turbo us-ing exemplars selected by smaller models, such as Llama2-7b and Mistral-7b. Figure 4 shows the exemplars selected from Llama2-7b using CASE reused for gpt-3.5-turbo. In Table 1 we present the results of exemplar reuse from Mistral-7b for CASE. We observe that exemplars selected by CASE using smaller LLMs perform well with larger LLMs, promoting both exemplar reuse and efficiency. 
+
+A.7. Prompts 
+
+We also demonstrate the instructions issued to the LLM for different tasks discussed in this work, along with some exemplars selected using CASE. An example of prompt 
+
+GSM Aqua Tab Fin Strat 
+
+> 0
+> 50
+> 100
+> 150
+> Task Performance  CASE
+> CASE+SC
+> CASE+KNN+SC
+> CASE+MMR+SC
+
+Figure 4: Reuse, Llama2 to gpt-3.5-turbo. 15 Sample Efficient Demonstration Selection for In-Context Learning 
+
+Method GSM8K AquaRat TabMWP FinQA StrategyQA Mistral-7B Instance-level 
+
+KNN (Rubin et al., 2022) 28.00 23.16 45.3 9.06 78.27 MMR (Ye et al., 2023b) 28.97 18.11 47.61 10.11 79.95 
+
+Task-level 
+
+Zero-shot-COT (Kojima et al., 2023) 7.42 18.89 38.96 1.74 35.37 Manual Few-shot COT 22.36 14.90 41.93 3.22 62.55 LENS (Li & Qiu, 2023) 26.08 14.17 41.82 5.14 76.12 
+
+Our Approach 
+
+CASE 32.6 21.2 45.55 11.24 77.75 
+
+Llama2-7B Instance-level 
+
+KNN (Rubin et al., 2022) 22.51 23.62 43.02 10.37 76.35 MMR (Ye et al., 2023b) 21.60 21.65 41.66 12.20 76.32 
+
+Task-level 
+
+Zero-shot-COT (Kojima et al., 2023) 6.14 6.29 12.64 1.67 53.27 Manual Few-shot COT 19.26 20.47 23.62 2.87 64.29 LENS (Li & Qiu, 2023) 17.06 19.29 33.20 6.62 73.06 
+
+Our Approach 
+
+CASE 21.91 24.02 44.69 9.59 77.55 
+
+Table 6: Results across datasets on M ISTRAL -7B and L LAMA -2-7B (5-shot exemplars). construction for FinQA is shown in Figure 9. We also showcase example prompts for AquaRat (Figure 8), GSM8K (Figure 7), TabMWP (Figure 10) and StrategyQA (Figure 11). 
+
+A.8. Exemplar Qualitative Analysis 
+
+We provide a qualitative analysis of exemplars and compare the exemplars selected using CASE with exemplars selected using LENS (Li & Qiu, 2023), the recent state-of-the-art approach. The final set of exemplars chosen by LENS vs CASE for the AquaRat dataset is shown in Table 7. We ob-serve that Question 4 and Question 5 in the set of exemplars chosen by LENS are redundant in that they are very similar problems that require similar reasoning steps and are also similar thematically. Both the questions are centered on the theme of work and time and are phrased in a similar manner. Hence, they do not add any additional information to solve diverse problems the LLM may encounter during inference. However, we observe that the exemplars chosen by CASE are problems that require diverse reasoning capabilities and are also different thematically. We also compare the exemplars chosen by CASE with LENS for the FinQA dataset. We observe that the exemplars chosen by CASE comprises diverse set of problems. We also observe that CASE also contains exemplars that require composite numerical operations with multi-step reasoning rationales to arrive at the solutions, whereas LENS mostly has exemplars with single-step solutions. The exemplars chosen by LENS compared to CASE for TabMWP are shown in Table 10. We observe that exemplar 1 and exemplar 3 chosen by LENS are redundant, as they represent the same reasoning concept of computing median for a list of numbers. However, we observe that CASE selects diverse exemplars, with each exemplar representing a different reasoning concept. We also demonstrate the exemplars for GSM8K and StrategyQA in Table 9 and Table 11 respectively. 
+
+A.9. Synthetic Experiments - Efficiency and Convergence Analysis 
+
+We further present the results for synthetic experiments for scenarios where K = 7 , m = 3 , N = 3 and K = 10 , m =3, N = 3 in Figures 5 and 6. We observe that in both the cases, CASE drastically reduces the number of gap-index computations and comparison based operations (comparing arms). For instance, for K = 10 , m = 3 scenario, on aver-age across 500 simulations CASE only requires 20366.84 comparisons, whereas LinGapE requires 948206.10 com-parisons and LinGIFA requires 2180251.73 comparisons. This is due to the shortlist of challenger arms Nt maintained 16 Sample Efficient Demonstration Selection for In-Context Learning 
+
+> CASE
+> LinGapE
+> LinGIFA
+> 0
+> 0.5
+> 1
+> ·10 5
+> Avg no. of comparisons (in  10 5)
+
+(a) comparisons across simulations 
+
+> CASE
+> LinGapE
+> LinGIFA
+> 0
+> 0.5
+> 1
+> 1.5
+> Avg runtime
+
+(b) Average runtime (in seconds)    
+
+> 50 100 150 200
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+> Rounds
+> Gap Index
+> CASE
+> LinGapE
+> LinGIFA
+
+(c) Gap index comparison       
+
+> 050 100 150 200
+> 0
+> 5·10 −2
+> 0.1
+> 0.15
+> Rounds
+> Simple Regret
+> CASE
+> LinGapE
+> LinGIFA
+
+(d) Simple regret Comparison 
+
+Figure 5: Top-m arm identification by CASE, LinGIFA and LinGapE for K= 7, m= 3, N= 3. (a) Average number of comparisons across simulations (b) Average runtime (in seconds) (c) Gap Index ( Bt(st, b t)) comparison and (d) Simple regret comparison for each round across simulations 
+
+> CASE
+> LinGapE
+> LinGIFA
+> 0
+> 1
+> 2
+> ·10 6
+> Avg no. of comparisons (in  10 5)
+
+(a) comparisons across simulations 
+
+> CASE
+> LinGapE
+> LinGIFA
+
+0
+
+5
+
+10 
+
+> Avg runtime
+
+(b) Average runtime (in seconds)   
+
+> 200 400 600
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+> Rounds
+> Gap Index
+> CASE
+> LinGapE
+> LinGIFA
+
+(c) Gap index comparison      
+
+> 0200 400 600
+> 0
+> 5·10 −2
+> 0.1
+> 0.15
+> 0.2
+> Rounds
+> Simple Regret
+> CASE
+> LinGapE
+> LinGIFA
+
+(d) Simple regret Comparison 
+
+Figure 6: Top-m arm identification by CASE, LinGIFA and LinGapE for K= 10 , m= 3, N= 3. (a) Average number of comparisons across simulations (b) Average runtime (in seconds) (c) Gap Index ( Bt(st, b t)) comparison and (d) Simple regret comparison for each round across simulations by the proposed approach CASE. We also observe that this results in significant reduction in time (approx. 6x lower compared to LinGIFA and 2.5x compared to LinGapE for 
+
+K = 10 case) due to low number of comparisons. We ob-serve that the gap index and simple regret approaches 0 in a similar trend for all algorithms. This demonstrates that CASE converges with much lower gap index computations and has lower runtime compared to existing state-of-the-art gap index algorithms. 17 Sample Efficient Demonstration Selection for In-Context Learning 
+
+GSM8K Prompt 
+
+Instruction :You are a helpful, respectful and honest assistant helping solve math word tasks requiring reasoning. Follow the given examples and solve the tasks in step by step manner. 
+
+Exemplars :[Question]: The red car is 40% cheaper than the blue car. The price of the blue car is $100. How much do both cars cost? 
+
+[Explanation]: The red car is 40 /100 ∗ 100 = 40 cheaper than the blue car. That means, that the red car costs 100 − 40 = 60 .So both cars cost 100 + 60 = 160 
+
+[Answer]: 160 
+
+. . . 
+
+Test Input : Question: Explanation: [INS] Answer: [INS] 
+
+Figure 7: Prompt for GSM8K AQUA Prompt 
+
+Instruction :You are a helpful, respectful and honest assistant helping solve math word tasks requiring reasoning. Follow given examples and solve the tasks in step by step manner. 
+
+Exemplars :[Question]: John found that the average of 15 numbers is 40. If 10 is added to each number then the mean of the number is? 
+
+[Options]: A) 50, B) 45, C) 65, D) 78, E) 64 [Explanation]: (x0 + x1 + ...x 14) /15 = 40 ,new_mean = 40 + 10 = 50 
+
+[Answer]: The option is A 
+
+. . . 
+
+Test Input : Question: Options: Explanation: [INS] Answer: [INS] 
+
+Figure 8: Prompt for AquaRat FinQA Prompt 
+
+Instruction :You are a helpful, respectful and honest assistant helping solve math word tasks requiring reasoning, using the information from given table and text. 
+
+Exemplars :
+
+Read the following table, and then answer the question: 
+
+[Table]: beginning balance as of december 1 2007 | 201808 gross increases in unrecognized tax benefits 2013 prior year tax positions | 14009 gross increases in unrecognized tax benefits 2013 current year tax positions | 11350 ending balance as of november 28 2008 | 139549 [Question]: what is the percentage change in the the gross liability for unrecognized tax benefits during 2008 compare to 2007? 
+
+[Explanation]: x0 = 139549 − 201808 ,ans = x0/201808 
+
+[Answer]: -30.9% 
+
+. . . 
+
+Test Input: Read the table and answer the question: Table: Question: Explanation: [INS] Answer: [INS] 
+
+Figure 9: Prompt for FinQA 18 Sample Efficient Demonstration Selection for In-Context Learning 
+
+TabMWP Prompt 
+
+Instruction :You are a helpful, respectful and honest assistant helping to solve math word problems or tasks requiring reasoning or math, using the information from the given table. Solve the given problem step by step providing an explanation for your answer. 
+
+Exemplars :[Table]: Town | Number of stores Mayfield | 9 Springfield | 9 Riverside | 6 Chesterton | 5 Watertown | 2 [Question]: A newspaper researched how many grocery stores there are in each town. What is the range of the numbers? 
+
+[Explanation]: Read the numbers from the table. 9, 9, 6, 5, 2
+
+First, find the greatest number. The greatest number is 9.Next, find the least number. The least number is 2.Subtract the least number from the greatest number: 9 − 2 = 7 
+
+[Answer]: The range is 7
+
+. . . . . . 
+
+Test Input : Table: Question: Explanation: [INS] Answer: [INS] 
+
+Figure 10: Prompt for TabMWP StrategyQA Prompt 
+
+Instruction :You are a helpful, respectful and honest assistant helping to solve commonsense problems requiring reasoning. Follow the given examples that use the facts to answer a question by decomposing into sub-questions first and then predicting the final answer as "Yes" or "No" only. 
+
+Exemplars :[Facts]: The role of United States Secretary of State carries out the President’s foreign policy. The White House has multiple phone lines managed by multiple people. [Question]: Does the United States Secretary of State answer the phones for the White House? 
+
+[Sub-question 1]: What are the duties of the US Secretary of State? 
+
+[Sub-question 2]: Are answering phones part of #1? 
+
+[Answer]: No 
+
+. . . . . . 
+
+Test Input : Facts: Question: Sub-question: [INS] Answer: [INS] 
+
+Figure 11: Prompt for StrategyQA 19 Sample Efficient Demonstration Selection for In-Context Learning 
+
+Method Exemplars  
+
+> LENS
+
+Question : A cat chases a rat 6 hours after the rat runs. cat takes 4 hours to reach the rat. If the average speed of the cat is 90 kmph, what s the average speed of the rat? 
+
+Options : [’A)32kmph’, ’B)26kmph’, ’C)35kmph’, ’D)36kmph’, ’E)32kmph’] 
+
+Rationale: Cat take 10 hours and rat take 4 hours...then Distance is 90*4.so speed of rat is (90*4)/10 = 36kmph Answer: D Question: A business executive and his client are charging their dinner tab on the executive’s expense account.The . . . ? 
+
+Options : [’A)69.55$’, ’B)50.63$’, ’C)60.95$’, ’D)52.15$’, ’E)53.15’] 
+
+Rationale : let x is the cost of the food 1.07x is the gross bill after including sales tax 1.15* 1.07x=75 Answer :C
+
+Question: John and David were each given X dollars in advance for each day they were expected to perform at a community festival. John eventually,. . . ? 
+
+Options : ’A)11Y’, ’B)15Y’, ’C)13Y’, ’D)10Y’, ’E)5Y’ Rationale: . . . Answer: A
+
+Question: A contractor undertakes to do a piece of work in 40 days. He engages 100 men at the beginning and 100 more after 35 days and completes the work in stipulated time. If he had not engaged the additional men, how many days behind schedule would it be finished?? 
+
+Options : ’A)2’, ’B)5’, ’C)6’, ’D)8’, ’E)9’ Rationale: [(100 × 35)+(200 × 5)] men can finish the work in 1 day therefore 4500 men can finish the work in 1 day. 100 men can finish it in 4500 100 = 45 days. This is 5 days behind Schedule Answer: A
+
+Question: A can do a job in 9 days and B can do it in 27 days. A and B working together will finish twice the amount of work in ——- days? 
+
+Options : ’A)22 days’, ’B)18 days’, ’C)22 6/2 days’, ’D)27 days’, ’E)9 days’ Rationale: 1/9 + 1/27= 3/27 = 1/9 9/1 = 9*2 =18 day Answer: BCASE Question : In a 1000 m race, A beats B by 50 m and B beats C by 100 m. In the same race, by how many meters does A beat C? 
+
+Options : ’A)156 m’, ’B)140 m’, ’C)145 m’, ’D)169 m’, ’E)172 m’ Rationale: By the time A covers 1000 m, B covers (1000 - 50) = 950 m. By the time B covers 1000 m, C covers (1000 - 100) = 900 m. So, the ratio of speeds of A and C = 1000/950 * 1000/900 = 1000/855. So, by the time A covers 1000 m, C covers 855 m. So in 1000 m race A beats C by 1000 - 855 = 145 m. Answer: C Question: Count the numbers between 10 - 99 which yield a remainder of 3 when divided by 9 and also yield a remainder of 2 when divided by 5? Options : ’A)Two’, ’B)Five’, ’C)Six’, ’D)Four’, ’E)One’ 
+
+Rationale : Numbers between 10 - 99 giving remainder 3 when divided by 9 = 12, 21, 30, 39, 48, 57, 66, 75, 84, 93. The Numbers giving remainder 2 when divided by 5 = 12, 57 = 2 Answer : A 
+
+Question: A train running at the speed of 60 km/hr crosses a pole in 3 seconds. Find the length of the train. Options : ’A)60’, ’B)50’, ’C)75’, ’D)100’, ’E)120’ Rationale: Speed = 60*(5/18) m/sec = 50/3 m/sec. Length of Train (Distance) = Speed * Time (50/3) * 3 = 50 meter. Answer: B
+
+Question: If n is an integer greater than 7, which of the following must be divisible by 3? 
+
+Options : ’A)1. n (n+1) (n-4)’, ’B)2. n (n+2) (n-1)’, ’C)3. n (n+3) (n-5)’, ’D)4. n (n+4) (n-2)’, ’E)5. n (n+5) (n-6)’ Rationale: We need to find out the number which is divisible by three, In every 3 consecutive integers, there must contain 1 multiple of 3. So n+4 and n+1 are same if we need to find out the 3’s multiple. replace all the numbers which are more than or equal to three . . . Answer: D
+
+Question: A merchant gains or loses, in a bargain, a certain sum. In a second bargain, he gains 280 dollars, and, in a third, loses 20. In the end he finds he has gained 120 dollars, by the three together. How much did he gain or lose bv the first ? Options : ’A)80’, ’B)-140’, ’C)140’, ’D)120’, ’E)None’ 
+
+Rationale: In this sum, as the profit and loss are opposite in their nature, they must be distinguished by contrary signs. If the profit is marked +, the loss must be -. Let x = the sum required. Then according to the statement x + 280 - 20 = 120. And x = -140. Answer: BTable 7: Qualitative analysis of exemplars for AquaRat dataset selected by LENS vs CASE. Rationale is not completely shown for some questions to conserve space. However, in our experiments all exemplars include rationales. 20 Sample Efficient Demonstration Selection for In-Context Learning 
+
+Method Exemplars  
+
+> LENS
+
+Table : | increase ( decrease ) | average yield | 2.75% ( 2.75 % ) | volume | 0.0 to 0.25 | energy services | 2013 | fuel recovery fees | 0.25 | recycling processing and commodity sales | 0.25 to 0.5 | acquisitions / divestitures net | 1.0 | total change | 4.25 to 4.75% ( 4.75 % ) | 
+
+Question : what is the ratio of the acquisitions / divestitures net to the fuel recovery fees as part of the expected 2019 revenue to increase 
+
+Rationale: ans=( 1.0 / 0.25 ) Answer: The answer is 4 
+
+Table: ( in millions ) | 2009 | 2008 | 2007 | sales and transfers of oil and gas produced net of production andadministrative costs | -4876 ( 4876 ) | -6863 ( 6863 ) | -4613 ( 4613 ) | . . . 
+
+Question : were total revisions of estimates greater than accretion of discounts? 
+
+Rationale : . . . Answer : The answer is yes 
+
+Table: | 2007 | 2008 | change | capital gain distributions received | 22.1 | 5.6 | -16.5 ( 16.5 ) | other than temporary impairments recognized | -.3 ( .3 ) | -91.3 ( 91.3 ) | -91.0 ( 91.0 ) | net gains ( losses ) realized onfund dispositions | 5.5 | -4.5 ( 4.5 ) | -10.0 ( 10.0 ) | net gain ( loss ) . . . 
+
+Question : what percentage of tangible book value is made up of cash and cash equivalents and mutual fund investment holdings at december 31 , 2009? Rationale: ( 1.4 / 2.2 ) Answer: The answer is 64% 
+
+Table: in millions | 2009 | 2008 | 2007 | sales | 5680 | 6810 | 6530 | operating profit | 1091 | 474 | 839 | 
+
+Question : north american printing papers net sales where what percent of total printing paper sales in 2009? 
+
+Rationale: x0=( 2.8 * 1000 ), ans=( x0 * 5680 ) Answer: The answer is 49% 
+
+Table: in millions | december 312015 | december 312014 | total consumer lending | 1917 | 2041 | total commercial lending | 434 | 542 | total tdrs | 2351 | 2583 | nonperforming | 1119 | 1370 | . . . 
+
+Question : what was the change in specific reserves in alll between december 31 , 2015 and december 31 , 2014 in billions? Rationale: ( .3 - .4 ) Answer: The answer is -0.1 CASE Table : in millions | total | balance december 31 2006 | $ 124 | payments | -78 ( 78 ) | balance december 31 2007 | 46 | additional provision | 82 | payments | -87 ( 87 ) | balance december 31 2008 | 41 | payments | -38 ( 38 ) | balance december 31 2009 | $ 3 | 
+
+Question : in 2006 what was the ratio of the class a shares and promissory notes international paper contributed in the acquisition of borrower entities interest Rationale: ans=( 200 / 400 ) Answer: 0.5 
+
+Table: | 2018 | 2017 | 2016 | allowance for other funds used during construction | $ 24 | $ 19 | $ 15 | allowance for borrowed funds used during construction | 13 | 8 | 6 | 
+
+Question : by how much did allowance for other funds used during construction increase from 2016 to 2018? 
+
+Rationale : x0=( 24 - 15 ),ans=( x0 / 15 ) Answer : 60% 
+
+Table: ( dollars in millions ) | 2001 ( 1 ) | 2000 | 1999 ( 2 ) | change 00-01 | adjusted change 00-01 ( 3 ) | servicing fees | $ 1624 | $ 1425 | $ 1170 | 14% ( 14 % ) | 14% ( 14 % ) | management fees | 511 | 581 | 600 | -12 ( 12 ) | -5 ( 5 ) | foreign exchange trading | 368 | 387 | 306 | -5 ( 5 ) | -5 ( 5 ) | processing fees and other | 329 | 272 | 236 | 21 | 21 | total fee revenue | 2832 | 2665 | $ 2312 | 6 | 8 | Question : what is the growth rate in total fee revenue in 2001? Rationale: x0=( 2832 - 2665 ),ans=( x0 / 2665 ) Answer: 6.30% 
+
+Table: | increase (decrease) | average yield | 2.75% (2.75 %) | volume | 0.0 to 0.25 | energy services | 2013 | fuel recovery fees | 0.25 | recycling processing and commodity sales | 0.25 to 0.5 | acquisitions / divestitures net | 1.0 | total change | 4.25 to 4.75% ( 4.75 % ) | Question : what is ratio of insurance recovery to incremental cost related to our closed bridgeton landfill Rationale: ans=(40.0/12.0) Answer: 3.33 
+
+Table: $ in millions | as of december 2018 | as of december 2017 | fair value of retained interests | $ 3151 | $ 2071 | weighted average life ( years ) | 7.2 | 6.0 | constant prepayment rate | 11.9% ( 11.9 % ) | 9.4% ( 9.4 % ) | impact of 10% ( 10 % ) adverse change | $ -27 ( 27 ) | $ -19 ( 19 ) | impact of 20% ( 20 % ) adverse change | $ -53 ( 53 ) | $ -35 ( 35 ) | discount rate | 4.7% ( 4.7 % ) | 4.2% ( 4.2 % ) | impact of 10% ( 10 % ) adverse change | $ -75 ( 75 ) | $ -35 ( 35 ) | impact of 20% ( 20 % ) adverse change | $ -147 ( 147 ) | $ -70 ( 70 ) | Question :what was the change in fair value of retained interests in billions as of december 2018 and december 2017? 
+
+Rationale: ans=( 3.28 - 2.13 ) Answer: 1.15 Table 8: Qualitative analysis of exemplars for FinQA dataset selected by LENS vs CASE. Rationale is not completely shown for some questions to conserve space. However, in our experiments all exemplars include rationales. 21 Sample Efficient Demonstration Selection for In-Context Learning 
+
+Method Exemplars  
+
+> LENS
+
+Question : Michael wants to dig a hole 400 feet less deep than twice the depth of the hole that his father dug. The father dug a hole at a rate of 4 feet per hour. If the father took 400 hours to dig his hole . . . ? 
+
+Rationale: Since the father dug a hole with a rate of 4 feet per hour, if the father took 400 hours digging the hole, he dug a hole 4*400 = 1600 feet deep. . . . Michael will have to work for 2800/4 = 700 hours. Answer: 
+
+700 
+
+Question: When Erick went to the market to sell his fruits, he realized that the price of lemons had risen by 4
+
+for each lemon. The price of grapes had also increased by half the price that . . . ? 
+
+Rationale : The new price for each lemon after increasing by 4 is 8 + 4 = 12 For the 80 lemons, . . . Erick collected 140 ∗ 9 = 1260 From the sale of all of his fruits, Erick received 1260 + 960 = 2220 . Answer : 2220 
+
+Question: James decides to build a tin house by collecting 500 tins in a week. On the first day, he collects 50 tins. On the second day, he manages to collect 3 times that number. . . . ? 
+
+Rationale: On the second day, he collected 3 times the number of tins he collected on the first day, which is 
+
+3 ∗ 50 = 150 tins. . . . he’ll need to collect 200 /4 = 50 tins per day to reach his goal. 
+
+Answer: 50 
+
+Question: Darrel is an experienced tracker. He can tell about an animal by the footprints it leaves behind. Based on the impressions, he could tell the animal was traveling east at 15 miles/hour . . . ? 
+
+Rationale: If we let x be the amount of time, in hours, it will take for Darrel to catch up to the coyote, . . . If we subtract 1 x from each side, we get x=1, the amount of time in hours. Answer: 1
+
+Question: Martha needs to paint all four walls in her 12 foot by 16 foot kitchen, which has 10 foot high ceilings . . . If Martha can paint 40 square feet per hour, how many hours will it take her to paint kitchen? 
+
+Rationale: There are two walls that are 12’ by 10’ and two walls that are 16’ by 10’ . . . how many hours she needs to finish: 1680 sq ft / 40 sq ft/hour = 42 hours Answer: 42 CASE Question : Each class uses 200 sheets of paper per day. The school uses a total of 9000 sheets of paper every week. If there are 5 days of school days, how many classes are there in the school? 
+
+Rationale: Each class uses 200 x 5 = 1000 sheets of paper in a week. Thus, there are 9000/1000 = 9 classes in the school. Answer: 9
+
+Question: If Jenna has twice as much money in her bank account as Phil does, and Phil has one-third the amount of money that Bob has in his account, and Bob has $60 in his account, how much less money does Jenna have in her account than Bob? Rationale : If Phil has one-third of the amount that Bob does, so he has $60/3= $20 in his account. Since Jenna has twice as much money as Phil, so she has $20*2= 40 in her account. Since Bob has $60 in his account, so he has $60-$40=$20 more than Jenna. Answer : 20 
+
+Question: Carlos bought a box of 50 chocolates. 3 of them were caramels and twice as many were nougats. The number of truffles was equal to the number of caramels plus 6. . . . If Carlos picks a chocolate at random, what is the percentage chance it will be a peanut cluster? Rationale: First find the number of nougats by doubling the number of caramels: 3 caramels * 2 nougats/caramel = 6 nougats. Then find the number of truffles by adding 7 to the number of caramels: 3 caramels + 6 = 9 . . . Answer: 64 
+
+Question: Janet has 60 less than four times as many siblings as Masud. Carlos has 3/4 times as many siblings as Masud. If Masud has 60 siblings, how many more siblings does Janet have more than Carlos? Rationale: If Masud has 60 siblings, and Carlos has 3/4 times as many siblings as Masud, Carlos has 3/4*60=45 siblings. Four times as many siblings as Masud has is 4*60=240. Janet has 60 less than four times as many siblings as Masud, a total of 240-60=180 siblings. . . . 180-45=135 Answer: 135 
+
+Question: Gavin has had 4 dreams every day for a year now. If he had twice as many dreams last year as he had this year, calculate the total number of dreams he’s had in the two years. Rationale: If Gavin has been having 4 dreams every day for a year now, he has had 4*365 = 1460 dreams this year. Gavin had twice as many dreams last as he had this year, meaning he had 2*1460 = 2920 dreams last year. The total number of dreams he has had in the two years is 2920+1460=4380 dreams. Answer: 4380 Table 9: Qualitative analysis of exemplars for GSM8K dataset selected by LENS vs CASE. Rationale is not completely shown for some questions to conserve space. However, in our experiments all exemplars include rationales. 22 Sample Efficient Demonstration Selection for In-Context Learning 
+
+Method Exemplars  
+
+> LENS
+
+Table : | Name | Age (years) | Jessica | 2 | Dalton | 7 | Kelsey | 5 | Lamar | 8 | Alexis | 2 Question : A girl compared the ages of her cousins. What is the median of the numbers? Rationale: Read the numbers from the table: 2, 7, 5, 8, 2. First, arrange the numbers from least to greatest: 2, 2, 5, 7, 8. Now find the number in the middle. The number in the middle is 5. The median is 5. Answer: 5
+
+Table: | City | Number of houses sold | Melville | 878 | New Hamburg | 871 | Charles Falls | 881 | Pennytown | 817 Question : A real estate agent looked into how many houses were sold in different cities. Where were the fewest houses sold? Rationale : Find the least number in table. . . . The least number is 817. Now find the corresponding city. Pennytown corresponds to 817. Answer : 817 
+
+Table: | Day | Number of new customers | Saturday | 2 | Sunday | 2 | Monday | 9 | Tuesday | 4 | Wednesday | 10 | Thursday | 3 | Friday | 6 Question : A cable company analyst paid attention to how many new customers it had each day. What is the median of the numbers? Rationale: . . . Find the number in the middle. The number in the middle is 4. The median is 4. Answer: 4
+
+Table: | Day | Number of cups | Friday | 8 | Saturday | 4 | Sunday | 10 | Monday | 6 | Tuesday | 6 | Wednesday | 1 | Thursday | 0 Question : Nancy wrote down how many cups of lemonade she sold in the past 7 days. What is the range of the numbers? Rationale: Read the numbers from the table: 8, 4, 10, 6, 6, 1, 0. . . . Subtract the least number from the greatest number: 10-0=10. The range is 10. Answer: 10 
+
+Table: | Price | Quantity demanded | Quantity supplied |$700 | 9,800 | 22,600 |$740 | 8,000 | 22,800 |$780 | 6,200 | 23,000 |$820 | 4,400 | 23,200 |$860 | 2,600 | 23,400 Question : At a price of $860, is there a shortage or a surplus? Rationale: At price of $860, quantity demanded is less than quantity supplied. . . . So, there is a surplus. Answer: surplus CASE Table : Number of siblings | Frequency 0 | 19 1 | 12 2 | 13 3 | 9 
+
+Question : The students in Mr. Robertson’s class recorded the no. of siblings that each has. How many students have fewer than 2 siblings? Rationale: Find the rows for 0 and 1 sibling. Add the frequencies for these rows. 19 + 12 = 31, 31 students have fewer than 2 siblings. Answer: 31 
+
+Table: | Apples | Peaches Organic | 2 | 7 Non-organic | 7 | 3 Question : Brittany conducted a blind taste test on some of her friends in order to determine if organic fruits tasted different than non-organic fruits. Each friend ate one type of fruit. What is the probability that a randomly selected friend preferred organic and tasted peaches? Rationale : Let A be the event "the friend preferred organic" and B be the event "the friend tasted peaches" . . . Answer : Jul-19 
+
+Table: dance performance ticket | $29.00 play ticket | $32.00 figure skating ticket | $41.00 ballet ticket | $37.00 opera ticket | $76.00 orchestra ticket | $58.00 Question : How much money does Hannah need to buy a ballet ticket and 7 orchestra tickets? Rationale: Find the cost of 7 orchestra tickets. $58.00 * 7 = $406.00 . Now find the total cost. $37.00 + $406.00 = $443.00. Hannah needs $443.00. Answer: 443 
+
+Table: Price | Quantity demanded | Quantity supplied $665 | 15,500 | 16,200 $855 | 13,700 | 17,300 $1,045 | 11,900 | 18,400 $1,235 | 10,100 | 19,500 $1,425 | 8,300 | 20,600 Question : Look at the table. Then answer the question. At a price of $1,045, is there a shortage or a surplus? Rationale: At the price of $1,045, the quantity demanded is less than the quantity supplied. There is too much of the good or service for sale at that price. So, there is a surplus. Answer: surplus 
+
+Table: Comfy Pillows Resort | 4:15 A.M | 2:30 P.M | 10:00 P.M Skyscraper City | 4:45 A.M | 3:00 P.M | 10:30 P.M Pleasant River Campground | 5:15 A.M | 3:30 P.M | 11:00 P.M Rollercoaster Land | 5:45 A.M | 4:00 P.M | 11:30 P.M Floral Gardens | 6:45 A.M | 5:00 P.M | 12:30 A.M Chickenville | 7:15 A.M | 5:30 P.M | 1:00 A.M Happy Cow Farm | 7:45 A.M | 6:00 P.M | 1:30 A.M 
+
+Question : Look at the following schedule. Marshall got on the train at Rollercoaster Land at 5.45 A.M. What time will he get to Floral Gardens? Rationale: Find 5:45 A.M. in the row for Rollercoaster Land. That column shows the schedule for the train that Marshall is on. Look down the column until you find the row for Floral Gardens. Marshall will get to Floral Gardens at 6:45 A.M. Answer: 6:45 A.M. Table 10: Qualitative analysis of exemplars for TabMWP dataset selected by LENS vs CASE. Rationale is not completely shown for some questions to conserve space. However, in our experiments all exemplars include rationales. 23 Sample Efficient Demonstration Selection for In-Context Learning 
+
+Method Exemplars  
+
+> LENS
+
+Facts : Penguins are native to the deep, very cold parts of the southern hemisphere. Miami is located in the northern hemisphere and has a very warm climate. 
+
+Question: Would it be common to find a penguin in Miami? 
+
+Rationale: Where is a typical penguin’s natural habitat? What conditions make #1 suitable for penguins? Are all of #2 present in Miami? Answer: No Facts: Shirley Bassey recorded the song Diamonds are Forever in 1971. Over time, diamonds degrade and turn into graphite. Graphite is the same chemical composition found in pencils. 
+
+Question: Is the title of Shirley Bassey’s 1971 diamond song a true statement? Rationale : What is the title to Shirley Bassey’s 1971 diamond song? Do diamonds last for the period in #1? Answer : No 
+
+Facts: The first six numbers in the Fibonacci sequence are 1,1,2,3,5,8. Since 1 is doubled, there are only five different single digit numbers. Question: Are there five different single-digit Fibonacci numbers? 
+
+Rationale: What are the single-digit numbers in the Fibonacci sequence? How many unique numbers are in #1? Does #2 equal 5? Answer: Yes 
+
+Facts: Katy Perry’s gospel album sold about 200 copies. Katy Perry’s most recent pop albums sold over 800,000 copies. Question: Do most fans follow Katy Perry for gospel music? Rationale: What type of music is Katy Perry known for? Is Gospel music the same as #1? Answer: No 
+
+Facts: The Italian Renaissance was a period of history from the 13th century to 1600. A theocracy is a type of rule in which religious leaders have power. Friar Girolamo Savonarola was the ruler of Florence, after driving out the Medici family, from November 1494 âC 23 May 1498. Question: Was Florence a Theocracy during Italian Renaissance? Rationale: When was the Italian Renaissance?When did Friar Girolamo Savonarola rule Florence? Is #2 within the span of #1? Did Friar Girolamo Savonarola belong to a religious order during #3? 
+
+Answer: Yes CASE Facts : U2 is an Irish rock band that formed in 1976. The Polo Grounds was a sports stadium that was demolished in 1964. Question : Did U2 play a concert at the Polo Grounds? Rationale: When was U2 (Irish rock band) formed? When was the Polo Grounds demolished? Is #1 before #2? Answer: No 
+
+Facts : The capacity of Tropicana Field is 36,973. The population of Auburn, NY is 27,687. Question: Can you fit every resident of Auburn, New York, in Tropicana Field? Rationale : What is the capacity of Tropicana Field? What is the population of Auburn, NY? Is #1 greater than #2? Answer : Yes 
+
+Facts : Door to door advertising involves someone going to several homes in a residential area to make sales and leave informational packets. . . . Question: During the pandemic, is door to door advertising considered inconsiderate? Rationale: What does door to door advertising involve a person to do? During the COVID-19 pandemic, what does the CDC advise people to do in terms of traveling? . . . Does doing #1 go against #2 and #3? Answer: Yes 
+
+Facts: Mosquitoes cannot survive in the climate of Antarctica. Zika virus is primarily spread through mosquito bites. Question: Do you need to worry about Zika virus in Antarctica? Rationale: What animal spreads the Zika Virus? What is the climate of Antarctica? Can #1 survive in #2? Answer: No 
+
+Facts: Bob Marley had 9 children. Kublai Khan had 23 children. Many of Bob Marley’s children became singers, and followed his themes of peace and love. The children of Kublai Khan followed in his footsteps and were fierce warlords. Question: Could Bob Marley’s children hypothetically win tug of war against Kublai Khan’s children? Rationale: How many children did Bob Marley have? How many children did Kublai Khan have? Is #1 greater than #2? Answer: No Table 11: Qualitative analysis of exemplars for StrategyQA dataset selected by LENS vs CASE. Rationale is not completely shown for some questions to conserve space. However, in our experiments all exemplars include rationales. 24

@@ -1,0 +1,3644 @@
+Title: On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation
+
+URL Source: https://openreview.net/pdf?id=auc4Ng6h4R
+
+Number of Pages: 33
+
+Markdown Content:
+# On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Nghiem T. Diep * 1 2 3 Huy Nguyen * 4 Chau Nguyen * 5 6 Minh Le 5 Duy M. H. Nguyen 1 7 8 Daniel Sonntag 1 9 
+
+Mathias Niepert 7 8 Nhat Ho 4
+
+## Abstract 
+
+LLaMA-Adapter has recently emerged as an ef-ficient fine-tuning technique for LLaMA models, leveraging zero-initialized attention to stabilize training and enhance performance. However, de-spite its empirical success, the theoretical founda-tions of zero-initialized attention remain largely unexplored. In this paper, we provide a rigor-ous theoretical analysis, establishing a connection between zero-initialized attention and mixture-of-expert models. We prove that both linear and non-linear prompts, along with gating functions, can be optimally estimated, with non-linear prompts offering greater flexibility for future applications. Empirically, we validate our findings on the open LLM benchmarks, demonstrating that non-linear prompts outperform linear ones. Notably, even with limited training data, both prompt types con-sistently surpass vanilla attention, highlighting the robustness and adaptability of zero-initialized at-tention. Our implementation is publicly available on GitHub. 
+
+## 1. Introduction 
+
+Large Language Models (LLMs) have revolutionized natu-ral language processing (Radford et al., 2019; Raffel et al., 2020; Anil et al., 2023; Minaee et al., 2024), demonstrat-ing remarkable understanding and generative capabilities across various tasks. While proprietary models like Chat-GPT (OpenAI, 2025) and GPT-4 (OpenAI et al., 2024) set new records in instruction-following performance (Peng             
+
+> *Equal contribution 1German Research Center for Artificial Intelligence (DFKI) 2University of Science, VNU-HCM, Ho Chi Minh City, Vietnam 3Viet Nam National University, Ho Chi Minh City, Vietnam 4The University of Texas at Austin 5Qualcomm AI Research, an initiative of Qualcomm Technologies, Inc. 6Work was completed while an employee at Qualcomm 7Max Planck Re-search School for Intelligent Systems (IMPRS-IS) 8University of Stuttgart 9Oldenburg University. Correspondence to: Huy Nguyen
+> <huynm@utexas.edu >.
+> Proceedings of the 42 nd International Conference on Machine Learning , Vancouver, Canada. PMLR 267, 2025. Copyright 2025 by the author(s).
+
+et al., 2023), their closed-source nature and high develop-ment costs limit accessibility. To address this, several efforts have explored fine-tuning open-source LLMs, e.g., LLaMA (Touvron et al., 2023a), on large-scale instruction datasets where small human-annotated samples are expanded into massive training corpora using self-instruct methods (Taori et al., 2023). This approach has enabled models like LLaMA to achieve instruction-following performance comparable to GPT-3.5 and, with further advancements, shows promise in approaching GPT-4’s capabilities. However, full fine-tuning of large-scale LLMs remains computationally in-tensive, highlighting the need for more efficient adaptation techniques to unlock their full potential across diverse down-stream applications. To address this challenge, researchers have increasingly turned to parameter-efficient fine-tuning (PEFT) techniques, which update only a small subset of parameters while keep-ing most of the backbone frozen, enabling efficient and scal-able adaptation (Houlsby et al., 2019; Lester et al., 2021; Hu et al., 2021). Among these approaches, the LLaMA-Adapter (Zhang et al., 2024) has emerged as a specialized PEFT method for transforming LLaMA into an instruction-following model, demonstrating strong performance across multiple benchmarks. Beyond adaptation prompts, its key innovation lies in the introduction of zero-initialized atten-tion with zero gating , which facilitates the seamless inte-gration of new instructional prompts while preserving the model’s pre-existing knowledge. However, despite its empir-ical success, the theoretical foundations of zero-initialized attention remain largely unexplored, limiting a deeper un-derstanding of its underlying mechanisms and potential for further advancements. In this work, we conduct a rigorous theoretical and empiri-cal investigation into zero-initialized attention, showing that it is not merely an engineering trick. Building on recent find-ings (Le et al., 2024; 2025) that draw connections between the attention mechanism (Vaswani, 2017) and the mixture of experts (MoE) model (Jacobs et al., 1991; Jordan & Ja-cobs, 1994; Shazeer et al., 2017), we investigate how zero-initialized attention in the LLaMA-Adapter (Zhang et al., 2024) can be interpreted within this framework. Specifically, we show that zero-initialized attention can be viewed as a special formulation of the MoE model and that under lin-1On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+ear prompt settings, both the prompts and the gating factor can be optimally estimated, offering significant statistical benefits. Furthermore, we extend this analysis to scenarios in which the trainable prompts are nonlinear (e.g., imple-mented via an MLP) and prove that the optimal estimation of the prompts and gating parameters remains achievable, thus enhancing the flexibility for future applications. Our empirical evaluations further substantiate these theo-retical findings. Across multiple datasets in the open LLM benchmark (Beeching et al., 2024), zero-initialized attention consistently demonstrates better performance than random-initialized attention. Additionally, non-linear prompts ex-hibit improved results compared to their linear counterparts, thereby offering the potential to boost the LLaMA-Adapter’s capabilities. Notably, on various small rates of limited train-ing data, both linear and non-linear prompts combined with zero-initialized attention substantially outperform standard attention, reinforcing our theoretical findings and demon-strating the robustness of the proposed approach. 
+
+Contribution. Our contributions are four-fold can be sum-marized as follows: (i) We develop a theoretical framework that examines the connection between zero-initialized atten-tion and MoE models; (ii) We demonstrate the statistical advantages of zero-initialized attention over conventional attention, enabling optimal estimation of prompt parameters and gating factors; (iii) We extend our analysis to accom-modate non-linear prompts, offering increased flexibility for a broader range of applications; (iv) Finally, extensive experiments on multiple question-answering datasets vali-date our theoretical insights, highlighting the robustness and significance of our findings. 
+
+Organization. The remainder of this paper is organized as follows: Section 2 reviews related work. In Section 3, we establish the connection between zero-initialized attention and the mixture-of-experts model. Section 4 presents our theoretical results. In Section 4.2, we extend the analysis for the non-linear setting and outline the main algorithm for the non-linear case, followed by empirical evaluations in Section 5. Finally, Section 6 discusses limitations and future research directions. Detailed proofs and additional experimental results are provided in the Appendix. 
+
+Notation. For any n ∈ N, we denote [n] as the set 
+
+{1, 2, . . . , n }. For any set S, we let |S| be its cardinal-ity. For any vectors u := (u1, u 2, . . . , u d) ∈ Rd and 
+
+α := ( α1, α 2, . . . , α d) ∈ Nd, we let uα = uα1 
+
+> 1
+
+uα2 
+
+> 2
+
+. . . u αd 
+
+> d
+
+,
+
+|u| := u1 + u2 + . . . + ud, and α! := α1!α2! . . . α d!, while 
+
+∥u∥ denotes the ℓ2-norm value of u. Lastly, for any two posi-tive sequences (an)n≥1 and (bn)n≥1, we write an = O(bn)
+
+or an ≲ bn if an ≤ Cb n for all n ∈ N, where C > 0
+
+is some constant. Finally, an = OP (bn) means an/b n is stochastically bounded. 
+
+## 2. Related Work 
+
+Parameter Efficient Fine-Tuning for LLMs. Large foun-dational models have demonstrated remarkable generaliza-tion capabilities across a wide range of tasks (Devlin, 2018; Brown et al., 2020; Touvron et al., 2023b;c). However, as model sizes grow exponentially, fine-tuning all parameters in a large-scale model becomes increasingly impractical. In contrast, PEFT techniques (Hu et al., 2021; Karimi Ma-habadi et al., 2021; Gao et al., 2024; Houlsby et al., 2019; Li et al., 2024c; Li & Liang, 2021; Zhou et al., 2022; Man-grulkar et al., 2022) have emerged as a promising strategy to adapt these models to downstream tasks while freezing most of the backbone’s parameters. These approaches can be categorized into three directions, namely (i) low-rank decomposition like LoRA (Hu et al., 2021) and its advanced versions (Karimi Mahabadi et al., 2021; Zhang et al., 2023); (ii) adapters which insert lightweight adaptation modules into each block of the transformer and have been applied across numerous domains (Gao et al., 2024; Houlsby et al., 2019; Li et al., 2024c); and (iii) prompt tuning where train-able tokens are appended to the input embeddings (Lester et al., 2021; Nguyen et al., 2024b) or at intermediate layers, i.e., pre-fixed tuning (Liu et al., 2021; Li & Liang, 2021; Shi & Lipani, 2023). Unlike the aforementioned PEFT methods, the LLaMA-Adapter (Zhang et al., 2024) is specifically designed to enhance instruction-following capabilities, where the model learns to generate contextually relevant responses based on natural language instructions. This is done by introducing a concept of zero-initialized attention to integrate new instruc-tional prompts while preserving the model’s existing knowl-edge. Through this mechanism, the algorithm starts with minimal impact and prevents training instability and catas-trophic forgetting by selectively activating relevant informa-tion while allowing the model to incorporate instructions incrementally. In this work, we conduct a comprehensive theoretical and empirical investigation into zero-initialized attention, demonstrating that it is more than just an engi-neering trick and uncovering its fundamental properties and advantages. 
+
+Mixture of Experts (MoE) in PEFT. Recent research has explored MoE in PEFT to enhance the adaptability of large pre-trained models while minimizing computational costs. MoE-based approaches, such as Switch Transformers (Fe-dus et al., 2022) leveraged sparse activation of expert net-works to achieve efficient scaling. In the context of PEFT, techniques like AdapterDrop (R ¨uckl ´e et al., 2020) and LoRA (Hu et al., 2021) have been combined with MoE to dynam-ically allocate resources to task-specific experts, reducing the number of trainable parameters (Li et al., 2024a; Chen et al., 2024; 2023). These works demonstrate that MoE can significantly enhance parameter efficiency without compro-2On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+mising performance, making it a promising direction for fine-tuning large-scale models. In another line of research, the MoE framework has been leveraged in (Le et al., 2024; 2025) to investigate the conver-gence behavior of learnable prompt vectors in the context of prefix tuning method, which are attached to the key and value matrices of self-attention mechanism to learn down-stream tasks. In particular, by showing rigorously that each row of an attention head can be represented as an MoE, they demonstrate theoretically and empirically that the prompt convergence will be significantly accelerated if there exists a shared structure among the prompt vectors. However, al-though the zero-initialized attention has been widely used as an PEFT method, its theoretical understanding has remained missing in the literature. To close this gap, we provide a comprehensive study on the convergence of prompt vectors within the zero-initialized attention by establishing a connec-tion between this model and MoE in Section 3. Our theory indicates that linear prompts and non-linear prompts share the same convergence behavior and can be both optimally estimated. On the empirical side, we observe that the non-linear prompts in zero-initalized attention work favorably compared to linear prompts in several benchmark datasets. Additional discussion on related work of the theory of mix-ture of experts is in Appendix B. 
+
+## 3. Zero-initialized Attention meets Mixture of Experts 
+
+Zero-initialized attention. We revisit the zero-initialized attention formulation introduced by Zhang et al. (2024). Let 
+
+Xl = [ xl, 1, . . . , xl,N ]⊤ ∈ RN ×d denote the input tokens at the l-th layer of LLaMA’s transformer model, where N
+
+is the input sequence length, and d represents the feature dimensionality. Similarly, let Pl = [ pl, 1, . . . , pl,L ]⊤ ∈
+
+RL×d denote the learnable adaptation prompt used to fine-tune the model. This prompt is concatenated with Xl along the token dimension, serving as a prefix, where L denotes the prompt length. For simplicity, we omit the subscript l in subsequent notations. Suppose the model is generating the (N + 1) -th word based on (P, X) at the l-th layer. We denote the corresponding 
+
+(N + 1) -th word token as t ∈ Rd. Within the attention mechanism, linear projection layers are applied to the input tokens, transforming them into queries, keys, and values, defined as follows: 
+
+Q = t⊤W Q ∈ R1×dk , (1) 
+
+K = P⊤, X⊤, t⊤ W K ∈ R(L+N +1) ×dk , (2) 
+
+V = P⊤, X⊤, t⊤ W V ∈ R(L+N +1) ×dv , (3) where W Q ∈ Rd×dk , W K ∈ Rd×dk , and W V ∈ Rd×dv
+
+are pre-trained projection matrices. The attention scores computed between Q and K before applying the softmax function are given by: 
+
+S = QK ⊤
+
+√dk
+
+= [ SP , SX ] ∈ R1×(L+N +1) , (4) where SP ∈ R1×L and SX ∈ R1×(N +1) denote the atten-tion scores of L adaption prompts and N + 1 word tokens, respectively. Rather than applying the softmax function di-rectly, Zhang et al. (2024) propose an alternative approach. They suggest computing the softmax independently over the two components SP and SX , and incorporating a learnable gating factor α ∈ R as follows: 
+
+Sg = [softmax( SP ) · tanh( α), softmax( SX )] . (5) This approach aims to decouple the knowledge contained within the pre-trained model and the adaptation prompts, thereby preserving the pre-trained model’s original knowl-edge. The activation function tanh( ·) is used to regulate the scale of α within the range [−1, 1] . Consequently, the output of the zero-initialized attention mechanism can be expressed as: 
+
+y = Sg · V ∈ Rdv . (6) During training, only the prompt parameters P are opti-mized, while all other parameters of the pre-trained model remain frozen. Next, we examine how zero-initialized at-tention can be interpreted through the lens of the mixture of experts framework. 
+
+Connection to mixture of experts. Recent studies (Le et al., 2024; 2025) have revealed a notable connection be-tween the attention mechanisms and the mixture of experts (MoE) architectures (Jacobs et al., 1991; Jordan & Jacobs, 1994), showing that attention can be seen as a form of MoE, where attention weights act as gating functions over token interactions. This MoE perspective provides a useful frame-work for analyzing zero-initialized attention by viewing its components as gates and expert responses. Specifically, let X = x⊤ 
+
+> 1
+
+, . . . , x⊤ 
+
+> N
+
+, t⊤⊤ ∈ R(N +1) d,which is the concatenation of input tokens. For i ∈ [N + 1] ,define Ei ∈ Rd×(N +1) d such that EiX = xi for i =1, . . . , N , and EN +1 X = t. We then introduce a set of 
+
+L + N + 1 experts fj : R(N +1) d → Rdv , defined as: 
+
+fj (X) = W V ⊤Ej X = W V ⊤xj , j ∈ [N ] (7) 
+
+fN +1 (X) = W V ⊤EN +1 X = W V ⊤t (8) 
+
+fN +1+ j′ (X) = W V ⊤pj′ , j ′ ∈ [L]. (9) Based on equation (5) , the weights Gj : R(N +1) d → R
+
+associated with each expert are defined as follows: 3On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Gj (X) = exp( X⊤E⊤     
+
+> N+1 WQWK⊤EjX
+> √dk
+
+)
+
+PN +1  
+
+> k=1
+
+exp( X⊤E⊤     
+
+> N+1 WQWK⊤EkX
+> √dk
+
+)
+
+,GN +1+ j′ (X) = exp( X⊤E⊤    
+
+> N+1 WQWK⊤pj′
+> √dk
+
+)
+
+PLk′=1 exp( X⊤E⊤    
+
+> N+1 WQWK⊤pk′
+> √dk
+
+)
+
+,
+
+for j′ ∈ [L] and j ∈ [N + 1] . With these formulations, the output of zero-initialized attention, as described in equa-tion (6), can be expressed as: 
+
+y = 
+
+> N+1
+
+X
+
+> j=1
+
+Gj (X) · fj (X) + tanh( α)
+
+×
+
+
+
+> L
+
+X
+
+> j′=1
+
+GN +1+ j′ (X) · fN +1+ j′ (X)
+
+ . (10) From this formulation, zero-initialized attention can be inter-preted as a specialized form of a mixture of experts model. The set of experts f1, . . . , f N +1 , along with their associated weight functions, are pre-trained and require no additional training, as their parameters are encoded within the pre-trained transformer model, representing existing knowledge. In contrast, the prompt experts fN +2 , . . . , f N +1+ L and their weight functions work in conjunction with the pre-trained experts, effectively integrating newly acquired information into the model through learnable prompts. Viewing zero-initialized attention through this lens as a specialized mix-ture of experts model provides the foundation for further theoretical analysis, as demonstrated in the next section. 
+
+## 4. Convergence Analysis of Prompt and Gating Factor Estimations 
+
+In this section, we provide a theoretical analysis for linear prompts and non-linear prompts through the connection between the zero-initialized attention and the mixture of ex-perts in equation (10) , demonstrating the sample-efficiency of the zero-initalized attention over the random-initalized attention. In addition, the theoretical benefits of non-linear prompts offer great flexibility in improving the practical performance of the zero-initialized attention, which will be investigated extensively with several benchmark datasets and tasks in Section 5. 
+
+4.1. Analytics for Linear Prompts 
+
+We first consider the original setting of zero-initialized at-tention when the prompts are linear. 
+
+Problem setting. Assume that (X1, Y 1), (X2, Y 2), . . . , 
+
+(Xn, Y n) ∈ Rd × Rd′
+
+are i.i.d. samples of size n generated from the following regression model: 
+
+Yi = fG∗,α ∗ (Xi) + εi, i = 1 , 2, . . . , n, (11) where the variables ε1, . . . , ε n are independent Gaussian noise satisfying E[εi|Xi] = 0 and Var( εi|Xi) = σ2Id′ for all i ∈ [n]. Additionally, we assume that X1, X2, . . . , Xn
+
+are i.i.d. samples from some probability distribution μ. The regression function fG∗,α ∗ (·) in equation (11) takes the form of the MoE model with N pre-trained experts and L
+
+unknown experts, which is given by: 
+
+fG∗,α ∗ (X) := 
+
+> N
+
+X
+
+> j=1
+
+exp( X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+)
+
+PNk=1 exp( X⊤ ¯A0
+
+> k
+
+X + ¯ a0
+
+> k
+
+) · h(X, ¯η0 
+
+> j
+
+)+ tanh( α∗) ·
+
+> L
+
+X
+
+> j′=1
+
+exp(( ¯Bp∗,j ′ )⊤X + ¯b∗,j ′ )
+
+PLk′=1 exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ ) · ¯Cp∗,j ′ ,
+
+(12) where G∗ := PLj′=1 exp( ¯b∗,j ′ )δp∗,j ′ denotes a true but un-known mixing measure , which is a weighted sum of Dirac measures δ, associated with unknown biases and prompts 
+
+(¯b∗,j ′ , p∗,j ′ )Lj′=1 in the parameter space Θ ⊂ R × Rd. Fur-thermore, the gating factor α∗ is unknown and belongs to the parameter space Ω ⊂ R. In the model (12) , the matrices 
+
+¯A0 
+
+> j
+
+, the expert parameters ¯η0 
+
+> j
+
+, and the bias parameters ¯a0 
+
+> j
+
+are known for all j ∈ [N ]. Finally, ¯B ∈ Rd×d and ¯C ∈ Rd′×d
+
+are given and they play the role of pre-trained projection matrices in the context of zero-initialized attention. 
+
+Least-square estimator. We can estimate the unknown prompts and gating factor in the regression model (11) via estimating the mixing measure G∗ using least-square method as follows: 
+
+( bGn, bαn) := arg min  
+
+> G∈G L′(Θ) ,α ∈Ω
+> n
+
+X
+
+> i=1
+
+∥Yi − fG,α (Xi)∥2, (13) where GL′ (Θ) := {G = Pℓi=1 exp( ¯bi)δpi : 1 ≤ ℓ ≤
+
+L′, (bi, pi) ∈ Θ} denotes the set of all mixing measures with at most L′ prompts. For practical purpose, the number of chosen prompts L′ is generally larger than the number of true prompts L, i.e., L′ ≥ L, to guarantee that the estimated prompts and gating factor from the least-square method converge to the true prompts and gating factor. 
+
+Convergence rate of regression estimator. We first show that the regression estimator f bGn,bαn can still estimate the true regression function fG∗,α ∗ at the standard parametric rate in terms of the sample size n though we overspecify the number of prompts, i.e., L′ > L .
+
+Proposition 4.1. The convergence rate of the regression estimator f bGn,bαn (·) to the true regression function fG∗,α ∗ (·)
+
+under the L2(μ) norm is of parametric order, that is, 
+
+∥f bGn,bαn − fG∗,α ∗ ∥L2(μ) = OP (plog( n)/n ). (14) 4On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Proof of Proposition 4.1 is in Appendix A.3. Given the above convergence rate of the regression estimator, we aim to construct a loss function among parameters, de-noted by D( bGn, G ∗), such that ∥f bGn,bαn − fG∗,α ∗ ∥L2(μ) ≳
+
+[D( bGn, G ∗) + |bαn − α∗|]. Then, this lower bound together with the bound (14) will lead to our desired prompt conver-gence rates. To this end, we will build a loss function based on the concept of Voronoi cells as in (Manole & Ho, 2022). 
+
+Voronoi loss function. For a mixing measure G ∈ G L′ (Θ) ,we distribute its atoms across the Voronoi cells {C j ≡Cj (G), j ∈ [L]} generated by the atoms of G∗, where 
+
+Cj := {i ∈ [L′] : ∥pi − p∗,j ∥ ≤ ∥ pi − p∗,ℓ ∥, ∀ℓ̸ = j} .
+
+Then, the Voronoi loss function is given by 
+
+D(G, G ∗) := 
+
+> L
+
+X
+
+> j′=1
+
+X
+
+> i∈C j′
+
+exp( bi) − exp( b∗,j ′ )
+
++ X 
+
+> j′∈[L]: |C j′|=1
+
+X
+
+> i∈C j′
+
+exp( bi)∥∆pij ′ ∥
+
++ X 
+
+> j′∈[L]: |C j′|>1
+
+X
+
+> i∈C j′
+
+exp( bi)∥∆pij ′ ∥2, (15) where ∆pij ′ = pi − p∗,j ′ for all i ∈ C j′ and j′ ∈ [L].Given the above loss function, we are now ready to capture the convergence behavior of linear prompts in Theorem 4.2. 
+
+Theorem 4.2. Assume that L′ > L , i.e., the number of prompts is unknown and is overspecified by L′ prompts. Then, the least square estimator ( bGn, bαn) defined in equa-tion (13) satisfies 
+
+D( bGn, G ∗) = OP (plog( n)/n ),
+
+|bαn − α∗| = OP (plog( n)/n ).
+
+Proof of Theorem 4.2 is in Appendix A.1. Putting the first bound and the formulation of the Voronoi loss function D
+
+together, we observe that the convergence rates of estimating linear prompts range from the order OP ([log( n)/n ] 12 ) to 
+
+OP ([log( n)/n ] 14 ), which are optimal. Therefore, we need a polynomial number of data, either O(ϵ−2) or O(ϵ−4), to approximate the linear prompts with a given error ϵ.
+
+Sample complexity of random-initialized attention v.s. zero-initialized attention: From the above the convergence analysis of prompt estimation under the zero-initialized at-tention and that under the random-initialized attention in (Akbarian et al., 2024; Le et al., 2024), we claim that using the zero-initialized attention is more sample-efficient than using the random-initialized attention in terms of prompt convergence due to the following reasons: 
+
+(i) Prompt convergence in random-initialized attention : The convergence rates of prompt estimation are significantly slow, standing at the order of OP (1 / log τ (n)) for some constant τ > 0, where n is the sample size. Thus, to approximate prompts with a given error ϵ, we need expo-nentially many data points O(exp( ϵ−1/τ )) , which is not sample-efficient. 
+
+(ii) Prompt convergence in zero-initialized attention : As shown in Theorem 4.2, the convergence rates of linear prompt estimations are of polynomial orders, ranging from 
+
+OP (n−1/2) to OP (n−1/4) (up to some logarithmic term), which are substantially faster than those under the random-initialized attention. Therefore, we only need polynomially many data points O(ϵ−2) or O(ϵ−4) to approximate the prompts with a given error ϵ.
+
+4.2. Theoretical Benefits of Non-Linear Prompts  
+
+> Figure 1. LLaMA-Adapter with non-linear prompt structures. Trainable prompts are integrated into the final layers of the LLaMA model, where a zero-gating mechanism modulates the added prompts. This approach enables progressive learning of instruc-tional knowledge while keeping the remaining model parameters frozen.
+
+While the original zero-initialization approach considered only linear prompts (Zhang et al., 2024), most current prompt-based techniques commonly reparameterize the prompt parameters with an MLP rather than optimizing them directly, in order to enhance training stability (Li & Liang, 2021; Liu et al., 2021; Le et al., 2025). To increase both the flexibility and practical relevance of our results, we extend our analysis to zero-initialized attention equipped with non-linear prompts. 
+
+Problem setting. Suppose that the data 
+
+(X1, Y 1), (X2, Y 2), . . . , (Xn, Y n) ∈ Rd × Rd′
+
+are 5On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+i.i.d. samples of size n generated from the model: 
+
+Yi = gG∗,α ∗ (Xi) + εi, i = 1 , 2, . . . , n. (16) Here, we impose the same assumptions on the noise vari-ables εi and the input Xi as in Section 4.1. Nevertheless, the regression function gG∗,α ∗ (·) in equation (16) now takes the form of a prefix MoE model with N pre-trained experts and L unknown experts, 
+
+gG∗,α ∗ (X) := 
+
+> N
+
+X
+
+> j=1
+
+exp( X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+)
+
+PNk=1 exp( X⊤ ¯A0
+
+> k
+
+X + ¯ a0
+
+> k
+
+) · h(X, ¯η0 
+
+> j
+
+)+ tanh( α∗)
+
+×
+
+
+
+> L
+
+X
+
+> j′=1
+
+exp(( ¯Bσ (p∗,j ′ )) ⊤X + ¯b∗,j ′ )
+
+PLk′=1 exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ ) · ¯Cσ (p∗,j ′ )
+
+ ,
+
+(17) where σ : Rd → Rd′
+
+is some activation function applied element-wise to the prompts p∗,j ′ . According to the change of the regression function, the least-square estimator of the true mixing measure G∗ under this setting becomes 
+
+( eGn, eαn) := arg min  
+
+> G∈G L′(Θ) ,α ∈Ω
+> n
+
+X
+
+> i=1
+
+
+
+Yi − gG,α (Xi)
+
+2
+
+. (18) In the following proposition, we will illustrate that the para-metric convergence rate of the regression function estimator still holds true under the setting of non-linear prompts. 
+
+Proposition 4.3. The convergence rate of the model estima-tion g eGn,eαn (·) to the true model gG∗,α ∗ (·) under the L2(μ)
+
+norm is parametric on the sample size, that is, 
+
+∥g eGn,eαn − gG∗,α ∗ ∥L2(μ) = OP (plog( n)/n ). (19) Similar to Section 4.1, by utilizing the Voronoi loss function 
+
+D defined in Eq.(15), we are able to investigate the conver-gence behavior of non-linear prompts in the zero-initialized attention in Theorem 4.4 whose proof can be found in Ap-pendix A.2. 
+
+Theorem 4.4. Assume that the activation function σ satis-fies the Assumptions (A.1)-(A.2) specified in Appendix A.2. Then, the least square estimator ( eGn, eαn) defined in equa-tion (18) satisfies 
+
+D( eGn, G ∗) = OP (plog( n)/n ),
+
+|eαn − α∗| = OP (plog( n)/n ).
+
+It can be seen that the convergence of prompt parameters under this setting behaves analogously to that in Theo-rem 4.2. In particular, the prompt parameters p∗,j still admit the estimation rates of order OP ([log( n)/n ] 12 ) or 
+
+OP ([log( n)/n ] 14 ). Thus, a polynomial number of data points ranging from O(ε−2) to O(ε−4) is required to achieve the prompt approximation with a given error ϵ. As a result, we claim that the zero-initialized attention with non-linear prompts is also more sample-efficient than the random-initialized attention in terms of prompt convergence. Moreover, although sharing the same sample complexity as when using linear prompts, the zero-initialized attention with non-linear prompts will be shown to offer greater flex-ibility in practical applications, which will be discussed further in Section 5. 
+
+Non-Linear prompt optimization in practice. Motivated by the theoretical benefits of using non-linear prompts in zero-initialized attention in Eq.(17), one replaces the lin-ear prompts P in zero-initialized attention with non-linear prompts (Figure 1), which is given by: 
+
+˜P = σ(P) ∈ RL×d, (20) where σ(·) is a non-linear activation function or alightweight MLP, in line with common practice in most current prompt-based techniques, and P can be a layer em-bedding vector or a set of embedding vectors equal to the length of prompt for each layer. For instance, we can choose 
+
+σ as a lightweight MLP with 2 layers combined with non-linear activation such as Tanh, ReLU, and Leaky-ReLU: 
+
+σ(P) = f2(ϕ(( f1(P)))) , (21) where f1(.), f2(.) are separate linear transformations, ϕ(.)
+
+represents the non-linear activation function, e.g., ReLU or Leaky-ReLU, and P is defined as a layer embedding vector. To ensure parameter efficiency and facilitate knowledge sharing across layers, this MLP can be shared among the layers that utilize the prompts. As established in Theorem 4.4, this non-linear formulation retains the same estimation rates as the linear variant, thus offering greater flexibility for practical applications. 
+
+## 5. Experiments 
+
+To highlight the statistical advantages of zero-initialized attention and explore the potential of non-linear prompts, we conduct a series of question-answering experiments on LLM tasks. Section 5.1 provides an overview of our experimental setup, while the main results are presented in Section 5.2. Additional details and prompt templates are included in Appendix C. 
+
+5.1. Experimental Setup Datasets and Evaluations. We use the Open LLM bench-marks as in Beeching et al. (2024). These benchmarks eval-uate the generative abilities of LLMs in four different tasks, including (i) AI2 Reasoning Challenge (ARC) with Easy (eas) and Challenge (cha) types (Clark et al., 2018), (ii) HellaSwag (Zellers et al., 2019), (iii) 
+
+6On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation                                                                        
+
+> Table 1. Commparison between Linear prompt (zero-initialized mechanism) and Random-Init prompt on 4 LLM tasks using LLaMA-7B and LLaMA-13B models.
+> Method ARC MMLU Hellaswag TruthfullQA Average
+> Acc (eas) Acc (cha) Acc (aver) Acc Acc Acc
+> LLaMA-7B + zero-init 62.29 ↑1.64 43.17 ↑2.47 52.73 ↑2.06 36.28 ↑1.16 76.79 ↑4.17 45.53 ↑7.71 52.83 ↑3.77
+> LLaMA-7B + rand-init 60.65 40.7 50.67 35.12 72.62 37.82 49.06 LLaMA-13B + zero-init 81.78 ↑0.17 64.33 ↑0.42 73.06 ↑0.3 49.64 ↑1.62 81.21 ↑0.05 34.88 ↑0.36 59.70 ↑0.58
+> LLaMA-13B + rand-init 81.61 63.91 72.76 48.02 81.16 34.52 59.12
+
+MMLU (Hendrycks et al., 2020), and (iv) TruthfulQA 
+
+(Lin et al., 2021). All these tasks evaluate the model through multiple-choice questions, where ARC and MMLU test the LLM’s knowledge, HellaSwag tests the model’s ability to finish sentences, and TruthfulQA measures whether an LLM is truthful in generating answers to given questions. We follow the experimental setup of LLaMA-Adapter (Zhang et al., 2024) by fine-tuning LLaMA on the Alpaca dataset (Taori et al., 2023). The model performance is eval-uated on the test set by conducting a zero-shot evaluation for ARC, MMLU, and TruthfulQA while using a 10-shot setting for HellaSwag. Here, n -shot refers to incorporating 
+
+n instruction-following samples into the prompt question. 
+
+Architectures Training. We employ experiments on two LLaMA versions, LLaMA-7B with 32 Transformer layers and LLaMA-13B with 40 Transformer layers (Touvron et al., 2023b;c). The models are trained with 4 A100-GPUs for 
+
+5 epochs. The training configuration includes a warmup period of 2 epochs, a total batch size of 64 , a learning rate of 0.009 , and a weight decay of 0.02 . With LLaMA-7B, we use a prompt with length L = 10 and integrate adaptation prompts into the last K = 30 layers. On LLaMA-13B, we use L = 10 and insert prompts at the last K = 38 layers. 
+
+Baselines. To access the effectiveness of zero-initialized attention and demonstrate the potential of integrating it with the proposed non-linear prompt, we conduct experiments using the following configurations: • (1) Linear prompt : i.e., the default setting as LLaMA-Adapter (Zhang et al., 2024), where prompt vectors P
+
+are zero-initialized and used directly. • (2) Non-Linear prompt : use zero-initialized mecha-nism and apply a nonlinear MLP on input prompts P
+
+to generate prompt vectors ˜P = σ(P) and the MLP layers are shared among layers. • (3) Random-Init prompt : use the input prompts with conventional randomly-initialization, i.e., forms in Eq.(4) rather than the zero-initialized mechanism. • (4) Finetuning & low-rank decomposition : We com-pare with a fully fine-tuned LLaMA model trained on the Alpaca dataset (Taori et al., 2023), where all model parameters are updated. Additionally, we benchmark against LoRA (Hu et al., 2021), a PEFT method that inserts trainable low-rank decomposition matrices into each layer’s weights, and VeRA (Kopiczko et al., 2023), another PEFT method that uses a single random pair of low-rank matrices shared across all layers, while learning separate scaling vectors for each layer. • (5) Other Prompt Tuning Methods : including (Lester et al., 2021) which optimize continuous prompts added to input text; IA3 (Liu et al., 2022) a method using three learnable vectors to rescale the keys, values, and position-wise feed-forward activations in the attention layers. 
+
+5.2. Main Results I. Zero-initialized attention is essential in prompt-tuning, enhancing both robustness and effectiveness compared to random-initialized attention. 
+
+We begin by investigating the impact of zero-initialized prompt-tuning on LLaMA-7B and LLaMA-13B using the linear prompt setting, comparing its performance against conventional random-initialization strategies. As shown in Table 1, the zero-initialized mechanism en-hances stability in LLaMA-13B and significantly boosts the performance of LLaMA-Adapter when using LLaMA-7B, compared to conventional random-initialization strate-gies. For instance, with LLaMA-7B on Hellaswag and TruthfulQA, the Linear prompt surpasses the Random-Init prompt by 4.17% and 7.71% , respectively. The varying im-pact of zero-initialization between LLaMA-7B and LLaMA-13B can be attributed to differences in model capacity and expressiveness. LLaMA-13B, with its larger parameter space, naturally generalizes better even with randomly ini-tialized prompts, reducing the relative advantage of zero-initialization. In contrast, LLaMA-7B, with its lower capac-ity, benefits more from zero-initialization, as it relies heavily on efficient adaptation mechanisms to optimize learning. In summary, those results align with our theoretical find-ings in Section 4, which demonstrate how zero-initialized 7On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+attention improves both robustness and sample efficiency in parameter estimation. 
+
+II. Non-linear prompts provide the potential to improve the performance of the zero-initialized mechanism and achieve competitive performance with full fine-tuning. 
+
+We evaluate the impact of the non-linear prompt 
+
+setting on the LLaMA-Adapter by comparing it with the 
+
+linear prompt setting on LLaMA-7B and LLaMA-13B. Additionally, we benchmark against a fully fine-tuned LLaMA model and a version fine-tuned using LoRA. All models are trained with the Alpaca dataset. Tables 2 and 3 presents our results with the following ob-servations: first, the non-linear prompt consistently matches or outperforms the linear prompt across both LLaMA-7B and LLaMA-13B, with performance gains rang-ing from 1–2%. Notably, on the MMLU and TruthfulQA datasets with LLaMA-13B, the non-linear prompt achieves scores of 51 .32 and 38 .92 , respectively, compared to 49 .64 
+
+and 34 .88 for the linear prompt, demonstrating its effective-ness. Table 3 also shows that the non-linear prompt does not significantly increase training time compared to the linear version. Secondly, compared to other PEFT methods such as Prompt Tuning, IA3, and VeRA, we see that the non-linear prompt significantly outperforms all these PEFT meth-ods in LLaMA-7B version. For example, on the MMLU and TruthfulQA, the non-linear prompt surpasses Prompt Tuning by 4.1% and 10.28%, respectively, demon-strating the effectiveness of the new PEFT design. Finally, when compared to fully fine-tuned and LoRA-based versions of LLaMA-7B, our approach using a non-linear prompt achieves performance nearly on par with full fine-tuning while surpassing LoRA by an average accuracy mar-gin of 0.64% In summary, these findings validate our theoretical obser-vations and highlight the effectiveness of combining non-linear prompts with zero-initialized attention and improving prompt-tuning performance in LLMs. 
+
+III. Sample Efficiency of Zero-Initialized Attention vs. Random-Initialized Attention. 
+
+Figures 2 and 3 provide a systematic analysis of the sample efficiency of zero-initialized attention by evaluating its per-formance under varying data availability. Specifically, we randomly subsample the Alpaca dataset at different fractions 
+
+{1%, 10%, 30%, 50%, 100% } to simulate low-data scenar-ios. We then fine-tune the Non-Linear , Linear , and 
+
+Random-Init prompts on these subsets for both LLaMA-7B and LLaMA-13B and evaluate their performance on the ARC dataset. This experiment allows us to assess how well each initialization strategy adapts to limited data and whether zero-initialized attention provides a consistent ad-vantage in sample efficiency. We observe that both Non-Linear and Linear prompts signif-icantly enhance sample efficiency in parameter estimation for prefix-tuning in LLMs compared to the Random-Init prompt (which uses conventional attention). In the LLaMA-7B setting (Figure 2), both Non-Linear and Linear prompts outperform Random-Init across all fractions of the Alpaca training set. For example, the Non-Linear prompt exceeds Random-Init by 3.77% when trained on 100% of the dataset, while Linear exceeds it by 2.05%. When trained on 50% of the dataset, Non-Linear and Linear outperform Random-Init by 4.72% and 2.16%, respectively. In the LLaMA-13B setting (Figure 3), a similar trend is observed, with zero-initialized attention showing consis-tent advantages over Random-Init, and the Non-Linear prompt slightly outperforming the Linear prompt in most cases. The only exception is at 1% training data, where Lin-ear surpasses Non-Linear by 1.99% in accuracy. In short, these findings corroborate our theoretical results in Section 4, which demonstrate the sample efficiency of the zero-initialized attention mechanism in parameter estimation.    
+
+> Figure 2. Accuracy of different prompt strategies (Linear, Random, and Non-Linear) with a LLaMa-7B model across varying fractions of the training set. The Non-Linear prompt consistently outper-forms the other methods, especially in low-data regimes.
+
+## 6. Conclusion and Limitations 
+
+In this paper, we demonstrate that zero-initialization prompt-tuning for adapting LLMs is not just an engineering trick but can be rigorously explained through theoretical proper-ties by drawing connections between attention mechanisms and the mixture-of-experts perspective. Based on these insights, we introduce a novel non-linear prompt-tuning approach that outperforms linear prompts in terms of both performance and robustness while achieving competitive results compared to the full fine-tuning of LLaMA on the 8On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Table 2. Comparison of Non-Linear prompt , Linear prompt , and various fine-tuning methods. Params denote the total number of parameters updated during the fine-tuning process. Bold values indicate better scores between linear and non-linear settings.                                                                                    
+
+> Method Params ARC MMLU Hellaswag TruthfullQA Average
+> Acc (eas) Acc (cha) Acc (aver) Acc Acc Acc
+> LLaMA-7B, Fully Fine-tuning Alpaca 7B 67.47 46.25 56.86 37.25 77.09 42.35 53.39 LLaMA-7B, LoRA Alpaca 4.2M 61.91 42.15 52.03 34.87 77.53 46.14 52.64 LLaMA-7B, Prompt Tuning Alpaca 42K 55.35 37.46 46.41 32.85 75.88 34.76 47.48 LLaMA-7B, IA3 Alpaca 524K 52.06 35.92 43.99 31.65 75.73 32.8 46.04 LLaMA-7B, VeRA Alpaca 541K 49.2 35.49 42.35 30.88 75.59 31.95 45.19 LLaMA-7B + zero-init + linear 1.2M 62.29 43.17 52.73 36.28 76.79 45.53 52.83 LLaMA-7B + zero-init + non-linear 2.6M 63.51 45.39 54.45 36.95 76.67 45.04 53.28
+> LLaMA-13B + zero-init + linear 1.9M 81.78 64.33 73.06 49.64 81.21 34.88 59.70 LLaMA-13B + zero-init + non-linear 3.3M 82.87 66.55 74.71 51.32 81.72 38.92 61.67
+
+Figure 3. Accuracy of different prompt strategies (Linear, Random, and Non-Linear) using the LLaMa-13B model across varying fractions of the training set. The Non-Linear prompt consistently achieves the highest accuracy, particularly in low-resource settings. In contrast, the Random prompt performs significantly worse when only a small portion of the training data is available, but gradually improves as more data is introduced. 
+
+Table 3. Efficiency Comparison. The training is conducted on 4 GPUs A100-80GB.              
+
+> Method Tuned Params Storage Space Training Time
+> LLaMA-7B + zero-init + linear 1.2M 4.4M 1h54’ LLaMA-7B + zero-init + non-linear 2.6M 9.5M 1h54’ LLaMA-13B + zero-init + linear 1.9M 6.9M 3h17’ LLaMA-13B + zero-init + non-linear 3.3M 12M 3h17’
+
+Alpaca dataset. Our findings are validated across several question-answering tasks, tested on both LLaMA-7B and LLaMA-13B architectures, and align with our theoretical analysis in practical settings. We believe our results will encourage further exploration into initialization techniques and their potential for improving other parameter-efficient fine-tuning methods. Our study also has some limitations that need further ex-ploration. First, it has only been tested on unimodal LLMs, leaving the performance on multi-modal LLMs unexam-ined. Multi-modal tasks may require adjustments to the framework in both theoretical perspectives and practical implementations (Li et al., 2023; Nguyen et al., 2024a). Sec-ond, the integration of adapters and the optimal number of prompt embeddings across layers have not been systemati-cally explored. Further empirical experiments are needed to refine these components for better efficiency and adapt-ability in more complex models. Finally, the current study primarily focuses on performance metrics, but the inter-pretability and stability of non-linear prompts in real-world deployment scenarios require further analysis. Addressing these limitations will contribute to a deeper understanding of the robustness and generalizability of PEFT for LLaMA models. 
+
+## Impact Statement 
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here. 
+
+## Acknowledgment 
+
+This work was supported by Deutsche Forschungsgemein-schaft (DFG, German Research Foundation) under Ger-many’s Excellence Strategy - EXC 2075 – 390740016, the DARPA ANSR program under award FA8750-23-2-0004, the DARPA CODORD program under award HR00112590089. The authors thank the International Max Planck Research School for Intelligent Systems (IMPRS-IS) for supporting Duy M. H. Nguyen. Duy M. H. Nguyen and Daniel Sonntag are also supported by the XAINES project (BMBF, 01IW20005), No-IDLE project (BMBF, 01IW23002), and the Endowed Chair of Applied Artificial Intelligence, Oldenburg University. This research is also supported by research funding from Faculty of Informa-tion Technology, University of Science, Vietnam National University - Ho Chi Minh City. 9On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+## References 
+
+Akbarian, P., Nguyen, H., Han, X., and Ho, N. Quadratic gating functions in mixture of experts: A statistical in-sight. arXiv preprint arXiv:2410.11222 , 2024. Anil, R., Dai, A. M., Firat, O., Johnson, M., Lepikhin, D., Passos, A., Shakeri, S., Taropa, E., Bailey, P., Chen, Z., et al. Palm 2 technical report. arXiv preprint arXiv:2305.10403 , 2023. Beeching, E., Fourrier, C., Habib, N., Han, S., Lambert, N., Rajani, N., Sanseviero, O., Tun-stall, L., and Wolf, T. Open llm leader-board. https://huggingface.co/spaces/ HuggingFaceH4/open_llm_leaderboard ,2024. Accessed:2024. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al. Language models are few-shot learners. 
+
+Advances in neural information processing systems , 33: 1877–1901, 2020. Chen, S., Jie, Z., and Ma, L. Llava-mole: Sparse mixture of lora experts for mitigating data conflicts in instruc-tion finetuning mllms. arXiv preprint arXiv:2401.16160 ,2024. Chen, T., Chen, X., Du, X., Rashwan, A., Yang, F., Chen, H., Wang, Z., and Li, Y. Adamv-moe: Adaptive multi-task vision mixture-of-experts. In Proceedings of the IEEE/CVF International Conference on Computer Vision ,pp. 17346–17357, 2023. Chen, Z., Deng, Y., Wu, Y., Gu, Q., and Li, Y. Towards un-derstanding the mixture-of-experts layer in deep learning. In Koyejo, S., Mohamed, S., Agarwal, A., Belgrave, D., Cho, K., and Oh, A. (eds.), Advances in Neural Informa-tion Processing Systems , volume 35, pp. 23049–23062. Curran Associates, Inc., 2022. Clark, P., Cowhey, I., Etzioni, O., Khot, T., Sabharwal, A., Schoenick, C., and Tafjord, O. Think you have solved question answering? try arc, the ai2 reasoning challenge. 
+
+arXiv preprint arXiv:1803.05457 , 2018. Devlin, J. Bert: Pre-training of deep bidirectional trans-formers for language understanding. arXiv preprint arXiv:1810.04805 , 2018. Fedus, W., Zoph, B., and Shazeer, N. Switch transformers: Scaling to trillion parameter models with simple and ef-ficient sparsity. Journal of Machine Learning Research ,23(120):1–39, 2022. Gao, P., Geng, S., Zhang, R., Ma, T., Fang, R., Zhang, Y., Li, H., and Qiao, Y. Clip-adapter: Better vision-language models with feature adapters. International Journal of Computer Vision , 132(2):581–595, 2024. Han, X., Nguyen, H., Harris, C., Ho, N., and Saria, S. Fusemoe: Mixture-of-experts transformers for fleximodal fusion. In Advances in Neural Information Processing Systems , 2024. Hendrycks, D., Burns, C., Basart, S., Zou, A., Mazeika, M., Song, D., and Steinhardt, J. Measuring mas-sive multitask language understanding. arXiv preprint arXiv:2009.03300 , 2020. Ho, N., Yang, C.-Y., and Jordan, M. I. Convergence rates for Gaussian mixtures of experts. Journal of Machine Learning Research , 23(323):1–81, 2022. Houlsby, N., Giurgiu, A., Jastrzebski, S., Morrone, B., De Laroussilhe, Q., Gesmundo, A., Attariyan, M., and Gelly, S. Parameter-efficient transfer learning for nlp. In 
+
+International conference on machine learning , pp. 2790– 2799. PMLR, 2019. Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., and Chen, W. Lora: Low-rank adaptation of large language models. arXiv preprint arXiv:2106.09685 ,2021. Jacobs, R. A., Jordan, M. I., Nowlan, S. J., and Hinton, G. E. Adaptive mixtures of local experts. Neural Computation ,3, 1991. Jordan, M. I. and Jacobs, R. A. Hierarchical mixtures of experts and the em algorithm. Neural computation , 6(2): 181–214, 1994. Karimi Mahabadi, R., Henderson, J., and Ruder, S. Com-pacter: Efficient low-rank hypercomplex adapter layers. 
+
+Advances in Neural Information Processing Systems , 34: 1022–1035, 2021. Kopiczko, D. J., Blankevoort, T., and Asano, Y. M. Vera: Vector-based random matrix adaptation. arXiv preprint arXiv:2310.11454 , 2023. Le, M., Nguyen, A., Nguyen, H., Nguyen, T., Pham, T., Van Ngo, L., and Ho, N. Mixture of experts meets prompt-based continual learning. Advances in Neural Information Processing Systems , 38, 2024. Le, M., Nguyen, C., Nguyen, H., Tran, Q., Le, T., and Ho, N. Revisiting prefix-tuning: Statistical benefits of reparameterization among prompts. In The Thirteenth International Conference on Learning Representations ,2025. Lester, B., Al-Rfou, R., and Constant, N. The power of scale for parameter-efficient prompt tuning. arXiv preprint arXiv:2104.08691 , 2021. 10 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Li, C., Wong, C., Zhang, S., Usuyama, N., Liu, H., Yang, J., Naumann, T., Poon, H., and Gao, J. Llava-med: Training a large language-and-vision assistant for biomedicine in one day. Advances in Neural Information Processing Systems , 36:28541–28564, 2023. Li, D., Ma, Y., Wang, N., Cheng, Z., Duan, L., Zuo, J., Yang, C., and Tang, M. Mixlora: Enhancing large language models fine-tuning with lora based mixture of experts. 
+
+arXiv preprint arXiv:2404.15159 , 2024a. Li, H., Lin, S., Duan, L., Liang, Y., and Shroff, N. B. The-ory on mixture-of-experts in continual learning. arXiv preprint arXiv:2406.16437 , 2024b. Li, X., Lian, D., Lu, Z., Bai, J., Chen, Z., and Wang, X. Graphadapter: Tuning vision-language models with dual knowledge graph. Advances in Neural Information Pro-cessing Systems , 36, 2024c. Li, X. L. and Liang, P. Prefix-tuning: Optimizing continuous prompts for generation. arXiv preprint arXiv:2101.00190 ,2021. Lin, S., Hilton, J., and Evans, O. Truthfulqa: Measuring how models mimic human falsehoods. arXiv preprint arXiv:2109.07958 , 2021. Liu, H., Tam, D., Muqeeth, M., Mohta, J., Huang, T., Bansal, M., and Raffel, C. A. Few-shot parameter-efficient fine-tuning is better and cheaper than in-context learning. Ad-vances in Neural Information Processing Systems , 35: 1950–1965, 2022. Liu, X., Ji, K., Fu, Y., Tam, W. L., Du, Z., Yang, Z., and Tang, J. P-tuning v2: Prompt tuning can be comparable to fine-tuning universally across scales and tasks. arXiv preprint arXiv:2110.07602 , 2021. Mangrulkar, S., Gugger, S., Debut, L., Belkada, Y., Paul, S., and Bossan, B. Peft: State-of-the-art parameter-efficient fine-tuning methods. URL: https://github. com/huggingface/peft , 2022. Manole, T. and Ho, N. Refined convergence rates for max-imum likelihood estimation under finite mixture mod-els. In Proceedings of the 39th International Conference on Machine Learning , volume 162 of Proceedings of Machine Learning Research , pp. 14979–15006. PMLR, 17–23 Jul 2022. Minaee, S., Mikolov, T., Nikzad, N., Chenaghlu, M., Socher, R., Amatriain, X., and Gao, J. Large language models: A survey. arXiv preprint arXiv:2402.06196 , 2024. Nguyen, D. M., Diep, N. T., Nguyen, T. Q., Le, H.-B., Nguyen, T., Nguyen, T., Nguyen, T., Ho, N., Xie, P., Wat-tenhofer, R., et al. Logra-med: Long context multi-graph alignment for medical vision-language model. arXiv preprint arXiv:2410.02615 , 2024a. Nguyen, D. M., Le, A. T., Nguyen, T. Q., Diep, N. T., Nguyen, T., Duong-Tran, D., Peters, J., Shen, L., Niepert, M., and Sonntag, D. Dude: Dual distribution-aware context prompt learning for large vision-language model. 
+
+Asian Conference on Machine Learning (ACML) , 2024b. Nguyen, H., Nguyen, T., and Ho, N. Demystifying soft-max gating function in gaussian mixture of experts. Ad-vances in Neural Information Processing Systems , 36: 4624–4652, 2023. Nguyen, H., Akbarian, P., and Ho, N. Is temperature sample efficient for softmax Gaussian mixture of experts? In 
+
+Proceedings of the ICML , 2024c. Nguyen, H., Akbarian, P., Nguyen, T., and Ho, N. A general theory for softmax gating multinomial logistic mixture of experts. In Proceedings of the ICML , 2024d. Nguyen, H., Han, X., Harris, C. W., Saria, S., and Ho, N. On expert estimation in hierarchical mixture of experts: Beyond softmax gating functions. arxiv preprint arxiv 2410.02935 , 2024e. Nguyen, H., Ho, N., and Rinaldo, A. Sigmoid gating is more sample efficient than softmax gating in mixture of experts. In Advances in Neural Information Processing Systems , 2024f. Nguyen, H., Akbarian, P., Pham, T., Nguyen, T., Zhang, S., and Ho, N. Statistical advantages of perturbing cosine router in mixture of experts. In International Conference on Learning Representations , 2025. OpenAI. Chatgpt. https://chat.openai.com , 2025. Accessed: 2025. OpenAI, J. A., Adler, S., Agarwal, S., Ahmad, L., Akkaya, I., Aleman, F. L., Almeida, D., Altenschmidt, J., Altman, S., Anadkat, S., et al. Gpt-4 technical report, 2024. URL https://arxiv. org/abs/2303.08774 , 2:6, 2024. Pardo, L. Statistical Inference Based on Diver-gence Measures . Statistics: A Series of Text-books and Monographs. CRC Press, 2018. ISBN 9781420034813. URL https://books.google. com/books?id=ziDGGIkhqlMC .Peng, B., Li, C., He, P., Galley, M., and Gao, J. Instruc-tion tuning with gpt-4. arXiv preprint arXiv:2304.03277 ,2023. Pham, Q., Do, G., Nguyen, H., Nguyen, T., Liu, C., Sar-tipi, M., Nguyen, B. T., Ramasamy, S., Li, X., Hoi, S., and Ho, N. Competesmoe – effective training of 11 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+sparse mixture of experts via competition. arXiv preprint arXiv:2402.02526 , 2024. Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., Sutskever, I., et al. Language models are unsupervised multitask learners. OpenAI blog , 1(8):9, 2019. Raffel, C., Shazeer, N., Roberts, A., Lee, K., Narang, S., Matena, M., Zhou, Y., Li, W., and Liu, P. J. Exploring the limits of transfer learning with a unified text-to-text transformer. Journal of machine learning research , 21 (140):1–67, 2020. R ¨uckl ´e, A., Geigle, G., Glockner, M., Beck, T., Pfeiffer, J., Reimers, N., and Gurevych, I. Adapterdrop: On the efficiency of adapters in transformers. arXiv preprint arXiv:2010.11918 , 2020. Shazeer, N., Mirhoseini, A., Maziarz, K., Davis, A., Le, Q., Hinton, G., and Dean, J. Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. 
+
+arXiv preprint arXiv:1701.06538 , 2017. Shi, Z. and Lipani, A. Dept: Decomposed prompt tun-ing for parameter-efficient fine-tuning. arXiv preprint arXiv:2309.05173 , 2023. Taori, R., Gulrajani, I., Zhang, T., Dubois, Y., Li, X., Guestrin, C., Liang, P., and Hashimoto, T. B. Stanford alpaca: An instruction-following llama model, 2023. Touvron, H., Lavril, T., Izacard, G., Martinet, X., Lachaux, M.-A., Lacroix, T., Rozi `ere, B., Goyal, N., Hambro, E., Azhar, F., et al. Llama: Open and efficient foundation lan-guage models. arXiv preprint arXiv:2302.13971 , 2023a. Touvron, H., Lavril, T., Izacard, G., Martinet, X., Lachaux, M.-A., Lacroix, T., Rozi `ere, B., Goyal, N., Hambro, E., Azhar, F., et al. Llama: Open and efficient foundation lan-guage models. arXiv preprint arXiv:2302.13971 , 2023b. Touvron, H., Martin, L., Stone, K., Albert, P., Almahairi, A., Babaei, Y., Bashlykov, N., Batra, S., Bhargava, P., Bhosale, S., et al. Llama 2: Open foundation and fine-tuned chat models. arXiv preprint arXiv:2307.09288 ,2023c. van de Geer, S. Empirical processes in M-estimation . Cam-bridge University Press, 2000. Vaswani, A. Attention is all you need. Advances in Neural Information Processing Systems , 2017. Yan, F., Nguyen, H., Le, D., Akbarian, P., and Ho, N. Under-standing expert structures on minimax parameter estima-tion in contaminated mixture of experts. In Proceedings of The 28th International Conference on Artificial Intelli-gence and Statistics , 2025. Zellers, R., Holtzman, A., Bisk, Y., Farhadi, A., and Choi, Y. Hellaswag: Can a machine really finish your sentence? 
+
+arXiv preprint arXiv:1905.07830 , 2019. Zhang, Q., Chen, M., Bukharin, A., Karampatziakis, N., He, P., Cheng, Y., Chen, W., and Zhao, T. Adalora: Adaptive budget allocation for parameter-efficient fine-tuning. arXiv preprint arXiv:2303.10512 , 2023. Zhang, R., Han, J., Liu, C., Zhou, A., Lu, P., Qiao, Y., Li, H., and Gao, P. Llama-adapter: Efficient fine-tuning of large language models with zero-initialized attention. In The Twelfth International Conference on Learning Representations , 2024. Zhou, K., Yang, J., Loy, C. C., and Liu, Z. Learning to prompt for vision-language models. International Jour-nal of Computer Vision , 130(9):2337–2348, 2022. 12 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+# Supplement to “On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation” 
+
+In this supplementary material, we provide detailed proofs of the main results in Appendix A. Additional discussion on related works is in Appendix B and additional experimental details are in Appendix C. 
+
+## A. Proofs 
+
+A.1. Proof of Theorem 4.2 
+
+Based on the convergence rate of f bGn,bαn to fG∗,α ∗ in Proposition 4.1, to obtain the conclusion of Theorem 4.2, we only need to demonstrate that 
+
+∥fG,α − fG∗,α ∗ ∥L2(μ) ≥ C · (D(G, G ∗) + |α − α∗|)
+
+for any (G, α ) ∈ G L′ (Θ) × Ω for some universal constant C. It is equivalent to proving that: 
+
+inf   
+
+> (G,α )∈G L′(Θ) ×Ω
+
+∥fG,α − fG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0.
+
+To obtain the conclusion for the above inequality, we consider two parts: (i) local part, namely, 
+
+lim  
+
+> ε→0
+
+inf   
+
+> (G,α )∈G L′(Θ) ×Ω: D(G,G ∗)+ |α−α∗|≤ ε
+
+∥fG,α − fG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0; 
+
+(ii) global part, namely, for any ε > 0inf   
+
+> (G,α )∈G L′(Θ) ×Ω: D(G,G ∗)+ |α−α∗|>ε
+
+∥fG,α − fG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0; 
+
+Local part: We first start with the local part, which is equivalent to demonstrating that 
+
+lim  
+
+> ε→0
+
+inf   
+
+> (G,α )∈G L′(Θ) ×Ω: D(G,G ∗)+ |α−α∗|≤ ε
+
+∥fG,α − fG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0.
+
+We prove the above claim by contradiction. Assume by contrary that the above claim does not hold. It indicates that we can find a sequence of mixing measures Gn := PLn 
+
+> j′=1
+
+exp( ¯bn,j ′ )δpn,j ′ in GL′ (Θ) and a sequence of αn ∈ Ω such that when 
+
+n → ∞ , the following limits hold: 
+
+ D(Gn, G ∗) + |αn − α∗| → 0,
+
+∥fGn,α n − fG∗,α ∗ ∥L2(μ)/(D(Gn, G ∗) + |αn − α∗|) → 0.
+
+The first limit indicates that Dn := D(Gn, G ∗) → 0 and αn → α∗ as n → ∞ .For the simplicity of the ensuing presentation, we denote Cnj := Cj (Gn) as a Voronoi cell of Gn induced by the j-th components of G∗. Without loss of generality, we assume that those Voronoi cells do not depend on the sample size, i.e., 
+
+Cj = Cnj , which is possible since our arguments are asymptotic. Therefore, we can rewrite the Voronoi loss Dn as follows: 
+
+Dn := 
+
+> L
+
+X
+
+> j′=1
+
+X
+
+> i∈C j′
+
+exp( ¯bn,i ) − exp( ¯b∗,j ′ ) + X 
+
+> j′∈[L]: |C j′|=1
+
+X
+
+> i∈C j′
+
+exp( ¯bn,i )∥∆pn,ij ′ ∥
+
++ X 
+
+> j′∈[L]: |C j′|>1
+
+X
+
+> i∈C j′
+
+exp( ¯bn,i )∥∆pn,ij ′ ∥2,
+
+where ∆pn,ij ′ = pn,i − p∗,j ′ for all i ∈ C j′ .From the hypothesis, we have Dn → 0, which implies that P 
+
+> i∈C j
+
+exp( ¯bn,i ) → exp( ¯b∗,j ) and pn,i → p∗,j for any 
+
+i ∈ C j , j ∈ [L]. To establish the contradiction, our proof consists of three main steps. 13 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Step 1 - Taylor expansion. To ease the presentation, let us denote 
+
+fGn (X) := 
+
+> Ln
+
+X
+
+> j=1
+
+exp(( ¯Bpn,j )⊤X + ¯bn,j )
+
+PLn 
+
+> k=1
+
+exp(( ¯Bpn,k )⊤X + ¯bn,k ) · ¯Cpn,j ,fG∗ (X) := 
+
+> L
+
+X
+
+> j′=1
+
+exp(( ¯Bp∗,j ′ )⊤X + ¯b∗,j ′ )
+
+PLk′=1 exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ ) · ¯Cp∗,j ′ .
+
+We now decompose the function ¯Qn(X) as follows: 
+
+¯Qn(X) : = 
+
+h LX
+
+> k′=1
+
+exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+· [fGn,α n (X) − fG∗,α ∗ (X)] =
+
+h LX
+
+> k′=1
+
+exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+·
+
+
+
+tanh( αn)fGn (X) − tanh( α∗)fG∗ (X)
+
+
+
+=
+
+h LX
+
+> k′=1
+
+exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+· tanh( αn)
+
+h
+
+fGn (X) − fG∗ (X)
+
+i
+
++
+
+h LX
+
+> k′=1
+
+exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+· [tanh( αn) − tanh( α∗)] fG∗ (X):= ¯Qn, 1(X) + ¯Qn, 2(X).
+
+For that purpose, we will decompose the two terms ¯Qn, 1(X) and ¯Qn, 2(X), respectively. 
+
+Decomposition of the function ¯Qn, 1(X). We have 
+
+¯Qn, 1(X) = 
+
+> L
+
+X
+
+> j=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h
+
+exp(( ¯Bpn,i )⊤X) ¯Cpn,i − exp(( ¯Bp∗,j )⊤X) ¯Cp∗,j 
+
+i
+
+−
+
+> L
+
+X
+
+> j=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h
+
+exp(( ¯Bpn,i )⊤X) − exp(( ¯Bp∗,j )⊤X)
+
+i
+
+fGn (X)+
+
+> L
+
+X
+
+> j=1
+
+tanh( αn)
+
+ X 
+
+> i∈C j
+
+exp( ¯bn,i ) − exp( ¯b∗,j )
+
+
+
+exp(( ¯Bp∗,j )⊤X)
+
+h ¯Cp∗,j − fGn (X)
+
+i
+
+:= ¯An(X) − ¯Bn(X) + ¯Cn(X). (22) We now proceed to decompose the functions ¯An(.) and ¯Bn(.) via Taylor expansion. 
+
+Decomposition of the function ¯An(X). We first define the following functions ¯U (X; p) := exp(( ¯Bp)⊤X) and 
+
+¯V (p) = ¯Cp. Then, we denote the product of these functions as ¯F (X; p) = ¯U (X; p) ¯V (p). To decompose ¯An(X), we separately consider Voronoi cells with exactly one element and those with more than one element. It leads to the following decomposition of the function ¯An(X):
+
+¯An(X) = X 
+
+> j:|C j|=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h ¯F (X; pn,i ) − ¯F (X; p∗,j )
+
+i
+
++ X 
+
+> j:|C j|>1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h ¯F (X; pn,i ) − ¯F (X; p∗,j )
+
+i
+
+:= ¯An, 1(X) + ¯An, 2(X),
+
+where we denote ¯An, 1(X) = P 
+
+> j:|C j|=1
+
+P 
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h ¯F (X; pn,i ) − ¯F (X; p∗,j )
+
+i
+
+and ¯An, 2(X) =
+
+P 
+
+> j:|C j|>1
+
+P 
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h ¯F (X; pn,i ) − ¯F (X; p∗,j )
+
+i
+
+.14 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+For the function ¯An, 1(X), for any indices i ∈ C j and j such that |C j | = 1 , the first-order Taylor expansion entails that 
+
+¯U (X; pn,i ) = ¯U (X; p∗,j ) + X
+
+> |α|=1
+
+(∆ pn,ij )α ∂|α| ¯U∂pα (X; p∗,j ) + ¯Rij, 1(X),
+
+¯V (pn,i ) = ¯V (p∗,j ) + X
+
+> |α|=1
+
+(∆ pn,ij )α ∂|α| ¯V∂pα (p∗,j ) + ¯Rij, 2,
+
+where the terms ¯Rij, 1(X) and ¯Rij, 2 are Taylor remainders. Combining the above results leads to the following formulation of the function ¯An, 1(X):
+
+¯An, 1(X) = X 
+
+> j:|C j|=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+α!
+
+X
+
+> |α|=1
+
+
+
+(∆ pn,ij )α ∂|α| ¯U∂pα (X; p∗,j ) ¯V (p∗,j )+ (∆ pn,ij )α ∂|α| ¯V∂pα (p∗,j ) ¯U (X; p∗,j )
+
+
+
++ ¯Rn, 1(X)= X 
+
+> j:|C j|=1
+
+X
+
+> |α|=1
+
+
+
+¯Mn,j,α 
+
+∂|α| ¯U∂pα (X; p∗,j ) ¯V (p∗,j ) + ¯Mn,j,α 
+
+∂|α| ¯V∂pα (p∗,j ) ¯U (X; p∗,j )
+
+
+
++ ¯Rn, 1(X)
+
+where the function ¯Rn, 1(X) is the combination of Taylor remainders and satisfies that ¯Rn, 1(X)/(Dn + |αn − α∗|) → 0
+
+when n → ∞ . Furthermore, the formulations of ¯Mn,j,α are as follows: 
+
+¯Mn,j,α = X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+α! (∆ pn,ij )α,
+
+for any |α| = 1 .Moving to the function ¯An, 2(X), the second-order Taylor expansions of the function ¯U (X; pn,i ) around the function 
+
+¯U (X; p∗,j ) and the function ¯V (pn,i ) around the function ¯V (p∗,j ) for any indices i ∈ C j and j such that |C j | > 1, we obtain the following formulation of the function ¯An, 2(X):
+
+¯An, 2(X) = X 
+
+> j:|C j|>1
+
+X
+
+> 1≤| α|≤ 2
+
+
+
+¯Mn,j,α 
+
+∂|α| ¯U∂pα (X; p∗,j ) ¯V (p∗,j ) + ¯Mn,j,α 
+
+∂|α| ¯V∂pα (p∗,j ) ¯U (X; p∗,j )
+
+
+
++ X 
+
+> j:|C j|>1
+
+X
+
+> |α|=1 ,|β|=1
+
+¯Mn,j,α,β 
+
+∂|α| ¯U∂pα (X; p∗,j ) ∂|β| ¯V∂pβ (p∗,j ) + ¯Rn, 2(X)
+
+where the function ¯Rn, 2(X) is a combination of Taylor remainders and satisfies ¯Rn, 2(X)/(Dn + |αn − α∗|) → 0 when 
+
+n → ∞ . Furthermore, we define 
+
+¯Mn,j,α = X
+
+> i∈C j
+
+tanh( αn) exp( bn,i )
+
+α! (∆ pn,ij )α,
+
+for any |α| = 2 and 
+
+¯Mn,j,α,β = X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+α!β! (∆ pn,ij )α+β ,
+
+for any |α| = |β| = 1 . From the formulations of the functions ¯U (X; p) and ¯V (p), we obtain the following explicit forms of their partial derivatives: 
+
+∂ ¯U∂p(u) (X; p) = exp(( ¯Bp)⊤X)( ¯B1u)⊤X,∂2 ¯U∂p(u)∂p(v) (X; p) = exp(( ¯Bp)⊤X)X⊤( ¯B1u)( ¯B1v )⊤X,
+
+15 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+∂ ¯V∂p(u) (p) = ¯C1u,∂2 ¯V∂p(u)∂p(v) (p) = 0 .
+
+In these formulations, we use 1u to denote the vector that its u-th element is 1 and its other elements are 0 for 1 ≤ u ≤ d.Plugging these explicit formulations of the derivatives of the functions ¯U (X; p) and ¯V (p), we can express the functions 
+
+¯An, 1(X) and ¯An, 2(X) as follows: 
+
+¯An, 1(X) = X 
+
+> j:|C j|=1
+
+exp(( ¯Bp∗,j )⊤X)L1,n (p∗,j ) + L2,n (p∗,j )⊤ ¯B⊤X + ¯Rn, 1(X),
+
+¯An, 2(X) = X 
+
+> j:|C j|>1
+
+exp(( ¯Bp∗,j )⊤X) ¯L1,n (p∗,j ) + ¯L2,n (p∗,j )⊤ ¯B⊤X
+
++ ( ¯B⊤X)⊤ ¯L3,n (p∗,j ) ¯B⊤X + ¯Rn, 2(X),
+
+where the functions L1,n (p), L2,n (p), ¯L1,n (p), ¯L2,n (p), and ¯L3,n (p) are defined as follows: 
+
+L1,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u
+
+¯C1u,
+
+L2,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u 1u ¯Cp,
+
+¯L1,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u C1u,
+
+¯L2,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u 1u ¯Cp + X
+
+> 1≤u,v ≤d
+
+¯Mn,j, 1v ,1u
+
+¯C1u1v
+
+¯L3,n (p) = X
+
+> 1≤u,v ≤d
+
+¯Mn,j, 1uv 1u1⊤ 
+
+> v
+
+¯Cp.
+
+In these formulations, we denote 1uv as the matrix that its (u, v )-th element is 1 and its other elements are 0 for any 
+
+1 ≤ u, v ≤ d.
+
+Decomposition of the function ¯Bn(X). Similar to the decomposition of the function ¯An(X), we can decompose the function ¯Bn(X) as follows: 
+
+¯Bn(X) = X 
+
+> j:|C j|=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h ¯U (X; pn,i ) − ¯U (X; p∗,j )
+
+i
+
+fGn (X)+ X 
+
+> j:|C j|>1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h ¯U (X; pn,i ) − ¯U (X; p∗,j )
+
+i
+
+fGn (X):= ¯Bn, 1(X) + ¯Bn, 2(X)
+
+where we denote ¯Bn, 1(X) = P 
+
+> j:|C j|=1
+
+P 
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h ¯U (X; pn,i ) − ¯U (X; p∗,j )
+
+i
+
+fGn (X) and ¯Bn, 2(X) = 
+
+P 
+
+> j:|C j|>1
+
+P 
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h ¯U (X; pn,i ) − ¯U (X; p∗,j )
+
+i
+
+fGn (X).Similar to the Taylor expansions for the functions ¯An, 1(X) and ¯An, 2(X), by using the first-order Taylor expansion to 
+
+¯Bn, 1(X) and the second-order Taylor expansion to ¯Bn, 2(X), we obtain that 
+
+¯Bn, 1(X) = X 
+
+> j:|C j|=1
+
+X
+
+> |α|=1
+
+¯Mn,j,α 
+
+∂|α| ¯U∂pα (X; p∗,j )fGn (X) + ¯Rn, 3(X)
+
+16 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+¯Bn, 2(X) = X 
+
+> j:|C j|=1
+
+X
+
+> 1≤| α|≤ 2
+
+¯Mn,j,α 
+
+∂|α| ¯U∂pα (X; p∗,j )fGn (X) + ¯Rn, 4(X)
+
+where the functions ¯Rn, 3(X), ¯Rn, 4(X) are Taylor remainders. Furthermore, they satisfy that ¯Rn, 3(X)/(Dn +|αn −α∗|) →
+
+0 and ¯Rn, 4(X)/(Dn + |αn − α∗|) → 0 when n → ∞ . Given the explicit formulations of the derivatives of the functions 
+
+¯U (X; p) and ¯V (p), the functions ¯Bn, 1(X) and ¯Bn, 2(X) can be then rewritten as follows: 
+
+¯Bn, 1(X) = X 
+
+> j:|C j|=1
+
+exp(( ¯Bp∗,j )⊤X)N1,n (p∗,j )⊤XfGn (X) + ¯Rn, 3(X),
+
+¯Bn, 2(X) = X 
+
+> j:|C j|>1
+
+exp(( ¯Bp∗,j )⊤X) ¯N1,n (p∗,j )⊤ ¯B⊤X
+
++ ( ¯B⊤X)⊤ ¯N2,n (p∗,j )( ¯B⊤X)fGn (X) + ¯Rn, 4(X).
+
+Here, the functions N1,n (X), ¯N1,n (X), and ¯N2,n (X) have the following formulations: 
+
+N1,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u 1u,
+
+¯N1,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u 1u,
+
+¯N2,n (p) = X
+
+> 1≤u,v ≤d
+
+¯Mn,j, 1uv 1u1⊤ 
+
+> v
+
+.
+
+Collecting all of the above results with the decomposition of the functions ¯An(X) and ¯Bn(X), we can represent the function ¯Qn, 1(X) in equation (22) as follows: 
+
+¯Qn, 1(X) = X 
+
+> j:|C j|=1
+
+exp(( ¯Bp∗,j )⊤X)L′
+
+> 1,n
+
+(p∗,j ) + L2,n (p∗,j )⊤ ¯B⊤X
+
++ X 
+
+> j:|C j|>1
+
+exp(( ¯Bp∗,j )⊤X) ¯L′
+
+> 1,n
+
+(p∗,j ) + ¯L2,n (p∗,j )⊤ ¯B⊤X + ( ¯B⊤X)⊤ ¯L3,n (p∗,j ) ¯B⊤X
+
+− X 
+
+> j:|C j|=1
+
+exp(( ¯Bp∗,j )⊤X) ¯Mn,j, 0d + N1,n (p∗,j )⊤ ¯B⊤XfGn (X)
+
+− X 
+
+> j:|C j|>1
+
+exp(( ¯Bp∗,j )⊤X) ¯Mn,j, 0d + ¯N1,n (p∗,j )⊤ ¯B⊤X + ( ¯B⊤X)⊤ ¯N2,n (p∗,j ) ¯B⊤XfGn (X)+ ¯Rn, 1(X) + ¯Rn, 2(X) − ¯Rn, 3(X) − ¯Rn, 4(X) (23) where we define ¯Mn,j, 0d = tanh( αn)
+
+ P 
+
+> i∈C j
+
+exp( ¯bn,i ) − exp( ¯b∗,j )
+
+
+
+for any index 1 ≤ j ≤ L, L′
+
+> 1,n
+
+(p∗,j ) =
+
+L1,n (p∗,j ) + ¯Mn,j, 0d
+
+¯Cp∗,j , and ¯L′
+
+> 1,n
+
+(p∗,j ) = ¯L1,n (p∗,j ) + ¯Mn,j, 0d
+
+¯Cp∗,j .
+
+Decomposition of the function ¯Qn, 2(X). An application of the first-order Taylor expansion leads to the following expression for the function ¯Qn, 2(X):
+
+¯Qn, 2(X) = [tanh( αn) − tanh( α∗)] ·
+
+h LX
+
+> k′=1
+
+exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+· fG∗ (X)= ( αn − α∗)[1 − tanh 2(α∗)] ·
+
+h LX
+
+> k′=1
+
+exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+· fG∗ (X) + ¯R5(X), (24) where the function ¯Rn, 5(X) is Taylor remainder and satisfies that ¯Rn, 5(X)/(Dn + |αn − α∗|) → 0 as n → ∞ .17 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Step 2 - Non-vanishing coefficients. The results of equations (23) and (24) indicate that [ ¯Qn(X)−P5 
+
+> i=1
+
+¯Rn,i (X)] /(Dn +
+
+|αn − α∗|) can be represented as a combination of the linearly independent functions exp(( ¯Bp∗,j )⊤X),
+
+( ¯B⊤X)(u) exp(( ¯Bp∗,j )⊤X), ( ¯B⊤X)(u)( ¯B⊤X)(v) exp(( ¯Bp∗,j )⊤X), exp(( ¯Bp∗,j )⊤X)fGn (X),
+
+( ¯B⊤X)(u) exp(( ¯Bp∗,j )⊤X)fGn (X), ( ¯B⊤X)(u)( ¯B⊤X)(v) exp(( ¯Bp∗,j )⊤X)fGn (X), and [1 − tanh 2(α∗)] ·h PLk′=1 exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+· fG∗ (X) for any 1 ≤ j ≤ L and 1 ≤ u, v ≤ d.Our claim is that at least one of the coefficients of these linearly independent terms in the formulation of [ ¯Qn(X) −
+
+P5 
+
+> i=1
+
+¯Rn,i (X)] /(Dn + |αn − α∗|) does not go to 0 as n → ∞ . Assume by contrary that this claim does not hold, which means that all the coefficients of these linearly independent terms go to 0 as n → ∞ . Therefore, as n → ∞ we obtain that 
+
+L1,n (p∗,j )/(Dn + |αn − α∗|) → 0, L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0, ¯L1,n (p∗,j )/(Dn + |αn − α∗|) → 0,
+
+¯L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0, ¯L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0, ¯L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0,
+
+¯L3,n (p∗,j )(uv )/(Dn + |αn − α∗|) → 0, N1,n (p∗,j )/(Dn + |αn − α∗|) → 0, ¯N1,n (( p∗,j )(u)/(Dn + |αn − α∗|) → 0,
+
+¯N2,n (p∗,j )(uv )/(Dn + |αn − α∗|) → 0, ¯Mn,j, 0d /Dn → 0, (αn − α∗)/(Dn + |αn − α∗|) → 0
+
+for any 1 ≤ u, v ≤ d and 1 ≤ j ≤ L.As (αn − α∗)/(Dn + |αn − α∗|) → 0, we deduce that 
+
+|αn − α∗|
+
+(Dn + |αn − α∗|) → 0. (25) Note that since αn → α∗̸ = 0 as n → ∞ , we have 1/ tanh( αn)̸ → ∞ . Then, as ¯Mn,j, 0d /(Dn + |αn − α∗|) → 0, it implies that 
+
+| P 
+
+> i∈C j
+
+exp( ¯bn,i ) − exp( ¯b∗,j )|
+
+(Dn + |αn − α∗|) = 1tanh( αn) · | ¯Mn,j, 0d |
+
+(Dn + |αn − α∗|) → 0,
+
+for any 1 ≤ j ≤ L. By varying the index j from 1 to L in these limits and summing them up, we obtain that 
+
+PLj=1 | P 
+
+> i∈C j
+
+exp( ¯bn,i ) − exp( ¯b∗,j )|
+
+(Dn + |αn − α∗|) → 0. (26) Now, we consider indices j ∈ [L] such that |C j | = 1 , i.e., the corresponding Voronoi cell has only one element. From the hypothesis, we have L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0, which leads to ¯Mn,j, 1u /(Dn + |αn − α∗|) → 0. Hence, we find that P 
+
+> i∈C j
+
+exp( ¯bn,i )∥∆pn,ij ∥
+
+(Dn + |αn − α∗|) =
+
+Pdu=1 | ¯Mn,j, 1u |
+
+tanh( αn)( Dn + |αn − α∗|) → 0.
+
+That limit directly implies the following result: 
+
+P 
+
+> j:|C j|=1
+
+P 
+
+> i∈C j
+
+exp( ¯bn,i )∥∆pn,ij ∥
+
+(Dn + |αn − α∗|) → 0. (27) We now move to the Voronoi cells having more than one element, namely, we consider indices j ∈ [L] satisfying |C j | > 1.The limit ¯L3,n (p∗,j )(uu )/(Dn + |αn − α∗|) → 0 induces that 
+
+P 
+
+> i∈C j
+
+exp( ¯bn,i )∥∆pn,ij ∥2
+
+(Dn + |αn − α∗|) =
+
+Pdu=1 ¯L3,n (p∗,j )(uu )
+
+tanh( αn)( Dn + |αn − α∗|) → 0.
+
+By varying the indices j in these limits over all the Voronoi cells Cj having more than one element, we find that 
+
+P 
+
+> j:|C j|>1
+
+P 
+
+> i∈C j
+
+exp( ¯bn,i )∥∆pn,ij ∥2
+
+(Dn + |αn − α∗|) → 0. (28) 18 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Combining the results from equations (25), (26), (27), and (28) leads to 
+
+1 = Dn + |αn − α∗|Dn + |αn − α∗| → 0
+
+as n → ∞ , which cannot hold. As a consequence, at least one of the coefficients of the terms in the formulations of 
+
+[Qn(X) − P5 
+
+> i=1
+
+¯Rn,i (X)] /(Dn + |αn − α∗|) does not go to 0 as n → ∞ .
+
+Step 3 - Application of the Fatou’s lemma. We denote mn as the maximum of the absolute values of L′
+
+> 1,n
+
+(p∗,j )/(Dn +
+
+|αn − α∗|), L2,n (p∗,j )(u)/(Dn + |αn − α∗|), ¯L′
+
+> 1,n
+
+(p∗,j )/(Dn + |αn − α∗|), ¯L2,n (p∗,j )(u)/(Dn + |αn − α∗|),
+
+¯L3,n (p∗,j )(uv )/(Dn +|αn −α∗|), N1,n (p∗,j )/(Dn +|αn −α∗|), ¯N1,n (( p∗,j )(u)/(Dn +|αn −α∗|), ¯N2,n (p∗,j )(uv )/(Dn +
+
+|αn − α∗|), ¯Mn,j, 0d /(Dn + |αn − α∗|), and (αn − α∗)/(Dn + |αn − α∗|) for all 1 ≤ u, v ≤ d. From the result of Step 2 in the proof, we have 1/m n̸ → ∞ as n → ∞ .Recall that ∥fGn,α n − fG∗,α ∗ ∥L2(μ)/(Dn + |αn − α∗|) → 0 as n → ∞, which indicates that ∥fGn,α n −
+
+fG∗,α ∗ ∥L2(μ)/(mn(Dn + |αn − α∗|)) → 0. Furthermore, since the L2(μ) norm is equivalent to the L1(μ) norm, we have ∥fGn,α n − fG∗,α ∗ ∥L1(μ)/(mn(Dn + |αn − α∗|)) → 0. An application of Fatou’s lemma leads to 
+
+0 = lim 
+
+> n→∞
+
+∥fGn,α n − fG∗,α ∗ ∥L1(μ)
+
+mn(Dn + |αn − α∗|) ≥
+
+Z
+
+lim inf 
+
+> n→∞
+
+∥fGn,α n (X) − fG∗,α ∗ (X)∥1
+
+mn(Dn + |αn − α∗|) dμ (X) ≥ 0.
+
+It indicates that lim inf n→∞ 
+
+∥fGn (X) − fG∗ (X)∥1
+
+mn(Dn + |αn − α∗|) = 0 for almost surely X. As n → ∞ , we denote 
+
+L′
+
+> 1,n
+
+(p∗,j )
+
+mn(Dn + |αn − α∗|) → bαj , L2,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → βj ,
+
+¯L′
+
+> 1,n
+
+(p∗,j )
+
+mn(Dn + |αn − α∗|) → ¯αj , ¯L2,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → ¯βj , ¯L3,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → ¯γj ,
+
+¯Mn,j, 0d
+
+mn(Dn + |αn − α∗|) → ˜αj , N1,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → ˜βj ,
+
+¯N1,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → bβj , ¯N2,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → bγj , αn − α∗
+
+mn(Dn + |αn − α∗|) → τ
+
+for any 1 ≤ j ≤ L. Here, from the definition of mn, at least one coefficient among {bαj , β j , ˜αj , ˜βj }j:|C j |=1 ,
+
+{¯αj , ¯βj , ¯γj , ˜αj , bβj , bγj }j:|C j |>1, and τ is different from 0. Then, the equation 
+
+lim inf 
+
+> n→∞
+
+∥Qn(X)∥1
+
+mn(Dn + |αn − α∗|) =
+
+h LX
+
+> k′=1
+
+exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+· lim inf 
+
+> n→∞
+
+∥fGn,α n (X) − fG∗,α ∗ (X)∥1
+
+mn(Dn + |αn − α∗|) = 0 
+
+leads to X 
+
+> j:|C j|=1
+
+exp(( ¯Bp∗,j )⊤X)( αj + β⊤ 
+
+> j
+
+( ¯B⊤X)
+
++ X 
+
+> j:|C j|>1
+
+exp(( ¯Bp∗,j )⊤X)¯αj + ¯β⊤ 
+
+> j
+
+(B⊤X) + ( ¯B⊤X)⊤ ¯γj ( ¯B⊤X)
+
+− X 
+
+> j:|C j|=1
+
+exp(( ¯Bp∗,j )⊤X)(˜ αj + ˜β⊤ 
+
+> j
+
+( ¯B⊤X)) fG∗ (X)
+
+− X 
+
+> j:|C j|>1
+
+exp(( ¯Bp∗,j )⊤X)˜αj + bβ⊤ 
+
+> j
+
+( ¯B⊤X) + ( ¯B⊤X)⊤bγj ¯B⊤XfG∗ (X)+ τ [1 − tanh 2(α∗)] ·
+
+h LX
+
+> k′=1
+
+exp(( ¯Bp∗,k ′ )⊤X + ¯b∗,k ′ )
+
+i
+
+· fG∗ (X) = 0d
+
+for almost surely X. That equation only holds if and only if all the coefficients {bαj , β j , ˜αj , ˜βj }j:|C j |=1 ,19 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+{¯αj , ¯βj , ¯γj , ˜αj , bβj , bγj }j:|C j |>1, and τ are 0, which is a contradiction. It indicates that we indeed have the conclusion of the local part, namely, 
+
+lim  
+
+> ε→0
+
+inf   
+
+> G∈G L′(Ω):( D(G,G ∗)+ |α−α∗|)≤ε
+
+∥fG,α − fG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0.
+
+Global part: The result of the local part implies that we can find a positive constant ε′ such that 
+
+inf   
+
+> G∈G L′(Ω):( D(G,G ∗)+ |α−α∗|)≤ε′
+
+∥fG,α − fG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0.
+
+Therefore, to obtain the conclusion of the theorem it is sufficient to prove that 
+
+inf   
+
+> G∈G L′(Ω):( D(G,G ∗)+ |α−α∗|)>ε ′
+
+∥fG,α − fG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0.
+
+Assume by contrary that the above claim does not hold. Then there exists a sequence of measures G′ 
+
+> n
+
+:= 
+
+PL′ 
+
+> j′=1
+
+exp( ¯bn,j ′ )δpn,j ′ in GL′ (Θ) and α′ 
+
+> n
+
+∈ Ω such that we have 
+
+ D(G′
+
+> n
+
+, G ∗) + |α′ 
+
+> n
+
+− α∗| > ε ′
+
+∥fG′ 
+
+> n,α ′
+> n
+
+− fG∗,α ∗ ∥L2(μ)/(D(G′
+
+> n
+
+, G ∗) + |α′ 
+
+> n
+
+− α∗|) → 0.
+
+These limits indicate that ∥fG′ 
+
+> n,α ′
+> n
+
+− fG∗,α ∗ ∥L2(μ) → 0 as n → ∞ .Recall that the sets Θ and Ω are compact. Therefore, there exists a mixing measure G′ in GL′ (Ω) such that one of (G′
+
+> n
+
+, α ′
+
+> n
+
+)’s subsequences converges to (G′, α ′). Since D(G′
+
+> n
+
+, G ∗) + |α′ 
+
+> n
+
+− α∗| > ε ′, we deduce that D(G′, G ∗) + |α′ − α∗| > ε ′.An application of the Fatou’s lemma leads to 
+
+0 = lim  
+
+> n→∞
+
+∥fG′ 
+
+> n,α ′
+> n
+
+− fG∗,α ∗ ∥L2(μ) ≥
+
+Z
+
+lim inf  
+
+> n→∞
+
+fG′ 
+
+> n,α ′
+> n
+
+(X) − fG∗,α ∗ (X) 22 dμ (X).
+
+Hence, we have fG′,α ′ (X) = fG∗,α ∗ (X) for μ−almost surely X. From the identifiability property (cf. the end of this proof), we deduce that (G′, α ′) ≡ (G∗, α ∗). It follows that D(G′, G ∗) + |α′ − α∗| = 0 . It contradicts to the hypothesis that 
+
+D(G′, G ∗) + |α′ − α∗| > ε ′ > 0.As a consequence, the proof of the global part is completed. We obtain the conclusion of the theorem. 
+
+Proof for the identifiability property. We now demonstrate that if f ¯G, ¯α(X) = f ¯G∗, ¯α∗ (X) for almost every X, then we obtain that ( ¯G, ¯α) ≡ ( ¯G∗, ¯α∗).To ease the presentation we denote the following notations: 
+
+softmax Pretrain  
+
+> ¯G
+
+(u) = exp( u)
+
+PNk=1 exp( X⊤ ¯A0
+
+> k
+
+X + ¯ a0
+
+> k
+
+) ,
+
+softmax Prompt  
+
+> ¯G
+
+(u′) = exp( u)
+
+PL′ 
+
+> j′=1
+
+exp(( ¯Bpj′ )⊤X + ¯bj′ ) ,
+
+softmax Pretrain  
+
+> ¯G∗
+
+(u∗) = exp( u∗)
+
+PNk=1 exp( X⊤ ¯A0
+
+> k
+
+X + ¯ a0
+
+> k
+
+) ,
+
+softmax Prompt  
+
+> ¯G∗
+
+(u′∗) = exp( u∗)
+
+PLj′=1 exp(( ¯Bp∗,j ′ )⊤X + ¯b∗,j ′ ) .
+
+Here, u, u′, u∗, and u′∗ in these equations satisfy: 
+
+u ∈ { X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+: j ∈ [N ]}, u ′ ∈ { ( ¯Bpj′ )⊤X + ¯bj′ : j′ ∈ [L′]}
+
+u∗ ∈ { X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+: j ∈ [N ]}, u ′∗ ∈ { ( ¯Bp∗,j ′ )⊤X + ¯b∗,j ′ : j′ ∈ [L]}.
+
+The equation f ¯G, ¯α(X) = f ¯G∗, ¯α∗ (X) for almost every X indicates that 
+
+> N
+
+X
+
+> j=1
+
+softmax Pretrain  
+
+> ¯G
+
+(X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+)) h(X, ¯η0 
+
+> j
+
+) + tanh(¯ α)
+
+> L′
+
+X
+
+> j′=1
+
+softmax Prompt  
+
+> ¯G
+
+(( ¯Bpj′ )⊤X + ¯bj′ ) ¯Cpj′
+
+20 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+=
+
+> N
+
+X
+
+> j=1
+
+softmax Pretrain  
+
+> ¯G∗
+
+(X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+)) h(X, ¯η0 
+
+> j
+
+) + tanh(¯ α∗)
+
+> L
+
+X
+
+> j′=1
+
+softmax Prompt  
+
+> ¯G∗
+
+(( ¯Bp∗,j ′ )⊤X + ¯b∗,j ′ ) ¯Cp∗,j ′ . (29) The above equation only holds when L = L′. Furthermore, we also have that 
+
+{softmax Prompt  
+
+> ¯G
+
+(( ¯Bpj′ )⊤X + ¯bj′ ) : j′ ∈ [L′]} = {softmax Prompt  
+
+> ¯G∗
+
+(( ¯Bp∗,j ′ )⊤X + ¯b∗,j ′ ) : j′ ∈ [L]},
+
+for almost every X. By relabelling the indices, we can assume that 
+
+softmax Prompt  
+
+> ¯G
+
+(( ¯Bpj′ )⊤X + ¯bj′ ) = softmax Prompt  
+
+> ¯G∗
+
+(( ¯Bp∗,j ′ )⊤X + ¯b∗,j ′ ),
+
+for almost every X and any j′ ∈ [L]. From the translation invariant property of the softmax function, the above equations only hold when ¯bj′ = ¯b∗,j ′ + ¯ r for some ¯r ∈ R and any j′ ∈ [L]. Given these results, equation (29) leads to 
+
+tanh(¯ α)
+
+> L
+
+X
+
+> j=1
+
+exp ( ¯bj ) exp (( ¯Bpj )⊤X) ¯Cpj = tanh(¯ α∗)
+
+> L
+
+X
+
+> j=1
+
+exp ( ¯b∗,j ) exp (( ¯Bp∗,j )⊤X) ¯Cp∗,j , (30) for almost surely X.Now, we partition the set {1, 2, . . . , L } into m subsets ¯K1, ¯K2, . . . , ¯Km where m ≤ L, such that exp ( ¯bj ) = exp ( ¯b∗,j ′ ) for any j, j ′ ∈ ¯Ki and i ∈ [m]. It is clear that exp ( ¯bj )̸ = exp ( ¯b∗,j ′ ) when j, j ′ belong to different subsets ¯Ki. Collecting these results, equation (30) can be rewritten as follows: 
+
+tanh(¯ α)
+
+> m
+
+X
+
+> i=1
+
+X 
+
+> j∈¯Ki
+
+exp ( ¯bj ) exp (( ¯Bpj )⊤X) ¯Cpj
+
+= tanh(¯ α∗)
+
+> m
+
+X
+
+> i=1
+
+X 
+
+> j∈¯Ki
+
+exp ( ¯b∗,j ) exp (( ¯Bp∗,j )⊤X) ¯Cp∗,j ,
+
+for almost surely X. Hence, we achieve that 
+
+{(( ¯Bpj )⊤, pj ) : j ∈ ¯Ki} = {(( ¯Bp∗,j )⊤, p∗,j ) : j ∈ ¯Ki} and tanh(¯ α) = tanh(¯ α∗).
+
+It naturally leads to 
+
+{pj : j ∈ ¯Ki} = {p∗,j : j ∈ ¯Ki}.
+
+Without loss of generality, pj = p∗,j for all j ∈ ¯Ki. As a consequence, we obtain that ¯α = ¯ α∗ and 
+
+> m
+
+X
+
+> i=1
+
+X 
+
+> j∈¯Ki
+
+exp ( ¯bj )δpj =
+
+> m
+
+X
+
+> i=1
+
+X 
+
+> j∈¯Ki
+
+exp ( ¯b∗,j )δp∗,j .
+
+It is equivalent to ( ¯G, ¯α) ≡ ( ¯G∗, ¯α∗). We achieve the conclusion of the identifiability claim. 
+
+A.2. Proof of Theorem 4.4 
+
+Similar to the proof of Theorem 4.2 in Appendix A.1, we only need to demonstrate that 
+
+∥gG,α − gG∗,α ∗ ∥L2(μ) ≥ C · (D(G, G ∗) + |α − α∗|)
+
+for any (G, α ) ∈ G L′ (Θ) × Ω for some universal constant C. It is equivalent to proving that: 
+
+inf   
+
+> (G,α )∈G L′(Θ) ×Ω
+
+∥gG,α − gG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0.
+
+To obtain the conclusion for the above inequality, we consider two parts: (i) local part, namely, 
+
+lim  
+
+> ε→0
+
+inf   
+
+> (G,α )∈G L′(Θ) ×Ω: D(G,G ∗)+ |α−α∗|≤ ε
+
+∥gG,α − gG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0; 
+
+21 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+(ii) global part, namely, for any ε > 0inf   
+
+> (G,α )∈G L′(Θ) ×Ω: D(G,G ∗)+ |α−α∗|>ε
+
+∥gG,α − gG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0; 
+
+Since the global part can be argued in a similar fashion to Appendix A.1, we will focus only on proving the local part in this appendix. Additionally, we will impose the following essential yet mild assumptions in the activation function σ to facilitate our arguments: 
+
+Assumptions. We assume that the activation function σ meet the following assumptions: 
+
+(A.1) (Uniform Lipschitz) Let F (X; p) := exp(( Bσ (p)) ⊤X)Cσ (p). Then, for any r ∈ { 1, 2}, we have 
+
+X
+
+> |α|=r
+
+ ∂|α|F∂pα (X; p) − ∂|α|F∂pα (X; p′)
+
+
+
+γα ≤ c∥p − p′∥ζ ∥γ∥r ,
+
+for any vector γ ∈ Rd and for some positive constants ζ and c which are independent of X and p, p′. Here, α ∈ Nd.(A.2) (Injective) If there exist parameters p and p′ such that σ(p) = σ(p′), then we obtain that p = p′.
+
+Local part: We first start with the local part, which is equivalent to demonstrating that 
+
+lim  
+
+> ε→0
+
+inf   
+
+> (G,α )∈G L′(Θ) ×Ω: D(G,G ∗)+ |α−α∗|≤ ε
+
+∥gG,α − gG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0.
+
+We prove the above claim by contradiction. Assume by contrary that the above claim does not hold. It indicates that we can find a sequence of mixing measures Gn := PLn 
+
+> j′=1
+
+exp( ¯bn,j ′ )δpn,j ′ in GL′ (Θ) and a sequence of αn ∈ Ω such that when 
+
+n → ∞ , the following limits hold: 
+
+ D(Gn, G ∗) + |αn − α∗| → 0,
+
+∥gGn,α n − gG∗,α ∗ ∥L2(μ)/(D(Gn, G ∗) + |αn − α∗|) → 0.
+
+The first limit indicates that Dn := D(Gn, G ∗) → 0 and αn → α∗ as n → ∞ .For the simplicity of the ensuing presentation, we denote Cnj := Cj (Gn) as a Voronoi cell of Gn induced by the j-th components of G∗. Without loss of generality, we assume that those Voronoi cells do not depend on the sample size, i.e., 
+
+Cj = Cnj , which is possible since our arguments are asymptotic. Therefore, we can rewrite the Voronoi loss Dn as follows: 
+
+Dn := 
+
+> L
+
+X
+
+> j′=1
+
+X
+
+> i∈C j′
+
+exp( ¯bn,i ) − exp( ¯b∗,j ′ ) + X 
+
+> j′∈[L]: |C j′|=1
+
+X
+
+> i∈C j′
+
+exp( ¯bn,i )∥∆pn,ij ′ ∥
+
++ X 
+
+> j′∈[L]: |C j′|>1
+
+X
+
+> i∈C j′
+
+exp( ¯bn,i )∥∆pn,ij ′ ∥2,
+
+where ∆pn,ij ′ = pn,i − p∗,j ′ for all i ∈ C j′ .From the hypothesis, we have Dn → 0, which implies that P 
+
+> i∈C j
+
+exp( ¯bn,i ) → exp( ¯b∗,j ) and pn,i → p∗,j for any 
+
+i ∈ C j , j ∈ [L]. Similar to the proof of Theorem 4.2, to establish the contradiction our proof consists of three main steps. 
+
+Step 1 - Taylor expansion. To ease the presentation, let us denote 
+
+gGn (X) := 
+
+> Ln
+
+X
+
+> j=1
+
+exp(( ¯Bσ (pn,j )) ⊤X + ¯bn,j )
+
+PLn 
+
+> k=1
+
+exp(( ¯Bσ (pn,k )) ⊤X + ¯bn,k ) · ¯Cσ (pn,j ),gG∗ (X) := 
+
+> L
+
+X
+
+> j′=1
+
+exp(( ¯Bσ (p∗,j ′ )) ⊤X + ¯b∗,j ′ )
+
+PLk′=1 exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ ) · ¯Cσ (p∗,j ′ ).
+
+22 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+We now perform the following decomposition: 
+
+eQn(X) : = 
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+· [gGn,α n (X) − gG∗,α ∗ (X)] =
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+·
+
+
+
+tanh( αn)gGn (X) − tanh( α∗)gG∗ (X)
+
+
+
+=
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+· tanh( αn)
+
+h
+
+gGn (X) − gG∗ (X)
+
+i
+
++
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+· [tanh( αn) − tanh( α∗)] gG∗ (X):= eQn, 1(X) + eQn, 2(X).
+
+For that purpose, we will decompose the two terms eQn, 1(X) and eQn, 2(X), respectively. 
+
+Decomposition of the function eQn, 1(X). We have 
+
+eQn, 1(X) = 
+
+> L
+
+X
+
+> j=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h
+
+exp(( ¯Bσ (pn,i )) ⊤X) ¯Cσ (pn,i ) − exp(( ¯Bσ (p∗,j )) ⊤X) ¯Cσ (p∗,j )
+
+i
+
+−
+
+> L
+
+X
+
+> j=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h
+
+exp(( ¯Bσ (pn,i )) ⊤X) − exp(( ¯Bσ (p∗,j )) ⊤X)
+
+i
+
+gGn (X)+
+
+> L
+
+X
+
+> j=1
+
+tanh( αn)
+
+ X 
+
+> i∈C j
+
+exp( ¯bn,i ) − exp( ¯b∗,j )
+
+
+
+exp(( ¯Bσ (p∗,j )) ⊤X)
+
+h ¯Cσ (p∗,j ) − gGn (X)
+
+i
+
+:= eAn(X) − eBn(X) + eCn(X). (31) 
+
+Decomposition of the function eAn(X). To ease the presentation, we define the following functions eU (X; p) := exp(( ¯Bσ (p)) ⊤X) and eV (p) = ¯Cσ (p). Then, we denote the product of these functions as eF (X; p) = eU (X; p) eV (p). To decompose eAn(X), we separately consider Voronoi cells with exactly one element and those with more than one element. It leads to the following decomposition of the function eAn(X):
+
+eAn(X) = X 
+
+> j:|C j|=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h eF (X; pn,i ) − eF (X; p∗,j )
+
+i
+
++ X 
+
+> j:|C j|>1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h eF (X; pn,i ) − eF (X; p∗,j )
+
+i
+
+:= eAn, 1(X) + eAn, 2(X),
+
+where we denote eAn, 1(X) = P 
+
+> j:|C j|=1
+
+P 
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h eF (X; pn,i ) − eF (X; p∗,j )
+
+i
+
+and eAn, 2(X) =
+
+P 
+
+> j:|C j|>1
+
+P 
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h eF (X; pn,i ) − eF (X; p∗,j )
+
+i
+
+.For the function eAn, 1(X), for any indices i ∈ C j and j such that |C j | = 1 , the first-order Taylor expansion entails that 
+
+eU (X; pn,i ) = eU (X; p∗,j ) + X
+
+> |α|=1
+
+(∆ pn,ij )α ∂|α| eU∂pα (X; p∗,j ) + eRij, 1(X),
+
+eV (pn,i ) = eV (p∗,j ) + X
+
+> |α|=1
+
+(∆ pn,ij )α ∂|α| eV∂pα (p∗,j ) + eRij, 2,
+
+23 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+where the terms eRij, 1(X) and eRij, 2 are Taylor remainders. Combining the above results leads to the following formulation of the function eAn, 1(X):
+
+eAn, 1(X) = X 
+
+> j:|C j|=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+α!
+
+X
+
+> |α|=1
+
+
+
+(∆ pn,ij )α ∂|α| eU∂pα (X; p∗,j ) eV (p∗,j )+ (∆ pn,ij )α ∂|α| eV∂pα (p∗,j ) eU (X; p∗,j )
+
+
+
++ eRn, 1(X)= X 
+
+> j:|C j|=1
+
+X
+
+> |α|=1
+
+
+
+¯Mn,j,α 
+
+∂|α| eU∂pα (X; p∗,j ) eV (p∗,j ) + ¯Mn,j,α 
+
+∂|α| eV∂pα (p∗,j ) eU (X; p∗,j )
+
+
+
++ eRn, 1(X)
+
+where the function eRn, 1(X) is the combination of Taylor remainders and satisfies that eRn, 1(X)/(Dn + |αn − α∗|) → 0
+
+when n → ∞ . Furthermore, the formulations of ¯Mn,j,α are as follows: 
+
+¯Mn,j,α = X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+α! (∆ pn,ij )α,
+
+for any |α| = 1 .Moving to the function eAn, 2(X), the second-order Taylor expansions of the function eU (X; pn,i ) around the function 
+
+eU (X; p∗,j ) and the function eV (pn,i ) around the function eV (p∗,j ) for any indices i ∈ C j and j such that |C j | > 1, we obtain the following formulation of the function eAn, 2(X):
+
+eAn, 2(X) = X 
+
+> j:|C j|>1
+
+X
+
+> 1≤| α|≤ 2
+
+
+
+¯Mn,j,α 
+
+∂|α| eU∂pα (X; p∗,j ) eV (p∗,j ) + ¯Mn,j,α 
+
+∂|α| eV∂pα (p∗,j ) eU (X; p∗,j )
+
+
+
++ X 
+
+> j:|C j|>1
+
+X
+
+> |α|=1 ,|β|=1
+
+¯Mn,j,α,β 
+
+∂|α| eU∂pα (X; p∗,j ) ∂|β| eV∂pβ (p∗,j ) + eRn, 2(X)
+
+where the function eRn, 2(X) is a combination of Taylor remainders and satisfies eRn, 2(X)/(Dn + |αn − α∗|) → 0 when 
+
+n → ∞ . Furthermore, we define 
+
+¯Mn,j,α = X
+
+> i∈C j
+
+tanh( αn) exp( bn,i )
+
+α! (∆ pn,ij )α,
+
+for any |α| = 2 and 
+
+¯Mn,j,α,β = X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+α!β! (∆ pn,ij )α+β ,
+
+for any |α| = |β| = 1 . From the formulations of the functions eU (X; p) and eV (p), we obtain the following explicit forms of their partial derivatives: 
+
+∂ eU∂p(u) (X; p) = exp(( ¯Bσ (p)) ⊤X)
+
+ ¯B ∂σ ∂p(u) (p)
+
+⊤
+
+X,∂2 eU∂p(u)∂p(v) (X; p) = exp(( ¯Bσ (p)) ⊤X)
+
+ ¯B ∂2σ∂p(u)∂p(v) (p)
+
+⊤
+
+X + X⊤ ¯B ∂σ ∂p(u) (p)
+
+ ¯B ∂σ ∂p(v) (p)
+
+⊤
+
+X
+
+
+
+,∂ eV∂p(u) (p) = ¯C ∂σ ∂p(u) (p),∂2 eV∂p(u)∂p(v) (p) = ¯C ∂2σ∂p(u)∂p(v) (p).
+
+Plugging these explicit formulations of the derivatives of the functions eU (X; p) and eV (p), we can express the functions 24 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+eAn, 1(X) and eAn, 2(X) as follows: 
+
+eAn, 1(X) = X 
+
+> j:|C j|=1
+
+exp(( ¯Bσ (p∗,j )) ⊤X)L1,n (p∗,j ) + L2,n (p∗,j )⊤ ¯B⊤X + eRn, 1(X),
+
+eAn, 2(X) = X 
+
+> j:|C j|>1
+
+exp(( ¯Bσ (p∗,j )) ⊤X) ¯L1,n (p∗,j ) + ¯L2,n (p∗,j )⊤ ¯B⊤X
+
++ ( ¯B⊤X)⊤ ¯L3,n (p∗,j ) ¯B⊤X + eRn, 2(X),
+
+where the functions L1,n (p), L2,n (p), ¯L1,n (p), ¯L2,n (p), and ¯L3,n (p) are defined as follows: 
+
+L1,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u
+
+¯C ∂σ ∂p(u) (p),
+
+L2,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u
+
+∂σ ∂p(u) (p) ¯Cσ (p),
+
+¯L1,n (p) = X
+
+> 1≤u,v ≤d
+
+¯Mn,j, 1uv 
+
+¯C ∂2σ∂p(u)∂p(v) (p) = 
+
+> d
+
+X
+
+> u=1
+
+Mn,j, 1uu 
+
+¯C ∂2σ∂p(u)∂p(u) (p),
+
+¯L2,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u
+
+∂σ ∂p(u) (p) ¯Cσ (p) + X
+
+> 1≤u,v ≤d
+
+ ¯Mn,j, 1v ,1u
+
+¯C ∂σ ∂p(u) (p) ∂σ ∂p(v) (p)+ ¯Mn,j, 1uv 
+
+∂2σ∂p(u)∂p(v) (p) ¯Cσ (p),
+
+¯L3,n (p) = X
+
+> 1≤u,v ≤d
+
+¯Mn,j, 1uv 
+
+∂σ ∂p(u) (p)( ∂σ ∂p(v) (p)) ⊤ ¯Cσ (p).
+
+In these formulations, we use 1u to denote the vector that its u-th element is 1 and its other elements are 0 for 1 ≤ u ≤ d.Furthermore, we denote 1uv as the matrix that its (u, v )-th element is 1 and its other elements are 0 for any 1 ≤ u, v ≤ d.
+
+Decomposition of the function eBn(X). Similar to the decomposition of the function eAn(X), we can decompose the function eBn(X) as follows: 
+
+eBn(X) = X 
+
+> j:|C j|=1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h eU (X; pn,i ) − eU (X; p∗,j )
+
+i
+
+gGn (X)+ X 
+
+> j:|C j|>1
+
+X
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h eU (X; pn,i ) − eU (X; p∗,j )
+
+i
+
+gGn (X):= eBn, 1(X) + eBn, 2(X)
+
+where we denote eBn, 1(X) = P 
+
+> j:|C j|=1
+
+P 
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h eU (X; pn,i ) − eU (X; p∗,j )
+
+i
+
+gGn (X) and ¯Bn, 2(X) = 
+
+P 
+
+> j:|C j|>1
+
+P 
+
+> i∈C j
+
+tanh( αn) exp( ¯bn,i )
+
+h eU (X; pn,i ) − eU (X; p∗,j )
+
+i
+
+gGn (X).Similar to the Taylor expansions for the functions eAn, 1(X) and eAn, 2(X), by using the first-order Taylor expansion to 
+
+eBn, 1(X) and the second-order Taylor expansion to eBn, 2(X), we obtain that 
+
+eBn, 1(X) = X 
+
+> j:|C j|=1
+
+X
+
+> |α|=1
+
+¯Mn,j,α 
+
+∂|α| eU∂pα (X; p∗,j )gGn (X) + eRn, 3(X),
+
+eBn, 2(X) = X 
+
+> j:|C j|=1
+
+X
+
+> 1≤| α|≤ 2
+
+¯Mn,j,α 
+
+∂|α| eU∂pα (X; p∗,j )gGn (X) + eRn, 4(X)
+
+where the functions eRn, 3(X), eRn, 4(X) are Taylor remainders. Furthermore, they satisfy that eRn, 3(X)/(Dn +|αn −α∗|) →
+
+25 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+0 and eRn, 4(X)/(Dn + |αn − α∗|) → 0 when n → ∞ . Given the explicit formulations of the derivatives of the functions 
+
+eU (X; p) and eV (p), the functions eBn, 1(X) and eBn, 2(X) can be then rewritten as follows: 
+
+eBn, 1(X) = X 
+
+> j:|C j|=1
+
+exp(( ¯Bσ (p∗,j )) ⊤X)N1,n (p∗,j )⊤XgGn (X) + eRn, 3(X),
+
+eBn, 2(X) = X 
+
+> j:|C j|>1
+
+exp(( ¯Bσ (p∗,j )) ⊤X) ¯N1,n (p∗,j )⊤ ¯B⊤X
+
++ ( ¯B⊤X)⊤ ¯N2,n (p∗,j )( ¯B⊤X)gGn (X) + eRn, 4(X).
+
+Here, the functions N1,n (X), ¯N1,n (X), and ¯N2,n (X) have the following formulations: 
+
+N1,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u
+
+∂σ ∂p(u) (p),
+
+¯N1,n (p) = 
+
+> d
+
+X
+
+> u=1
+
+¯Mn,j, 1u
+
+∂σ ∂p(u) (p) + X
+
+> 1≤u,v ≤d
+
+¯Mn,j, 1uv 
+
+∂2σ∂p(u)∂p(v) (p),
+
+¯N2,n (p) = X
+
+> 1≤u,v ≤d
+
+¯Mn,j, 1uv 
+
+∂σ ∂p(u) (p) ∂σ ∂p(v) (p)⊤.
+
+Collecting all of the above results with the decomposition of the functions eAn(X) and eBn(X), we can represent the function eQn, 1(X) in equation (22) as follows: 
+
+eQn, 1(X) = X 
+
+> j:|C j|=1
+
+exp(( ¯Bσ (p∗,j )) ⊤X)L′
+
+> 1,n
+
+(p∗,j ) + L2,n (p∗,j )⊤ ¯B⊤X
+
++ X 
+
+> j:|C j|>1
+
+exp(( ¯Bσ (p∗,j )) ⊤X) ¯L′
+
+> 1,n
+
+(p∗,j ) + ¯L2,n (p∗,j )⊤ ¯B⊤X + ( ¯B⊤X)⊤ ¯L3,n (p∗,j ) ¯B⊤X
+
+− X 
+
+> j:|C j|=1
+
+exp(( ¯Bσ (p∗,j )) ⊤X) ¯Mn,j, 0d + N1,n (p∗,j )⊤ ¯B⊤XgGn (X)
+
+− X 
+
+> j:|C j|>1
+
+exp(( ¯Bσ (p∗,j )) ⊤X) ¯Mn,j, 0d + ¯N1,n (p∗,j )⊤ ¯B⊤X + ( ¯B⊤X)⊤ ¯N2,n (p∗,j ) ¯B⊤XgGn (X)+ eRn, 1(X) + eRn, 2(X) − eRn, 3(X) − eRn, 4(X) (32) where we define ¯Mn,j, 0d = tanh( αn)
+
+ P 
+
+> i∈C j
+
+exp( ¯bn,i ) − exp( ¯b∗,j )
+
+
+
+for any index 1 ≤ j ≤ L, L′
+
+> 1,n
+
+(p∗,j ) =
+
+L1,n (p∗,j ) + ¯Mn,j, 0d
+
+¯Cσ (p∗,j ), and ¯L′
+
+> 1,n
+
+(p∗,j ) = ¯L1,n (p∗,j ) + ¯Mn,j, 0d
+
+¯Cσ (p∗,j ).
+
+Decomposition of the function eQn, 2(X). An application of the first-order Taylor expansion leads to the following expression for the function eQn, 2(X):
+
+eQn, 2(X) = [tanh( αn) − tanh( α∗)] ·
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+· gG∗ (X)= ( αn − α∗)[1 − tanh 2(α∗)] ·
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+· gG∗ (X) + eRn, 5(X), (33) where the function eRn, 5(X) is Taylor remainder and satisfies that eRn, 5(X)/(Dn + |αn − α∗|) → 0 as n → ∞ .
+
+Step 2 - Non-vanishing coefficients. From the results of equations (32) and (33) , we can express [ eQn(X) −
+
+P5 
+
+> i=1
+
+eRn,i (X)] /(Dn + |αn − α∗|) as a combination of the linearly independent terms 
+
+exp(( ¯Bσ (p∗,j )) ⊤X), ( ¯B⊤X)(u) exp(( ¯Bσ (p∗,j )) ⊤X),
+
+26 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+( ¯B⊤X)(u)( ¯B⊤X)(v) exp(( ¯Bσ (p∗,j )) ⊤X), exp(( ¯Bσ (p∗,j )) ⊤X)gGn (X),
+
+( ¯B⊤X)(u) exp(( ¯Bσ (p∗,j )) ⊤X)gGn (X), ( ¯B⊤X)(u)( ¯B⊤X)(v) exp(( ¯Bσ (p∗,j )) ⊤X)gGn (X),
+
+[1 − tanh 2(α∗)] ·
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+· gG∗ (X),
+
+for any 1 ≤ j ≤ L and 1 ≤ u, v ≤ d.Our claim is that at least one of the coefficients of these linearly independent terms in the formulation of [ eQn(X) −
+
+P5 
+
+> i=1
+
+Rn,i (X)] /(Dn + |αn − α∗|) does not go to 0 as n → ∞ . Assume by contrary that this claim does not hold, which means that all the coefficients of these linearly independent terms go to 0 as n → ∞ . Therefore, as n → ∞ we obtain that 
+
+L1,n (p∗,j )/(Dn + |αn − α∗|) → 0, L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0, ¯L1,n (p∗,j )/(Dn + |αn − α∗|) → 0,
+
+¯L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0, ¯L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0, ¯L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0,
+
+¯L3,n (p∗,j )(uv )/(Dn + |αn − α∗|) → 0, N1,n (p∗,j )/(Dn + |αn − α∗|) → 0, ¯N1,n (( p∗,j )(u)/(Dn + |αn − α∗|) → 0,
+
+¯N2,n (p∗,j )(uv )/(Dn + |αn − α∗|) → 0, ¯Mn,j, 0d /Dn → 0, (αn − α∗)/(Dn + |αn − α∗|) → 0
+
+for any 1 ≤ u, v ≤ d and 1 ≤ j ≤ L.Since (αn − α∗)/(Dn + |αn − α∗|), we obtain that 
+
+|αn − α∗|
+
+(Dn + |αn − α∗|) → 0. (34) Furthermore, as αn̸ → 0 as n → ∞ , we have 1/ tanh( αn)̸ → ∞ . Given that ¯Mn,j, 0d /(Dn + |αn − α∗|) → 0, it demonstrates that 
+
+| P 
+
+> i∈C j
+
+exp( ¯bn,i ) − exp( ¯b∗,j )|
+
+(Dn + |αn − α∗|) = 1tanh( αn) · | ¯Mn,j, 0d |
+
+(Dn + |αn − α∗|) → 0,
+
+for any 1 ≤ j ≤ L. By varying the index j from 1 to L in these limits and summing them up, we achieve that 
+
+PLj=1 | P 
+
+> i∈C j
+
+exp( ¯bn,i ) − exp( ¯b∗,j )|
+
+(Dn + |αn − α∗|) → 0. (35) Now, we first consider indices j ∈ [L] such that its corresponding Voronoi cell Cj satisfying |C j | = 1 . From the hypothesis, 
+
+L2,n (p∗,j )(u)/(Dn + |αn − α∗|) → 0. Therefore, ¯Mn,j, 1u /(Dn + |αn − α∗|) → 0, which leads to 
+
+P 
+
+> i∈C j
+
+exp( ¯bn,i )∥∆pn,ij ∥
+
+(Dn + |αn − α∗|) =
+
+Pdu=1 | ¯Mn,j, 1u |
+
+tanh( αn)( Dn + |αn − α∗|) → 0.
+
+The above limit indicates that P 
+
+> j:|C j|=1
+
+P 
+
+> i∈C j
+
+exp( ¯bn,i )∥∆pn,ij ∥
+
+(Dn + |αn − α∗|) → 0. (36) Moving to indices j ∈ [L] such that their corresponding Voronoi cells Cj satisfying |C j | > 1. The limit ¯L3,n (p∗,j )(uu )/(Dn +
+
+|αn − α∗|) → 0 leads to 
+
+P 
+
+> i∈C j
+
+exp( ¯bn,i )∥∆pn,ij ∥2
+
+(Dn + |αn − α∗|) =
+
+Pdu=1 ¯L3,n (p∗,j )(uu )
+
+tanh( αn)( Dn + |αn − α∗|) → 0.
+
+The above limit demonstrates that P 
+
+> j:|C j|>1
+
+P 
+
+> i∈C j
+
+exp( ¯bn,i )∥∆pn,ij ∥2
+
+(Dn + |αn − α∗|) → 0. (37) 27 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Collecting all the limits in equations (34), (35), (36), and (37), we obtain that 
+
+1 = Dn + |αn − α∗|Dn + |αn − α∗| → 0
+
+as n → ∞ , which is a contradiction. As a consequence, not all of the coefficients of the linearly independent terms in 
+
+[ eQn(X) − P5 
+
+> i=1
+
+eRn,i (X)] /(Dn + |αn − α∗|) go to 0 as n → ∞ .
+
+Step 3 - Application of the Fatou’s lemma. We denote mn as the maximum of the absolute values of L′
+
+> 1,n
+
+(p∗,j )/(Dn +
+
+|αn − α∗|), L2,n (p∗,j )(u)/(Dn + |αn − α∗|), ¯L′
+
+> 1,n
+
+(p∗,j )/(Dn + |αn − α∗|), ¯L2,n (p∗,j )(u)/(Dn + |αn − α∗|),
+
+¯L3,n (p∗,j )(uv )/(Dn +|αn −α∗|), N1,n (p∗,j )/(Dn +|αn −α∗|), ¯N1,n (( p∗,j )(u)/(Dn +|αn −α∗|), ¯N2,n (p∗,j )(uv )/(Dn +
+
+|αn − α∗|), ¯Mn,j, 0d /(Dn + |αn − α∗|), and (αn − α∗)/(Dn + |αn − α∗|) for all 1 ≤ u, v ≤ d. From the result of Step 2 in the proof, we have 1/m n̸ → ∞ as n → ∞ .Recall that ∥gGn,α n − gG∗,α ∗ ∥L2(μ)/(Dn + |αn − α∗|) → 0 as n → ∞, which indicates that ∥gGn,α n −
+
+gG∗,α ∗ ∥L2(μ)/(mn(Dn + |αn − α∗|)) → 0. Furthermore, since the L2(μ) norm is equivalent to the L1(μ) norm, we have ∥gGn,α n − gG∗,α ∗ ∥L1(μ)/(mn(Dn + |αn − α∗|)) → 0. An application of Fatou’s lemma leads to 
+
+0 = lim 
+
+> n→∞
+
+∥gGn,α n − gG∗,α ∗ ∥L1(μ)
+
+mn(Dn + |αn − α∗|) ≥
+
+Z
+
+lim inf 
+
+> n→∞
+
+∥gGn,α n (X) − gG∗,α ∗ (X)∥1
+
+mn(Dn + |αn − α∗|) dμ (X) ≥ 0.
+
+It indicates that lim inf n→∞ 
+
+∥gGn,α n (X) − gG∗,α ∗ (X)∥1
+
+mn(Dn + |αn − α∗|) = 0 for almost surely X. As n → ∞ , we denote 
+
+L′
+
+> 1,n
+
+(p∗,j )
+
+mn(Dn + |αn − α∗|) → bαj , L2,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → βj ,
+
+¯L′
+
+> 1,n
+
+(p∗,j )
+
+mn(Dn + |αn − α∗|) → ¯αj , ¯L2,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → ¯βj , ¯L3,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → ¯γj ,
+
+¯Mn,j, 0d
+
+mn(Dn + |αn − α∗|) → ˜αj , N1,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → ˜βj ,
+
+¯N1,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → bβj , ¯N2,n (p∗,j )
+
+mn(Dn + |αn − α∗|) → bγj , αn − α∗
+
+mn(Dn + |αn − α∗|) → τ
+
+for any 1 ≤ j ≤ L. Here, from the definition of mn, at least one coefficient among {bαj , β j , ˜αj , ˜βj }j:|C j |=1 ,
+
+{¯αj , ¯βj , ¯γj , ˜αj , bβj , bγj }j:|C j |>1, and τ is different from 0. Then, the equation 
+
+lim inf 
+
+> n→∞
+
+∥ eQn(X)∥1
+
+mn(Dn + |αn − α∗|) =
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+· lim inf 
+
+> n→∞
+
+∥gGn,α n (X) − gG∗,α ∗ (X)∥1
+
+mn(Dn + |αn − α∗|) = 0 
+
+leads to X 
+
+> j:|C j|=1
+
+exp(( ¯Bσ (p∗,j )) ⊤X)( αj + β⊤ 
+
+> j
+
+( ¯B⊤X)
+
++ X 
+
+> j:|C j|>1
+
+exp(( ¯Bσ (p∗,j )) ⊤X)¯αj + ¯β⊤ 
+
+> j
+
+(B⊤X) + ( ¯B⊤X)⊤ ¯γj ( ¯B⊤X)
+
+− X 
+
+> j:|C j|=1
+
+exp(( ¯Bσ (p∗,j )) ⊤X)(˜ αj + ˜β⊤ 
+
+> j
+
+( ¯B⊤X)) fG∗ (X)
+
+− X 
+
+> j:|C j|>1
+
+exp(( ¯Bσ (p∗,j )) ⊤X)˜αj + bβ⊤ 
+
+> j
+
+( ¯B⊤X) + ( ¯B⊤X)⊤bγj ¯B⊤XgG∗ (X)+ τ [1 − tanh 2(α∗)] ·
+
+h LX
+
+> k′=1
+
+exp(( ¯Bσ (p∗,k ′ )) ⊤X + ¯b∗,k ′ )
+
+i
+
+· gG∗ (X) = 0d
+
+for almost surely X. That equation only holds if and only if all the coefficients {bαj , β j , ˜αj , ˜βj }j:|C j |=1 ,28 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+{¯αj , ¯βj , ¯γj , ˜αj , bβj , bγj }j:|C j |>1, and τ are 0, which is a contradiction. It indicates that we indeed have the conclusion of the local part, namely, 
+
+lim  
+
+> ε→0
+
+inf   
+
+> G∈G L′(Ω):( D(G,G ∗)+ |α−α∗|)≤ε
+
+∥gG,α − gG∗,α ∗ ∥L2(μ)/(D(G, G ∗) + |α − α∗|) > 0.
+
+As a consequence, we obtain the conclusion of the theorem. 
+
+Proof for the identifiability property. We now demonstrate that if g ¯G, ¯α(X) = g ¯G∗, ¯α∗ (X) for almost every X, then we obtain that ( ¯G, ¯α) ≡ ( ¯G∗, ¯α∗).To ease the presentation we denote the following notations: 
+
+softmax Pretrain  
+
+> ¯G
+
+(u) = exp( u)
+
+PNk=1 exp( X⊤ ¯A0
+
+> k
+
+X + ¯ a0
+
+> k
+
+) ,
+
+softmax Prompt  
+
+> ¯G
+
+(u′) = exp( u)
+
+PL′ 
+
+> j′=1
+
+exp(( ¯Bσ (pj′ )) ⊤X + ¯bj′ ) ,
+
+softmax Pretrain  
+
+> ¯G∗
+
+(u∗) = exp( u∗)
+
+PNk=1 exp( X⊤ ¯A0
+
+> k
+
+X + ¯ a0
+
+> k
+
+) ,
+
+softmax Prompt  
+
+> ¯G∗
+
+(u′∗) = exp( u∗)
+
+PLj′=1 exp(( ¯Bσ (p∗,j ′ )) ⊤X + ¯b∗,j ′ ) .
+
+Here, u, u′, u∗, and u′∗ in these equations satisfy: 
+
+u ∈ { X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+: j ∈ [N ]}, u ′ ∈ { ( ¯Bσ (pj′ )) ⊤X + ¯bj′ : j′ ∈ [L′]}
+
+u∗ ∈ { X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+: j ∈ [N ]}, u ′∗ ∈ { ( ¯Bσ (p∗,j ′ )) ⊤X + ¯b∗,j ′ : j′ ∈ [L]}.
+
+The equation g ¯G, ¯α(X) = g ¯G∗, ¯α∗ (X) for almost every X indicates that 
+
+> N
+
+X
+
+> j=1
+
+softmax Pretrain  
+
+> ¯G
+
+(X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+)) h(X, ¯η0 
+
+> j
+
+) + tanh(¯ α)
+
+> L′
+
+X
+
+> j′=1
+
+softmax Prompt  
+
+> ¯G
+
+(( ¯Bσ (pj′ )) ⊤X + ¯bj′ ) ¯Cσ (pj′ )=
+
+> N
+
+X
+
+> j=1
+
+softmax Pretrain  
+
+> ¯G∗
+
+(X⊤ ¯A0 
+
+> j
+
+X + ¯ a0 
+
+> j
+
+)) h(X, ¯η0 
+
+> j
+
+) + tanh(¯ α∗)
+
+> L
+
+X
+
+> j′=1
+
+softmax Prompt  
+
+> ¯G∗
+
+(( ¯Bσ (p∗,j ′ )) ⊤X + ¯b∗,j ′ ) ¯Cσ (p∗,j ′ ).
+
+(38) The above equation only holds when L = L′. Furthermore, we also have that 
+
+{softmax Prompt  
+
+> ¯G
+
+(( ¯Bσ (pj′ )) ⊤X + ¯bj′ ) : j′ ∈ [L′]} = {softmax Prompt  
+
+> ¯G∗
+
+(( ¯Bσ (p∗,j ′ )) ⊤X + ¯b∗,j ′ ) : j′ ∈ [L]},
+
+for almost every X. By relabelling the indices, we can assume that 
+
+softmax Prompt  
+
+> ¯G
+
+(( ¯Bσ (pj′ )) ⊤X + ¯bj′ ) = softmax Prompt  
+
+> ¯G∗
+
+(( ¯Bσ (p∗,j ′ )) ⊤X + ¯b∗,j ′ ),
+
+for almost every X and any j′ ∈ [L]. From the translation invariant property of the softmax function, the above equations only hold when ¯bj′ = ¯b∗,j ′ + ¯ r for some ¯r ∈ R and any j′ ∈ [L]. Given these results, equation (38) leads to 
+
+tanh(¯ α)
+
+> L
+
+X
+
+> j=1
+
+exp ( ¯bj ) exp (( ¯Bσ (pj )) ⊤X) ¯Cσ (pj ) = tanh(¯ α∗)
+
+> L
+
+X
+
+> j=1
+
+exp ( ¯b∗,j ) exp (( ¯Bσ (p∗,j )) ⊤X) ¯Cσ (p∗,j ), (39) for almost surely X.Now, we partition the set {1, 2, . . . , L } into m subsets ¯K1, ¯K2, . . . , ¯Km where m ≤ L, such that exp ( ¯bj ) = exp ( ¯b∗,j ′ ) for any j, j ′ ∈ ¯Ki and i ∈ [m]. It is clear that exp ( ¯bj )̸ = exp ( ¯b∗,j ′ ) when j, j ′ belong to different subsets ¯Ki. Collecting these 29 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+results, equation (30) can be rewritten as follows: 
+
+tanh(¯ α)
+
+> m
+
+X
+
+> i=1
+
+X 
+
+> j∈¯Ki
+
+exp ( ¯bj ) exp (( ¯Bσ (pj )) ⊤X) ¯Cσ (pj )= tanh(¯ α∗)
+
+> m
+
+X
+
+> i=1
+
+X 
+
+> j∈¯Ki
+
+exp ( ¯b∗,j ) exp (( ¯Bσ (p∗,j )) ⊤X) ¯Cσ (p∗,j ),
+
+for almost surely X. Hence, we achieve that 
+
+{(( ¯Bσ (pj )) ⊤, pj ) : j ∈ ¯Ki} = {(( ¯Bσ (p∗,j )) ⊤, p∗,j ) : j ∈ ¯Ki} and tanh(¯ α) = tanh(¯ α∗).
+
+It naturally leads to 
+
+{σ(pj ) : j ∈ ¯Ki} = {σ(p∗,j ) : j ∈ ¯Ki}.
+
+Without loss of generality, pj = p∗,j for all j ∈ ¯Ki. As a consequence, we obtain that ¯α = ¯ α∗ and 
+
+> m
+
+X
+
+> i=1
+
+X 
+
+> j∈¯Ki
+
+exp ( ¯bj )δpj =
+
+> m
+
+X
+
+> i=1
+
+X 
+
+> j∈¯Ki
+
+exp ( ¯b∗,j )δp∗,j .
+
+It is equivalent to ( ¯G, ¯α) ≡ ( ¯G∗, ¯α∗). We achieve the conclusion of the identifiability claim. 
+
+A.3. Proof of Proposition 4.1 
+
+Recall that the i.i.d sample (X1, Y 1), (X2, Y 2), . . . , (Xn, Y n) ∈ Rd × Rd′
+
+are generated from the model: 
+
+Yi = fG∗,α ∗ (Xi) + εi, i = 1 , 2, . . . , n, 
+
+where ε1, . . . , ε n are independent Gaussian noise variables such that E[εi|Xi] = 0 and Var( εi|Xi) = σ2Id′ for all 
+
+1 ≤ i ≤ n. Since εi|Xi ∼ N (0d, σ 2Id′ ), a least square estimator ( bGn, bαn) defined as 
+
+( bGn, bαn) := arg min  
+
+> G∈G L′(Θ) ,α ∈Ω
+> n
+
+X
+
+> i=1
+
+∥Yi − fG,α (Xi)∥2,
+
+is exactly a maximum likelihood estimator given by 
+
+( bGn, bαn) ∈ arg max  
+
+> G∈G L′(Θ) ,α ∈Ω
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+log( π(Yi|fG,α (Xi), σ 2Id′ )) ,
+
+where π(Yi|fG,α (Xi), σ 2Id′ ) denotes the probability density function of the multivariate Gaussian distribution with mean vector fG,α (X) and covariance matrix σ2Id′ . Furthermore, it follows from the result in (van de Geer, 2000) that 
+
+h(π(Y |f bGn,bαn (X), σ 2Id′ ), π (Y |fG∗,α ∗ (X), σ 2Id′ )) = OP (plog( n)/n ).
+
+According to Pardo et al. (Pardo, 2018), we have 
+
+h2(π(Y |θ1, Σ1), π (Y |θ2, Σ2)) = 1 − det(Σ 1)1/4 det(Σ 2)1/4
+
+det 
+
+ 12 Σ1 + 12 Σ2
+
+1/2 exp 
+
+(
+
+− 18 (θ1 − θ2)⊤ 12 Σ1 + 12 Σ2
+
+−1
+
+(θ1 − θ2)
+
+)
+
+.
+
+Therefore, we deduce that 
+
+h2(π(Y |f bGn,bαn (X), σ 2Id′ ), π (Y |fG∗,α ∗ (X), σ 2Id′ )) = 1 − exp 
+
+(
+
+− 18σ2 ∥f bGn,bαn (X) − fG∗,α ∗ (X)∥2
+
+)
+
+.
+
+As a result, it follows that 
+
+1 − exp 
+
+(
+
+− 18σ2 ∥f bGn,bαn (X) − fG∗,α ∗ (X)∥2
+
+)
+
+= OP (log( n)/n ).
+
+30 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+This means that with probability one, there exists some constant C > 0 and a natural number n0 such that 
+
+1 − C log( n0)/n 0 ≤ exp 
+
+(
+
+− 18σ2 ∥f bGn,bαn (X) − fG∗,α ∗ (X)∥2
+
+)
+
+.
+
+Assume that the natural number n0 is large enough so that 1 − C log( n)/n ≥ 1/2 is true for all n ≥ n0. Then, the above inequality is equivalent to 
+
+∥f bGn,bαn (X) − fG∗,α ∗ (X)∥2 ≤ 8σ2 log 
+
+ 11 − C log( n)/n 
+
+
+
+= 8 σ2 log 
+
+
+
+1 + C log( n)/n 
+
+1 − C log( n)/n 
+
+
+
+≤ 8σ2 · C log( n)/n 
+
+1 − C log( n)/n 
+
+≤ 16 σ2C log( n)/n, 
+
+which implies that 
+
+∥f bGn,bαn (X) − fG∗,α ∗ (X)∥ = OP (plog( n)/n ).
+
+Consequently, we have 
+
+∥f bGn,bαn − fG∗,α ∗ ∥L2(μ) =
+
+ Z
+
+> X
+
+∥f bGn,bαn (X) − fG∗,α ∗ (X)∥2dμ(X)
+
+1/2
+
+= OP (plog( n)/n ).
+
+Hence, the proof is completed. 
+
+## B. Additional Related Works 
+
+Theory of Mixture of Experts. 
+
+While there has been a surge of interest in using Mixture of Experts (MoE) to scale model capacity in large-scale systems, its theoretical foundations remain underdeveloped. From a probabilistic perspective, a series of works on Gaussian MoE (Ho et al., 2022; Nguyen et al., 2023; 2024c; Yan et al., 2025) have analyzed the convergence behavior of maximum likelihood estimation, providing insights into optimal expert structures for MoE training. In a related line, (Nguyen et al., 2024f) studied a regression framework where the true regression function follows an MoE form, showing that sigmoid gating yields faster convergence rates for expert estimation compared to softmax gating. Theoretical analyses of MoE for classification tasks were further developed in (Chen et al., 2022; Nguyen et al., 2024d), where each expert was modeled as a classifier. In the context of deep learning, Han et al. (2024) and Nguyen et al. (2024e) incorporated MoE and its hierarchical variants into multi-modal learning, training each expert to specialize in processing specific data modalities such as time series, text, or images. Pham et al. (2024) proposed a competition-based routing strategy to effectively train sparse MoE models for language modeling, supported by theoretical justification. Additional theoretical insights into MoE have been explored for domain adaptation (Nguyen et al., 2025) and continual learning (Li et al., 2024b). However, to the best of our knowledge, the theoretical analysis of MoE in the context of zero-initialized attention remains unexplored. 
+
+## C. Additional Experimental Details 
+
+C.1. Datasets Description 
+
+We first fine-tune LLaMA-Adapter with all prefix-tuning settings on Alpaca dataset, which include 52K instruction-following data for training. Then, we evaluate our experiments on LLM benchmarks, including AI2 Reasoning Challenge (ARC), HellaSwag, MMLU, and TruthfulQA. The statistics of 4 datasets about testing subset are summarized in detail in Table 4. • ARC dataset is a multiple-choice question-answering dataset which contain science questions in exams from grade 3 to grade 9. It has two types: Easy and Challenge. In this paper, we report performance on both types and average accuracy. 31 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+• HellaSwag provides multiple-choice questions to evaluate commonsense NLI of LLMs. Given a paragraph which is incomplete, the model need to find the suitable option to complete it. • MMLU is a benchmark that covers 57 subjects across STEM, the social sciences, humanities, and more through multiple-choice questions. This dataset test the model on both world knowledge and problem solving ability. Its subjects range from traditional areas such as mathematics to more specialized areas like law and ethics. • TruthfulQA measure whether the LLMs is truthful in generating answers given questions. It comprises 817 questions with each question has two types, generative questions and multiple-choice questions. In this paper, we evaluate all settings on multiple-choice questions. 
+
+Table 4. Statistics of 4 LLM benchmarks about the testing subset. 
+
+ARC (Easy) ARC (Challenge) HellaSwag MMLU TruthfulQA Testing 2376 1172 10042 14042 817 
+
+C.2. Prompt Templates 
+
+We also provide the prompt templates that we use for all settings to evaluate on ARC, MMLU, and TruthfulQA benchmarks in Figure 4, 5, and 6, respectively. These templates are based on the fact that Alpaca Fully Fine-tuning and LLaMA-Adapter both use this prompt template structure in training and we custom a little bit for each dataset. ARC Prompt Template       
+
+> Below is an instruction that describes a task. Write a response that appropriately completes the multiple-choice question. ### Instruction: Question: <question> Options: - Option 1- Option 2- Option 3- Option 4- ... ### Response:
+
+Figure 4. Prompt templates for ARC dataset    
+
+> MMLU Prompt Template
+> Below is an instruction that describes a task. Write a response that appropriately completes the multiple-choice question about {task }.### Instruction: Question: <question> Options: - Option 1 - Option 2 - Option 3 - Option 4 - ... ### Response:
+
+Figure 5. Prompt template for MMLU dataset. 
+
+32 On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation 
+
+Table 5. Visualize some question-answering outputs with different prompt-tuning methods. 
+
+Question: Which best explains what scientists are referring to when they use the term conservation? 
+
+(a) nonliving parts of the environment. 
+
+(b) living organisms in the environment. 
+
+(c) health of the living organisms in the environment. 
+
+(d) protection, management, and renewal of resources. 
+
+Question: A pitcher throws a 0.15 kg baseball at 43 40 m/s towards the catcher. What is the momentum of the baseball while moving at 40 m/s? 
+
+(a) 0.025 kg x m/s. 
+
+(b) 3.8 kg x m/s. 
+
+(c) 6.0 kg x m/s. 
+
+(d) 270 kg x m/s. 
+
+Question: Part of the east coast of South America and the west coast of Africa have matching fossils within the same series of rock layers. This provides evidence that these two continents were once: 
+
+(a) separated by a much larger ocean. 
+
+(b) joined together as one landmass. 
+
+(c) located near the North Pole. 
+
+(d) in a different hemisphere. 
+
+Ground Truth: d. Ground Truth: c. Ground Truth: b. 
+
+Non-Linear prompt: 
+
+The term conservation refers to the protection, management, and renewal of resources. 
+
+Non-Linear prompt: 
+
+6.0 kg x m/s 
+
+Non-Linear prompt: 
+
+joined together as one landmass 
+
+Linear prompt: 
+
+protection, management, and renewal of resources. 
+
+Linear prompt: 
+
+3.8 kg x m/s 
+
+Linear prompt: 
+
+The two continents were once joined together as one landmass. 
+
+Random-Init: 
+
+protection, management, and renewal of resources. 
+
+Random-Init: 
+
+The momentum of the baseball while moving at 40 m/s is 0.025 kg x m/s. 
+
+Random-Init: 
+
+located near the North Pole.        
+
+> TruthfulQA Prompt Template
+> Below is an instruction that describes a task. Write a response that appropriately completes the multiple-choice question about {task }.### Instruction: Interpret each multiple-choice question literally, and as a multiple-choice question about the real world; check carefully to see if the question misses the concept or not and research each option and only pick one most suitable option, without falling prey to any common mythss. Question: <question> Options: - Option 1 - Option 2 - Option 3 - Option 4 - ... ### Response:
+
+Figure 6. Prompt templates for TruthfulQA datasets. 
+
+C.3. Visualize question-answering 
+
+We provide in Table 5 illustrations on output of LLaMA-Adapter trained with different prompt-tuning strategy. 33

@@ -1,0 +1,2244 @@
+{
+  "top_k": 200,
+  "generated_at": "2026-06-09T11:29:21.066614+00:00",
+  "papers": [
+    {
+      "id": "openreview-icml-2025-edn2reemj6",
+      "source": "ICML-2025-Accepted",
+      "title": "FACTER: Fairness-Aware Conformal Thresholding and Prompt Engineering for Enabling Fair LLM-Based Recommender Systems",
+      "abstract": "We propose FACTER, a fairness-aware framework for LLM-based recommendation systems that integrates conformal prediction with dynamic prompt engineering. By introducing an adaptive semantic variance threshold and a violation-triggered mechanism, FACTER automatically tightens fairness constraints whenever biased patterns emerge. We further develop an adversarial prompt generator that leverages historical violations to reduce repeated demographic biases without retraining the LLM. Empirical results on MovieLens and Amazon show that FACTER substantially reduces fairness violations (up to 95.5%)  while maintaining strong recommendation accuracy, revealing semantic variance as a potent proxy of bias.",
+      "authors": [
+        "Arya Fayyazi",
+        "Mehdi Kamal",
+        "Massoud Pedram"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "Conformal Prediction",
+        "Fairness",
+        "Repair",
+        "Embedding",
+        "Bias",
+        "Prompt Engineering",
+        "Adversarial"
+      ],
+      "published": "2025-05-01T13:20:33.153+00:00",
+      "link": "https://openreview.net/forum?id=edN2rEemj6",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-4vb9bdtidh",
+      "source": "ICML-2025-Accepted",
+      "title": "Revolve: Optimizing AI Systems by Tracking Response Evolution in Textual Optimization",
+      "abstract": "Recent advancements in large language models (LLMs) have significantly enhanced the ability of LLM-based systems to perform complex tasks through natural language processing and tool interaction. However, optimizing these LLM-based systems for specific tasks remains challenging, often requiring manual interventions like prompt engineering and hyperparameter tuning.\nExisting automatic optimization methods, such as textual feedback-based techniques (*e.g.*, TextGrad), tend to focus on immediate feedback, analogous to using immediate derivatives in traditional numerical gradient descent.\nHowever, relying solely on such feedback can be limited when the adjustments made in response to this feedback are either too small or fluctuate irregularly, potentially slowing down or even stalling the optimization process. In this paper, we introduce $\\textbf{REVOLVE}$, an optimization method that tracks how $\\textbf{R}$esponses $\\textbf{EVOLVE}$\nacross iterations in LLM systems. By focusing on the evolution of responses over time, REVOLVE enables more stable and effective optimization by making thoughtful, progressive adjustments at each step. Experiments across three tasks demonstrate the adaptability and efficiency of our proposal. Beyond its practical contributions, REVOLVE highlights a promising direction, where the rich knowledge from established optimization principles can be leveraged to enhance LLM systems, which paves the way for further advancements in this hybrid domain. Code is available at: https://llm-revolve.netlify.app.",
+      "authors": [
+        "Peiyan Zhang",
+        "Haibo Jin",
+        "Leyang Hu",
+        "Xinnuo Li",
+        "Liying Kang",
+        "Man Luo",
+        "Yangqiu Song",
+        "Haohan Wang"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "Response Evolution",
+        "Textual Optimization"
+      ],
+      "published": "2025-05-01T13:18:27.064+00:00",
+      "link": "https://openreview.net/forum?id=4vb9BDTIDh",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-4tyckhnvxv",
+      "source": "ICML-2025-Accepted",
+      "title": "Premise-Augmented Reasoning Chains Improve Error Identification in Math reasoning with LLMs",
+      "abstract": "Chain-of-Thought (CoT) prompting enhances mathematical reasoning in large language models (LLMs) by enabling detailed step-by-step solutions. However, due to the verbosity of LLMs, the resulting reasoning chains can be long, making it harder to verify the reasoning steps and trace issues resulting from dependencies between the steps that may be farther away in the sequence of steps. Importantly, mathematical reasoning allows each step to be derived from a small set of premises, which are a subset of the preceding steps in the reasoning chain. In this paper, we present a framework that identifies the premises for each step, to improve the evaluation of reasoning. We restructure conventional linear reasoning chains into Premise Augmented Reasoning Chains (PARC) by introducing premise links, resulting in a directed acyclic graph where the nodes are the steps and the edges are the premise links. Through experiments with a PARC-based dataset that we built, namely (Premises and ERrors identification in LLMs), we demonstrate that LLMs can reliably identify premises within complex reasoning chains. In particular, even open-source LLMs achieve 90% recall in premise identification.  We also show that PARC helps to identify errors in reasoning chains more reliably. The accuracy of error identification improves by 6% to 16% absolute when step-by-step verification is carried out in PARC under the premises.\nOur findings highlight the utility of premise-centric representations in addressing complex problem-solving tasks and open new avenues for improving the reliability of LLM-based reasoning evaluations.",
+      "authors": [
+        "Sagnik Mukherjee",
+        "Abhinav Chinta",
+        "Takyoung Kim",
+        "Tarun Anoop Sharma",
+        "Dilek Hakkani Tur"
+      ],
+      "primary_category": "Mathematical Reasoning",
+      "categories": [
+        "Mathematical Reasoning",
+        "Large Language Models"
+      ],
+      "published": "2025-05-01T13:16:34.599+00:00",
+      "link": "https://openreview.net/forum?id=4tYckHNVXV",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-p6pelhim4e",
+      "source": "ICML-2025-Accepted",
+      "title": "Stealix: Model Stealing via Prompt Evolution",
+      "abstract": "Model stealing poses a significant security risk in machine learning by enabling attackers to replicate a black-box model without access to its training data, thus jeopardizing intellectual property and exposing sensitive information.\nRecent methods that use pre-trained diffusion models for data synthesis improve efficiency and performance but rely heavily on manually crafted prompts, limiting automation and scalability, especially for attackers with little expertise.\nTo assess the risks posed by open-source pre-trained models, we propose a more realistic threat model that eliminates the need for prompt design skills or knowledge of class names.\nIn this context, we introduce Stealix, the first approach to perform model stealing without predefined prompts. Stealix uses two open-source pre-trained models to infer the victim model’s data distribution, and iteratively refines prompts through a genetic algorithm, progressively improving the precision and diversity of synthetic images.\nOur experimental results demonstrate that Stealix significantly outperforms other methods, even those with access to class names or fine-grained prompts, while operating under the same query budget. These findings highlight the scalability of our approach and suggest that the risks posed by pre-trained generative models in model stealing may be greater than previously recognized.",
+      "authors": [
+        "Zhixiong Zhuang",
+        "Hui-Po Wang",
+        "Maria-Irina Nicolae",
+        "Mario Fritz"
+      ],
+      "primary_category": "model stealing",
+      "categories": [
+        "model stealing",
+        "security",
+        "genetic algorithm",
+        "prompt optimization"
+      ],
+      "published": "2025-05-01T13:12:52.963+00:00",
+      "link": "https://openreview.net/forum?id=p6PElhIM4E",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-uckvhweh1g",
+      "source": "ICML-2025-Rejected-Public",
+      "title": "Multi-Agent Design: Optimizing Agents with Better Prompts and Topologies",
+      "abstract": "Large language models, employed as multiple agents that interact and collaborate with each other, have excelled at solving complex tasks. The agents are programmed with prompts that declare their functionality, along with the topologies that orchestrate interactions across agents. Designing prompts and topologies for multi-agent systems (MAS) is inherently complex. To automate the entire design process, we first conduct an in-depth analysis of the design space aiming to understand the factors behind building effective MAS. We reveal that prompts together with topologies play critical roles in enabling more effective MAS design. Based on the insights, we propose Multi-Agent System Search (MASS), a MAS optimization framework that efficiently exploits the complex MAS design space by interleaving its optimization stages, from local to global, from prompts to topologies, over three stages: 1) block-level (local) prompt optimization; 2) workflow topology optimization; 3) workflow-level (global) prompt optimization, where each stage is conditioned on the iteratively optimized prompts/topologies from former stages. We show that MASS-optimized multi-agent systems outperform a spectrum of existing alternatives by a substantial margin. Based on the MASS-found systems, we finally propose design principles behind building effective multi-agent systems.",
+      "authors": [
+        "Han Zhou",
+        "Xingchen Wan",
+        "Ruoxi Sun",
+        "Hamid Palangi",
+        "Shariq Iqbal",
+        "Ivan Vulić",
+        "Anna Korhonen",
+        "Sercan O Arik"
+      ],
+      "primary_category": "language agent",
+      "categories": [
+        "language agent",
+        "multi-agent system"
+      ],
+      "published": "2025-01-23T17:15:22.01+00:00",
+      "link": "https://openreview.net/forum?id=uCKvHweh1g",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-jxzr3xinpg",
+      "source": "ICML-2025-Accepted",
+      "title": "Evolving Prompts In-Context: An Open-ended, Self-replicating Perspective",
+      "abstract": "We propose a novel prompt design paradigm that challenges conventional wisdom in large language model (LLM) prompting. While conventional wisdom prioritizes well-crafted instructions and demonstrations for in-context learning (ICL), we show that pruning random demonstrations into seemingly incoherent ''gibberish'' can remarkably improve performance across diverse tasks. Notably, the ''gibberish'' always matches or surpasses state-of-the-art automatic prompt optimization techniques, achieving substantial gains regardless of LLM alignment. Nevertheless, discovering an effective pruning strategy is non-trivial, as existing attribution methods and prompt compression algorithms fail to deliver robust results, let alone human intuition. In terms of this, we propose a self-discover prompt optimization framework, PromptQuine, an evolutionary search framework that automatically searches for the pruning strategy by itself using only low-data regimes. Much like the emergent complexity in nature—such as symbiosis and self-organization—arising in response to resource constraints, our framework evolves and refines unconventional yet highly effective prompts by leveraging only the tokens present within the context. We demonstrate its effectiveness across classification, multi-choice question answering, generation and math reasoning tasks across LLMs, while achieving decent runtime efficiency. We hope our findings can guide mechanistic studies on in-context learning, and provide a call to action, to pave the way for more open-ended search algorithms for more effective LLM prompting.",
+      "authors": [
+        "Jianyu Wang",
+        "Zhiqiang Hu",
+        "Lidong Bing"
+      ],
+      "primary_category": "Prompt Optimization",
+      "categories": [
+        "Prompt Optimization",
+        "In-context Learning",
+        "AI Alignment",
+        "Self-improvement",
+        "Open-Endedness"
+      ],
+      "published": "2025-05-01T13:12:37.501+00:00",
+      "link": "https://openreview.net/forum?id=jXZR3XinPg",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-lm9dxfrchd",
+      "source": "ICML-2025-Accepted",
+      "title": "Hyperband-based Bayesian Optimization for Black-box Prompt Selection",
+      "abstract": "Optimal prompt selection is crucial for maximizing large language model (LLM) performance on downstream tasks, especially in black-box settings where models are only accessible via APIs.\nBlack-box prompt selection is challenging due to potentially large, combinatorial search spaces, absence of gradient information, and high evaluation cost of prompts on a validation set.\nWe propose HbBoPs, a novel method that combines a structural-aware deep kernel Gaussian Process with Hyperband as a multi-fidelity scheduler to efficiently select prompts.\nHbBoPs uses embeddings of instructions and few-shot exemplars, treating them as modular components within prompts.\nThis enhances the surrogate model's ability to predict which prompt to evaluate next in a sample-efficient manner.\nHyperband improves query-efficiency by adaptively allocating resources across different fidelity levels, reducing the number of validation instances required for evaluating prompts.\nExtensive experiments across ten diverse benchmarks and three LLMs demonstrate that HbBoPs outperforms state-of-the-art methods in both performance and efficiency.",
+      "authors": [
+        "Lennart Schneider",
+        "Martin Wistuba",
+        "Aaron Klein",
+        "Jacek Golebiowski",
+        "Giovanni Zappella",
+        "Felice Antonio Merra"
+      ],
+      "primary_category": "Black-box prompt selection",
+      "categories": [
+        "Black-box prompt selection",
+        "large language models",
+        "Bayesian optimization",
+        "Hyperband",
+        "query efficiency",
+        "sample efficiency",
+        "structural-aware modeling",
+        "multi-fidelity",
+        "surrogate modeling",
+        "deep kernel",
+        "Gaussian Process",
+        "in-context learning"
+      ],
+      "published": "2025-05-01T13:16:14.93+00:00",
+      "link": "https://openreview.net/forum?id=Lm9DXFrcHD",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-auc4ng6h4r",
+      "source": "ICML-2025-Accepted",
+      "title": "On Zero-Initialized Attention: Optimal Prompt and Gating Factor Estimation",
+      "abstract": "LLaMA-Adapter has recently emerged as an efficient fine-tuning technique for LLaMA models, leveraging zero-initialized attention to stabilize training and enhance performance. However, despite its empirical success, the theoretical foundations of zero-initialized attention remain largely unexplored. In this paper, we provide a rigorous theoretical analysis, establishing a connection between zero-initialized attention and mixture-of-expert models. We prove that both linear and non-linear prompts, along with gating functions, can be optimally estimated, with non-linear prompts offering greater flexibility for future applications. Empirically, we validate our findings on the open LLM benchmarks, demonstrating that non-linear prompts outperform linear ones. Notably, even with limited training data, both prompt types consistently surpass vanilla attention, highlighting the robustness and adaptability of zero-initialized attention.",
+      "authors": [
+        "Nghiem Tuong Diep",
+        "Huy Nguyen",
+        "Chau Nguyen",
+        "Minh Le",
+        "Duy Minh Ho Nguyen",
+        "Daniel Sonntag",
+        "Mathias Niepert",
+        "Nhat Ho"
+      ],
+      "primary_category": "Large Language Model (LLM)",
+      "categories": [
+        "Large Language Model (LLM)",
+        "Theory",
+        "Instruction Tuning",
+        "Mixture of Experts"
+      ],
+      "published": "2025-05-01T13:15:39.946+00:00",
+      "link": "https://openreview.net/forum?id=auc4Ng6h4R",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-qwtdqxllam",
+      "source": "ICML-2025-Accepted",
+      "title": "FedOne: Query-Efficient Federated Learning for Black-box Discrete Prompt Learning",
+      "abstract": "Black-Box Discrete Prompt Learning (BDPL) is a prompt-tuning method that optimizes discrete prompts without accessing model parameters or gradients, making the prompt tuning on a cloud-based Large Language Model (LLM) feasible.\nAdapting Federated Learning (FL) to BDPL could further enhance prompt tuning performance by leveraging data from diverse sources. \nHowever, all previous research on federated black-box prompt tuning had neglected the substantial query cost associated with the cloud-based LLM service. \nTo address this gap, we conducted a theoretical analysis of query efficiency within the context of federated black-box prompt tuning. Our findings revealed that degrading FedAvg to activate only one client per round, a strategy we called \\textit{FedOne}, enabled optimal query efficiency in federated black-box prompt learning. \nBuilding on this insight, we proposed the FedOne framework, a federated black-box discrete prompt learning method designed to maximize query efficiency when interacting with cloud-based LLMs.\nWe conducted numerical experiments on various aspects of our framework, demonstrating a significant improvement in query efficiency, which aligns with our theoretical results.",
+      "authors": [
+        "Ganyu Wang",
+        "Jinjie Fang",
+        "Maxwell Juncheng Yin",
+        "Bin Gu",
+        "Xi Chen",
+        "Boyu Wang",
+        "Yi Chang",
+        "Charles Ling"
+      ],
+      "primary_category": "Federated Learning",
+      "categories": [
+        "Federated Learning",
+        "Discrete Prompt Learning",
+        "Optimization",
+        "Query Efficiency"
+      ],
+      "published": "2025-05-01T13:12:34.294+00:00",
+      "link": "https://openreview.net/forum?id=QwTDQXllam",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-ksdpdnwkgi",
+      "source": "ICML-2025-Accepted",
+      "title": "Rethinking Chain-of-Thought from the Perspective of Self-Training",
+      "abstract": "Chain-of-thought (CoT) reasoning has emerged as an effective approach for activating latent capabilities in LLMs. Interestingly, we observe that both CoT reasoning and self-training share the core objective: iteratively leveraging model-generated information to progressively reduce prediction uncertainty. Building on this insight, we propose a novel CoT framework to improve reasoning performance. Our framework integrates two key components: (i) a task-specific prompt module that optimizes the initial reasoning process, and (ii) an adaptive reasoning iteration module that dynamically refines the reasoning process and addresses the limitations of previous CoT approaches, i.e., over-reasoning and high similarity between consecutive reasoning iterations. Extensive experiments show that the proposed method achieves significant advantages in both performance and computational efficiency. Our code is available at: https://github.com/zongqianwu/ST-COT.",
+      "authors": [
+        "Zongqian Wu",
+        "Baoduo Xu",
+        "Ruochen Cui",
+        "Mengmeng Zhan",
+        "Xiaofeng Zhu",
+        "Lei Feng"
+      ],
+      "primary_category": "Chain-of-Thought",
+      "categories": [
+        "Chain-of-Thought",
+        "Self-Training",
+        "Reasoning",
+        "LLM"
+      ],
+      "published": "2025-05-01T13:13:01.801+00:00",
+      "link": "https://openreview.net/forum?id=ksdPdnwKGi",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-sugs65xogg",
+      "source": "ICML-2025-Accepted",
+      "title": "Demonstration Selection for In-Context Learning via Reinforcement Learning",
+      "abstract": "Diversity in demonstration selection is critical for enhancing model generalization by enabling broader coverage of structures and concepts. Constructing appropriate demonstration sets remains a key research challenge. This paper introduces the Relevance-Diversity Enhanced Selection (RDES), an innovative approach that leverages reinforcement learning (RL) frameworks to optimize the selection of diverse reference demonstrations for tasks amenable to in-context learning (ICL), particularly text classification and reasoning, in few-shot prompting scenarios. RDES employs frameworks like Q-learning and a PPO-based variant to dynamically identify demonstrations that maximize both diversity (quantified by label distribution) and relevance to the task objective. This strategy ensures a balanced representation of reference data, leading to improved accuracy and generalization. Through extensive experiments on multiple benchmark datasets, including diverse reasoning tasks, and involving 14 closed-source and open-source LLMs, we demonstrate that RDES significantly enhances performance compared to ten established baselines. Our evaluation includes analysis of performance across varying numbers of demonstrations on selected datasets. Furthermore, we investigate incorporating Chain-of-Thought (CoT) reasoning, which further boosts predictive performance. The results highlight the potential of RL for adaptive demonstration selection and addressing challenges in ICL.",
+      "authors": [
+        "Xubin Wang",
+        "Jianfei Wu",
+        "Yuan Yichen",
+        "Deyu Cai",
+        "Mingzhe Li",
+        "Weijia Jia"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "In-Context Learning",
+        "Reinforcement Learning",
+        "Chain-of-Thought"
+      ],
+      "published": "2025-05-01T13:11:47.461+00:00",
+      "link": "https://openreview.net/forum?id=sugs65XoGg",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-6f0l4hw8a8",
+      "source": "ICML-2025-Accepted",
+      "title": "Cannot See the Forest for the Trees: Invoking Heuristics and Biases to Elicit Irrational Choices of LLMs",
+      "abstract": "Despite the remarkable performance of Large Language Models (\\textbf{LLMs}), they remain vulnerable to jailbreak attacks, which can compromise their safety mechanisms. Existing studies often rely on brute-force optimization or manual design, failing to uncover potential risks in real-world scenarios. To address this, we propose a novel jailbreak attack framework, \\textbf{ICRT}, inspired by heuristics and biases in human cognition. Leveraging the \\textit{simplicity effect}, we employ \\textit{cognitive decomposition} to reduce the complexity of malicious prompts. Simultaneously, \\textit{relevance bias} is utilized to reorganize prompts, enhancing semantic alignment and inducing harmful outputs effectively. Furthermore, we introduce a ranking-based harmfulness evaluation metric that surpasses the traditional binary success-or-failure paradigm by employing ranking aggregation methods such as Elo, HodgeRank, and Rank Centrality to comprehensively quantify the harmfulness of generated content. Experimental results show that our approach consistently bypasses mainstream \\textbf{LLMs}' safety mechanisms and generates high-risk content.",
+      "authors": [
+        "Haoming Yang",
+        "Ke Ma",
+        "Xiaojun Jia",
+        "Yingfei Sun",
+        "Qianqian Xu",
+        "Qingming Huang"
+      ],
+      "primary_category": "Jailbreak attack",
+      "categories": [
+        "Jailbreak attack",
+        "large language models"
+      ],
+      "published": "2025-05-01T13:13:17.444+00:00",
+      "link": "https://openreview.net/forum?id=6F0L4HW8a8",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-tpp47eh1xg",
+      "source": "ICML-2025-Accepted",
+      "title": "LAST SToP for Modeling Asynchronous Time Series",
+      "abstract": "We present a novel prompt design for Large Language Models (LLMs) tailored to **Asynchronous Time Series**. Unlike regular time series, which assume values at evenly spaced time points, asynchronous time series consist of timestamped events occurring at irregular intervals, each described in natural language. Our approach effectively utilizes the rich natural language of event descriptions, allowing LLMs to benefit from their broad world knowledge for reasoning across different domains and tasks. This allows us to extend the scope of asynchronous time series analysis beyond forecasting to include tasks like anomaly detection and data imputation. We further introduce **Stochastic Soft Prompting**, a novel prompt-tuning mechanism that significantly improves model performance, outperforming existing finetuning methods such as QLORA. Through extensive experiments on real-world datasets, we demonstrate that our approach achieves state-of-the-art performance across different tasks and datasets.",
+      "authors": [
+        "Shubham Gupta",
+        "Thibaut Durand",
+        "Graham W. Taylor",
+        "Lilian Bialokozowicz"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "Asynchronous Time Series",
+        "Time Series modeling",
+        "Deep Learning"
+      ],
+      "published": "2025-05-01T13:17:10.537+00:00",
+      "link": "https://openreview.net/forum?id=TpP47EH1xG",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-u8kfbce69j",
+      "source": "ICML-2025-Accepted",
+      "title": "Neural Genetic Search in Discrete Spaces",
+      "abstract": "Effective search methods are crucial for improving the performance of deep generative models at test time. In this paper, we introduce a novel test-time search method, Neural Genetic Search (NGS), which incorporates the evolutionary mechanism of genetic algorithms into the generation procedure of deep models. The core idea behind NGS is its crossover, which is defined as parent-conditioned generation using trained generative models. This approach offers a versatile and easy-to-implement search algorithm for deep generative models. We demonstrate the effectiveness and flexibility of NGS through experiments across three distinct domains: routing problems, adversarial prompt generation for language models, and molecular design.",
+      "authors": [
+        "Hyeonah Kim",
+        "Sanghyeok Choi",
+        "Jiwoo Son",
+        "Jinkyoo Park",
+        "Changhyun Kwon"
+      ],
+      "primary_category": "Genetic algorithm",
+      "categories": [
+        "Genetic algorithm",
+        "test-time search",
+        "discrete sequence generation"
+      ],
+      "published": "2025-05-01T13:16:20.996+00:00",
+      "link": "https://openreview.net/forum?id=u8kFBce69J",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-cqp36039em",
+      "source": "ICML-2025-Accepted",
+      "title": "Reward-Guided Prompt Evolving in Reinforcement Learning for LLMs",
+      "abstract": "Existing reinforcement learning (RL) methods for large language models (LLMs) rely on static prompt sets, where prompts are curated a priori, and sampled in a fixed schedule for training, regardless of their usefulness to the RL process. We design `eva`, the first method that allows LLMs to prioritize and adaptively create useful prompts during RL training by reward signals. In principle, `eva` (Evolving via A symmetric Self-Play) casts language model training as a game between: (1) a creator, who samples and generates training prompts, and (2) a solver, who generates responses to the prompts. `eva` is simple, suits both offline and online RL for LLMs, and sets a new state-of-the-art on challenging benchmarks without extra human prompts: it improves gemma-2-9b-it’s win-rate on Arena-Hard from 51.6% to 60.1% by DPO and 52.6% to 62.4% by RLOO, surpassing claude-3-opus and nearing gemini-1.5-pro, both are orders of magnitude larger. Further ablation studies show `eva` can induce meaningful learning curriculum, and effectively scale RL for LLMs beyond static human prompts.",
+      "authors": [
+        "Ziyu Ye",
+        "Rishabh Agarwal",
+        "Tianqi Liu",
+        "Rishabh Joshi",
+        "Sarmishta Velury",
+        "Quoc V Le",
+        "Qijun Tan",
+        "Yuan Liu"
+      ],
+      "primary_category": "large language models",
+      "categories": [
+        "large language models"
+      ],
+      "published": "2025-05-01T13:16:54.688+00:00",
+      "link": "https://openreview.net/forum?id=CQp36039EM",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-nnwsny4yb4",
+      "source": "ICML-2025-Accepted",
+      "title": "Policy Guided Tree Search for Enhanced LLM Reasoning",
+      "abstract": "Despite their remarkable capabilities, large language models often struggle with tasks requiring complex reasoning and planning. While existing approaches like Chain-of-Thought prompting and tree search techniques show promise, they are limited by their reliance on predefined heuristics and computationally expensive exploration strategies. We propose Policy-Guided Tree Search (PGTS), a framework that combines reinforcement learning with structured tree exploration to efficiently navigate reasoning paths. Our key innovation is a learned policy that dynamically decides between expanding, branching, backtracking, or terminating exploration, eliminating the need for manual heuristics or exhaustive search. Experiments across mathematical reasoning, logical deduction, and planning benchmarks demonstrate that PGTS achieves superior reasoning performance while significantly reducing computational costs compared to existing methods. These results establish PGTS as a scalable and effective solution for tackling complex reasoning tasks with LLMs.",
+      "authors": [
+        "Yang Li"
+      ],
+      "primary_category": "LLM Reasoning; Tree Search; Reinforcement Learning",
+      "categories": [
+        "LLM Reasoning; Tree Search; Reinforcement Learning"
+      ],
+      "published": "2025-05-01T13:15:54.655+00:00",
+      "link": "https://openreview.net/forum?id=NNWSNy4YB4",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-nme3hkuhlx",
+      "source": "ICML-2025-Accepted",
+      "title": "BRiTE: Bootstrapping Reinforced Thinking Process to Enhance Language Model Reasoning",
+      "abstract": "Large Language Models (LLMs) have demonstrated remarkable capabilities in complex reasoning tasks, yet generating reliable reasoning processes remains a significant challenge. We present a unified probabilistic framework that formalizes LLM reasoning through a novel graphical model incorporating latent thinking processes and evaluation signals. Our framework addresses two critical questions: (1) how to generate high-quality reasoning processes during inference automatically, and (2) how to integrate these processes into post-training. We propose the \\emph{Bootstrapping Reinforced Thinking Process} (BRiTE) algorithm and demonstrate its theoretical convergence at a rate of $1/T$, where $T$ is the number of iterations. The algorithm operates in two steps. First, it generates high-quality rationales by approximating the desired posterior distribution using a reinforcement learning approach with a novel reward shaping mechanism. Second, it fine-tunes the base LLM by maximizing the joint probability of rationale generation with respect to LLM parameters. Empirical evaluation on GSM8K and MATH benchmarks demonstrates that our approach consistently improves performance across different model sizes without requiring human-annotated thinking processes, outperforming standard chain-of-thought prompting while enhancing existing post-training methods.",
+      "authors": [
+        "Han Zhong",
+        "Yutong Yin",
+        "Shenao Zhang",
+        "Xiaojun Xu",
+        "Yuanxin Liu",
+        "Yifei Zuo",
+        "Zhihan Liu",
+        "Boyi Liu",
+        "Sirui Zheng",
+        "Hongyi Guo",
+        "Liwei Wang",
+        "Mingyi Hong",
+        "Zhaoran Wang"
+      ],
+      "primary_category": "reasoning",
+      "categories": [
+        "reasoning",
+        "boostrapping",
+        "RL",
+        "rational generation"
+      ],
+      "published": "2025-05-01T13:21:22.503+00:00",
+      "link": "https://openreview.net/forum?id=NME3HKUHLX",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-mmgsxbo4h0",
+      "source": "ICML-2025-Accepted",
+      "title": "Reasoning-as-Logic-Units: Scaling Test-Time Reasoning in Large Language Models Through Logic Unit Alignment",
+      "abstract": "Chain-of-Thought (CoT) prompting has shown promise in enhancing the reasoning capabilities of large language models (LLMs) by generating natural language (NL) rationales that lead to the final answer. However, it struggles with numerical computation, which has somehow led to the development of program-aided techniques.\nDespite their potential, a persistent challenge remains: inconsistencies between LLM-reported reasoning steps and the logic in generated programs, which we term ``reasoning hallucinations.\" This stems from the inherent ambiguities of NL and the statistical nature of LLMs, which often lack rigorous logical coherence.\nTo address this challenge, we propose a novel test-time scaling framework, Reasoning-as-Logic-Units (RaLU), which constructs a more reliable reasoning path by aligning logical units between the generated program and their corresponding NL descriptions.\nBy decomposing the initially generated program into discrete units using static analysis, RaLU engages in an iterative dialogue with the LLM to judge, refine, and explain each unit.\nA rewind-and-correct mechanism ensures alignment between code statements and task requirements in each unit, ultimately forming a cohesive reasoning path under the program's logic, from which the model reaches a final solution.\nOur experiments demonstrate that RaLU significantly outperforms existing baselines in mathematical reasoning (GSM8K, MATH) and algorithmic reasoning (HumanEval+, MBPP+), underscoring its potential to advance LLM reasoning and programming by offering enhanced accuracy and interpretability.",
+      "authors": [
+        "Cheryl Li",
+        "Tianyuan Xu",
+        "Steven Y. Guo"
+      ],
+      "primary_category": "large language models",
+      "categories": [
+        "large language models",
+        "LLMs",
+        "reasoning",
+        "code generation"
+      ],
+      "published": "2025-05-01T13:18:00.555+00:00",
+      "link": "https://openreview.net/forum?id=mMgSxbO4H0",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-bmj3pyyxu2",
+      "source": "ICML-2025-Accepted",
+      "title": "Forest-of-Thought: Scaling Test-Time Compute for Enhancing LLM Reasoning",
+      "abstract": "Large Language Models (LLMs) have demonstrated remarkable abilities across various language tasks, but solving complex reasoning problems remains a significant challenge. While existing methods, such as Chain-of-Thought (CoT) and Tree-of-Thought (ToT), enhance reasoning by decomposing problems or structuring prompts, they typically perform a single pass of reasoning and may fail to revisit flawed paths, compromising accuracy. To address this limitation, we propose a novel reasoning framework called Forest-of-Thought (FoT), which integrates multiple reasoning trees to leverage collective decision-making for solving complex logical problems. FoT employs sparse activation strategies to select the most relevant reasoning paths, improving both efficiency and accuracy. Additionally, we introduce a dynamic self-correction strategy that enables real-time error correction, along with consensus-guided decision-making strategies to optimize both correctness and computational resources. Experimental results demonstrate that the FoT framework, combined with these strategies, significantly enhances the reasoning capabilities of LLMs, enabling them to solve complex tasks with greater precision and efficiency.",
+      "authors": [
+        "Zhenni Bi",
+        "Kai Han",
+        "Chuanjian Liu",
+        "Yehui Tang",
+        "Yunhe Wang"
+      ],
+      "primary_category": "forest of thought; fot; nlp; llm",
+      "categories": [
+        "forest of thought; fot; nlp; llm"
+      ],
+      "published": "2025-05-01T13:11:29.16+00:00",
+      "link": "https://openreview.net/forum?id=BMJ3pyYxu2",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-zjg9grg462",
+      "source": "ICML-2025-Accepted",
+      "title": "Surrogate Prompt Learning: Towards Efficient and Diverse Prompt Learning for Vision-Language Models",
+      "abstract": "Prompt learning is a cutting-edge parameter-efficient fine-tuning technique for pre-trained vision-language models (VLMs). Instead of learning a single text prompt, recent works have revealed that learning diverse text prompts can effectively boost the performances on downstream tasks, as the diverse prompted text features can comprehensively depict the visual concepts from different perspectives. However, diverse prompt learning demands enormous computational resources. This efficiency issue still remains unexplored. To achieve efficient and diverse prompt learning, this paper proposes a novel \\textbf{Surrogate Prompt Learning (SurPL)} framework. Instead of learning diverse text prompts, SurPL directly generates the desired prompted text features via a lightweight \\textbf{Surrogate Feature Generator (SFG)}, thereby avoiding the complex gradient computation procedure of conventional diverse prompt learning. Concretely, based on a basic prompted text feature, SFG can directly and efficiently generate diverse prompted features according to different pre-defined conditional signals. Extensive experiments indicate the effectiveness of the surrogate prompted text features, and show compelling performances and efficiency of SurPL on various benchmarks.",
+      "authors": [
+        "Liangchen Liu",
+        "Nannan Wang",
+        "Xi Yang",
+        "Xinbo Gao",
+        "Tongliang Liu"
+      ],
+      "primary_category": "transfer learning",
+      "categories": [
+        "transfer learning",
+        "prompt learning",
+        "vision-language model",
+        "parameter-efficient fine-tuning"
+      ],
+      "published": "2025-05-01T13:19:21.416+00:00",
+      "link": "https://openreview.net/forum?id=zjG9GRG462",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-ygfpmhnynw",
+      "source": "ICML-2025-Accepted",
+      "title": "Large Language Models are Demonstration Pre-Selectors for Themselves",
+      "abstract": "In-context learning with large language models (LLMs) delivers strong few-shot performance by choosing few-shot demonstrations from the entire training dataset. However, previous few-shot in-context learning methods, which calculate similarity scores for choosing demonstrations, incur high computational costs by repeatedly retrieving large-scale datasets for each query. This is due to their failure to recognize that not all demonstrations are equally informative, and many less informative demonstrations can be inferred from a core set of highly informative ones. To this end, we propose FEEDER (FEw yet Essential Demonstration prE-selectoR), a novel \\emph{pre-selection} framework that identifies a core subset of demonstrations containing the most informative examples. This subset, referred to as the FEEDER set, consists of demonstrations that capture both the ''sufficiency'' and ''necessity'' information to infer the entire dataset. Notice that FEEDER is selected before the few-shot in-context learning, enabling more efficient few-shot demonstrations choosing in a smaller set. To identify FEEDER, we propose a novel effective tree based algorithm. Once selected, it can replace the original dataset, leading to improved efficiency and prediction accuracy in few-shot in-context learning. Additionally, FEEDER also benefit fine-tuning LLMs, we propose a bi-level optimization method enabling more efficient training without sacrificing performance when datasets become smaller. Our experiments are on 6 text classification datasets, 1 reasoning dataset, and 1 semantic-parsing dataset, across 6 LLMs (ranging from 335M to 7B parameters), demonstrate that: (i) In few-shot inference, FEEDER achieves superior (or comparable) performance while utilizing only half the input training data. (ii) In fine-tuning, FEEDER significantly boosts the performance of LLMs.",
+      "authors": [
+        "Jiarui Jin",
+        "Yuwei Wu",
+        "Haoxuan Li",
+        "Xiaoting He",
+        "Weinan Zhang",
+        "Yiming Yang",
+        "Yong Yu",
+        "Jun Wang",
+        "Mengyue Yang"
+      ],
+      "primary_category": "Large Language Model",
+      "categories": [
+        "Large Language Model",
+        "Demonstration Pre-Selection",
+        "In-Context Learning"
+      ],
+      "published": "2025-05-01T13:19:58.741+00:00",
+      "link": "https://openreview.net/forum?id=YgfpMhNYnW",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-aenkbihyvo",
+      "source": "ICML-2025-Accepted",
+      "title": "Selective Prompt Anchoring for Code Generation",
+      "abstract": "Recent advances in large language models (LLMs) have transformed software development by automatically generating code from natural language. Yet challenges remain in generating fully correct code that aligns with user intent. Our study reveals that LLMs tend to pay less attention to user prompts as more code tokens are generated. We hypothesize that this attention dilution issue is an important reason for code generation errors. To mitigate this issue, we propose ***S**elective **P**rompt **A**nchoring* (SPA) to guide code LLMs to pay more attention to user intent when generating code. We evaluate SPA using six base LLMs across six benchmarks. Our results demonstrate that SPA enhances Pass@1 by up to 12.9%, consistently outperforming SOTA code generation methods in all settings. Our code is available at https://github.com/magic-YuanTian/Selective-Prompt-Anchoring.",
+      "authors": [
+        "Yuan Tian",
+        "Tianyi Zhang"
+      ],
+      "primary_category": "Large Language Models (LLMs)",
+      "categories": [
+        "Large Language Models (LLMs)",
+        "Prompt",
+        "Code Generation",
+        "Self-attention",
+        "Taylor expansion",
+        "Logits",
+        "Anchoring"
+      ],
+      "published": "2025-05-01T13:16:53.038+00:00",
+      "link": "https://openreview.net/forum?id=aEnkBIhYvO",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-tuk7gcqtmf",
+      "source": "ICML-2025-Accepted",
+      "title": "Federated In-Context Learning: Iterative Refinement for Improved Answer Quality",
+      "abstract": "For question-answering (QA) tasks, in-context learning (ICL) enables language models (LMs) to generate responses without modifying their parameters by leveraging examples provided in the input. However, the effectiveness of ICL heavily depends on the availability of high-quality examples, which are often scarce due to data privacy constraints, annotation costs, and distribution disparities. A natural solution is to utilize examples stored on client devices, but existing approaches either require transmitting model parameters—incurring significant communication overhead—or fail to fully exploit local datasets, limiting their effectiveness. To address these challenges, we propose Federated In-Context Learning (Fed-ICL), a general framework that enhances ICL through an iterative, collaborative process. Fed-ICL progressively refines responses by leveraging multi-round interactions between clients and a central server, improving answer quality without the need to transmit model parameters. We establish theoretical guarantees for the convergence of Fed-ICL and conduct extensive experiments on standard QA benchmarks, demonstrating that our proposed approach achieves strong performance while maintaining low communication costs.",
+      "authors": [
+        "Ruhan Wang",
+        "Zhiyong Wang",
+        "Chengkai Huang",
+        "Rui Wang",
+        "Tong Yu",
+        "Lina Yao",
+        "John C.S. Lui",
+        "Dongruo Zhou"
+      ],
+      "primary_category": "Federated Learning; In-context Learning; Large Language Model; Natural Language Processing",
+      "categories": [
+        "Federated Learning; In-context Learning; Large Language Model; Natural Language Processing"
+      ],
+      "published": "2025-05-01T13:21:28.935+00:00",
+      "link": "https://openreview.net/forum?id=TUk7gCqtmf",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-cuqvllbqk6",
+      "source": "ICML-2025-Accepted",
+      "title": "Sample Efficient Demonstration Selection for In-Context Learning",
+      "abstract": "The in-context learning paradigm with LLMs has been instrumental in advancing a wide range of natural language processing tasks. The selection of few-shot examples (exemplars / demonstration samples) is essential for constructing effective prompts under context-length budget constraints. In this paper, we formulate the exemplar selection task as a top-m best arms identification problem. A key challenge in this setup is the exponentially large number of arms that need to be evaluated to identify the m-best arms. We propose CASE (Challenger Arm Sampling for Exemplar selection), a novel sample-efficient selective exploration strategy that maintains a shortlist of “challenger” arms, which are current candidates for the top-m arms. In each iteration, only one of the arms from this shortlist or the current top-m set is pulled, thereby reducing sample complexity and, consequently, the number of LLM evaluations. Furthermore, we model the scores of exemplar subsets (arms) using a parameterized linear scoring function, leading to stochastic linear bandits setting. CASE achieves remarkable efficiency gains of up to 7× speedup in runtime while requiring 7× fewer LLM calls (87% reduction) without sacrificing performance compared to state-of-the-art exemplar selection methods. We release our code and data (https://github.com/kiranpurohit/CASE).",
+      "authors": [
+        "Kiran Purohit",
+        "Venktesh V",
+        "Sourangshu Bhattacharya",
+        "Avishek Anand"
+      ],
+      "primary_category": "In-context Learning",
+      "categories": [
+        "In-context Learning",
+        "Exemplar Selection",
+        "Stochastic Linear Bandits",
+        "Best Arm Identification"
+      ],
+      "published": "2025-05-01T13:17:41.475+00:00",
+      "link": "https://openreview.net/forum?id=cuqvlLBQK6",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-icml-2025-1v3xecrmyp",
+      "source": "ICML-2025-Accepted",
+      "title": "Iterative Vectors: In-Context Gradient Steering without Backpropagation",
+      "abstract": "In-context learning has become a standard approach for utilizing language models.\nHowever, selecting and processing suitable demonstration examples can be challenging and time-consuming, especially when dealing with large numbers of them.\nWe propose Iterative Vectors (IVs), a technique that explores activation space to enhance in-context performance by simulating gradient updates during inference.\nIVs extract and iteratively refine activation-based meta-gradients, applying them during inference without requiring backpropagation at any stage.\nWe evaluate IVs across various tasks using four popular models and observe significant improvements.\nOur findings suggest that in-context activation steering is a promising direction, opening new avenues for future research.",
+      "authors": [
+        "Yiting Liu",
+        "Zhi-Hong Deng"
+      ],
+      "primary_category": "In-Context Learning",
+      "categories": [
+        "In-Context Learning",
+        "Activation Steering",
+        "Backpropagation-Free"
+      ],
+      "published": "2025-05-01T13:19:38.713+00:00",
+      "link": "https://openreview.net/forum?id=1v3XEcRMyP",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "type": "intent_query",
+      "tag": "pe",
+      "paper_tag": "query:pe",
+      "query_text": "How to enhance language model performance through prompt design?",
+      "sim_scores": {
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.016129032258064516,
+          "rank": 7
+        },
+        "openreview-icml-2025-6f0l4hw8a8": {
+          "score": 0.015625,
+          "rank": 10
+        },
+        "openreview-icml-2025-qwtdqxllam": {
+          "score": 0.015151515151515152,
+          "rank": 13
+        },
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.015151515151515152,
+          "rank": 14
+        },
+        "openreview-icml-2025-cqp36039em": {
+          "score": 0.013333333333333334,
+          "rank": 28
+        },
+        "openreview-icml-2025-ygfpmhnynw": {
+          "score": 0.00980392156862745,
+          "rank": 53
+        },
+        "openreview-icml-2025-zjg9grg462": {
+          "score": 0.009708737864077669,
+          "rank": 54
+        },
+        "openreview-icml-2025-aenkbihyvo": {
+          "score": 0.009174311926605505,
+          "rank": 59
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-icml-2025-jxzr3xinpg",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-lm9dxfrchd",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-tpp47eh1xg",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-cqp36039em",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-qwtdqxllam",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-zjg9grg462",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-aenkbihyvo",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-4tyckhnvxv",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-mmgsxbo4h0",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-6f0l4hw8a8",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-uckvhweh1g",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-4vb9bdtidh",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-ksdpdnwkgi",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-auc4ng6h4r",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-edn2reemj6",
+          "score": 0.41577409931840303,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-p6pelhim4e",
+          "score": 0.3910256410256411,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-u8kfbce69j",
+          "score": 0.3910256410256411,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-bmj3pyyxu2",
+          "score": 0.3433395872420263,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-nme3hkuhlx",
+          "score": 0.3433395872420263,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-1v3xecrmyp",
+          "score": 0.29792429792429775,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-nnwsny4yb4",
+          "score": 0.25462134764460337,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-cuqvllbqk6",
+          "score": 0.11772814998621459,
+          "star_rating": 3
+        }
+      ]
+    },
+    {
+      "type": "intent_query",
+      "tag": "pe",
+      "paper_tag": "query:pe",
+      "query_text": "Methods for automatic prompt evolution in large language models",
+      "sim_scores": {
+        "openreview-icml-2025-4vb9bdtidh": {
+          "score": 0.02639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.01639344262295082,
+          "rank": 2
+        },
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.015151515151515152,
+          "rank": 7
+        },
+        "openreview-icml-2025-tpp47eh1xg": {
+          "score": 0.014285714285714285,
+          "rank": 11
+        },
+        "openreview-icml-2025-cqp36039em": {
+          "score": 0.012345679012345678,
+          "rank": 22
+        },
+        "openreview-icml-2025-zjg9grg462": {
+          "score": 0.00909090909090909,
+          "rank": 50
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-icml-2025-cqp36039em",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-4vb9bdtidh",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-jxzr3xinpg",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-lm9dxfrchd",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-p6pelhim4e",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-u8kfbce69j",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-qwtdqxllam",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-uckvhweh1g",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-aenkbihyvo",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-tpp47eh1xg",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-mmgsxbo4h0",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-nnwsny4yb4",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-bmj3pyyxu2",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-ygfpmhnynw",
+          "score": 0.49392712550607265,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-ksdpdnwkgi",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-edn2reemj6",
+          "score": 0.32035835650293487,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-4tyckhnvxv",
+          "score": 0.32035835650293487,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-nme3hkuhlx",
+          "score": 0.29792429792429775,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-zjg9grg462",
+          "score": 0.25462134764460337,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-cuqvllbqk6",
+          "score": 0.23371647509578536,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-auc4ng6h4r",
+          "score": 0.11772814998621459,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-1v3xecrmyp",
+          "score": 0.06517094017094004,
+          "star_rating": 2
+        },
+        {
+          "paper_id": "openreview-icml-2025-6f0l4hw8a8",
+          "score": 0.0319204604918889,
+          "star_rating": 2
+        }
+      ]
+    },
+    {
+      "type": "intent_query",
+      "tag": "pe",
+      "paper_tag": "query:pe",
+      "query_text": "Research on prompt engineering for better model reasoning",
+      "sim_scores": {
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-nnwsny4yb4": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-icml-2025-zjg9grg462": {
+          "score": 0.014285714285714285,
+          "rank": 10
+        },
+        "openreview-icml-2025-mmgsxbo4h0": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-icml-2025-bmj3pyyxu2": {
+          "score": 0.011111111111111112,
+          "rank": 30
+        },
+        "openreview-icml-2025-4vb9bdtidh": {
+          "score": 0.010752688172043012,
+          "rank": 33
+        },
+        "openreview-icml-2025-qwtdqxllam": {
+          "score": 0.009433962264150943,
+          "rank": 46
+        },
+        "openreview-icml-2025-cqp36039em": {
+          "score": 0.00909090909090909,
+          "rank": 50
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-icml-2025-mmgsxbo4h0",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-bmj3pyyxu2",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-4tyckhnvxv",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-nme3hkuhlx",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-ksdpdnwkgi",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-nnwsny4yb4",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-edn2reemj6",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-tpp47eh1xg",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-jxzr3xinpg",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-lm9dxfrchd",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-cqp36039em",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-4vb9bdtidh",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-zjg9grg462",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-uckvhweh1g",
+          "score": 0.49392712550607265,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-qwtdqxllam",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-aenkbihyvo",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-auc4ng6h4r",
+          "score": 0.3910256410256411,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-p6pelhim4e",
+          "score": 0.29792429792429775,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-cuqvllbqk6",
+          "score": 0.2760180995475112,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-sugs65xogg",
+          "score": 0.25462134764460337,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-6f0l4hw8a8",
+          "score": 0.15469146238377016,
+          "star_rating": 3
+        }
+      ]
+    },
+    {
+      "type": "intent_query",
+      "tag": "pe",
+      "paper_tag": "query:pe",
+      "query_text": "Techniques for improving in context learning via better prompts",
+      "sim_scores": {
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-zjg9grg462": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-icml-2025-tuk7gcqtmf": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.015151515151515152,
+          "rank": 6
+        },
+        "openreview-icml-2025-1v3xecrmyp": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-icml-2025-cuqvllbqk6": {
+          "score": 0.0125,
+          "rank": 20
+        },
+        "openreview-icml-2025-qwtdqxllam": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        },
+        "openreview-icml-2025-ygfpmhnynw": {
+          "score": 0.011235955056179775,
+          "rank": 29
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-icml-2025-sugs65xogg",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-jxzr3xinpg",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-1v3xecrmyp",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-cuqvllbqk6",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-icml-2025-qwtdqxllam",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-zjg9grg462",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-tuk7gcqtmf",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-uckvhweh1g",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-cqp36039em",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-lm9dxfrchd",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-ygfpmhnynw",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-4tyckhnvxv",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-auc4ng6h4r",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-aenkbihyvo",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-icml-2025-ksdpdnwkgi",
+          "score": 0.49392712550607265,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-edn2reemj6",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-tpp47eh1xg",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-p6pelhim4e",
+          "score": 0.41577409931840303,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-mmgsxbo4h0",
+          "score": 0.3910256410256411,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-6f0l4hw8a8",
+          "score": 0.3668882557771445,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-4vb9bdtidh",
+          "score": 0.3668882557771445,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-bmj3pyyxu2",
+          "score": 0.1933160472486314,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-nnwsny4yb4",
+          "score": 0.15469146238377016,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-icml-2025-u8kfbce69j",
+          "score": 0.015799015799015898,
+          "star_rating": 2
+        }
+      ]
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "chain-of-thought prompting",
+      "sim_scores": {
+        "openreview-icml-2025-nnwsny4yb4": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-icml-2025-nme3hkuhlx": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-4tyckhnvxv": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-icml-2025-mmgsxbo4h0": {
+          "score": 0.014705882352941176,
+          "rank": 8
+        },
+        "openreview-icml-2025-bmj3pyyxu2": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-icml-2025-ksdpdnwkgi": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        },
+        "openreview-icml-2025-sugs65xogg": {
+          "score": 0.013157894736842105,
+          "rank": 16
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "evolutionary algorithms for automatic prompt improvement",
+      "sim_scores": {
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-cqp36039em": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-icml-2025-4vb9bdtidh": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-icml-2025-u8kfbce69j": {
+          "score": 0.012987012987012988,
+          "rank": 17
+        },
+        "openreview-icml-2025-cuqvllbqk6": {
+          "score": 0.012345679012345678,
+          "rank": 21
+        },
+        "openreview-icml-2025-sugs65xogg": {
+          "score": 0.010638297872340425,
+          "rank": 34
+        },
+        "openreview-icml-2025-auc4ng6h4r": {
+          "score": 0.009259259259259259,
+          "rank": 48
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "methods for crafting effective prompts to improve language model performance",
+      "sim_scores": {
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-tpp47eh1xg": {
+          "score": 0.011363636363636364,
+          "rank": 28
+        },
+        "openreview-icml-2025-zjg9grg462": {
+          "score": 0.011111111111111112,
+          "rank": 30
+        },
+        "openreview-icml-2025-ygfpmhnynw": {
+          "score": 0.010869565217391304,
+          "rank": 32
+        },
+        "openreview-icml-2025-cqp36039em": {
+          "score": 0.010416666666666666,
+          "rank": 36
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "optimizing prompt content to maximize model output quality",
+      "sim_scores": {
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-zjg9grg462": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-icml-2025-qwtdqxllam": {
+          "score": 0.012987012987012988,
+          "rank": 17
+        },
+        "openreview-icml-2025-tpp47eh1xg": {
+          "score": 0.012195121951219513,
+          "rank": 22
+        },
+        "openreview-icml-2025-cuqvllbqk6": {
+          "score": 0.011363636363636364,
+          "rank": 28
+        },
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.01020408163265306,
+          "rank": 38
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "principles and strategies for designing prompts",
+      "sim_scores": {
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-tpp47eh1xg": {
+          "score": 0.013333333333333334,
+          "rank": 15
+        },
+        "openreview-icml-2025-qwtdqxllam": {
+          "score": 0.012987012987012988,
+          "rank": 17
+        },
+        "openreview-icml-2025-tuk7gcqtmf": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        },
+        "openreview-icml-2025-aenkbihyvo": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        },
+        "openreview-icml-2025-cqp36039em": {
+          "score": 0.011363636363636364,
+          "rank": 28
+        },
+        "openreview-icml-2025-nnwsny4yb4": {
+          "score": 0.009708737864077669,
+          "rank": 43
+        },
+        "openreview-icml-2025-6f0l4hw8a8": {
+          "score": 0.00909090909090909,
+          "rank": 50
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt augmentation",
+      "sim_scores": {
+        "openreview-icml-2025-4tyckhnvxv": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt design",
+      "sim_scores": {
+        "openreview-icml-2025-uckvhweh1g": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-icml-2025-p6pelhim4e": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-tpp47eh1xg": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-icml-2025-qwtdqxllam": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-icml-2025-u8kfbce69j": {
+          "score": 0.012658227848101266,
+          "rank": 19
+        },
+        "openreview-icml-2025-cqp36039em": {
+          "score": 0.012195121951219513,
+          "rank": 22
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt engineering",
+      "sim_scores": {
+        "openreview-icml-2025-edn2reemj6": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-4vb9bdtidh": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt evolution",
+      "sim_scores": {
+        "openreview-icml-2025-p6pelhim4e": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-4vb9bdtidh": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt optimization",
+      "sim_scores": {
+        "openreview-icml-2025-uckvhweh1g": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-auc4ng6h4r": {
+          "score": 0.015151515151515152,
+          "rank": 6
+        },
+        "openreview-icml-2025-qwtdqxllam": {
+          "score": 0.014705882352941176,
+          "rank": 8
+        },
+        "openreview-icml-2025-ksdpdnwkgi": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        },
+        "openreview-icml-2025-4vb9bdtidh": {
+          "score": 0.013333333333333334,
+          "rank": 15
+        },
+        "openreview-icml-2025-sugs65xogg": {
+          "score": 0.01020408163265306,
+          "rank": 38
+        },
+        "openreview-icml-2025-6f0l4hw8a8": {
+          "score": 0.00909090909090909,
+          "rank": 50
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompting models to reason step by step",
+      "sim_scores": {
+        "openreview-icml-2025-mmgsxbo4h0": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-icml-2025-bmj3pyyxu2": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-icml-2025-nnwsny4yb4": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-icml-2025-nme3hkuhlx": {
+          "score": 0.012658227848101266,
+          "rank": 19
+        },
+        "openreview-icml-2025-tpp47eh1xg": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        },
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.010638297872340425,
+          "rank": 34
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "techniques to augment prompts with additional context or examples",
+      "sim_scores": {
+        "openreview-icml-2025-jxzr3xinpg": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-icml-2025-lm9dxfrchd": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-icml-2025-aenkbihyvo": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-icml-2025-tuk7gcqtmf": {
+          "score": 0.013157894736842105,
+          "rank": 16
+        },
+        "openreview-icml-2025-zjg9grg462": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-icml-2025-cuqvllbqk6": {
+          "score": 0.012658227848101266,
+          "rank": 19
+        },
+        "openreview-icml-2025-tpp47eh1xg": {
+          "score": 0.012345679012345678,
+          "rank": 21
+        },
+        "openreview-icml-2025-cqp36039em": {
+          "score": 0.010869565217391304,
+          "rank": 32
+        },
+        "openreview-icml-2025-1v3xecrmyp": {
+          "score": 0.010309278350515464,
+          "rank": 37
+        },
+        "openreview-icml-2025-qwtdqxllam": {
+          "score": 0.01020408163265306,
+          "rank": 38
+        }
+      }
+    }
+  ],
+  "global_candidate_ids": [
+    "openreview-icml-2025-9uexqph078",
+    "openreview-icml-2025-4ufjbv6s4i",
+    "openreview-icml-2025-4vb9bdtidh",
+    "openreview-icml-2025-jxzr3xinpg",
+    "openreview-icml-2025-4gwe7cmolh",
+    "openreview-icml-2025-lm9dxfrchd",
+    "openreview-icml-2025-zjg9grg462",
+    "openreview-icml-2025-bimo2gwsws",
+    "openreview-icml-2025-nnwsny4yb4",
+    "openreview-icml-2025-z4ig090qt2",
+    "openreview-icml-2025-ypweyczjrt",
+    "openreview-icml-2025-eumgcipgte",
+    "openreview-icml-2025-gt1mmgakdz",
+    "openreview-icml-2025-cuasys6xzw",
+    "openreview-icml-2025-uckvhweh1g",
+    "openreview-icml-2025-edn2reemj6",
+    "openreview-icml-2025-23igt7bbtl",
+    "openreview-icml-2025-p6pelhim4e",
+    "openreview-icml-2025-fcm4laclih",
+    "openreview-icml-2025-tiyohdk35l",
+    "openreview-icml-2025-6rnbm37sve",
+    "openreview-icml-2025-wntgpncrxk",
+    "openreview-icml-2025-7vprrzfen8",
+    "openreview-icml-2025-kawtgzihzm",
+    "openreview-icml-2025-qwtdqxllam",
+    "openreview-icml-2025-cqp36039em",
+    "openreview-icml-2025-tpp47eh1xg",
+    "openreview-icml-2025-svl9tiadwv",
+    "openreview-icml-2025-arifahrevd",
+    "openreview-icml-2025-dqcl5snbc8",
+    "openreview-icml-2025-6hvcoibzoc",
+    "openreview-icml-2025-kxfu9rq0mu",
+    "openreview-icml-2025-cauriugjkb",
+    "openreview-icml-2025-p1ubwkovzm",
+    "openreview-icml-2025-fkqmiankrb",
+    "openreview-icml-2025-kftf9vfvsn",
+    "openreview-icml-2025-j5ygi2lzi7",
+    "openreview-icml-2025-0mpgi6iwzr",
+    "openreview-icml-2025-icybiagksr",
+    "openreview-icml-2025-tck4pv3vn4",
+    "openreview-icml-2025-ozm5g4ivms",
+    "openreview-icml-2025-gt8jsefqas",
+    "openreview-icml-2025-cuqvllbqk6",
+    "openreview-icml-2025-flkhxgtbj2",
+    "openreview-icml-2025-hwyisubbp7",
+    "openreview-icml-2025-qjd3zuihrt",
+    "openreview-icml-2025-qwpuqidr53",
+    "openreview-icml-2025-suyo70zxzx",
+    "openreview-icml-2025-lwh8yn4hs2",
+    "openreview-icml-2025-yrcvw1hx7g",
+    "openreview-icml-2025-4hqamuywat",
+    "openreview-icml-2025-klw8ko4ene",
+    "openreview-icml-2025-mmgsxbo4h0",
+    "openreview-icml-2025-a6zdim0rqf",
+    "openreview-icml-2025-tuk7gcqtmf",
+    "openreview-icml-2025-wszeqoj1vk",
+    "openreview-icml-2025-wggc1n4rky",
+    "openreview-icml-2025-wex0vl4c2y",
+    "openreview-icml-2025-ehqqabyyle",
+    "openreview-icml-2025-bmj3pyyxu2",
+    "openreview-icml-2025-fchigdcoow",
+    "openreview-icml-2025-x3ikghfwwd",
+    "openreview-icml-2025-9buvsnaimp",
+    "openreview-icml-2025-q9dai0ayv1",
+    "openreview-icml-2025-mqdgnditai",
+    "openreview-icml-2025-cekrgcfxpa",
+    "openreview-icml-2025-aenkbihyvo",
+    "openreview-icml-2025-k1lcmg2jqn",
+    "openreview-icml-2025-sugs65xogg",
+    "openreview-icml-2025-puwyuwukqe",
+    "openreview-icml-2025-73fydmysdn",
+    "openreview-icml-2025-f3mq0xya1i",
+    "openreview-icml-2025-6f0l4hw8a8",
+    "openreview-icml-2025-oq0t5bxilt",
+    "openreview-icml-2025-lcr6ciaeye",
+    "openreview-icml-2025-guj2fxqclz",
+    "openreview-icml-2025-ygfpmhnynw",
+    "openreview-icml-2025-8prlgz0vmm",
+    "openreview-icml-2025-atufszayvo",
+    "openreview-icml-2025-4tyckhnvxv",
+    "openreview-icml-2025-sqs0ronqzr",
+    "openreview-icml-2025-oktw116wt2",
+    "openreview-icml-2025-txkous3vls",
+    "openreview-icml-2025-hlpwamq4wr",
+    "openreview-icml-2025-bwidskoywf",
+    "openreview-icml-2025-senvtfjhpr",
+    "openreview-icml-2025-cxqpqcxrnx",
+    "openreview-icml-2025-nme3hkuhlx",
+    "openreview-icml-2025-jxnozwfncu",
+    "openreview-icml-2025-jd45c59q09",
+    "openreview-icml-2025-rbi5moua8z",
+    "openreview-icml-2025-ksdpdnwkgi",
+    "openreview-icml-2025-ffpc7vx6qq",
+    "openreview-icml-2025-dijmswszgf",
+    "openreview-icml-2025-ne5brb1tkn",
+    "openreview-icml-2025-fnz1g18edi",
+    "openreview-icml-2025-krfwzuv0ze",
+    "openreview-icml-2025-wfmmqlop6m",
+    "openreview-icml-2025-gbezkej40m",
+    "openreview-icml-2025-zuau2byzlc",
+    "openreview-icml-2025-w2twu0aikl",
+    "openreview-icml-2025-u8kfbce69j",
+    "openreview-icml-2025-nlnfkvmusk",
+    "openreview-icml-2025-qwcdbzlosk",
+    "openreview-icml-2025-yzvefqvlji",
+    "openreview-icml-2025-zg7bkp6sct",
+    "openreview-icml-2025-cbtsxtjqek",
+    "openreview-icml-2025-hlc9ej8rmg",
+    "openreview-icml-2025-dbumennnpt",
+    "openreview-icml-2025-bdamednejx",
+    "openreview-icml-2025-bxhgoysqne",
+    "openreview-icml-2025-1v3xecrmyp",
+    "openreview-icml-2025-cf8gsqwrua",
+    "openreview-icml-2025-vocpctm3nb",
+    "openreview-icml-2025-auc4ng6h4r",
+    "openreview-icml-2025-xfz3ejs8rw",
+    "openreview-icml-2025-apm6sfcmwq",
+    "openreview-icml-2025-ddvinygvuz",
+    "openreview-icml-2025-1pfzs0xc2v",
+    "openreview-icml-2025-ib9drlzllp",
+    "openreview-icml-2025-ohglhxgr27",
+    "openreview-icml-2025-zvztixkzde"
+  ],
+  "global_pool_lane_top_k": 30,
+  "global_pool_limit": 120,
+  "global_pool_guaranteed_per_lane": 2,
+  "global_pool_effective_size": 122,
+  "reranked_at": "2026-06-09T11:30:30.455607+00:00",
+  "llm_ranked": [
+    {
+      "paper_id": "openreview-icml-2025-ksdpdnwkgi",
+      "score": 10.0,
+      "evidence_en": "Proposes a CoT framework with a task-specific prompt module to optimize initial reasoning, directly improving step-by-step prompting.",
+      "evidence_cn": "提出包含任务特定提示模块的思维链框架，优化初始推理过程，直接提升逐步提示效果。",
+      "canonical_evidence": "提出包含任务特定提示模块的思维链框架，优化初始推理过程，直接提升逐步提示效果。",
+      "tldr_en": "Leveraging self-training insights, this work proposes a CoT framework with an optimized prompt module and adaptive iteration, enhancing reasoning performance and mitigating over-reasoning.",
+      "tldr_cn": "本文从自我训练视角重新思考思维链（CoT）推理，指出两者均通过迭代利用模型生成信息降低预测不确定性。基于此，提出新型CoT框架，包含一个任务特定提示模块以优化初始推理过程，以及一个自适应推理迭代模块以动态细化推理。该框架解决了以往CoT方法中过度推理和推理轮次相似度高等问题。实验表明，该框架显著提升了推理性能，为设计高效逐步推理提示提供了新方法。",
+      "title_zh": "重新思考思维链：从自我训练的角度",
+      "motivation_cn": "现有CoT推理存在过度推理和迭代相似度高的问题，缺乏有效提示优化。",
+      "method_cn": "结合自我训练思想，设计任务特定提示模块与自适应迭代模块。",
+      "result_cn": "在多个推理任务上提升了准确性并减少了冗余推理。",
+      "conclusion_cn": "优化提示与动态迭代是提升逐步推理性能的关键。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-icml-2025-lm9dxfrchd",
+      "score": 10.0,
+      "evidence_en": "Proposes Bayesian optimization with Hyperband to efficiently select optimal prompts for black-box LLMs, treating instructions and exemplars as modular components.",
+      "evidence_cn": "提出结合Hyperband的贝叶斯优化方法，将指令和示例视为模块化组件，高效选择黑盒LLM的最优提示。",
+      "canonical_evidence": "提出结合Hyperband的贝叶斯优化方法，将指令和示例视为模块化组件，高效选择黑盒LLM的最优提示。",
+      "tldr_en": "HbBoPs uses a structural-aware deep kernel GP and Hyperband multi-fidelity scheduling to select prompts, leveraging embeddings of instructions and few-shot exemplars for sample-efficient optimization.",
+      "tldr_cn": "黑盒提示选择面临巨大搜索空间、无梯度和高评估代价的挑战。本文提出HbBoPs，结合结构感知的深度核高斯过程与Hyperband多保真度调度器，将指令和少样本示例视为模块化组件并利用其嵌入，提高替代模型预测最佳提示的能力，在样本效率上表现优异。该方法为LLM在API访问受限场景下的提示优化提供了一种实用解决方案。",
+      "title_zh": "基于Hyperband的贝叶斯优化用于黑盒提示选择",
+      "motivation_cn": "黑盒LLM的最优提示选择对性能至关重要，但面临搜索空间大、无梯度信息和评估成本高的挑战。",
+      "method_cn": "提出HbBoPs方法，结合结构感知深度核高斯过程与Hyperband多保真调度器，利用指令和示例嵌入进行提示选择。",
+      "result_cn": "实验表明HbBoPs能高效地发现高质量提示，显著降低评估预算。",
+      "conclusion_cn": "该方法为黑盒提示优化提供了有效的样本高效方案，推动了LLM在受限API环境下的应用。",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "optimizing prompt content to maximize model output quality"
+    },
+    {
+      "paper_id": "openreview-icml-2025-cqp36039em",
+      "score": 10.0,
+      "evidence_en": "evolves prompts adaptively via reward-guided creator-solver game in RL, achieving automatic prompt improvement",
+      "evidence_cn": "通过奖励引导的创建者-求解者博弈在RL中自适应进化提示，实现自动提示改进",
+      "canonical_evidence": "通过奖励引导的创建者-求解者博弈在RL中自适应进化提示，实现自动提示改进",
+      "tldr_en": "Proposes eva, which treats RL training as a game where a creator evolves prompts using reward signals and a solver responds, dynamically generating effective prompts to boost LLM performance.",
+      "tldr_cn": "现有LLM强化学习方法依赖静态提示集，忽略提示对训练的作用。本文提出eva，将训练建模为创建者与求解者的对称自博弈，创建者利用奖励信号自适应地生成和进化训练提示。实验表明eva无需额外人工提示，在多个基准上达到新SOTA，验证了通过奖励引导自动进化提示的有效性。",
+      "title_zh": "奖励引导的提示进化用于大语言模型强化学习",
+      "motivation_cn": "静态提示集无法适应强化学习过程，限制模型训练效果",
+      "method_cn": "设计eva框架，通过奖励信号引导创建者博弈生成并进化训练提示",
+      "result_cn": "在无额外人工提示下，eva在多基准上取得最优性能",
+      "conclusion_cn": "自适应提示进化显著提升了LLM强化学习的效率和效果",
+      "matched_requirement_id": "req-3",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "evolutionary algorithms for automatic prompt improvement"
+    },
+    {
+      "paper_id": "openreview-icml-2025-jxzr3xinpg",
+      "score": 10.0,
+      "evidence_en": "evolves prompts by pruning demonstrations into gibberish, surpassing auto prompt optimization",
+      "evidence_cn": "通过将示例修剪为乱码进化提示，超越自动提示优化",
+      "canonical_evidence": "通过将示例修剪为乱码进化提示，超越自动提示优化",
+      "tldr_en": "Pruning random demonstrations into gibberish evolves prompts that match or beat SOTA automatic optimization, challenging conventional ICL wisdom.",
+      "tldr_cn": "挑战上下文学习需精心设计示例的传统观念，提出通过将随机示例修剪为看似无意义的乱码来进化提示的新范式。实验表明该方法能匹配或超越现有自动提示优化技术，显著提升多种任务性能。",
+      "title_zh": "上下文提示进化：一种开放的自复制视角",
+      "motivation_cn": "发现传统精心设计的提示并非最优，探索简化示例提示的潜力。",
+      "method_cn": "提出修剪随机示例以生成乱码提示的自动进化策略。",
+      "result_cn": "乱码提示在多种任务中达到或优于最先进自动提示优化。",
+      "conclusion_cn": "揭示提示设计中简单修剪可能比复杂指令更有效。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Methods for automatic prompt evolution in large language models"
+    },
+    {
+      "paper_id": "openreview-icml-2025-4vb9bdtidh",
+      "score": 9.0,
+      "evidence_en": "Automatic optimization method that tracks response evolution to reduce manual prompt engineering and improve LLM-based system performance.",
+      "evidence_cn": "通过追踪响应演化自动优化提示，减少人工提示工程并提升系统性能。",
+      "canonical_evidence": "通过追踪响应演化自动优化提示，减少人工提示工程并提升系统性能。",
+      "tldr_en": "Revolve is an automatic textual optimization method that tracks response evolution over iterations, overcoming limitations of immediate-feedback methods, to optimize prompts and hyperparameters for LLM-based systems.",
+      "tldr_cn": "针对基于大语言模型的系统优化中人工提示工程负担重的问题，本文提出Revolve方法，通过追踪响应在迭代优化过程中的演化轨迹，实现自动文本优化。该方法克服了现有文本反馈方法仅关注即时反馈的局限，能够更稳定地调整提示和超参数。实验表明，Revolve在多种任务上有效提升了系统性能，为自动化提示优化提供了一种实用方案。",
+      "title_zh": "Revolve：通过追踪文本优化中的响应演化优化AI系统",
+      "motivation_cn": "LLM系统优化依赖人工提示工程，现有自动方法仅关注即时反馈。",
+      "method_cn": "提出Revolve，通过追踪响应演化历史进行自动文本优化。",
+      "result_cn": "在多种任务上实现了优于现有自动方法的系统性能。",
+      "conclusion_cn": "Revolve为减少提示工程人工干预提供了有效途径。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Methods for automatic prompt evolution in large language models"
+    },
+    {
+      "paper_id": "openreview-icml-2025-uckvhweh1g",
+      "score": 9.0,
+      "evidence_en": "MASS automatically optimizes prompts and topologies for multi-agent systems to maximize task performance.",
+      "evidence_cn": "MASS自动优化多智能体系统的提示和拓扑结构以最大化任务性能。",
+      "canonical_evidence": "MASS自动优化多智能体系统的提示和拓扑结构以最大化任务性能。",
+      "tldr_en": "Proposes MASS, a framework that automatically searches for optimal prompts and interaction topologies for multi-agent LLMs, significantly improving performance on complex tasks.",
+      "tldr_cn": "多智能体系统中提示和拓扑设计复杂且耗时。MASS框架通过深入分析设计空间，自动搜索优化提示与交互拓扑，大幅提升多智能体系统性能。实验证明优化后的系统在复杂任务上显著优于手动设计，揭示了提示与拓扑的协同作用，为自动化智能体设计开辟了新途径。",
+      "title_zh": "多智能体设计：利用更好的提示和拓扑优化智能体",
+      "motivation_cn": "多智能体系统的提示和拓扑设计复杂，依赖手动试错，效率低。",
+      "method_cn": "提出MASS框架，自动搜索优化提示和交互拓扑。",
+      "result_cn": "优化后的多智能体系统在复杂任务上表现显著优于手动设计。",
+      "conclusion_cn": "自动化的提示与拓扑协同设计极大提升多智能体系统性能，潜力巨大。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance"
+    },
+    {
+      "paper_id": "openreview-icml-2025-auc4ng6h4r",
+      "score": 9.0,
+      "evidence_en": "Provides theoretical analysis and optimal estimation of prompts in zero-initialized attention for LLaMA-Adapter, a prompt tuning method that improves LLM performance.",
+      "evidence_cn": "为LLaMA-Adapter中零初始化注意力的提示提供理论分析与最优估计，是提升LLM性能的提示调优方法。",
+      "canonical_evidence": "为LLaMA-Adapter中零初始化注意力的提示提供理论分析与最优估计，是提升LLM性能的提示调优方法。",
+      "tldr_en": "The paper establishes a connection between zero-initialized attention and mixture-of-experts, proving optimal estimability of linear and non-linear prompts, with empirical gains on LLM benchmarks.",
+      "tldr_cn": "零初始化注意力在LLaMA-Adapter中广泛应用但缺乏理论基础。本文首次将零初始化注意力与混合专家模型联系起来，证明了线性和非线性提示均可最优估计，且非线性提示更具灵活性。在多个LLM基准上的实验验证了理论结论，非线性提示性能更优，为基于注意力的提示调优提供了坚实的理论支撑和设计指导。",
+      "title_zh": "关于零初始化注意力：最优提示与门控因子估计",
+      "motivation_cn": "零初始化注意力虽实证成功，但理论基础空白，限制了其进一步发展。",
+      "method_cn": "通过理论分析，将零初始化注意力与混合专家模型关联，推导提示和门控函数的最优估计。",
+      "result_cn": "实验表明非线性提示优于线性提示，验证了理论预测的正确性和实用价值。",
+      "conclusion_cn": "为提示调优方法提供了理论基石，指导未来设计更有效的自适应提示。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance"
+    },
+    {
+      "paper_id": "openreview-icml-2025-u8kfbce69j",
+      "score": 9.0,
+      "evidence_en": "applies neural genetic algorithm to adversarial prompt generation, enabling automatic prompt search and improvement",
+      "evidence_cn": "将神经遗传算法应用于对抗提示生成，实现提示的自动搜索与改进",
+      "canonical_evidence": "将神经遗传算法应用于对抗提示生成，实现提示的自动搜索与改进",
+      "tldr_en": "Proposes Neural Genetic Search, a test-time search method using crossover via generative models, applied to adversarial prompt generation, showing effectiveness in automatic prompt evolution.",
+      "tldr_cn": "深度生成模型在测试时搜索性能受限。本文提出神经遗传搜索(NGS)，将遗传算法融入生成过程，通过父代条件生成实现交叉，可通用于路由问题、对抗提示生成和分子设计。在对抗提示生成中，NGS自动探索并生成有效攻击提示，实验证明该方法在离散空间搜索中的高效性，展示了进化算法在提示自动演化中的潜力。",
+      "title_zh": "神经遗传搜索在离散空间中的应用",
+      "motivation_cn": "测试时搜索方法对提升生成模型性能至关重要，但现有方法缺乏高效进化机制",
+      "method_cn": "提出神经遗传搜索，通过父代条件生成实现交叉，融入遗传算法进行离散空间搜索",
+      "result_cn": "在对抗提示生成任务中，NGS自动生成高质量对抗提示，性能优于基线",
+      "conclusion_cn": "为提示自动生成和进化提供了通用高效的进化算法框架",
+      "matched_requirement_id": "req-3",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "evolutionary algorithms for automatic prompt improvement"
+    },
+    {
+      "paper_id": "openreview-icml-2025-aenkbihyvo",
+      "score": 9.0,
+      "evidence_en": "proposes Selective Prompt Anchoring to guide LLMs to pay more attention to user prompts, improving code generation quality",
+      "evidence_cn": "提出选择式提示锚定方法，引导LLM在代码生成过程中加强对用户提示的关注，提升输出质量",
+      "canonical_evidence": "提出选择式提示锚定方法，引导LLM在代码生成过程中加强对用户提示的关注，提升输出质量",
+      "tldr_en": "Mitigates attention dilution in code LLMs by anchoring focus on user prompts via SPA, achieving up to 12.9% Pass@1 improvement.",
+      "tldr_cn": "现有代码大语言模型在生成代码时逐渐忽略用户提示，导致生成错误。本文提出选择式提示锚定(SPA)方法，在生成过程中持续强化模型对提示意图的关注，从而缓解注意力稀释问题。在六个基准模型和六个数据集上的实验表明，SPA可将Pass@1最高提升12.9%，并一致优于现有代码生成方法，为通过提示利用提升代码生成质量提供了简单有效的手段。",
+      "title_zh": "面向代码生成的选择式提示锚定",
+      "motivation_cn": "代码LLM生成过程中对用户提示的关注逐渐减弱，导致代码错误",
+      "method_cn": "提出SPA，通过选择式锚定机制强化生成过程中对提示关键信息的注意力",
+      "result_cn": "在多个基准上，Pass@1最高提升12.9%，一致超越现有方法",
+      "conclusion_cn": "为代码生成中的提示有效利用提供了简单的即插即用方案",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "optimizing prompt content to maximize model output quality"
+    },
+    {
+      "paper_id": "openreview-icml-2025-4tyckhnvxv",
+      "score": 9.0,
+      "evidence_en": "enhances Chain-of-Thought prompting with premise-augmented reasoning chains to improve step-by-step verification",
+      "evidence_cn": "用前提增强的推理链改进逐步推理验证的Chain-of-Thought提示方法",
+      "canonical_evidence": "用前提增强的推理链改进逐步推理验证的Chain-of-Thought提示方法",
+      "tldr_en": "Proposes restructuring Chain-of-Thought reasoning into premise-augmented chains to explicitly identify dependencies between steps, improving error identification and verification in LLM math reasoning.",
+      "tldr_cn": "针对大语言模型数学推理中推理链冗长、难以验证的问题，本文提出将传统线性推理链重构为前提增强的推理链，明确每个步骤所依赖的前提步骤，从而改善错误识别和推理验证。实验表明该方法能有效提升数学推理的可解释性与可靠性。该工作为通过提示设计增强模型推理能力提供了新思路。",
+      "title_zh": "前提增强的推理链改进LLM数学推理中的错误识别",
+      "motivation_cn": "长推理链导致验证困难，步骤间依赖关系不明显",
+      "method_cn": "识别每个推理步骤的前提，重构为带依赖标注的推理链",
+      "result_cn": "在数学推理任务上，错误识别和验证效果得到提升",
+      "conclusion_cn": "前提增强的CoT提示有效提高了推理的透明性和可检验性",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-icml-2025-cuqvllbqk6",
+      "score": 9.0,
+      "evidence_en": "selects few-shot examples efficiently for in-context learning prompts under budget constraints",
+      "evidence_cn": "提出样本高效的少示例选择策略，用于预算约束下的上下文学习提示构建",
+      "canonical_evidence": "提出样本高效的少示例选择策略，用于预算约束下的上下文学习提示构建",
+      "tldr_en": "Formulates few-shot example selection as a top-m best arms problem and proposes CASE, a selective exploration algorithm that efficiently identifies the best demonstration set, improving prompt construction for in-context learning.",
+      "tldr_cn": "针对上下文学习中少示例选择面临的组合爆炸和低效问题，本文将示例选择建模为top-m最佳臂识别问题，提出选择性探索策略CASE。该策略通过维护挑战者短列表，在有限查询下高效筛选高质量示例。实验表明CASE在多种任务上以更少的样本显著提升了提示效果。这为优化提示内容、改善上下文学习提供了实用方法。",
+      "title_zh": "高效采样演示选择用于上下文学习",
+      "motivation_cn": "有限的上下文预算下，高效选择最优少示例是提升提示效果的关键",
+      "method_cn": "将示例选择形式化为top-m最佳臂问题，提出挑战者臂采样策略CASE",
+      "result_cn": "以远少于基线的查询次数，选出高质量示例，提升下游任务表现",
+      "conclusion_cn": "CASE为上下文学习中的示例选择提供了高效且有效的解决方案",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "techniques to augment prompts with additional context or examples"
+    },
+    {
+      "paper_id": "openreview-icml-2025-sugs65xogg",
+      "score": 9.0,
+      "evidence_en": "selects diverse demonstrations via RL to augment prompts for in-context learning",
+      "evidence_cn": "通过强化学习选择多样性示范以增强上下文学习提示",
+      "canonical_evidence": "通过强化学习选择多样性示范以增强上下文学习提示",
+      "tldr_en": "RDES uses Q-learning and PPO to select demonstrations that maximize diversity and relevance, boosting few-shot ICL for text classification and reasoning.",
+      "tldr_cn": "针对上下文学习中示范集构造难题，提出RDES方法，利用Q学习和PPO强化学习动态优化示范选择，同时最大化多样性与任务相关性。实验表明在文本分类和推理任务中提升了少样本性能。",
+      "title_zh": "基于强化学习的上下文学习示范选择",
+      "motivation_cn": "多样性示范选择对提高模型泛化至关重要，但现有方法难以兼顾多样性与相关性。",
+      "method_cn": "提出RDES框架，通过Q学习或PPO优化示范选择过程。",
+      "result_cn": "实现示范集多样性与任务匹配度的联合优化。",
+      "conclusion_cn": "为少样本提示场景提供了更有效的示范增强策略。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "techniques to augment prompts with additional context or examples"
+    },
+    {
+      "paper_id": "openreview-icml-2025-bmj3pyyxu2",
+      "score": 9.0,
+      "evidence_en": "extends chain-of-thought prompting with multiple reasoning trees for step-by-step reasoning",
+      "evidence_cn": "通过多棵推理树扩展思维链提示，实现分步推理增强",
+      "canonical_evidence": "通过多棵推理树扩展思维链提示，实现分步推理增强",
+      "tldr_en": "Forest-of-Thought extends CoT and ToT by integrating multiple reasoning trees and sparse activation, improving logical problem solving accuracy and efficiency.",
+      "tldr_cn": "针对链式思维和树式思维单次推理的局限性，提出森林式思维框架，集成多棵推理树并利用稀疏激活选择最优路径。实验表明在复杂逻辑问题中提升了推理准确性和效率。",
+      "title_zh": "思维森林：扩展测试时计算以增强LLM推理",
+      "motivation_cn": "现有提示推理方法可能无法回溯错误路径，影响准确性。",
+      "method_cn": "提出FoT框架，整合多棵推理树进行集体决策。",
+      "result_cn": "稀疏激活策略提高了推理路径选择的效率和准确性。",
+      "conclusion_cn": "为复杂推理提供了一种更鲁棒的提示结构。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-icml-2025-ygfpmhnynw",
+      "score": 9.0,
+      "evidence_en": "Pre-selects informative demonstrations to augment prompts efficiently, improving in-context learning.",
+      "evidence_cn": "预选择信息量高的示范来高效增强提示，提升上下文学习。",
+      "canonical_evidence": "预选择信息量高的示范来高效增强提示，提升上下文学习。",
+      "tldr_en": "FEEDER identifies a core subset of informative demonstrations, reducing computational cost while maintaining strong few-shot performance for in-context learning.",
+      "tldr_cn": "FEEDER预选择框架从全量训练数据中筛选出信息量最高的少数核心示范，替代每次查询的相似度检索，大幅降低计算开销，同时在少样本任务中保持强劲性能，为提示词增强提供了高效的范例选择方法。",
+      "title_zh": "大语言模型作为自身的示范预选择器",
+      "motivation_cn": "现有少样本学习因每次查询都需检索全量数据而计算开销大，且忽视示范间信息冗余。",
+      "method_cn": "提出FEEDER，一种少且必要的示范预选择器，通过识别核心示范子集来简化检索。",
+      "result_cn": "在大规模数据集上显著降低检索成本，同时保持与全量检索相当的少样本性能。",
+      "conclusion_cn": "预选择核心示范是提升上下文学习效率的有效策略。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "techniques to augment prompts with additional context or examples"
+    },
+    {
+      "paper_id": "openreview-icml-2025-1v3xecrmyp",
+      "score": 8.0,
+      "evidence_en": "Iterative Vectors refine activation-based meta-gradients during inference to enhance in-context learning.",
+      "evidence_cn": "迭代向量在推理过程中精炼基于激活的元梯度以增强上下文学习。",
+      "canonical_evidence": "迭代向量在推理过程中精炼基于激活的元梯度以增强上下文学习。",
+      "tldr_en": "Proposes Iterative Vectors, a method that simulates gradient updates in activation space to enhance in-context learning without backpropagation, showing significant improvements across models and tasks.",
+      "tldr_cn": "针对上下文学习中高质量示例选择耗时的问题，提出迭代向量方法，在推理时通过提取并迭代精炼激活空间的元梯度，模拟梯度更新以提升上下文学习性能。实验在多个模型和任务上验证了显著改进，为无需反向传播的上下文激活引导开辟了新方向。",
+      "title_zh": "迭代向量：无需反向传播的上下文梯度引导",
+      "motivation_cn": "上下文学习中高质量示例选择耗时且困难，制约了性能提升。",
+      "method_cn": "提出迭代向量方法，在激活空间中提取并迭代精炼元梯度，模拟梯度更新。",
+      "result_cn": "在四个模型和多项任务上评估，均取得显著性能改进。",
+      "conclusion_cn": "上下文激活引导是一种有前景的方向，为未来研究开辟新途径。",
+      "matched_requirement_id": "req-9",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Techniques for improving in context learning via better prompts"
+    },
+    {
+      "paper_id": "openreview-icml-2025-tuk7gcqtmf",
+      "score": 8.0,
+      "evidence_en": "Fed-ICL iteratively refines examples from federated clients to augment prompts and improve in-context learning QA quality.",
+      "evidence_cn": "Fed-ICL从联邦客户端迭代精炼示例以增强提示并提升上下文学习问答质量。",
+      "canonical_evidence": "Fed-ICL从联邦客户端迭代精炼示例以增强提示并提升上下文学习问答质量。",
+      "tldr_en": "Proposes Fed-ICL, a federated in-context learning framework that iteratively refines examples from client devices without sharing raw data, improving QA answer quality while preserving privacy.",
+      "tldr_cn": "针对数据隐私和高质量示例稀缺导致的上下文学习瓶颈，提出联邦上下文学习框架。利用客户端本地示例进行迭代精炼，在不传输模型参数的情况下提升问答性能，同时保护数据隐私。实验表明该方法在多个QA任务上有效利用了分散数据，取得优于集中式方法的成果，为隐私受限环境下的上下文学习提供了可行方案。",
+      "title_zh": "联邦上下文学习：迭代精炼以提升答案质量",
+      "motivation_cn": "数据隐私约束下高质量示例稀缺，限制了上下文学习的有效性。",
+      "method_cn": "提出Fed-ICL框架，从客户端迭代精炼示例以增强提示，无需传输模型参数。",
+      "result_cn": "在多个问答任务上，利用分布式数据提升答案质量，保护隐私。",
+      "conclusion_cn": "联邦上下文学习为隐私敏感场景的上下文增强提供了有效途径。",
+      "matched_requirement_id": "req-9",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Techniques for improving in context learning via better prompts"
+    },
+    {
+      "paper_id": "openreview-icml-2025-zjg9grg462",
+      "score": 8.0,
+      "evidence_en": "Proposes surrogate prompt learning to generate diverse text features for vision-language models, improving prompt effectiveness and efficiency.",
+      "evidence_cn": "提出代理提示学习方法，为视觉-语言模型生成多样化文本特征，提升提示有效性和效率。",
+      "canonical_evidence": "提出代理提示学习方法，为视觉-语言模型生成多样化文本特征，提升提示有效性和效率。",
+      "tldr_en": "SurPL framework efficiently generates diverse prompted text features without learning multiple prompts, achieving comparable performance with reduced computation.",
+      "tldr_cn": "现有多样化提示学习虽能提升视觉-语言模型性能，但计算资源开销巨大。本文提出代理提示学习框架SurPL，通过学习一个代理来直接生成所需的多样提示化文本特征，避免了显式学习多个提示，在保持效果的同时大幅降低计算成本，为提示学习的实际应用提供了高效替代方案。",
+      "title_zh": "代理提示学习：面向视觉-语言模型的高效多样化提示学习",
+      "motivation_cn": "多样化提示学习能提升下游任务性能，但计算资源需求极高，效率问题未解。",
+      "method_cn": "提出SurPL框架，不直接学习多样提示，而是生成代理来合成多样化文本特征。",
+      "result_cn": "在多个视觉-语言任务上，SurPL以更低计算量达到与显式多样化提示相当的性能。",
+      "conclusion_cn": "实现了高效且多样的提示学习，拓宽了提示方法在资源受限场景的应用。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance"
+    },
+    {
+      "paper_id": "openreview-icml-2025-qwtdqxllam",
+      "score": 8.0,
+      "evidence_en": "proposes query-efficient federated learning for black-box discrete prompt optimization",
+      "evidence_cn": "提出用于黑盒离散提示优化的查询高效联邦学习方法",
+      "canonical_evidence": "提出用于黑盒离散提示优化的查询高效联邦学习方法",
+      "tldr_en": "Addresses the query cost problem in federated black-box discrete prompt learning by proposing a query-efficient strategy that activates only one client per round, with theoretical guarantees and empirical savings.",
+      "tldr_cn": "联邦黑盒离散提示学习(BDPL)通过不访问模型参数的方式优化离散提示，但现有联邦方法忽略了云端LLM服务的高昂查询成本。本文提出查询高效的联邦学习策略，理论分析对FedAvg进行退化，每轮仅激活一个客户端，并证明其收敛性。实验表明，该方法在多个基准上大幅减少查询次数，同时保持提示性能，为在云服务上经济部署提示调整提供了重要支撑。",
+      "title_zh": "FedOne：面向黑盒离散提示学习的查询高效联邦学习",
+      "motivation_cn": "现有联邦黑盒提示调优忽视云端LLM查询成本高昂的问题",
+      "method_cn": "提出FedOne策略：每轮仅激活一个客户端，减少查询次数",
+      "result_cn": "在多个基准上，查询开销大幅降低且保持提示性能",
+      "conclusion_cn": "为联邦场景下高效提示优化提供了经济可行的方案",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "optimizing prompt content to maximize model output quality"
+    },
+    {
+      "paper_id": "openreview-icml-2025-mmgsxbo4h0",
+      "score": 7.0,
+      "evidence_en": "Addresses chain-of-thought reasoning hallucinations by aligning reasoning steps with logic units during test-time scaling.",
+      "evidence_cn": "通过逻辑单元对齐解决思维链推理幻觉，提升测试时推理性能。",
+      "canonical_evidence": "通过逻辑单元对齐解决思维链推理幻觉，提升测试时推理性能。",
+      "tldr_en": "Proposes a test-time scaling framework that aligns LLM reasoning steps with logic units to mitigate inconsistencies between natural language rationales and generated programs, enhancing CoT reasoning.",
+      "tldr_cn": "针对思维链提示中自然语言推理步骤与生成程序逻辑不一致导致的“推理幻觉”问题，本文提出一种测试时推理扩展框架，将大语言模型的推理步骤与逻辑单元对齐。该方法通过逻辑单元对齐提升推理的严谨性，改善思维链提示的推理质量。实验表明，该框架有效减少了推理不一致现象，增强了模型的推理能力，为改进逐步推理提示提供了新思路。",
+      "title_zh": "推理即逻辑单元：通过逻辑单元对齐扩展大语言模型测试时推理能力",
+      "motivation_cn": "思维链推理存在自然语言与程序逻辑不一致的“推理幻觉”。",
+      "method_cn": "提出推理即逻辑单元框架，在测试时对齐推理步骤与逻辑单元。",
+      "result_cn": "有效减少推理幻觉，提升推理质量。",
+      "conclusion_cn": "逻辑单元对齐能增强思维链推理的严谨性，对提示工程有启发。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-icml-2025-nnwsny4yb4",
+      "score": 7.0,
+      "evidence_en": "Policy-Guided Tree Search enhances LLM reasoning beyond standard Chain-of-Thought prompting with a learned navigation policy.",
+      "evidence_cn": "策略引导树搜索通过学习的导航策略增强了大语言模型推理能力，超越了标准思维链提示。",
+      "canonical_evidence": "策略引导树搜索通过学习的导航策略增强了大语言模型推理能力，超越了标准思维链提示。",
+      "tldr_en": "Policy-Guided Tree Search (PGTS) combines reinforcement learning with tree search to dynamically navigate reasoning paths, improving over heuristic CoT and exhaustive search on math and logic tasks.",
+      "tldr_cn": "针对大语言模型在复杂推理中依赖预定义启发式或昂贵搜索策略的问题，提出策略引导树搜索框架，利用强化学习训练策略网络动态决定探索动作，如扩展、回溯等。在数学推理和逻辑推理等任务上，PGTS高效探索推理路径，取得优于传统思维链提示的性能，为结合学习与搜索提升推理能力提供了新方案。",
+      "title_zh": "策略引导树搜索增强大语言模型推理",
+      "motivation_cn": "现有思维链提示依赖预定义启发式或昂贵搜索，限制了推理性能。",
+      "method_cn": "提出PGTS框架，用强化学习训练策略网络动态决策探索动作以导航推理树。",
+      "result_cn": "在数学推理、逻辑推理等任务上，PGTS高效且优于传统方法。",
+      "conclusion_cn": "学习策略与树搜索结合有效提升LLM推理，无需手动设计启发式。",
+      "matched_requirement_id": "req-10",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Research on prompt engineering for better model reasoning"
+    },
+    {
+      "paper_id": "openreview-icml-2025-p6pelhim4e",
+      "score": 7.0,
+      "evidence_en": "Uses automated prompt evolution without predefined prompts for model stealing, demonstrating a method for evolving prompts for a data synthesis task.",
+      "evidence_cn": "利用无预定义提示的自动提示进化进行模型窃取，展示了针对数据合成任务的提示进化方法。",
+      "canonical_evidence": "利用无预定义提示的自动提示进化进行模型窃取，展示了针对数据合成任务的提示进化方法。",
+      "tldr_en": "Stealix performs model stealing by automatically evolving prompts using two open-source models, eliminating the need for manual prompt design and enabling scalable attacks.",
+      "tldr_cn": "现有模型窃取依赖手工设计的提示，限制了自动化和可扩展性。本文提出Stealix，首次在不使用预定义提示的情况下，利用两个开源模型自动进化提示以合成数据，实现模型窃取。该方法不仅暴露了自动化提示进化带来的安全风险，其自动进化提示的技术也可启发提示工程领域的自动优化研究。",
+      "title_zh": "Stealix：通过提示进化的模型窃取",
+      "motivation_cn": "传统模型窃取依赖手工提示设计，缺乏自动化和可扩展性，攻击者门槛高。",
+      "method_cn": "提出Stealix框架，利用两个开源模型自动进化提示，无需先验知识或预定义提示。",
+      "result_cn": "在多个数据集上，Stealix成功实现黑盒模型窃取，且攻击效率显著提升。",
+      "conclusion_cn": "展示了自动提示进化在模型窃取中的潜力，也为提示自动化研究提供了新思路。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Methods for automatic prompt evolution in large language models"
+    },
+    {
+      "paper_id": "openreview-icml-2025-tpp47eh1xg",
+      "score": 7.0,
+      "evidence_en": "proposes a novel prompt design and stochastic soft prompting to adapt LLMs for asynchronous time series, improving performance",
+      "evidence_cn": "提出针对非同步时间序列的提示设计与随机软提示方法，提升LLM在该领域的性能",
+      "canonical_evidence": "提出针对非同步时间序列的提示设计与随机软提示方法，提升LLM在该领域的性能",
+      "tldr_en": "Introduces a tailored prompt design and Stochastic Soft Prompting to leverage LLMs for asynchronous time series analysis, extending tasks beyond forecasting and significantly boosting performance.",
+      "tldr_cn": "针对非同步时间序列数据的特点，本文设计了一种新颖的提示结构，并引入随机软提示机制，使大语言模型能有效利用自然语言事件描述进行推理。该方法不仅提升了预测性能，还将分析范围扩展到异常检测与缺失值填充。实验验证了提示工程在非传统NLP领域提升模型能力的潜力。",
+      "title_zh": "LAST SToP：用于异步时间序列建模的语言模型提示设计",
+      "motivation_cn": "现有提示方法不适配非同步时间序列的自然语言描述，限制了LLM的应用",
+      "method_cn": "提出特定提示结构及随机软提示微调，充分利用事件描述与LLM知识",
+      "result_cn": "在多项时间序列任务上性能显著优于基线，拓展了应用范围",
+      "conclusion_cn": "针对性提示设计可有效释放LLM在时间序列等领域的潜力",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance"
+    },
+    {
+      "paper_id": "openreview-icml-2025-nme3hkuhlx",
+      "score": 6.0,
+      "evidence_en": "algorithm to generate high-quality reasoning processes, enhancing reasoning akin to step-by-step prompting",
+      "evidence_cn": "通过算法自动生成高质量推理过程，类似分步推理提示的增强",
+      "canonical_evidence": "通过算法自动生成高质量推理过程，类似分步推理提示的增强",
+      "tldr_en": "BRiTE bootstraps reinforced thinking processes to improve LLM reasoning using a probabilistic framework and post-training integration, achieving 1/T convergence.",
+      "tldr_cn": "针对大语言模型推理过程不可靠的问题，提出统一概率框架和BRiTE算法，通过迭代生成高质量推理过程并融入后训练，理论证明1/T收敛速度。该方法为自动增强推理提供了新途径。",
+      "title_zh": "BRiTE：引导增强思维过程提升语言模型推理能力",
+      "motivation_cn": "解决大语言模型生成可靠推理过程的挑战。",
+      "method_cn": "提出BRiTE算法，通过概率图模型和迭代引导增强推理过程。",
+      "result_cn": "理论收敛速率为1/T，自动生成高质量推理。",
+      "conclusion_cn": "提升了推理过程的自动生成质量，可用于后训练。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-icml-2025-6f0l4hw8a8",
+      "score": 4.0,
+      "evidence_en": "ICRT uses cognitive biases to craft prompts that manipulate LLM behavior, showing prompt design principles for jailbreaking.",
+      "evidence_cn": "ICRT利用认知偏差设计提示以操控大语言模型行为，展示了越狱攻击的提示设计原则。",
+      "canonical_evidence": "ICRT利用认知偏差设计提示以操控大语言模型行为，展示了越狱攻击的提示设计原则。",
+      "tldr_en": "Proposes ICRT, a jailbreak attack that leverages cognitive heuristics like simplicity effect and relevance bias to decompose and reorganize malicious prompts, effectively bypassing LLM safety.",
+      "tldr_cn": "针对现有越狱攻击依赖暴力优化或手动设计的局限，提出受人类认知启发式偏差启发的ICRT框架。利用简单效应和相关性偏差分解并重组恶意提示，降低复杂性并增强语义对齐，有效诱导有害输出。实验证明该方法高效，揭示了基于认知原则的提示设计新思路，并警示了潜在风险。",
+      "title_zh": "只见树木不见森林：利用启发式和偏差诱发大语言模型的非理性选择",
+      "motivation_cn": "现有越狱攻击方法未能充分揭示真实场景中的风险，设计过程繁琐。",
+      "method_cn": "提出ICRT框架，利用认知启发式偏差（简单效应、相关性偏差）设计恶意提示。",
+      "result_cn": "成功绕过安全机制，有效诱导有害输出。",
+      "conclusion_cn": "基于认知偏差的提示设计揭示了新的攻击面，有重要安全启示。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance"
+    },
+    {
+      "paper_id": "openreview-icml-2025-edn2reemj6",
+      "score": 4.0,
+      "evidence_en": "Uses dynamic prompt engineering and adversarial prompt generation to improve LLM fairness, enhancing performance through prompt design.",
+      "evidence_cn": "使用动态提示工程和对抗提示生成来提升LLM公平性，通过提示设计增强性能。",
+      "canonical_evidence": "使用动态提示工程和对抗提示生成来提升LLM公平性，通过提示设计增强性能。",
+      "tldr_en": "FACTER introduces adaptive thresholds and an adversarial prompt generator within conformal prediction to reduce demographic biases in LLM recommendations, achieving up to 95.5% fairness improvement while maintaining accuracy.",
+      "tldr_cn": "FACTER在合规预测框架中引入自适应阈值和对抗提示生成器，当检测到偏见模式时自动收紧公平约束，无需重训模型，在MovieLens和Amazon上将公平违规降低95.5%并保持准确率，表明提示工程可有效提升推荐系统公平性。",
+      "title_zh": "FACTER: 公平感知的符合性阈值与提示工程驱动的公平LLM推荐系统",
+      "motivation_cn": "LLM推荐系统易产生人口统计偏见，现有方法难以在不重训模型下动态缓解。",
+      "method_cn": "提出FACTER框架，集成合规预测与动态提示工程，利用自适应语义方差阈值和违规触发的对抗提示生成器。",
+      "result_cn": "在MovieLens和Amazon数据集上公平违规降低95.5%，同时推荐准确率持平。",
+      "conclusion_cn": "语义方差是有效的偏见代理指标，提示工程可灵活提升推荐公平性。",
+      "matched_requirement_id": "req-7",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "How to enhance language model performance through prompt design?"
+    }
+  ],
+  "llm_ranked_at": "2026-06-09T11:37:17.721870+00:00",
+  "display_min_score": 4.0,
+  "pruned_at": "2026-06-09T11:37:17.765865+00:00"
+}

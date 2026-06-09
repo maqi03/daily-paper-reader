@@ -1,0 +1,7729 @@
+Title: Large Language Models are Demonstration Pre-Selectors for Themselves
+
+URL Source: https://openreview.net/pdf?id=YgfpMhNYnW
+
+Number of Pages: 30
+
+Markdown Content:
+## Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+Jiarui Jin 1 2 * † Yuwei Wu 3 * Haoxuan Li 4 Xiaoting He 5 Weinan Zhang 1 Yiming Yang 3 Yong Yu 1
+
+Jun Wang 6 Mengyue Yang B 7
+
+Abstract 
+
+In-context learning (ICL) with large language models (LLMs) delivers strong few-shot per-formance by choosing few-shot demonstrations from the entire training data. However, exist-ing ICL methods, which rely on similarity or di-versity scores to choose demonstrations, incur high computational costs due to repeatedly re-trieval from large-scale datasets for each query. To this end, we propose FEEDER (FEw yet Es-sential Demonstration prE-selectoR), a novel pre-selection framework that identifies a core sub-set of demonstrations containing the most repre-sentative examples in the training data, tailored to specific LLMs. To construct this subset, we introduce the “sufficiency” and “necessity” met-rics in the pre-selection stage and design a tree-based algorithm to identify representative exam-ples efficiently. Once pre-selected, this represen-tative subset can effectively replace the full train-ing data, improving efficiency while maintain-ing comparable performance in ICL. Additionally, our pre-selected subset also benefits fine-tuning LLMs, where we introduce a bi-level optimization method that enhances training efficiency without sacrificing performance. Experiments with LLMs ranging from 300M to 8B parameters show that 
+
+FEEDER can reduce training data size by over 20% while maintaining performance and seamlessly in-tegrating with various downstream demonstration selection strategies in ICL.              
+
+> *Equal contributions: Jiarui Jin and Yuwei Wu. †Work done during Jiarui Jin’s visit at University College London. 1Shanghai Jiao Tong University 2Xiaohongshu Inc. 3Carnegie Mellon Uni-versity 4Peking University 5No Affiliation 6University College London 7University of Bristol. Correspondence to: Mengyue Yang
+> <mengyue.yang@bristol.ac.uk >.
+> Proceedings of the 42 nd International Conference on Machine Learning , Vancouver, Canada. PMLR 267, 2025. Copyright 2025 by the author(s).
+
+1. Introduction 
+
+Large language models (LLMs), e.g., GPT (Brown et al., 2020), Gemma (Team et al., 2024), and Llama (Touvron et al., 2023), have demonstrated impressive performance across a wide range of tasks by employing few-shot infer-ence, referred as in-context learning (ICL) (Brown et al., 2020; Dong et al., 2022). This approach avoids the compu-tational expense associated with fine-tuning LLMs. Here, the core challenge is how to select the most representative demonstrations from large training data. Early approaches (Qiu et al., 2022; Liu et al., 2021; Rubin et al., 2021; Wang et al., 2022) primarily selected demonstra-tions based on relevance, typically using similarity scores between each demonstration and the input question. How-ever, recent studies (Levy et al., 2022; K ¨oksal et al., 2022; Zhou et al., 2023) indicate that evaluating examples in isola-tion is suboptimal. Instead, they advocate for incorporating additional selection criteria, such as diversity, uncertainty, or clustering-based metrics, alongside similarity, to enhance demonstration selection effectiveness. As a result, the above enhancements in the demonstration selection process intro-duce significant computational overhead, particularly when the number of shots is large. Beyond efficiency, we argue that the effectiveness of selected demonstrations should also consider the specific LLM in use, as different LLMs exhibit varying capabilities and knowledge domains. To this end, we introduce a new stage called the pre-selection stage and propose a demonstration pre-selector named 
+
+FEEDER (FE w yet Essential Demonstration pr E-selecto R). 
+
+FEEDER functions as a representative subset selector, aim-ing to identify a representative subset from the full training data before the demonstration selection process, thereby en-hancing both efficiency and effectiveness in demonstration selection. For this purpose, we introduce the concepts of “sufficiency” and “necessity”, where sufficiency investigates whether incorporating a demonstration is representative of other samples, while necessity examines whether a demon-stration provides redundant information, taking into account the LLM’s capability, knowledge, and the selected samples. By directing LLMs to focus on the selected subset, FEEDER 
+
+prevents them from processing unnecessary data, thereby improving efficiency. Since exhaustively enumerating and 1Large Language Models are Demonstration Pre-Selectors for Themselves FEEDER Input    
+
+> and Output
+> Training
+> Dataset
+> Frozen
+> Large Language Model
+> (a) In-Context Learning with Frozen LLM
+> Trainable
+> Large Language Model
+> (b) Fine-Tuning with Trainable LLM
+> Test
+> Input Data
+> Training
+> Dataset FEEDER Input
+> Output to T est
+> Input
+> Output to
+> FEEDER Input
+> conditioned
+> Loss
+> FEEDER
+> Output
+> Demonstration
+> Selector
+
+Figure 1. Overview of FEEDER that operates effectively within both in-context learning and fine-tuning settings. In the in-context learning setting, depicted in (a), we first pre-select a representative subset termed FEEDER from the training dataset, and then incorporate existing demonstration selector to get samples regarding specific test input. This pre-selected subset is characterized by its sufficiency and necessity conditioned on the frozen LLM. In the fine-tuning setting, shown in (b), FEEDER allows the LLM to be tuned on the fixed subset FEEDER ,and this subset is intentionally pre-selected to be a faithful representation of the training dataset, with the dual objectives of maintaining data quality and minimizing computational expenses. The above two processes can be encapsulated into a bi-level optimization framework, allowing for iterative refinement of both the pre-selected FEEDER and the fine-tuned LLM. 
+
+evaluating all possible subsets is impractical, we develop a tree-based approximation algorithm that leverages the ca-pability of the given LLM to assess whether each subset is sufficient and necessary for representing others. Besides ICL, we further observe that our pre-selection pro-cess can enhance the fine-tuning process by allowing LLMs to achieve comparable or even superior performance while training on the pre-selected representative subset of the data, rather than the full data, where we introduce a bi-level opti-mization method that enhances training efficiency without sacrificing performance. Our empirical evaluations encompass six LLM bases, rang-ing from 335M to 7B parameters, and include six demon-stration selectors in the demonstration selection stage, ap-plied to text classification, reasoning, and semantic parsing tasks. Our results demonstrate that our pre-selection pro-cess produces a subset that consistently reduces the data size for demonstration selection by over 20% across vari-ous datasets. Moreover, using this pre-selected subset in ICL with a simple similarity-based metric can outperform existing sophisticated metrics such as diversity-based ap-proaches. Additionally, we show that this subset can en-hance the fine-tuning process, enabling LLMs trained on the selected representative subset to achieve comparable or even superior performance. To summarize, our pre-selector FEEDER offers three key advantages: • The pre-selection stage effectively identifies a represen-tative subset, eliminating unnecessary data and signifi-cantly reducing the high computational complexity of downstream demonstration selection. • FEEDER evaluates the representativeness of demonstra-tions in terms of sufficiency and necessity, taking the LLM’s capabilities and knowledge into consideration. • The pre-selected subset is beneficial not only for ICL but also for accelerating the fine-tuning process while maintaining comparable or even superior performance. 
+
+2. Demonstration Pre-Selection 
+
+We begin by delineating two distinct contexts where FEEDER 
+
+can operate: ICL and fine-tuning settings. Throughout this paper, we approach both scenarios from a data-centric per-spective (Strickland, 2022), emphasizing the significance of 
+
+data quality over data quantity .In the ICL setting, we are given a training dataset DTRAIN =
+
+{(xn, yn)}Nn=1 consisting of pairs of input data (e.g., ques-tions) and output labels (e.g., answers). We are also given a test dataset DTEST = {(xm, ym)}Mm=1 , where we assume that DTRAIN share the same support set (Yosida, 2012) with 
+
+DTEST . Our goal is to develop a demonstration selector that extracts n-shot demonstrations from the training dataset, denoted as DDEMO ⊆ D TRAIN . We use ΨLLM : X × D → Y
+
+to represent a LLM using selected demonstrations as the context. Here, x· ∈ X is an input text, y· ∈ Y is the cor-responding output, and (x·, y·) ∈ D is one demonstration. Formally, our objective is to minimize: 
+
+L(DDEMO , DTEST ) = X
+
+> (xm,ym)∈D TEST
+
+ℓ
+
+
+
+Ψ∗
+
+> LLM
+
+(xm, DDEMO ), ym
+
+
+
+,
+
+(1) where ℓ(·, ·) is the task-specific loss function, and Ψ∗
+
+> LLM
+
+(·)
+
+means that the LLM is frozen. However, since we do not have access to DTEST during the training phase, it is imprac-tical to optimize the demonstration selection directly by minimizing L(DDEMO , DTEST ).Instead, we re-consider the demonstration selection task as a two-stage problem, where we first pre-select a subset of high-quality demonstrations from DTRAIN as the selec-tion pool, i.e., a FEEDER subset denoted as DFEEDER ; and 2Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+then we apply existing demonstration selectors such as ran-dom or similarity-based selectors on DFEEDER , to choose the corresponding demonstrations as context for a specific test instance. Our key idea is that a high-quality training dataset 
+
+DFEEDER should be both representative of the entire training dataset DTRAIN and as minimal in size as possible. Formally, we use the loss function L(DFEEDER , DTRAIN ) from Eq. (1) to evaluate our pre-selector , i.e., how well the representation of DFEEDER aligns with DTRAIN . Then, our objective can be written as: 
+
+min 
+
+> DFEEDER ⊆D TRAIN
+
+|D FEEDER |,
+
+s.t. L(DFEEDER , DTRAIN ) ≤ L (DTRAIN , DTRAIN ).
+
+(2) This formulation indices that DFEEDER should be not only suf-ficient but also necessary to represent DTRAIN , thus removing redundant data points to save computation costs meanwhile maintaining LLM performance. Our pre-selected subset of high-quality data DFEEDER also can be applied to fine-tune LLMs. Concretely, instead of fine-tuning LLMs on the entire training dataset DTRAIN , DFEEDER 
+
+allows us to fine-tune LLMs with few but high-quality data, reducing computation costs. In this case, the LLM ΨLLM is usually trainable, and our goal can be formulated as: 
+
+min 
+
+> ΨLLM
+
+E(xn,yn)∈D ∗ 
+
+> FEEDER
+
+[ℓ
+
+
+
+ΨLLM (xn, ∅), yn
+
+
+
+], (3) where D∗ 
+
+> FEEDER
+
+means that the pre-selected DFEEDER is fixed during fine-tuning. 
+
+Algorithm 1 Bi-level Optimization 
+
+Input: Training dataset DTRAIN , LLM ΨLLM .
+
+Output: Approximated subset eDFEEDER , tuned LLM ΨLLM .Initialize eDFEEDER = DTRAIN .
+
+for each iteration do 
+
+Update eDFEEDER by using our approximation algorithm with frozen LLM ΨLLM .Tune LLM ΨLLM by using Eq. (3) as our loss function on fixed eDFEEDER .Given the above analysis, we can further bridge the (pre)-selection of DFEEDER and the LLM fine-tuning on DFEEDER 
+
+into a bi-level optimization framework. On the outer level, following Eq. (2), we optimize the selection of DFEEDER in the context of a frozen LLM Ψ∗
+
+> LLM
+
+; while on the inner level, following Eq. (3), we optimize the LLM ΨLLM using the fixed dataset D∗
+
+> FEEDER
+
+. The bi-level optimization procedure described above is amenable to repetition, enabling iterative refinement of both the selected DFEEDER and the tuned LLM. The overall process is summarized in Algorithm 1, and the construction of our FEEDER subset is detailed in the subsequent sections. 
+
+3. Connections to Existing Work 
+
+With the growing capabilities of LLMs, data (referred to as “demonstrations”) selection has gained prominence, which involves selecting suitable examples as the context for in-context learning (Dong et al., 2022; Yang et al., 2023; Zhou et al., 2022) or filtering a subset from training examples for fine-tuning (Sachdeva et al., 2024; Zhou et al., 2024). Previous solutions have revolved around constructing either parameter-free selection mechanisms (Wang et al., 2022; Zemlyanskiy et al., 2022; Gao et al., 2023) or neural-based selection methods (Pasupat et al., 2021; Liu et al., 2021; Gupta et al., 2021; Rubin et al., 2021; Li et al., 2023). Re-cent investigations (Xia et al., 2024; Marion et al., 2023) focus on mining training examples for fine-tuning specific tasks, with Wang et al. (2024) and Wan et al. (2025) ex-tending this approach to in-context learning. In contrast to previous methods that use LLMs as demonstration selectors, our work leverages the powerful few-shot inference capa-bilities of LLMs by employing them as pre-selectors . For this purpose, we introduce a pre-selection stage to exam-ine “sufficiency” and “necessity” to identify a representative subset of training examples. The resulting FEEDER subset can serve a dual purpose: they can be used as candidate input contexts or to fine-tune the LLM. In both scenarios, 
+
+FEEDER can significantly reduce the computation costs by substituting the entire training data with FEEDER subset. 
+
+4. Demonstration Pre-Selector with Sufficiency and Necessity Metrics 
+
+Notations. Let X, C denote variables for the input and the context (i.e., pre-selected demonstrations). We introduce 
+
+Y , a boolean variable, to represent whether the correspond-ing output is correct. For simplicity, we use Yxn = 1 to denote Y = 1 |X = xn, meaning that the LLM generates the correct output for the input xn. Similarly, Yxn = 0 ,equivalent to Y = 0 |X = xn, indicates that LLM produces an incorrect output for xn. For convenience, we introduce 
+
+S, a variable to record the original status of the LLM be-fore new plug-in and unplug operations (denoted as plug (·)
+
+and unplug (·) respectively). The connections between the above operations and the do (·) operation in causality are discussed in Appendix A1. We begin by considering the relationship between two demonstrations, denoted as (xn, yn) and (xm, ym), and the sufficiency and necessity metrics based on particular LLMs as follows. The sufficiency metric is introduced to assess whether plug-ging in one data point is adequate for the LLM to produce the correct answer to another data point. Formally, we define sufficiency between pair of demonstrations as: 
+
+Definition 1 (Sufficiency Metric) . Given tuple (X, Y, C, S ),
+
+3Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+a training sample (xn, yn) is considered sufficient for an-other one (xm, ym), if the following equation holds: 
+
+Yxm = 1 |plug (( xn, yn)); C, S = ( Yxm = 0) , (4) 
+
+where (xn, yn) is not included in C. It means that when plugging in (xn, yn), it would correct the LLM’s answer to 
+
+xm.
+
+The necessity metric is introduced to assess whether it is necessary to retain a particular plugged-in data point to maintain the correct output of another data point. Its formal definition over pairs of demonstrations can be written as: 
+
+Definition 2 (Necessary Metric) . Given tuple (X, Y, C, S ),a training sample (xn, yn) is considered necessary for 
+
+(xm, ym), if the following equation holds: 
+
+Yxm = 0 |unplug (( xn, yn)); C, S = ( Yxm = 1) , (5) 
+
+where (xn, yn) is included in C. It means that prior to unplugging (xn, yn), the LLM’s output is correct. However, when we do unplug (xn, yn) from the context, it causes the LLM to offer an incorrect output. 
+
+The above definitions of sufficiency and necessity metrics, operating on the instance level, are further clarified with examples in Appendix A2.1. Extending these definitions to the set level, a sufficient set signifies that plugging in a specific set is adequate to ensure the correct outputs for all examples in another set, while a necessary set implies that removing any example from this set would result in incorrect answers for at least one example within another set. Formal definitions for the above set-level metrics, along with examples, are available in Ap-pendix A2.2. Taking into account both the sufficiency and necessity met-rics, we define a subset of the training dataset DTRAIN as 
+
+FEEDER subset DFEEDER , if it can be both sufficient and nec-essary to represent DTRAIN . We provide its formal definition along with some examples in Appendix A2.3. Strictly fol-lowing the above definition to discover a FEEDER subset is impractical because the constraints are too stringent and the computational costs are prohibitively high with O(2 N )
+
+computational complexity to enumerate all the possible sub-sets. Therefore, we propose an approximation algorithm for discovering a FEEDER subset with a tree-based algorithm. Our tree-based approach leverages the capability of the LLM to assess the sufficiency and necessity for each sample in 
+
+DTRAIN , which can filter out unnecessary portions of DTRAIN ,while retaining a sufficient subset that effectively represents the entire train data DTRAIN . Concretely, our tree expands from the bottom to the top, where each node represents a set of instances. Formally, we use the variable K to represent the depth of the tree, corresponding to the number of rounds. Check Whether    
+
+> An Example of Approximation Algorithm for FEEDER
+> and have a Sufficiency
+> Relationship, Remove Unnecessary Parts
+> Check Whether and have a Sufficiency
+> Relationship, Remove Unnecessary Parts
+
+Figure 2. An illustrated example of our approximation algorithm for FEEDER . At each round (corresponding to each layer of the tree), we check whether there is a sufficiency relationship between each pair of nodes. After each check, we remove those unnecessary parts from W·.
+
+Specifically, we use k = 1 , 2, . . . , K to refer to each k-th round; and during each k-th round, we generate the (k + 1) -th layer of the tree. We denote Wk as the set of nodes after the k-th round. We initialize W0 by assigning all the samples in DTRAIN as the bottom nodes: 
+
+W0 := {W n := {(xn, yn)}| (xn, yn) ∈ D TRAIN }. (6) During each k-th round, we generate Wk from Wk−1. This is achieved by examining the sufficiency relationship between every pair of nodes in Wk−1, denoted as Wi, Wj ∈ Wk−1.In this evaluation, we assess whether the following equation holds true by assigning Wi and Wj as WIN and WOUT , or vice versa: 
+
+Y({xn|xn∈W OUT }) = 1|W OUT ||plug (WIN ); C, S, (7) where C = ∅ and S is loosened to allow for any value. If the above equation holds, it signifies that plugging in WIN is 
+
+sufficient for the LLM to generate the correct output to any input in WOUT . In other words, once we have WIN included in the plugged-in context, it is unnecessary to further include 
+
+WOUT . Formally, we can derive the following equation that is equivalent to Eq. (7) as: 
+
+Y({xn|xn∈W OUT }) = 1|W OUT ||unplug (WOUT ); C, S, (8) where C = ( WIN ∪W OUT ) and S is loosened to be any value. Concretely, there are three possible scenarios by examining each pair of nodes in Wk−1 using Eq. (7): (i) If both Wi and 
+
+Wj are sufficient for representing each other, then we select the one with fewer elements to append to Wk. (ii) If only one of Wi and Wj is sufficient to represent the other, then we append the sufficient one to Wk. (iii) If neither Wi nor 
+
+Wj is sufficient to represent the other, we append Wi ∪ W j
+
+4Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+to Wk. After performing the above calculations for each pair of nodes, we remove them from Wk−1. When there is only one element left in Wk−1, it is directly appended to Wk.This process continues until W· contains only one element. Then, we can effectively remove unnecessary samples from 
+
+DTRAIN by extending the tree structure above from the bot-tom to the top. Moreover, the complexity of the above algorithm with K rounds (corresponding to a tree depth of 
+
+K + 1 ) is O(K log |D TRAIN | 
+
+> 2
+
+). In practice, we investigate the impact of varying K and find that setting K = 1 already produces excellent performance. This indicates that a one-shot inference by LLM is sufficient to assess the sufficiency between each pair of samples. Once the results of pairs of samples are computed, we take their union to form the resulting subset DFEEDER . Figure 2 illustrates the process for 
+
+K = 2 . When K = 1 , the top-level check between W1 and 
+
+W3 ∪ W 4 is no longer required. Instead, the resulting subset is W1 ∪ W 3 ∪ W 4 after the bottom-level check. Moreover, our tree-based algorithm can be iterated across multiple runs to further refine the necessary components. Specifically, the FEEDER subset obtained from one run serves as the input for the next. We denote the num-ber of runs as R, leading to an overall complexity of 
+
+O(RK log |D TRAIN | 
+
+> 2
+
+). Empirical investigations show that vary-ing R has minimal impact, with a single run ( R = 1 ) already achieving strong performance. Thus, our implementation complexity simplifies to O(log |D TRAIN | 
+
+> 2
+
+).Our tree-based approximation algorithm is summarized in Algorithm 2 in Appendix A3. If we hypothesize that suffi-ciency is transitive among sets, our tree-based approxima-tion algorithm can ensure that the remaining subset remains sufficient to represent the entire DTRAIN , as verified in the following proposition. 
+
+Proposition 1. If we successively apply our tree-based ap-proximation algorithm on DTRAIN for a certain number of runs to obtain a subset (denoted as eDFEEDER ), then DFEEDER 
+
+is sufficient to represent DTRAIN .
+
+We offer the proof of the above proposition in Appendix A3, which demonstrates that our tree-based algorithm can ef-fectively remove unnecessary samples from DTRAIN while ensuring that the resulting subset remains sufficient to rep-resent the entire training dataset. Additionally, we present another algorithm for finding an ex-act sufficient and necessary subset from DTRAIN , along with its proof and deployment discussion, in Appendices A4.1, Appendix A4.2, and A7. 
+
+5. Experiments 
+
+Our evaluations are mainly conducted on 6 text classification datasets: SST-2 (Socher et al., 2013), SST-5 (Socher et al., 2013), COLA (Warstadt et al., 2018), TREC (Voorhees & Tice, 2000), SUBJ (Pang & Lee, 2004), and FPB (Malo et al., 2014). These datasets cover a range of tasks from sentiment classification and linguistic analysis to textual entailment. We also further assess FEEDER on the reasoning dataset GSM8K (Cobbe et al., 2021), the semantic-parsing dataset SMCALFlow (Andreas et al., 2020), and the scien-tific question-answering dataset GPQA (Rein et al., 2024). For each dataset, we directly follow the official splits to obtain DTRAIN and DTEST .To evaluate the performance of our approach, we employed two GPT-2 variants (Radford et al., 2019): one with 335M parameters, and the other with 774M parameters; one GPT-neo with 1.3B parameters; one GPT-3 variant (Brown et al., 2020) with 6B parameters; one Gemma-2 variant (Team et al., 2024) with 2B parameters, one Llama-2 variant (Tou-vron et al., 2023) with 7B parameters, Llama-3 variant (Meta, 2024) with 8B parameters, and Qwen-2.5 variant (Yang et al., 2024) with 32B parameters, as the LLM base. 
+
+5.1. Performance on In-context Learning 
+
+Since our DFEEDER works as a pre-selector, when applied in the in-context learning setting, we propose incorporating demonstration selectors into FEEDER . In other words, our evaluations follow an ablative approach, with the baseline involving the direct application of these demonstration se-lectors on DTRAIN . This baseline can be regarded as treating these methods both as pre-selectors and demonstration se-lectors. As discussed in Section 4, our DFEEDER is applied using only a one-shot inference check (i.e., K = 1 ) and a single-round run (i.e., R = 1 ), unless otherwise stated. Concretely, we conducted an evaluation of FEEDER in con-junction with following six demonstration selectors: (i) Ran-dom is the random selector, which selects input demon-stration randomly from the selection pool; (ii) Similarity (Sorensen et al., 2022; Gonen et al., 2022) is the similarity-based selector, which selects relevant demonstrations in terms of the cosine similarity metric over the embedding vectors generated by a sentence transformer (Reimers & Gurevych, 2019); (iii) Diversity (Ye et al., 2022) is the diversity-based selector , which selects similar and diverse demonstrations in terms of maximal marginal relevance (Carbonell & Goldstein, 1998); (iv) Uncertainty (K ¨oksal et al., 2022) is the uncertainty-based selector that conducts selections according to their uncertainty metric; (v) Clus-tering (Zhou et al., 2023) is the clustering-based selector that searches demonstrations by clustering. (vi) Latent (Wang et al., 2024) uses LLMs as latent variable models to learn latent variables for down-streaming in-context learn-ing. Please refer to Appendix A5.1 for detailed descriptions of the above demonstration selectors. Experimental results regarding in-context learning perfor-5Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+Table 1. Performance comparisons on text classification datasets are conducted in the in-context learning setting. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. Refer to Appendix A5.2 for more extended results on LLMs GPT-2 variants and GPT-3 variants, datasets FPB, SST-5, TREC, and demonstration selectors Uncertainty, Clustering and Latent. 
+
+ΨLLM (·) D n SUBJ SST-2 COLA Random Similarity Diversity Random Similarity Diversity Random Similarity Diversity Gemma-2 (2B) 
+
+DTRAIN 
+
+1 45.0 (5.9) 48.1 (0.6) 48.1 (0.6) 51.2 (6.8) 52.2 (0.8) 52.2 (0.8) 37.5 (7.0) 40.5 (1.3) 40.5 (1.3) 
+
+2 62.3 (6.9) 82.5 (1.8) 74.2 (1.3) 71.5 (5.6) 78.5 (1.5) 75.9 (0.9) 40.6 (5.9) 62.5 (1.0) 61.6 (0.5) 
+
+5 68.0 (7.1) 91.5 (1.2) 84.2 (1.6) 70.2 (5.6) 80.5 (1.6) 80.6 (0.7) 46.5 (5.9) 67.2 (1.8) 65.6 (0.6) 
+
+10 50.3 (8.2) 86.2 (1.9) 85.6 (0.8) 68.2 (4.8) 85.5 (1.5) 76.3 (1.3) 50.2 (7.4) 69.8 (1.5) 71.5 (1.2) 
+
+DFEEDER 
+
+1 48.2 (4.2) 49.5 (1.0) 49.5 (1.0) 52.6 (4.6) 53.1 (0.8) 53.1 (0.8) 38.9 (5.2) 39.6 (0.8) 39.6 (0.8) 
+
+2 65.2 (2.9) 85.2 (1.0) 80.3 (0.8) 74.2 (4.9) 82.1 (1.2) 83.0 (0.7) 52.5 (2.5) 68.9 (2.1) 67.8 (1.5) 
+
+5 72.2 (6.2) 94.5 (5.3) 85.5 (0.7) 72.0 (4.2) 83.6 (2.1) 84.5 (1.7) 55.2 (4.8) 77.6 (2.5) 73.9 (2.3) 
+
+10 60.5 (4.0) 86.5 (2.5) 88.4 (2.4) 70.5 (5.6) 92.6 (2.6) 78.5 (5.3) 58.6 (4.6) 75.6 (2.9) 76.6 (2.5) 
+
+GPT-3 (6B) 
+
+DTRAIN 
+
+1 44.9 (6.6) 49.5 (0.1) 49.5 (0.1) 48.2 (2.9) 47.0 (0.1) 47.0 (0.1) 38.9 (6.7) 41.2 (0.2) 41.2 (0.2) 
+
+2 55.4 (3.5) 85.5 (0.1) 86.5 (0.2) 68.1 (4.2) 78.7 (0.2) 77.5 (0.1) 42.8 (4.0) 45.5 (0.3) 45.6 (0.2) 
+
+5 51.2 (4.4) 90.8 (0.2) 82.7 (0.1) 75.2 (3.3) 80.7 (0.1) 77.8 (0.2) 48.5 (3.3) 51.8 (0.3) 52.1 (0.2) 
+
+10 57.7 (4.8) 87.3 (0.1) 85.3 (0.1) 72.1 (3.8) 77.6 (0.1) 76.5 (0.2) 59.1 (4.2) 60.3 (0.1) 61.0 (0.2) 
+
+DFEEDER 
+
+1 43.9 (4.2) 51.2 (1.0) 51.2 (1.0) 49.6 (2.4) 51.3 (1.6) 51.3 (1.6) 41.2 (2.1) 43.8 (1.8) 43.8 (1.8) 
+
+2 65.7 (3.0) 91.5 (1.1) 88.8 (1.6) 73.5 (2.5) 85.7 (4.2) 76.1 (2.1) 61.8 (2.1) 63.1 (1.5) 60.1 (1.4) 
+
+5 53.7 (3.8) 92.9 (0.8) 91.5 (1.4) 77.6 (4.0) 81.0 (1.3) 79.4 (1.0) 50.6 (2.7) 63.3 (1.4) 65.8 (1.4) 
+
+10 58.0 (3.4) 88.8 (0.9) 87.8 (1.2) 83.8 (2.8) 86.4 (2.0) 87.2 (1.3) 59.7 (3.0) 67.5 (1.9) 68.4 (2.2) 
+
+Llama-2 (7B) 
+
+DTRAIN 
+
+1 42.9 (6.6) 48.5 (0.1) 48.5 (0.1) 46.2 (2.7) 49.1 (0.1) 49.1 (0.1) 40.1 (6.1) 42.0 (0.2) 42.0 (0.2) 
+
+2 51.9 (4.4) 90.7 (0.1) 85.2 (0.2) 67.8 (3.2) 73.5 (0.2) 74.5 (0.2) 43.5 (4.5) 47.4 (0.2) 49.6 (0.1) 
+
+5 51.6 (3.2) 86.8 (0.2) 82.9 (0.1) 74.8 (3.8) 81.2 (0.2) 78.7 (0.2) 50.2 (3.7) 52.6 (0.2) 48.2 (0.3) 
+
+10 56.1 (4.6) 81.3 (0.1) 85.7 (0.1) 73.2 (3.1) 76.3 (0.1) 77.1 (0.1) 59.6 (4.3) 55.3 (0.2) 60.0 (0.4) 
+
+DFEEDER 
+
+1 43.8 (4.3) 49.7 (1.0) 49.7 (1.0) 47.2 (2.4) 50.8 (1.7) 50.8 (1.7) 41.2 (2.1) 43.8 (1.8) 43.8 (1.8) 
+
+2 54.8 (3.0) 92.5 (1.1) 84.8 (0.7) 72.2 (3.1) 82.5 (4.0) 80.1 (2.6) 50.8 (2.3) 58.6 (1.7) 53.5 (1.3) 
+
+5 53.7 (3.8) 87.9 (1.8) 91.5 (1.4) 78.3 (4.6) 83.2 (1.1) 80.1 (1.4) 53.8 (2.8) 65.3 (1.6) 61.8 (1.4) 
+
+10 58.0 (3.4) 85.8 (0.9) 87.8 (1.2) 85.0 (2.2) 87.1 (2.2) 86.9 (1.0) 60.5 (3.1) 68.0 (1.7) 68.4 (2.0) 
+
+Table 2. Performance comparisons on reasoning GSM8K dataset and semantic-parsing SMCALFlow dataset are conducted in the in-context learning setting. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. Refer to Appendix A5.3 for more extended results on demonstration selectors Clustering and Latent. 
+
+ΨLLM (·) D n GSM8K SMCALFlow Random Similarity Diversity Uncertainty Random Similarity Diversity Uncertainty Gemma-2 (2B) 
+
+DTRAIN 
+
+1 6.54 (1.56) 15.16 (0.17) 15.16 (0.17) 10.51 (0.78) 8.54 (1.64) 19.12 (0.15) 19.12 (0.15) 11.21 (0.89) 
+
+2 8.56 (0.85) 18.89 (0.85) 19.52 (0.45) 17.58 (0.27) 9.56 (0.84) 20.05 (0.36) 22.50 (0.41) 13.58 (0.77) 
+
+5 15.30 (2.89) 20.31 (0.58) 21.56 (0.78) 19.30 (0.90) 18.56 (4.58) 28.65 (0.95) 27.89 (1.85) 25.22 (3.56) 
+
+10 17.45 (4.21) 21.52 (0.49) 20.85 (0.55) 20.66 (1.84) 19.85 (5.21) 30.58 (1.04) 28.56 (0.58) 31.00 (0.88) 
+
+DFEEDER 
+
+1 10.25 (0.51) 16.25 (0.21) 16.25 (0.21) 11.12 (1.78) 9.64 (0.55) 20.54 (0.66) 20.54 (0.66) 15.25 (0.87) 
+
+2 13.76 (0.48) 19.68 (0.13) 20.51 (1.55) 16.85 (3.65) 10.25 (0.52) 23.73 (0.18) 24.25 (2.65) 17.58 (6.58) 
+
+5 18.52 (5.21) 22.58 (0.85) 22.05 (0.77) 20.20 (2.05) 20.44 (5.12) 30.54 (4.58) 32.54 (5.21) 28.95 (3.66) 
+
+10 19.20 (5.22) 22.20 (1.45) 23.52 (2.20) 22.10 (6.21) 21.52 (2.01) 31.48 (1.52) 31.02 (2.54) 30.01 (1.20) 
+
+Llama-2 (7B) 
+
+DTRAIN 
+
+1 2.45 (0.83) 3.52 (0.88) 3.52 (0.88) 3.05 (0.25) 2.25 (0.64) 10.25 (0.85) 10.25 (0.85) 9.01 (0.33) 
+
+2 2.65 (0.77) 4.97 (0.18) 5.62 (0.85) 4.12 (0.47) 4.97 (0.84) 10.05 (2.36) 10.52 (1.45) 11.20 (1.54) 
+
+5 3.54 (0.88) 8.25 (0.89) 7.25 (0.96) 7.88 (0.64) 7.52 (0.85) 16.20 (1.85) 15.28 (1.75) 15.33 (1.30) 
+
+10 4.25 (0.36) 8.85 (0.85) 9.21 (1.98) 8.10 (1.11) 8.70 (1.05) 18.95 (1.25) 19.55 (2.01) 17.52 (2.66) 
+
+DFEEDER 
+
+1 3.54 (0.51) 4.44 (0.89) 4.44 (0.89) 3.36 (0.66) 3.64 (0.55) 10.89 (0.63) 10.89 (0.63) 10.02 (0.69) 
+
+2 3.76 (0.48) 5.68 (0.13) 6.66 (0.58) 4.85 (0.88) 4.25 (0.52) 12.03 (0.16) 11.13 (1.10) 12.50 (2.01) 
+
+5 4.20 (1.23) 9.22 (1.01) 8.81 (0.98) 8.20 (1.14) 8.25 (1.25) 17.20 (3.66) 16.66 (5.20) 16.06 (2.22) 
+
+10 5.02 (1.51) 10.22 (1.32) 9.25 (0.79) 9.45 (0.66) 9.20 (0.77) 20.11 (2.02) 21.25 (3.36) 20.22 (4.02) 
+
+Llama-3 (8B) 
+
+DTRAIN 
+
+1 78.24 (6.56) 79.56 (3.42) 79.56 (3.42) 78.42 (3.76) 12.37 (6.65) 15.64 (2.34) 15.64 (2.34) 14.35 (4.56) 
+
+2 79.55 (7.29) 83.40 (4.53) 83.67 (4.05) 81.23 (3.53) 13.21 (4.34) 16.74 (3.45) 17.43 (3.65) 16.60 (4.62) 
+
+5 81.45 (5.43) 83.47 (5.63) 84.52 (4.76) 82.34 (5.34) 14.53 (5.23) 16.54 (2.35) 17.87 (1.35) 16.52 (3.21) 
+
+10 82.31 (6.34) 84.42 (3.24) 84.53 (4.45) 84.12 (4.44) 14.63 (4.53) 16.50 (2.21) 18.64 (2.34) 17.87 (2.23) 
+
+DFEEDER 
+
+1 80.23 (4.43) 81.21 (3.45) 81.21 (3.45) 79.64 (2.34) 13.56 (3.22) 16.55 (2.31) 16.55 (2.31) 15.40 (2.44) 
+
+2 82.13 (4.76) 84.43 (3.23) 83.88 (3.33) 82.22 (3.43) 14.03 (3.35) 17.45 (3.64) 17.77 (3.20) 17.00 (4.57) 
+
+5 82.55 (5.96) 85.03 (3.66) 84.77 (3.77) 83.56 (3.76) 14.58 (3.45) 18.22 (2.78) 18.12 (2.01) 17.53 (2.55) 
+
+10 84.56 (2.33) 85.79 (3.56) 85.43 (4.55) 84.98 (4.76) 14.99 (4.65) 16.66 (2.33) 18.78 (3.42) 18.01 (2.44) 
+
+6Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+Table 3. Performance comparisons on text classification datasets are conducted in our bi-level optimization (i.e., fine-tuning) setting, where we tune the LLMs and evaluate their few-shot inference performance. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. Refer to Appendix A8.2 for more extended results on datasets FPB, SST-5, TREC. 
+
+ΨLLM (·) D n SUBJ SST-2 COLA Random Similarity Diversity Random Similarity Diversity Random Similarity Diversity GPT-2 (0.8B) 
+
+DTRAIN 
+
+1 67.8 (7.2) 83.7 (0.1) 83.7 (0.1) 61.3 (8.1) 71.6 (0.2) 71.6 (0.2) 59.3 (5.2) 69.4 (0.2) 69.4 (0.2) 
+
+2 69.1 (4.3) 88.7 (0.2) 86.9 (0.2) 73.5 (3.2) 75.8 (0.5) 74.2 (0.3) 64.1 (5.7) 74.1 (0.2) 74.0 (0.3) 
+
+5 70.8 (5.1) 73.3 (0.1) 72.7 (0.2) 74.6 (4.1) 82.8 (0.3) 75.3 (0.2) 60.9 (4.6) 76.7 (0.3) 76.4 (0.3) 
+
+10 89.2 (4.1) 94.0 (0.2) 91.6 (0.2) 70.8 (2.9) 84.5 (0.2) 77.4 (0.2) 70.7 (3.8) 75.7 (0.3) 77.6 (0.5) 
+
+DFEEDER 
+
+1 93.0 (4.3) 93.5 (1.8) 93.5 (1.8) 89.5 (4.3) 88.4 (1.6) 88.4 (1.6) 81.5 (3.3) 82.6 (1.4) 82.6 (1.4) 
+
+2 96.1 (3.8) 94.1 (1.3) 92.6 (1.2) 92.6 (2.8) 94.4 (0.6) 93.8 (0.7) 90.2 (3.8) 91.2 (1.7) 90.8 (0.9) 
+
+5 85.7 (3.5) 94.7 (1.5) 94.1 (1.1) 87.5 (4.1) 92.5 (1.7) 93.7 (1.7) 87.7 (3.2) 89.6 (2.7) 90.0 (3.9) 
+
+10 90.5 (3.3) 95.5 (1.3) 95.6 (1.4) 91.9 (2.9) 93.1 (2.1) 89.0 (1.4) 91.3 (3.5) 92.4 (1.8) 93.5 (1.9) 
+
+GPT-neo (1.3B) 
+
+DTRAIN 
+
+1 72.7 (5.2) 91.0 (0.1) 91.0 (0.1) 65.4 (4.4) 72.5 (0.2) 72.5 (0.2) 61.8 (5.2) 68.5 (0.2) 68.5 (0.2) 
+
+2 74.1 (4.3) 93.7 (0.2) 92.1 (0.3) 74.5 (3.2) 75.8 (0.4) 76.4 (0.5) 70.8 (5.7) 63.9 (0.2) 64.3 (0.4) 
+
+5 71.8 (5.5) 74.8 (0.3) 75.8 (0.4) 73.6 (4.1) 77.8 (0.3) 76.3 (0.2) 68.7 (4.7) 75.4 (0.8) 74.9 (0.4) 
+
+10 90.2 (4.0) 93.6 (0.4) 92.5 (0.4) 72.8 (2.9) 81.5 (0.2) 78.8 (0.2) 72.7 (3.4) 76.7 (0.4) 77.5 (0.7) 
+
+DFEEDER 
+
+1 93.5 (4.3) 94.1 (1.4) 94.1 (1.4) 91.2 (3.8) 92.7 (1.5) 92.7 (1.5) 86.8 (3.3) 89.6 (0.9) 89.6 (0.9) 
+
+2 95.5 (3.9) 95.1 (1.3) 96.6 (1.8) 88.6 (2.4) 93.4 (0.6) 94.2 (0.5) 84.2 (3.7) 87.3 (0.7) 89.5 (0.9) 
+
+5 91.5 (3.8) 95.7 (1.0) 95.3 (1.4) 89.4 (2.7) 92.5 (1.8) 93.7 (1.9) 89.7 (3.2) 92.4 (2.3) 90.8 (1.8) 
+
+10 92.8 (3.1) 96.0 (1.4) 94.8 (1.2) 90.9 (2.0) 93.6 (1.6) 92.2 (1.8) 89.3 (3.9) 93.5 (1.7) 94.4 (1.6) 
+
+mance are reported in Tables 1, 2, and 4. We also present the reduction of our FEEDER in Figure 3. Our findings are summarized as follows. • Our FEEDER working as a pre-selector can improve the performance of diverse demonstration selectors. Particu-larly, we can observe that in many cases, our FEEDER can incorporate with the similarity-based demonstration se-lector (i.e., DFEEDER +Similarity) can achieve comparable or even better performance than diversity or clustering-based demonstration selectors (i.e., DTRAIN +Diversity). • By combining the results from Table 1 and Figure 3, it is evident that FEEDER enables the retention of almost half of the training samples while consistently achieving superior or comparable performance, which provides evi-dence supporting the efficacy of FEEDER as a proficient data pre-selection method for in-context learning. • We also evaluate the few-shot performance on more com-plex tasks using LLMs Gemma-2, with the corresponding results reported in Table 2. The table demonstrates that, even though LLMs may not perform well on these tasks, our FEEDER can consistently enhance their performance. • FEEDER performs well with a large number of shots. In Table 1, we can observe many cases where the LLM per-formance drops when the number of shots increases from 5 to 10 (e.g., Llama-2 on the COLA dataset). This may be caused by the introduction of noisy and redundant shots. Our FEEDER addresses this issue by evaluating the sufficiency and necessity of each demonstration. To further verify this claim, in Appendix A9.3, we duplicate the training dataset and evaluate GPT-neo’s performance. Our results show that FEEDER minimizes the negative im-pact on the LLM, supporting its effectiveness in managing demonstration quality. 
+
+5.2. Performance on Bi-level Optimization 
+
+Here, we would like to verify whether our FEEDER can be beneficial to the fine-tuning setting. As formulated in Sec-tion 2, our pre-selection and the LLM fine-tuning can be in-tegrated into a bi-level optimization framework. Specifically, in our evaluation, we assess the performance of FEEDER by initially fine-tuning the LLM on the pre-selected DFEEDER .Subsequently, we use the tuned LLM to generate a new 
+
+DFEEDER , and evaluate the LLM within the in-context learn-ing setting, using the new DFEEDER as the selection pool. For comparison, our baseline is to initially fine-tune the LLM with DTRAIN and then evaluate the LLM within ICL, using 
+
+DTRAIN as the selection pool. The corresponding experimental results are reported in Ta-ble 3. FEEDER can improve the LLM fine-tuning perfor-mance within our bi-level framework. This emphasizes the potential for achieving enhanced performance by utilizing a small yet high-quality dataset for fine-tuning, while simulta-neously reducing computational expenses, which aligns with the core-set selection literature (Feldman, 2020; Guo et al., 2022). By combining the results from Table 1 and Table 3, we can see that fine-tuning LLMs provides greater perfor-mance improvements compared to augmenting LLMs with contexts. Furthermore, our FEEDER achieves even better performance gains in the fine-tuning setting. One potential explanation is that in this scenario, fine-tuning can leverage input demonstrations more effectively than prompting can, and our high-quality FEEDER can therefore provide greater benefits. We also investigate the performance of FEEDER with vary-ing the number of runs (i.e., R) and different tree depths (i.e., the number of rounds K) in Appendix A9.2. FEEDER ’s 7Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+Table 4. Performance comparisons on reasoning GSM8K dataset and scientific question-answering GPQA dataset are conducted in the in-context learning setting. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. 
+
+ΨLLM (·) D n GSM8K GPQA Random Similarity Diversity Uncertainty Random Similarity Diversity Uncertainty Qwen-2.5 (32B) 
+
+DTRAIN 
+
+1 81.01 (4.31) 82.14 (0.18) 82.14 (0.18) 81.02 (5.24) 40.10 (1.64) 42.04 (0.19) 42.04 (0.19) 42.00 (5.04 
+
+2 83.25 (5.63) 84.19 (0.56) 84.68 (0.56) 84.01 (4.27) 42.06 (3.65) 44.52 (0.36) 45.23 (0.41) 42.85 (7.77) 
+
+5 85.20 (3.52) 89.52 (0.58) 89.61 (0.84) 86.02 (3.90) 43.33 (5.88) 46.20 (1.05) 46.81 (1.95) 46.70 (5.66) 
+
+10 86.21 (4.28) 90.41 (0.63) 89.92 (0.58) 90.20 (3.84) 43.23 (5.21) 46.85 (1.04) 46.71 (0.98) 45.28 (0.89) 
+
+DFEEDER 
+
+1 81.85 (2.61) 83.52 (0.11) 83.52 (0.11) 81.91 (3.78) 40.51 (5.95) 42.71 (0.66) 42.71 (0.66) 41.22 (6.87) 
+
+2 84.52 (6.48) 85.71 (0.33) 86.03 (0.56) 84.80 (5.65) 43.50 (0.52) 45.81 (0.38) 45.66 (3.65) 43.20 (6.58) 
+
+5 86.70 (7.11) 90.20 (0.96) 90.12 (0.88) 88.82 (4.38) 44.94 (4.12) 48.03 (5.58) 48.08 (6.21) 48.95 (4.66) 
+
+10 87.58 (7.22) 91.23 (3.45) 90.71 (4.24) 91.96 (7.71) 44.55 (2.11) 47.80 (4.52) 47.93 (3.54) 47.91 (6.26)  
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+" 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+,& *(!,!!$$ '-,'+ 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $.
+
+# 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+,& *(!(,'+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+&%% 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
++% )'!'+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
++% )'! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+% 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ""%%#'
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ""%%#'
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ""%%#'
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ""%%#'
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+
+
+)#'%%)$( 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> !+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+)#'%%)$( 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+#"" 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> "!&*
+
+"!&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> %  "%(("!&*
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#( 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
++% )'! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+% 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+" 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#( 
+
+ 
+
+,& *(!,!!$$ '-,'+ 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $.
+
+# 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+,& *(! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+& 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
++% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
++% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
++% )'!'+& 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
++% )'!+!!## &,+&* 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #-
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
++% )'!'+&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+%$$ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> $#(,
+
+$#(, 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> '"$'**$#(,
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ""%%#'
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ""%%#'
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+# 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ""%%#'
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+#' 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ""%%#'
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #'
+
+# 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+& $" 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+ 
+
+& $""&!% 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ ("! 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+& $" 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+ 
+
+
+
+)#'%%)$( 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> !+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+)#'%%)$( 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+#"" 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> "!&*
+
+"!&* 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> %  "%(("!&*
+
+
+
+*$(& &*%) 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> ",
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+*$(& &*%) 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+$## 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> 
+
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> #"'+
+
+#"'+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+> &!#&))#"'+
+
+Figure 3. Performance comparisons for running our approximation algorithm to pre-select FEEDER with different runs R are evaluated in terms of accuracy (denoted as ACC) with Random as the demonstration selector and the size of the resulting FEEDER subset (denoted as Size). Each sub-figure is entitled with Dataset+LLM base+n shots. 
+
+performance first rises and then drops with increasing R or 
+
+K. These findings further verify that identifying a represen-tative subset from the training dataset - either by increasing the number of runs or the number of rounds - can signif-icantly enhance the performance of the LLM. However, overly narrow subsets may limit the potential performance gains. This trend may be summarized as a trade-off between data quantity and data quality, and similar observations are reported in Chen et al. (2023). Furthermore, we analyze scaling up FEEDER into larger LLMs and real-world datasets in Appendix A6. 
+
+5.3. Case Study 
+
+Subsequently, we conduct a case study to substantiate the central proposition of this paper: whether the assessment of the quality of demonstrations should depend on the specific LLM in use. We consider the factual error made by Google Bard in the first demo 1. We further prompt gpt -3.5-turbo 
+
+to generate 5 sufficient and necessary statements for the fact. We evaluate separately using these statements as a prompt to gpt -3.5-turbo , and find that either one of the generated statements is sufficient and necessary to answer the question “What took the very first pictures of a planet outside of our own solar system?” We then evaluate the performance of gpt -j-6b with the above 5 statements, and find that only the 1-st or the 5-th statement is sufficient and necessary instance to answer the above question. Combining the results of gpt -j-6b and gpt -3.5-turbo verifies one of the core insights of our paper: the evaluation of prompting 
+
+1https://www.theverge.com/2023/2/8/ 23590864/google-ai-chatbot-bard-mistake -error-exoplanet-demo 
+
+8Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+a demonstration should consider the specific LLM in use. Refer to the detailed description in Appendix A10.2. 
+
+5.4. Time Complexity 
+
+Here, we provide some empirical evidence of the time com-plexity of the proposed method. As summarized in Algo-rithm 2 in Appendix A3 and discussed in Section 4, there are two key hyperparameter settings for reducing the time cost of Algorithm 2: the number of iterations (i.e., K) and the number of rounds (i.e., R). In our main experiment, we set K = 1 and R = 1 , meaning that we perform only one-shot inference for sufficiency checks in each round of Algorithm 2 and execute the algorithm for a single round. We investigate the performance differences arising from varying K and R in Appendix A9.2 and Section 5.2 re-spectively. Additionally, we report the time complexity associated with different values of K and R on COLA and TREC datasets in Figure 4. From the figure, we observe that as the number of samples decreases, the time consump-tion of Algorithm 2 also decreases. Furthermore, we note that increasing the number of rounds has a great impact on reducing the time complexity. This may be attributed to the fact that two-shot inference for sufficiency-satisfying Eq. (7)-is significantly more challenging than a one-shot inference check. By further combining Figure 4 and Fig-ure 3 in Section 5.1, we observe that the time consumption is nearly linear with respect to the size of the data samples.         
+
+> 
+> 
+> 
+> 
+> 
+> 
+>  "'$#
+> & #* ($)&%%&$+ "( $#!$& ("
+> 
+> 
+> 
+> 
+> 
+> Figure 4. Time complexity of searching FEEDER using our approx-imation algorithm for different runs on COLA and TREC datasets using varying the number of rounds Rand varying the number of rounds K.
+
+Consider two hyper-parameter settings in our approxima-tion algorithm: the number of rounds R and the number of iterations K, both designed to balance performance and computational efficiency. As detailed in Figures 3 and 4, the time complexity of our method scales almost linearly with the number of samples, making these parameters critical for practical applications. While Figure 3 illustrates the per-formance changes across different values of R, Figure A6 in Appendix A5.4 explores the impact of varying K. Inter-estingly, Figure A6 reveals a similar but more robust trend compared to Figure 3. This robustness could be attributed to the inherent strength of the two-shot inference process for sufficiency, as defined in Eq. (7). The two-shot inference introduces a more rigorous evaluation mechanism than the one-shot inference check, enabling a stronger filtering of unnecessary samples. In practice, we deploy our approximation algorithm with 
+
+K = 1 and R = 1 , which provides an optimal trade-off between computational efficiency and model performance. This configuration ensures that the pre-selection process remains practical while maintaining competitive accuracy. 
+
+6. Conclusion and Future Work 
+
+In this paper, we present a novel demonstration pre-selector 
+
+FEEDER , designed to leverage LLM’s capabilities and do-main knowledge to identify high-quality demonstration and provide an approximate approach for their discovery. Our experimental results showcase the significant advantages of 
+
+FEEDER across diverse LLM bases in both ICL and bi-level optimization for fine-tuning LLMs. In the future, it would be valuable to explore the use of larger LLMs and extend the applications of FEEDER to areas such as data safety and data management. 
+
+Acknowledgment 
+
+The Shanghai Jiao Tong University team is partially sup-ported by National Key R&D Program of China (No. 2022ZD0114804), Shanghai Municipal Science and Tech-nology Major Project (No. 2021SHZDZX0102) and Na-tional Natural Science Foundation of China (No. 62322603, No. 62177033). This work is also supported in part by Na-tional Natural Science Foundation of China (No. 623B2002) and Beijing Natural Science Foundation (L257007). 
+
+Impact Statement 
+
+The objective of this paper is to develop a pre-selection method over the training data as an intermediary process to enhance the accuracy of factual knowledge in the model’s outputs. It is essential to note that our FEEDER , pre-selected from the training dataset without external trustworthy cor-pora, relies on the capability of the given LLM itself. This characteristic may potentially amplify existing biases in the model weights of LLMs. 9Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+References 
+
+Andreas, J., Bufe, J., Burkett, D., Chen, C., Clausman, J., Crawford, J., Crim, K., DeLoach, J., Dorner, L., Eisner, J., et al. Task-oriented dialogue as dataflow synthesis. Trans-actions of the Association for Computational Linguistics ,8:556–571, 2020. Ben-David, E., Oved, N., and Reichart, R. Pada: A prompt-based autoregressive approach for adaptation to unseen domains. arXiv preprint arXiv:2102.12206 , 3, 2021. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et al. Language models are few-shot learners. 
+
+Advances in neural information processing systems , 33: 1877–1901, 2020. Carbonell, J. and Goldstein, J. The use of mmr, diversity-based reranking for reordering documents and producing summaries. In Proceedings of the 21st annual interna-tional ACM SIGIR conference on Research and develop-ment in information retrieval , pp. 335–336, 1998. Chen, L., Li, S., Yan, J., Wang, H., Gunaratna, K., Yadav, V., Tang, Z., Srinivasan, V., Zhou, T., Huang, H., et al. Alpagasus: Training a better alpaca with fewer data. arXiv preprint arXiv:2307.08701 , 2023. Cheng, F., Li, H., Liu, F., Van Rooij, R., Zhang, K., and Lin, Z. Empowering llms with logical reasoning: A com-prehensive survey. In Proceedings of the Thirty-Fourth International Joint Conference on Artificial Intelligence ,2025. Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun, H., Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano, R., et al. Training verifiers to solve math word problems. 
+
+arXiv preprint arXiv:2110.14168 , 2021. Davison, J., Feldman, J., and Rush, A. M. Commonsense knowledge mining from pretrained models. In Proceed-ings of the 2019 conference on empirical methods in nat-ural language processing and the 9th international joint conference on natural language processing (EMNLP-IJCNLP) , pp. 1173–1178, 2019. Devlin, J., Chang, M.-W., Lee, K., and Toutanova, K. Bert: Pre-training of deep bidirectional transformers for lan-guage understanding. arXiv preprint arXiv:1810.04805 ,2018. Dong, Q., Li, L., Dai, D., Zheng, C., Wu, Z., Chang, B., Sun, X., Xu, J., and Sui, Z. A survey for in-context learning. 
+
+arXiv preprint arXiv:2301.00234 , 2022. Dor, L. E., Halfon, A., Gera, A., Shnarch, E., Dankin, L., Choshen, L., Danilevsky, M., Aharonov, R., Katz, Y., and Slonim, N. Active learning for bert: An empirical study. In Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP) , pp. 7949–7962, 2020. Feldman, D. Introduction to core-sets: an updated survey. 
+
+arXiv preprint arXiv:2011.09384 , 2020. Gal, Y. and Ghahramani, Z. Dropout as a bayesian approx-imation: Representing model uncertainty in deep learn-ing. In international conference on machine learning , pp. 1050–1059. PMLR, 2016. Gao, L., Chaudhary, A., Srinivasan, K., Hashimoto, K., Ra-man, K., and Bendersky, M. Ambiguity-aware in-context learning with large language models. arXiv preprint arXiv:2309.07900 , 2023. Gao, T. Prompting: Better ways of using language models for nlp tasks. The Gradient , 2021. Gissin, D. and Shalev-Shwartz, S. Discriminative active learning. arXiv preprint arXiv:1907.06347 , 2019. Gonen, H., Iyer, S., Blevins, T., Smith, N. A., and Zettle-moyer, L. Demystifying prompts in language models via perplexity estimation. arXiv preprint arXiv:2212.04037 ,2022. Guo, C., Zhao, B., and Bai, Y. Deepcore: A comprehen-sive library for coreset selection in deep learning. In 
+
+Database and Expert Systems Applications: 33rd Interna-tional Conference, DEXA 2022, Vienna, Austria, August 22–24, 2022, Proceedings, Part I , pp. 181–195. Springer, 2022. Gupta, V., Shrivastava, A., Sagar, A., Aghajanyan, A., and Savenkov, D. Retronlu: Retrieval aug-mented task-oriented semantic parsing. arXiv preprint arXiv:2109.10410 , 2021. Jiang, Z., Xu, F. F., Araki, J., and Neubig, G. How can we know what language models know? Transactions of the Association for Computational Linguistics , 8:423–438, 2020. K ¨oksal, A., Schick, T., and Sch ¨utze, H. Meal: Stable and active learning for few-shot prompting. arXiv preprint arXiv:2211.08358 , 2022. Lester, B., Al-Rfou, R., and Constant, N. The power of scale for parameter-efficient prompt tuning. arXiv preprint arXiv:2104.08691 , 2021. Levy, I., Bogin, B., and Berant, J. Diverse demonstrations improve in-context compositional generalization. arXiv preprint arXiv:2212.06800 , 2022. 10 Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+Lewis, D. D. A sequential algorithm for training text clas-sifiers: Corrigendum and additional data. In Acm Sigir Forum , volume 29, pp. 13–19. ACM New York, NY, USA, 1995. Li, X., Lv, K., Yan, H., Lin, T., Zhu, W., Ni, Y., Xie, G., Wang, X., and Qiu, X. Unified demonstration retriever for in-context learning. arXiv preprint arXiv:2305.04320 ,2023. Liu, J., Shen, D., Zhang, Y., Dolan, B., Carin, L., and Chen, W. What makes good in-context examples for gpt-3?
+
+arXiv preprint arXiv:2101.06804 , 2021. Lu, Y., Bartolo, M., Moore, A., Riedel, S., and Stenetorp, P. Fantastically ordered prompts and where to find them: Overcoming few-shot prompt order sensitivity. arXiv preprint arXiv:2104.08786 , 2021. Malo, P., Sinha, A., Korhonen, P., Wallenius, J., and Takala, P. Good debt or bad debt: Detecting semantic orientations in economic texts. Journal of the Association for Infor-mation Science and Technology , 65(4):782–796, 2014. Marion, M., ¨Ust ¨un, A., Pozzobon, L., Wang, A., Fadaee, M., and Hooker, S. When less is more: Investigating data pruning for pretraining llms at scale. arXiv preprint arXiv:2309.04564 , 2023. Meta, A. Introducing meta llama 3: The most capable openly available llm to date. Meta AI , 2024. Pang, B. and Lee, L. A sentimental education: Sentiment analysis using subjectivity summarization based on mini-mum cuts. arXiv preprint cs/0409058 , 2004. Pasupat, P., Zhang, Y., and Guu, K. Controllable seman-tic parsing via retrieval augmentation. arXiv preprint arXiv:2110.08458 , 2021. Pearl, J. Causality: models, reasoning, and inference, 1980. Pearl, J. Causality . Cambridge university press, 2009. Qin, G. and Eisner, J. Learning how to ask: Query-ing lms with mixtures of soft prompts. arXiv preprint arXiv:2104.06599 , 2021. Qiu, L., Shaw, P., Pasupat, P., Shi, T., Herzig, J., Pitler, E., Sha, F., and Toutanova, K. Evaluating the impact of model scale for compositional generalization in semantic parsing. arXiv preprint arXiv:2205.12253 , 2022. Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., Sutskever, I., et al. Language models are unsupervised multitask learners. OpenAI blog , 1(8):9, 2019. Reimers, N. and Gurevych, I. Sentence-bert: Sentence embeddings using siamese bert-networks. arXiv preprint arXiv:1908.10084 , 2019. Rein, D., Hou, B. L., Stickland, A. C., Petty, J., Pang, R. Y., Dirani, J., Michael, J., and Bowman, S. R. GPQA: A graduate-level google-proof q&a benchmark. In First Conference on Language Modeling , 2024. URL https: //openreview.net/forum?id=Ti67584b98 .Reynolds, L. and McDonell, K. Prompt programming for large language models: Beyond the few-shot paradigm. In Extended Abstracts of the 2021 CHI Conference on Human Factors in Computing Systems , pp. 1–7, 2021. Rubin, O., Herzig, J., and Berant, J. Learning to re-trieve prompts for in-context learning. arXiv preprint arXiv:2112.08633 , 2021. Sachdeva, N., Coleman, B., Kang, W.-C., Ni, J., Hong, L., Chi, E. H., Caverlee, J., McAuley, J., and Cheng, D. Z. How to train data-efficient llms. arXiv preprint arXiv:2402.09668 , 2024. Sanh, V., Webson, A., Raffel, C., Bach, S. H., Sutawika, L., Alyafeai, Z., Chaffin, A., Stiegler, A., Scao, T. L., Raja, A., et al. Multitask prompted training enables zero-shot task generalization. arXiv preprint arXiv:2110.08207 ,2021. Schick, T. and Sch ¨utze, H. Exploiting cloze questions for few shot text classification and natural language inference. 
+
+arXiv preprint arXiv:2001.07676 , 2020. Shin, T., Razeghi, Y., Logan IV, R. L., Wallace, E., and Singh, S. Autoprompt: Eliciting knowledge from lan-guage models with automatically generated prompts. 
+
+arXiv preprint arXiv:2010.15980 , 2020. Socher, R., Perelygin, A., Wu, J., Chuang, J., Manning, C. D., Ng, A. Y., and Potts, C. Recursive deep models for semantic compositionality over a sentiment treebank. In 
+
+Proceedings of the 2013 conference on empirical methods in natural language processing , pp. 1631–1642, 2013. Sorensen, T., Robinson, J., Rytting, C. M., Shaw, A. G., Rogers, K. J., Delorey, A. P., Khalil, M., Fulda, N., and Wingate, D. An information-theoretic approach to prompt engineering without ground truth labels. arXiv preprint arXiv:2203.11364 , 2022. Strickland, E. Andrew ng: Farewell, big data. IEEE Spec-trum, Mar , 2022. Team, G., Riviere, M., Pathak, S., Sessa, P. G., Hardin, C., Bhupatiraju, S., Hussenot, L., Mesnard, T., Shahri-ari, B., Ram ´e, A., et al. Gemma 2: Improving open language models at a practical size. arXiv preprint arXiv:2408.00118 , 2024. Touvron, H., Lavril, T., Izacard, G., Martinet, X., Lachaux, M.-A., Lacroix, T., Rozi `ere, B., Goyal, N., Hambro, E., 11 Large Language Models are Demonstration Pre-Selectors for Themselves 
+
+Azhar, F., et al. Llama: Open and efficient foundation lan-guage models. arXiv preprint arXiv:2302.13971 , 2023. Voorhees, E. M. and Tice, D. M. Building a question an-swering test collection. In Proceedings of the 23rd annual international ACM SIGIR conference on Research and development in information retrieval , pp. 200–207, 2000. Wan, X., Zhou, H., Sun, R., Nakhost, H., Jiang, K., and Arık, S. ¨O. From few to many: Self-improving many-shot reasoners through iterative optimization and generation. 
+
+arXiv preprint arXiv:2502.00330 , 2025. Wang, S., Xu, Y., Fang, Y., Liu, Y., Sun, S., Xu, R., Zhu, C., and Zeng, M. Training data is more valuable than you think: A simple and effective method by retrieving from training data. arXiv preprint arXiv:2203.08773 , 2022. Wang, X., Zhu, W., Saxon, M., Steyvers, M., and Wang, W. Y. Large language models are latent variable mod-els: Explaining and finding good demonstrations for in-context learning. Advances in Neural Information Pro-cessing Systems , 36, 2024. Warstadt, A., Singh, A., and Bowman, S. R. Neu-ral network acceptability judgments. arXiv preprint arXiv:1805.12471 , 2018. Webson, A. and Pavlick, E. Do prompt-based models really understand the meaning of their prompts? arXiv preprint arXiv:2109.01247 , 2021. Xia, M., Malladi, S., Gururangan, S., Arora, S., and Chen, D. Less: Selecting influential data for targeted instruction tuning. arXiv preprint arXiv:2402.04333 , 2024. Yang, A., Yang, B., Zhang, B., Hui, B., Zheng, B., Yu, B., Li, C., Liu, D., Huang, F., Wei, H., Lin, H., Yang, J., Tu, J., Zhang, J., Yang, J., Yang, J., Zhou, J., Lin, J., Dang, K., Lu, K., Bao, K., Yang, K., Yu, L., Li, M., Xue, M., Zhang, P., Zhu, Q., Men, R., Lin, R., Li, T., Xia, T., Ren, X., Ren, X., Fan, Y., Su, Y., Zhang, Y., Wan, Y., Liu, Y., Cui, Z., Zhang, Z., and Qiu, Z. Qwen2.5 technical report. 
+
+arXiv preprint arXiv:2412.15115 , 2024. Yang, C., Wang, X., Lu, Y., Liu, H., Le, Q. V., Zhou, D., and Chen, X. Large language models as optimizers. arXiv preprint arXiv:2309.03409 , 2023. Ye, X., Iyer, S., Celikyilmaz, A., Stoyanov, V., Durrett, G., and Pasunuru, R. Complementary explanations for effec-tive in-context learning. arXiv preprint arXiv:2211.13892 ,2022. Yosida, K. Functional analysis . Springer Science & Busi-ness Media, 2012. Yuan, W., Neubig, G., and Liu, P. Bartscore: Evaluating generated text as text generation. Advances in Neural Information Processing Systems , 34:27263–27277, 2021. Zemlyanskiy, Y., de Jong, M., Ainslie, J., Pasupat, P., Shaw, P., Qiu, L., Sanghai, S., and Sha, F. Generate-and-retrieve: use your predictions to improve retrieval for semantic parsing. arXiv preprint arXiv:2209.14899 , 2022. Zhou, C., Liu, P., Xu, P., Iyer, S., Sun, J., Mao, Y., Ma, X., Efrat, A., Yu, P., Yu, L., et al. Lima: Less is more for alignment. Advances in Neural Information Processing Systems , 36, 2024. Zhou, H., Wan, X., Vuli ´c, I., and Korhonen, A. Sur-vival of the most influential prompts: Efficient black-box prompt search via clustering and pruning. arXiv preprint arXiv:2310.12774 , 2023. Zhou, Y., Muresanu, A. I., Han, Z., Paster, K., Pitis, S., Chan, H., and Ba, J. Large language models are human-level prompt engineers. arXiv preprint arXiv:2211.01910 ,2022. 12 Supplementary Materials: FEEDER 
+
+A1. Connections to Existing Approaches 
+
+A1.1. Connections to Causality 
+
+The concepts of sufficiency and necessity have a broad ap-plication scope, especially in causality (Pearl, 1980; 2009), where sufficiency and necessity are proposed to define the causal relationship between two binary variables. Let X
+
+and Y denote a pair of variables. Then, the probability of sufficiency measures the capacity of setting X = true 
+
+to produce Y = true , while the probability of necessity measures the changing the value of X from X = true to 
+
+X = false would cause the value of Y changing from 
+
+Y = true to Y = false .In this paper, we adopt the concepts of sufficiency and ne-cessity in the context of demonstration selection, where we investigate whether prompting certain data points is suffi-cient or necessary for the given LLM to generate correct answers for input questions. For this purpose, we introduce the plugging-in operation, denoted as plug (·), to exam-ine sufficiency, and the unplugging operation, denoted as 
+
+unplug (·), to examine necessity. Both of these operations are analogous to the do operation in causality, denoted as 
+
+do (·), which indicates that the system operates under the condition that certain variables are controlled by external forces. To be more specific, in our setting, the external force can be explained as follows. We have the choice to either plug in or unplug certain data points, thereby altering what is already plugged into the LLM. Our approach shares similarities with the counterfactual idea in causality, which explores hypothetical scenarios by considering what might happen if certain variables are set with different values. In our case, we investigate the impact of plugged-in data that includes data points differing from the historical (i.e., fac-tual) setting. Notably, a significant distinction between our approach and the counterfactual setting in causality lies in the fact that we do not need to estimate “counterfactual” situations; instead, we can directly conduct evaluations. 
+
+A1.2. Connections to Demonstration Selection 
+
+In the context of few-shot inference, a central challenge lies in selecting the appropriate training samples as extra input during inference. These samples are often referred to as demonstrations or prompts (Levy et al., 2022; Liu et al., 2021; Dong et al., 2022). The underlying assumption is that the training dataset serves as a support set (Yosida, 2012) for test samples. Previous studies (Wang et al., 2022; Ru-bin et al., 2021) have demonstrated that introducing similar training samples can enhance the performance of LLMs on test instances. Gao et al. (2023) enhances these approaches by retrieving candidates whose ground label lies in top-2 zero-shot predictions. However, as pointed out in Levy et al. (2022), existing methods often treat each data point in isolation, neglecting the collective impact of multiple data points. For instance, retrievers based on similarity metrics may select redundant data points together. To address this limitation, Levy et al. (2022) proposes to consider the di-versity among the data points, to avoid the case where too “similar” data points are selected together. Further, Rubin et al. (2021) trains an LLM as a contrastive scorer as well as a demonstration referrer, and Li et al. (2023) advances this framework through unified training across various datasets. In this paper, we present a novel perspective, asserting that the quality of demonstrations is contingent on the specific LLM in use. Namely, a high-quality demonstration for one LLM might be deemed low-quality for another. Leveraging this insight, we introduce sufficiency and necessity as new set-level metrics. Our approach offers several advantages: Firstly, sufficiency and necessity measure the quality of data points based on the specific LLM, in contrast to generic similarity and diversity metrics. Secondly, our proposed sufficiency and necessity extend to the set level, enabling the consideration of data points as a cohesive whole. In our framework, “similarity” is akin to “sufficiency” signifying that plugging in data points can enhance LLM performance, while “diversity” is akin to “necessity” suggesting that each data point should play an indispensable role. Recent studies (Xia et al., 2024; Marion et al., 2023) fo-cus on mining training examples for fine-tuning on spe-cific tasks, while Wang et al. (2024) extends this idea to in-context learning. Unlike these approaches, which use LLMs to select demonstrations tailored to specific test datasets, our work leverages LLMs as demonstration pre-selectors, identifying a core subset of the training data that remains independent of the test datasets, thus eliminating the need for re-computation across different test datasets. 
+
+A1.3. Connections to Core-set Selection 
+
+Core-set selection (Feldman, 2020; Guo et al., 2022), a long-standing problem in machine learning, focuses on identify-ing a subset of the most informative training samples. Previ-ous research (Dor et al., 2020) has surveyed and evaluated state-of-the-art approaches for models like BERT (Devlin et al., 2018), encompassing strategies such as random sam-pling, uncertainty-sampling (using entropy metric) (Lewis, 1995; Gal & Ghahramani, 2016) and diversity sampling (using diversity metric) (Gissin & Shalev-Shwartz, 2019). 
+
+FEEDER , in contrast to these prior papers mainly using active learning, is designed to select core sets, which can serve as additional input contexts (i.e., in-context learning setting) or be used for fine-tuning LLMs (i.e., fine-tuning setting). 
+
+FEEDER defines “informative training samples” as those samples that specifically enhance the LLM’s performance on a given task. 13 Supplementary Materials: FEEDER 
+
+A1.4. Connections to Prompt Optimization 
+
+Prompting provides a natural way for humans to interact with; and due to its flexibility, prompting has been widely used as a genre method for various natural language pro-cessing tasks (Schick & Sch ¨utze, 2020; Brown et al., 2020; Sanh et al., 2021). However, using prompting effectively with LLMs requires careful design, either done manually (Reynolds & McDonell, 2021) or automatically (Gao, 2021; Shin et al., 2020), as LLMs do not interpret prompts in the same way humans do (Webson & Pavlick, 2021; Lu et al., 2021; Cheng et al., 2025). While numerous successful meth-ods (Liu et al., 2021; Lester et al., 2021; Qin & Eisner, 2021) for prompt tuning rely on optimizing a continuous space through gradient-based techniques, this approach becomes impractical as many powerful LLMs are only accessible through APIs that may not offer gradient access. Our FEEDER approach can be seen as a discrete pre-search method for prompts, distinct from existing methods for prompt generation (Gao, 2021; Ben-David et al., 2021), prompt scoring (Davison et al., 2019), and prompt para-phrasing (Jiang et al., 2020; Yuan et al., 2021), which aim to optimize instructions by directly searching the natural language hypothesis space. Instead, our approach leverages the causal dependencies among candidate demonstrations, focusing on searching for the most informative demonstra-tions as prompts, in terms of sufficiency and necessity. 
+
+A2. A Family of Analysis on Sufficiency and Necessity Metrics 
+
+Notations. Let X, C denote variables for the input and the context (i.e., previously plugged-in demonstrations). We use Y , a boolean variable, to denote whether the output to the input is correct. Concretely, we use Yx = 1 to denote 
+
+Y = 1 |X = x, meaning that the LLM generates the cor-rect output to the input x. Similarly, Yx = 0 , equivalent to Y = 0 |X = x, indicates that the LLM produces the incorrect output to x. For clarity, we introduce S, a variable to record the original status of the LLM before new plug-in and unplug operations (denoted as plug (·) and unplug (·)
+
+respectively), e.g., C = (( x, y)) , S = ( Yx = 1) means that without plugging-in any new data or unplugging any plugged-in data, the plugged-in data is (x, y) and the LLM’s performance is Yx = 1 .
+
+A2.1. Instance Level Metrics 
+
+Here, two instances are considered, represented as (xn, yn)
+
+and (xm, ym).The sufficiency metric is introduced to assess whether plug-ging in one data point is sufficient to enable the LLM to generate the correct output for the other one. Formally, the sufficiency relationship is defined as follows: 
+
+Definition A1 (Instance-level Sufficiency Metric) . Given tuple (X, Y, C, S ), data point (xn, yn) is sufficient for 
+
+(xm, ym), if the following equation holds: 
+
+Yxm = 1 |plug (( xn, yn)); C, S, (9) 
+
+where (xn, yn) is not included in C and S can be any value. It means that when plugging in (xn, yn), it would correct the LLM’s answer to xm.
+
+Example A1. Let xm, xn be Which country does Sherlock Holmes live? and Which city does Sherlock Holmes live? 
+
+Then, after informing the LLM of the correct answer of 
+
+xn (e.g., yn is Sherlock Holmes lives in London ), the LLM can deduce the correct answer of xm (e.g., ym is Sherlock Holmes lives in the United Kingdom ). In this case, the LLM is using the city where Sherlock Holmes lives to infer the country in which he lives. The necessity metric is introduced to assess whether the presence of one plugged-in data point is necessary for pre-serving the correct output in relation to another. Formally, this is expressed as: 
+
+Definition A2 (Instance-level Necessity Metric) . Given tuple (X, Y, C, S ), we say that data point (xn, yn) is nec-essary for (xm, ym), if the following equation holds: 
+
+Yxm = 0 |unplug (( xn, yn)); C, S, (10) 
+
+where (xn, yn) is included in C and S = ( Yxm = 1) . It means that before unplugging (xn, yn), the LLM’s answer to xm is correct. However, when we do unplug (xn, yn), it causes the LLM to offer an incorrect output to xm.
+
+Example A2. Consider xm as Which city does Sherlock Holmes live? and xn as What is the detailed address of Sherlock Holmes lives? . Assume the LLM has no prior knowledge about Sherlock Holmes until the introduction of the plugged-in data (xn, yn), where yn is 221B Baker Street, London . After plugging in (xn, yn), the LLM is capable of generating the correct output ym (e.g., Sherlock Holmes lives in London ) in response to xm. If we were to unplug (xn, yn), the LLM would provide an incorrect output for xm, such as Sherlock Holmes lives in New York .In an ideal scenario, ensuring optimal LLM performance entails the extraction of data points that are both sufficient and necessary. 
+
+Definition A3 (Instance-level Sufficiency and Necessity Metric) . Given tuple (X, Y, C ), we say that data point 
+
+(xn, yn) is both sufficient and necessary for (xm, ym), if the following equation holds: 
+
+
+
+Yxm = 1 |plug (( xn, yn)); C = ∅
+
+
+
+∧
+
+
+
+Yxm = 0 |unplug (( xn, yn)); C = (( xn, yn)) 
+
+
+
+,
+
+(11) 14 Supplementary Materials: FEEDER 
+
+which indicates that plugging in data point (xn, yn) can respond to the LLM’s answering xm in both ways. We omit 
+
+S here, because we can derive the original status of the necessary instance based on the condition of the sufficiency instance. 
+
+We further demonstrate that neither of the aforementioned quantities (i.e., sufficiency and necessity) is adequate for determining the other, indicating that they are not entirely independent. This is illustrated in the following lemma. 
+
+Lemma 1 (Connection between Sufficiency and Neces-sity) . Supposing that we only consider using the data point 
+
+(xn, yn) as the plug in data, and only care about the LLM’s performance regarding the input question xm, then overall there are only two situations here: (i) (xn, yn) is plugged-in, and (ii) (xn, yn) is not plugged-in. Based on the above assumption, we re-write (i) as plugging-in (xn, yn) when there is no plugged-in data (i.e., plug (( xn, yn)); C = ∅,and re-write (ii) as unplugging (xn, yn) when there is plugged-in data (xn, yn) (i.e., unplug (( xn, yn)); C =(( xn, yn)) ). For convenience, we use E∗ and E to denote (i) and (ii) respectively; and we use Y ∗ and Y to denote 
+
+Yx1 = 1 and Yx1 = 0 . Then, we have: E∗ ∨ E = true ,
+
+E∗ ∧ E = false , Y ∗ ∨ Y = true , Y ∗ ∧ Y = false .We define PS as the probability of being sufficient as: 
+
+PS := Pr 
+
+
+
+Yxm = 1 |plug (( xn, yn)); C = ∅
+
+
+
+=Pr (Y ∗|E∗).
+
+(12) 
+
+We define PN as the probability of being necessary as: 
+
+PN := Pr 
+
+
+
+Yxm = 0 |unplug (( xn, yn)); C = (( xn, yn)) 
+
+
+
+=Pr (Y |E).
+
+(13) 
+
+We further define PNS as the probability of being sufficient and necessary as: 
+
+PNS := Pr (Y ∗|E∗, Y |E). (14) 
+
+Then, PS , PN , PSN satisfy the following relationship: 
+
+PSN = Pr (Y, E ) · PS + Pr (Y ∗, E ∗) · PN . (15) 
+
+Proof. Based on the earlier delineation of Y ∗, Y , E∗, and 
+
+E, we can express: 
+
+Y ∗|E∗ ∧ Y |E = ( Y ∗|E∗ ∧ Y |E) ∧ (E ∨ C∗)=( Y ∗|E∗ ∧ Y ∧ E) ∨ (Y |E ∧ Y ∗ ∧ E∗). (16) Taking probabilities on both sides and using the disjointed-ness of E∗ and E, we have: 
+
+PSN =Pr (Y ∗|E∗, Y |E)=Pr (Y |E, Y ∗, E ∗) + Pr (Y ∗|E∗, Y, E )=Pr (Y, E ) · PS + Pr (Y ∗, E ∗) · PN .
+
+(17) 
+
+A2.2. Set Level Metrics 
+
+We extend Definitions A1 and A2 to the set level as: 
+
+Definition A4 (Set-level Sufficiency Metric) . Given tuple 
+
+(X, Y, C, S ), the input set DIN is sufficient for output set 
+
+DOUT , if the following equation holds: 
+
+Y({xn|xn∈D OUT }) = 1|D OUT ||plug (DIN ); C, S. (18) 
+
+where DIN is not included in C and S can be any value. 
+
+1|D OUT | denotes 1|D OUT |-dimensional vectors whose elements are all 1s. It indicates that when plugging in DIN , it guaran-tees that the LLM’s output to any input question in DOUT is correct. 
+
+Definition A5 (Set-level Necessity Metric) . Given tuple 
+
+(X, Y, C, S ), the input set DIN is necessary for output set 
+
+DOUT , if the following equation holds: 
+
+Y({xn|xn∈D OUT })̸ = 1|D OUT ||unplug (D′
+
+> IN
+
+); C, S, (19) 
+
+where DIN is included in C, S = (Y({xn|xn∈D OUT }) =
+
+1|D OUT |), and D′ 
+
+> IN
+
+can be any subset of DIN . 1|D OUT | denotes 
+
+1|D OUT |-dimensional vectors whose elements are all 1s. It means that before unplugging any subset of DIN , there is plugged-in data DIN and the LLM’s output to any input in 
+
+DOUT is correct. When we unplug any subset of DIN , then it would cause the LLM’s output to at least one input in DOUT 
+
+to be incorrect. 
+
+From the above description, when we refer to a set as a sufficient set, we are stating that the collective set of data points is sufficient. On the other hand, when we characterize a set as a necessary set, we mean that each individual data point within the set is necessary. 
+
+Example A3. Let DOUT = {(xm, ym)} and DIN = {(xi,
+
+yi), (xj , yj )}. We assign xm and ym as Which country does Sherlock Holmes live? and Sherlock Holmes lives in the United Kingdom . Let xi and yi denote Which street does Sherlock Holmes live? and Baker street . We assign xj
+
+and yj as Where is Baker street? and Bake street is located in London. Supposing that the LLM does not know that Bake Street is located in the United Kingdom, then solely plugging in either (xi, yi) or (xj , yj ) is not sufficient for the LLM to get the right answer to the input question xm.In this regard, it is easy to derive that DIN is both a sufficient and necessary set for DOUT when both (i) plugging in DIN 
+
+is sufficient to maintain the right answer for DOUT ; and (ii) unplugging any subset of DIN can not maintain the right answer for DOUT , are satisfied. 
+
+A2.3. FEEDER Set 
+
+Next, we explore the problem of defining a subset within the given dataset DTRAIN that is both sufficient and necessary to represent DTRAIN . This subset is termed FEEDER (FE w yet 
+
+Essential DE monst Rations). 15 Supplementary Materials: FEEDER 
+
+Definition A6 (FEEDER Set) . Given tuple (X, Y, C, S ) and 
+
+DTRAIN , a subset of DTRAIN , is considered as a FEEDER set (denoted as DFEEDER ), if the following conditions are satis-fied: (i) Y(x1..., xN ) = 1N |plug (DFEEDER ); C = ∅, S =(Y(x1..., xN )̸ = 1N ) holds. (ii) Y(x1..., xN )̸ = 1N |unplug (D′
+
+> FEEDER
+
+); C = DTRAIN , S =(Y(x1..., xN ) = 1N ) holds for any subset of DFEEDER (de-noted as D′
+
+> FEEDER
+
+). 
+
+1N denotes N -dimensional vectors whose elements are all 1s. (i) and (ii) respectively imply that plugging in DFEEDER 
+
+is sufficient and necessary to maintain the LLM generating correct output. 
+
+Example A4. If we merge DIN and DOUT exemplified in Example A3 into one set D, namely let D = DIN ∪ D OUT ,then in this case, it is easy to derive that DIN is a FEEDER 
+
+set (denoted as DFEEDER ) for D.The above definition of the FEEDER set is overly strict, as identifying it would require enumerating all possible subsets. To mitigate this complexity, we introduce the following approximation algorithm. 
+
+Algorithm 2 Approximation Algorithm for FEEDER 
+
+Input: Training dataset DTRAIN .
+
+Output: An approximated FEEDER set eDFEEDER .Initialize k = 1 .Initialize W0 = {W n = {(xn, yn)}| (xn, yn) ∈ D TRAIN }.
+
+repeat for each pair (Wi, Wj ) where Wi, Wj ∈ Wk−1 do 
+
+Check Y({xn|xn∈W j }) = 1|W j ||plug (Wi); C, S 
+
+(a), where C = ∅ and S can be any value. Check Y({xn|xn∈W i}) = 1|W i||plug (Wj ); C, S 
+
+(b), where C = ∅ and S can be any value. 
+
+Case I (Both (a) and (b) hold), if |W i| ≥ |W j |, ap-pend Wj to Wk; otherwise, append Wi to Wk.
+
+Case II (Either one of (a) and (b) holds), if (a) holds, append Wi to Wk; otherwise, append Wj to Wk.
+
+Case III (Neither (a) nor (b) holds), append Wi ∪Wj to Wk.Remove Wi, Wj from Wk−1, i.e., Wk−1 = Wk−1 −{W i, Wj }.
+
+if |Wk−1| = 1 then 
+
+Append only element in Wk−1 to Wk.Grow tree from bottom to top via k = k + 1 .
+
+until |Wk| = 1 , and we assume the current round is K;Let WSUFFICIENT denote only one element (i.e. the root node) in WK .Assign eDFEEDER as WSUFFICIENT , i.e., DOUT = WSUFFICIENT .
+
+Algorithm 3 Exact Algorithm for FEEDER 
+
+Input: Training dataset DTRAIN .
+
+Output: An exact FEEDER set eDFEEDER .Initialize k = 1 .Initialize H0 = ∅.
+
+for each instance (xn, yn) ∈ D TRAIN do 
+
+Check Y({xn′ |xn′ ∈D TRAIN }) = 1|D TRAIN ||unplug (( xn, yn
+
+)); C, S (a), C = DTRAIN , S = ( Y({xn′ |xn′ ∈D TRAIN }) =
+
+1|D TRAIN | ).If (a) holds, let Hn = {(xn, yn)} and append Hn to 
+
+H0.
+
+repeat for each pair (Hi, Hj ) where Hi, Hj ∈ Hk−1 do 
+
+Check Y({xn|xn∈D TRAIN }) = 1|D TRAIN ||unplug (Hi ∪Hj ); C, S (b), where C = DTRAIN and S =(Y({xn′ |xn′ ∈D TRAIN }) = 1|D TRAIN | ).If (b) holds, generate a new node Hi ∪ H j , append it to Hk, and assign Hi ∪ H j with MAINTAIN signals; otherwise, append Hi and Hj to Hk.Assign HMAX = arg max H·∈Hk |H ·| with MAINTAIN 
+
+signal. Remove the nodes without MAINTAIN signals in Hk.Grow tree from bottom to top via k = k + 1 .
+
+until |Hk| = 1 where we assume the current round is K;Let HUNNCESSARY denote only one element (i.e. the root node) in HK .Assign eDFEEDER as removing HUNNCESSARY from DTRAIN , i.e., 
+
+eDFEEDER = DTRAIN − H UNNECESSARY .
+
+A3. Approximated Extraction of FEEDER 
+
+Definition A7 (Transitivity Inference over Sets) . We assume that sufficiency is transitive over sets. Formally, for any three sets, denoted as DA, DB, and DC, if DA is a sufficient set of DB and DB is a sufficient set of DC, then we can conclude that DA is a sufficient set of DC.
+
+We also establish case studies in Appendix A10.1 to verify the feasibility of the above assumption. For convenience, we use DIN = {(xn, yn)}NIN  
+
+> n=1
+
+to denote the input set for our tree algorithm, and we use DOUT to denote the corresponding output. The tree expands from the bottom to the top. We use the variable K to represent the depth of these trees, which corresponds to the number of iterations. To be more specific, we use k = 1 , 2, . . . , K to refer to each k-th iteration, and during each k-th iteration, we generate the (k + 1) -th layer of the tree. Concretely, we leverage the transitivity of sufficiency to build the tree, where each node is a set of samples. Formally, we denote Wk as the set of nodes after the k-th iteration. We initialize W0 by assigning all the candidate samples in DIN 
+
+16 Supplementary Materials: FEEDER Run 1    
+
+> Run 2
+> (a) An Example of Algorithm for Searching Exact FEEDER
+> Check Whether is Unnecessary for
+> , Extract Unnecessary Parts
+> Check Whether is Unnecessary for
+> , Extract Unnecessary Parts
+> (b) An Example of Alternative Algorithm for Searching Exact FEEDER
+> Check Whether is Unnecessary for
+> , Extract Unnecessary Parts
+
+Figure A1. An illustrated example of our algorithm for deriving an exact FEEDER set. As shown in (a), we check the necessity of the conjunction of each pair of nodes, and we do not remove them from H·; instead, we assign MAINTAIN signals to newly generated nodes and the node with the maximum size, and those nodes without MAINTAIN signals, circled with dashed lines, would be removed from H·.In (b), we propose an alternative algorithm by removing nodes after checking the necessity, and we repeat the above process for multiple runs, at the beginning of each run, we unplug all the previously selected data points. The repeat should stop until there is no or only one node in H0 (i.e., H4), and therefore, the result in (b) is H1 ∪ H 2 ∪ H 4, same as the result in (a). 
+
+as the bottom nodes: 
+
+W0 := {W n := {(xn, yn)}| (xn, yn) ∈ D IN }. (20) During each k-th round, we generate Wk by examining the sufficiency relationship between every pair of nodes, denoted as Wi, Wj ∈ Wk−1. In this evaluation, we assess whether the following equation holds true by assigning Wi
+
+and Wj as WIN and WOUT , or vice versa. 
+
+Y({xn|xn∈W OUT }) = 1|W OUT ||plug (WIN ); C, S, (21) where C = ∅ and S is loosened to allow for any value. 
+
+1|W OUT | is 1|W OUT |-dimensional vectors whose elements are all 1s. It signifies that plugging in WIN is sufficient for the LLM to generate the correct output to any input in WOUT . In other words, once we have WIN included in the plugged-in context, it is unnecessary to further include WOUT . Formally, we can derive the following equation from Eq. (21): 
+
+Y({xn|xn∈W OUT }) = 1|W OUT ||unplug (WOUT ); C, S, (22) where C = ( WIN ∪W OUT ) and S is loosened to be any value. Concretely, there are three possible scenarios by examining each pair of nodes in Wk−1: (i) If both Wi and Wj are suf-ficient sets for each other, then we select the one with fewer elements to append to Wk. (ii) If only one of Wi and Wj is a sufficient set for the other, then we append the sufficient set to Wk. (iii) If neither Wi nor Wj is a sufficient set, we append Wi ∪ W j to Wk. After performing the above calcu-lations for each pair of nodes, we remove them from Wk−1.When there is only one element left in Wk−1, it is directly appended to Wk. This process continues until W· contains only one element, which is denoted as WSUFFICIENT ∈ WK .We then assign DOUT as DOUT = WSUFFICIENT .The time complexity of running the above tree algorithm for one round is O(log |D IN | 
+
+> 2
+
+) to generate one layer of the tree. To effectively remove the unnecessary part, we can repeat the above process for multiple rounds by using the output of the previous round (i.e., DOUT ) as the input for the subsequent round (i.e., DIN ) to build the tree from the bottom to the top. Therefore, the overall complexity of building a tree (i.e., executing Algorithm 2 for a single run) is O(K log |D IN | 
+
+> 2
+
+),where K is the number of rounds. It follows that the time complexity for multiple runs is O(RK log |D IN | 
+
+> 2
+
+), where R
+
+denotes the number of runs. Our tree algorithm can also maintain the remaining set to be sufficient to represent the entire DTRAIN , as verified in the following proposition. 
+
+Proposition 1 ( eDFEEDER obtained by Algorithm 2 is an Ap-proximation of DFEEDER ). If we successively apply Algo-rithm 2 on DTRAIN for multiple rounds to obtain a subset (denoted as eDFEEDER ), then eDFEEDER is sufficient to represent 
+
+DTRAIN .Proof. In the tree generation process, each parent node is established as a sufficient set for every leaf node within the tree. More precisely, as shown in Case I , Case II and Case III of Algorithm 2, three scenarios exist for creating a parent 17 Supplementary Materials: FEEDER 
+
+node for each pair of leaf nodes. In cases (i) and (ii), the parent node corresponds to the leaf node which serves as a sufficient set for the other node. In case (iii), the parent node results from the conjunction of two leaf nodes, inherently forming a sufficient set capable of representing either of the two leaf nodes. According to our assumption of the sufficiency transitivity, for each data point in DTRAIN , the root node of the tree is a sufficient set for each leaf node in the tree. Formally, we have: 
+
+Y{xn|xn∈D TRAIN } = 1|D TRAIN ||plug ( eDFEEDER ); C, S, (23) where C = ∅ and S can be any value. This means that the resulting set eDFEEDER is a sufficient set of DTRAIN .
+
+A4. Exact Extraction of FEEDER 
+
+To extract an exact FEEDER set DFEEDER from DTRAIN , we need to explicitly check the necessity among all the candi-date samples, and remove those unnecessary parts. We do not directly apply this algorithm in practice, due to its high computation costs. We provide a solution for integrating the algorithm into our FEEDER and report the corresponding results in Appendix A7. 
+
+A4.1. Exact Extraction of FEEDER via Necessity Checks 
+
+Our intuition behind constructing a tree for checking neces-sity is based on the inherent transitivity property of necessity. Formally, it can be expressed as: If unplugging DA could cause the outputs to at least one input in DC from correct to incorrect, then unplugging DA ∪D B also can not maintain the outputs to all the input in DC correct. Namely, if unplugging a subset would degrade the performance, then unplugging the whole set would also degrade the performance. Similar to the tree for explicitly checking sufficiency intro-duced in Appendix A3, each node in the tree for checking necessity also represents a set of samples. For convenience, we also use DIN = {(xn, yn)}NIN  
+
+> n=1
+
+to denote the input set and DOUT for the corresponding output. We use Hk to de-note a set of nodes after the k-th round. We initialize H0 by identifying all samples in DIN for which unplugging them individually does not affect the LLM’s performance. Formally, we construct H0 as H0 := {H n := 
+
+{(xn, yn)}} where (xn, yn) ∈ D IN satisfies: 
+
+Y({xn′ |xn′ ∈D IN }) = 1|D IN ||unplug (( xn, yn)); C, S, (24) where C = DIN and S is loosened to allow for any value. During each k-th round, we generate Hk by examining the necessity relationship between each pair of nodes (denoted as Hi, Hj ∈ Hk−1). Here, we further verify whether solely unplugging Hi ∪ H j does not impact the LLM’s perfor-mance. Formally, we check whether the following equation holds: 
+
+Y({xn′ |xn′ ∈D IN }) = 1|D IN ||unplug (Hi ∪ H j ); C, S, (25) where C = DIN and S is loosened to allow for any value. This determines whether plugging Hi ∪ H j is unneces-sary for maintaining the correct outputs to all inputs in 
+
+DIN . If the above equation holds, we create a new node 
+
+Hi ∪ H j and add it to Hk, labeling it with a MAINTAIN 
+
+signal. Otherwise, we add both Hi and Hj to Hk. After this computation, we identify HMAX = arg max H·∈Hk |H ·|
+
+and label it with a MAINTAIN signal. Subsequently, we re-move the nodes in Hk that lack MAINTAIN signals. This process continues until H· contains only one element, de-noted as HUNNECESSARY ∈ HK . Finally, we calculate DOUT as 
+
+DOUT = DIN − H UNNECESSARY .
+
+A4.2. Exact Extraction of FEEDER via Iterative Sufficiency Checks 
+
+Consider that at each round, we need to check the necessity for O(C2 
+
+> NIN
+
+) times (where C·· denotes a combination opera-tor), this becomes impractical. To this end, we develop an alternative algorithm. Specifically, at each k-th round, we remove all the checked nodes (i.e., Hi and Hj from Hk,similar to our approximation algorithm in Appendix A3). Then, it requires O(log |D IN | 
+
+> 2
+
+) computations to finish one round. To obtain an exact FEEDER , we need to keep repeat-ing the above process until there is no or only one left in 
+
+H0. While practical, we also can set a maximum number of rounds to approximate. 
+
+Proposition 2 ( eDFEEDER obtained by either Algorithm 3 or Algorithm 4 is an Exact DFEEDER ). If we successively apply either Algorithm 3 or Algorithm 4 on DTRAIN for multiple rounds to obtain a subset (denoted as eDFEEDER ), then eDFEEDER 
+
+is sufficient and necessary to represent DTRAIN .Proof. According to Definition A6, it is straightforward to see that to prove the above proposition is equivalent to proving that eDFEEDER is a sufficient set of DTRAIN and a necessary set of DTRAIN .We begin by proving sufficiency. Either Algorithm 3 or 4 preserves the sufficiency during checking the necessity, as we are always guaranteeing Y({xn|xn∈D TRAIN }) = 1|D TRAIN |,when removing the unnecessary parts. In other words, we have: Y({xn|xn∈D TRAIN }) =
+
+1|D TRAIN ||unplug (DTRAIN − H UNNECESSARY ); C, S , where C =
+
+DTRAIN and S can be any value. It can be rewritten as: 
+
+Y({xn|xn∈D TRAIN }) = 1|D TRAIN ||plug ( eDFEEDER ); C, S, (26) where C = ∅ and S can be any value. It shows that plugging in eDFEEDER is sufficient for representing DTRAIN .18 Supplementary Materials: FEEDER 
+
+Table A1. Performance comparisons on text classification datasets are conducted in the in-context learning setting. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. This table is extended from Table 1. 
+
+ΨLLM (·) D n SUBJ SST-2 COLA Random Similarity Diversity Random Similarity Diversity Random Similarity Diversity GPT-2 (0.3B) 
+
+DTRAIN 
+
+1 41.3 (7.2) 41.1 (0.1) 41.1 (0.1) 48.9 (4.6) 24.5 (0.2) 24.5 (0.2) 29.0 (5.4) 38.8 (0.1) 38.8 (0.1) 
+
+2 47.3 (7.2) 62.8 (0.1) 71.9 (0.2) 51.2 (5.8) 65.7 (0.1) 62.5 (0.2) 30.9 (4.6) 38.5 (0.2) 36.2 (0.1) 
+
+5 51.8 (5.5) 85.8 (0.3) 70.1 (0.2) 62.6 (5.6) 79.4 (0.2) 61.7 (0.1) 39.4 (5.8) 49.3 (0.1) 47.0 (0.2) 
+
+10 62.4 (5.0) 88.0 (0.2) 78.2 (0.1) 50.9 (4.9) 83.8 (0.3) 76.9 (0.2) 31.6 (4.6) 52.5 (0.2) 58.8 (0.2) 
+
+DFEEDER 
+
+1 42.8 (2.4) 44.9 (1.1) 44.9 (1.1) 49.8 (4.2) 48.1 (1.9) 48.1 (1.9) 29.6 (4.1) 35.1 (1.5) 35.1 (1.5) 
+
+2 55.9 (3.3) 63.4 (1.6) 74.7 (0.9) 67.3 (4.4) 67.7 (1.4) 64.7 (1.5) 31.3 (2.2) 41.7 (1.2) 34.9 (1.9) 
+
+5 57.5 (4.0) 86.9 (0.7) 69.8 (1.0) 70.3 (4.4) 77.9 (1.2) 68.5 (1.9) 35.2 (2.0) 57.3 (1.2) 54.6 (1.7) 
+
+10 63.5 (4.4) 88.7 (1.5) 79.7 (2.0) 75.2 (6.2) 83.0 (1.7) 77.2 (1.5) 59.3 (3.8) 68.7 (2.4) 68.5 (2.9) 
+
+MED (0.8B) 
+
+DTRAIN 
+
+1 42.5 (5.2) 43.6 (0.1) 43.6 (0.1) 49.0 (4.3) 42.3 (0.2) 42.3 (0.2) 42.1 (5.7) 48.3 (0.1) 48.3 (0.1) 
+
+2 58.1 (6.3) 88.3 (0.2) 87.0 (0.3) 68.0 (5.2) 70.7 (0.1) 59.6 (0.2) 41.1 (4.2) 36.8 (0.2) 37.7 (0.1) 
+
+5 66.7 (4.5) 86.2 (0.2) 86.7 (0.1) 49.1 (4.3) 80.6 (0.1) 67.5 (0.2) 46.2 (4.7) 53.8 (0.2) 48.5 (0.3) 
+
+10 48.6 (6.0) 85.9 (0.1) 73.9 (0.2) 71.1 (4.5) 84.6 (0.1) 73.1 (0.2) 43.4 (4.5) 55.5 (0.2) 56.1 (0.4) 
+
+DFEEDER 
+
+1 45.8 (5.1) 46.4 (0.4) 46.4 (0.4) 49.1 (3.0) 47.7 (1.3) 47.7 (1.3) 46.6 (3.8) 45.1 (1.1) 45.1 (1.1) 
+
+2 63.1 (4.5) 89.7 (1.5) 86.8 (1.3) 69.8 (3.8) 73.0 (2.9) 61.2 (2.1) 36.6 (3.5) 37.0 (2.8) 34.6 (2.0) 
+
+5 73.4 (4.3) 88.2 (1.9) 88.8 (1.7) 59.3 (2.4) 80.9 (1.3) 69.6 (1.7) 59.2 (3.3) 68.6 (1.6) 66.6 (1.7) 
+
+10 52.0 (3.8) 87.4 (1.3) 75.6 (1.2) 76.0 (3.0) 86.7 (1.4) 75.6 (1.8) 59.3 (4.8) 68.8 (2.0) 68.9 (1.8) 
+
+NEO (1.3B) 
+
+DTRAIN 
+
+1 42.8 (3.9) 42.1 (0.1) 42.1 (0.1) 49.2 (3.7) 33.8 (0.1) 33.8 (0.1) 25.5 (3.4) 36.5 (0.2) 36.5 (0.2) 
+
+2 48.5 (4.2) 88.3 (0.2) 72.6 (0.3) 76.8 (3.5) 81.5 (0.1) 76.3 (0.4) 30.7 (3.1) 55.5 (0.2) 56.5 (0.4) 
+
+5 51.6 (5.0) 90.5 (0.2) 81.7 (0.2) 65.1 (3.5) 80.8 (0.2) 66.1 (0.3) 40.0 (3.6) 55.9 (0.1) 52.5 (0.2) 
+
+10 48.5 (5.8) 85.9 (0.3) 81.9 (0.1) 69.8 (4.8) 84.1 (0.1) 69.7 (0.1) 39.6 (4.5) 59.3 (0.3) 63.4 (0.1) 
+
+DFEEDER 
+
+1 43.2 (4.0) 46.3 (1.0) 46.3 (1.0) 49.3 (5.1) 48.3 (1.9) 48.3 (1.9) 28.3 (5.4) 34.8 (1.3) 34.8 (1.3) 
+
+2 62.6 (3.5) 89.4 (1.5) 73.8 (2.1) 75.1 (2.8) 82.6 (2.1) 78.5 (1.9) 59.3 (3.7) 64.7 (1.4) 64.7 (1.6) 
+
+5 69.4 (5.6) 91.2 (1.8) 82.9 (1.3) 73.2 (4.2) 82.9 (2.7) 71.6 (2.4) 58.7 (3.2) 67.2 (2.4) 65.8 (1.8) 
+
+10 58.7 (3.3) 87.2 (1.7) 84.3 (2.8) 72.4 (3.4) 85.8 (2.5) 71.8 (2.9) 59.8 (2.8) 68.8 (1.4) 68.9 (1.3) 
+
+Gemma-2 (2B) 
+
+DTRAIN 
+
+1 45.0 (5.9) 48.1 (0.6) 48.1 (0.6) 51.2 (6.8) 52.2 (0.8) 52.2 (0.8) 37.5 (7.0) 40.5 (1.3) 40.5 (1.3) 
+
+2 62.3 (6.9) 82.5 (1.8) 74.2 (1.3) 71.5 (5.6) 78.5 (1.5) 75.9 (0.9) 40.6 (5.9) 62.5 (1.0) 61.6 (0.5) 
+
+5 68.0 (7.1) 91.5 (1.2) 84.2 (1.6) 70.2 (5.6) 80.5 (1.6) 80.6 (0.7) 46.5 (5.9) 67.2 (1.8) 65.6 (0.6) 
+
+10 50.3 (8.2) 86.2 (1.9) 85.6 (0.8) 68.2 (4.8) 85.5 (1.5) 76.3 (1.3) 50.2 (7.4) 69.8 (1.5) 71.5 (1.2) 
+
+DFEEDER 
+
+1 48.2 (4.2) 49.5 (1.0) 49.5 (1.0) 52.6 (4.6) 53.1 (0.8) 53.1 (0.8) 38.9 (5.2) 39.6 (0.8) 39.6 (0.8) 
+
+2 65.2 (2.9) 85.2 (1.0) 80.3 (0.8) 74.2 (4.9) 82.1 (1.2) 83.0 (0.7) 52.5 (2.5) 68.9 (2.1) 67.8 (1.5) 
+
+5 72.2 (6.2) 94.5 (5.3) 85.5 (0.7) 72.0 (4.2) 83.6 (2.1) 84.5 (1.7) 55.2 (4.8) 77.6 (2.5) 73.9 (2.3) 
+
+10 60.5 (4.0) 86.5 (2.5) 88.4 (2.4) 70.5 (5.6) 92.6 (2.6) 78.5 (5.3) 58.6 (4.6) 75.6 (2.9) 76.6 (2.5) 
+
+GPT-3 (6B) 
+
+DTRAIN 
+
+1 44.9 (6.6) 49.5 (0.1) 49.5 (0.1) 48.2 (2.9) 47.0 (0.1) 47.0 (0.1) 38.9 (6.7) 41.2 (0.2) 41.2 (0.2) 
+
+2 55.4 (3.5) 85.5 (0.1) 86.5 (0.2) 68.1 (4.2) 78.7 (0.2) 77.5 (0.1) 42.8 (4.0) 45.5 (0.3) 45.6 (0.2) 
+
+5 51.2 (4.4) 90.8 (0.2) 82.7 (0.1) 75.2 (3.3) 80.7 (0.1) 77.8 (0.2) 48.5 (3.3) 51.8 (0.3) 52.1 (0.2) 
+
+10 57.7 (4.8) 87.3 (0.1) 85.3 (0.1) 72.1 (3.8) 77.6 (0.1) 76.5 (0.2) 59.1 (4.2) 60.3 (0.1) 61.0 (0.2) 
+
+DFEEDER 
+
+1 43.9 (4.2) 51.2 (1.0) 51.2 (1.0) 49.6 (2.4) 51.3 (1.6) 51.3 (1.6) 41.2 (2.1) 43.8 (1.8) 43.8 (1.8) 
+
+2 65.7 (3.0) 91.5 (1.1) 88.8 (1.6) 73.5 (2.5) 85.7 (4.2) 76.1 (2.1) 61.8 (2.1) 63.1 (1.5) 60.1 (1.4) 
+
+5 53.7 (3.8) 92.9 (0.8) 91.5 (1.4) 77.6 (4.0) 81.0 (1.3) 79.4 (1.0) 50.6 (2.7) 63.3 (1.4) 65.8 (1.4) 
+
+10 58.0 (3.4) 88.8 (0.9) 87.8 (1.2) 83.8 (2.8) 86.4 (2.0) 87.2 (1.3) 59.7 (3.0) 67.5 (1.9) 68.4 (2.2) 
+
+Llama-2 (7B) 
+
+DTRAIN 
+
+1 42.9 (6.6) 48.5 (0.1) 48.5 (0.1) 46.2 (2.7) 49.1 (0.1) 49.1 (0.1) 40.1 (6.1) 42.0 (0.2) 42.0 (0.2) 
+
+2 51.9 (4.4) 90.7 (0.1) 85.2 (0.2) 67.8 (3.2) 73.5 (0.2) 74.5 (0.2) 43.5 (4.5) 47.4 (0.2) 49.6 (0.1) 
+
+5 51.6 (3.2) 86.8 (0.2) 82.9 (0.1) 74.8 (3.8) 81.2 (0.2) 78.7 (0.2) 50.2 (3.7) 52.6 (0.2) 48.2 (0.3) 
+
+10 56.1 (4.6) 81.3 (0.1) 85.7 (0.1) 73.2 (3.1) 76.3 (0.1) 77.1 (0.1) 59.6 (4.3) 55.3 (0.2) 60.0 (0.4) 
+
+DFEEDER 
+
+1 43.8 (4.3) 49.7 (1.0) 49.7 (1.0) 47.2 (2.4) 50.8 (1.7) 50.8 (1.7) 41.2 (2.1) 43.8 (1.8) 43.8 (1.8) 
+
+2 54.8 (3.0) 92.5 (1.1) 84.8 (0.7) 72.2 (3.1) 82.5 (4.0) 80.1 (2.6) 50.8 (2.3) 58.6 (1.7) 53.5 (1.3) 
+
+5 53.7 (3.8) 87.9 (1.8) 91.5 (1.4) 78.3 (4.6) 83.2 (1.1) 80.1 (1.4) 53.8 (2.8) 65.3 (1.6) 61.8 (1.4) 
+
+10 58.0 (3.4) 85.8 (0.9) 87.8 (1.2) 85.0 (2.2) 87.1 (2.2) 86.9 (1.0) 60.5 (3.1) 68.0 (1.7) 68.4 (2.0) 
+
+19 Supplementary Materials: FEEDER 
+
+Table A2. A complementary table to Table A1 presents the corresponding results for the demonstration selectors Uncertainty, Clustering, Latent. 
+
+ΨLLM (·) D n SUBJ SST-2 COLA Uncertainty Clustering Latent Uncertainty Clustering Latent Uncertainty Clustering Latent GPT-3 (6B) 
+
+DTRAIN 
+
+1 53.5 (6.3) 49.3 (4.4) 51.5 (2.1) 49.0 (2.9) 47.5 (1.5) 47.8 (1.1) 42.0 (6.5) 39.8 (1.5) 40.2 (1.2) 
+
+2 87.8 (3.7) 86.5 (4.1) 86.3 (3.5) 75.6 (4.2) 80.1 (2.2) 79.0 (2.4) 49.6 (4.0) 46.8 (5.0) 47.5 (3.3) 
+
+5 90.7 (4.5) 88.2 (4.4) 89.4 (4.2) 81.8 (3.3) 82.2 (3.3) 80.7 (4.4) 55.4 (3.5) 56.4 (4.3) 58.8 (3.3) 
+
+10 88.3 (4.8) 90.7 (3.8) 91.3 (4.1) 80.5 (3.8) 78.8 (3.9) 76.8 (4.1) 58.4 (4.2) 62.1 (3.6) 61.5 (4.5) 
+
+DFEEDER 
+
+1 55.3 (4.2) 50.9 (4.4) 50.2 (3.2) 50.3 (2.4) 48.4 (3.4) 48.3 (2.6) 43.8 (2.1) 40.8 (3.5) 42.5 (5.1) 
+
+2 89.8 (3.0) 89.7 (3.5) 89.5 (2.5) 77.1 (2.5) 82.5 (3.5) 83.0 (3.2) 60.0 (2.1) 57.8 (4.4) 58.1 (3.5) 
+
+5 92.3 (3.8) 92.0 (2.4) 91.8 (2.9) 81.2 (4.0) 80.8 (3.8) 80.4 (2.9) 62.4 (2.7) 61.6 (3.7) 62.3 (2.4) 
+
+10 90.8 (3.4) 92.0 (2.4) 91.8 (2.9) 81.2 (2.8) 80.8 (3.8) 80.4 (2.9) 62.4 (3.0) 62.7 (3.1) 62.5 (2.5) 
+
+Llama-2 (7B) 
+
+DTRAIN 
+
+1 49.0 (6.6) 48.5 (5.6) 47.5 (5.1) 49.2 (2.7) 48.2 (3.7) 48.7 (3.1) 40.1 (6.1) 41.1 (4.1) 41.0 (3.2) 
+
+2 89.2 (4.4) 87.8 (3.5) 88.7 (4.1) 75.1 (3.2) 72.5 (2.2) 74.7 (4.2) 48.5 (4.5) 45.2 (4.0) 46.4 (1.2) 
+
+5 82.9 (3.2) 80.1 (2.2) 83.8 (1.2) 83.7 (3.8) 81.5 (3.0) 82.2 (1.2) 53.2 (3.7) 51.2 (2.5) 52.6 (2.2) 
+
+10 86.2 (4.6) 82.1 (4.4) 83.3 (2.1) 76.4 (3.1) 75.2 (3.7) 74.8 (4.1) 63.5 (4.3) 62.6 (4.0) 60.3 (2.2) 
+
+DFEEDER 
+
+1 49.7 (4.3) 45.8 (4.3) 48.7 (5.1) 51.8 (2.4) 48.4 (3.5) 50.3 (2.7) 43.0 (2.1) 42.2 (2.5) 42.8 (1.8) 
+
+2 91.8 (3.0) 90.8 (3.4) 91.5 (2.4) 78.1 (3.1) 73.5 (3.1) 76.5 (4.0) 49.5 (2.3) 48.8 (2.3) 50.6 (2.7) 
+
+5 89.5 (3.8) 88.7 (4.8) 86.9 (2.8) 84.1 (4.6) 82.3 (4.5) 83.8 (4.1) 60.8 (2.8) 58.8 (3.8) 59.3 (2.6) 
+
+10 88.8 (3.4) 88.0 (4.4) 86.8 (2.9) 80.9 (2.2) 85.1 (2.0) 83.4 (2.2) 67.4 (3.1) 64.5 (3.4) 66.0 (2.7) 
+
+Next, we investigate necessity. Our goal is to prove un-plugging any data point in eDFEEDER would lead to a degra-dation of the LLM’s performance. For convenience, we use (xn, yn) ∈ D TRAIN to denote an arbitrary data point. If we applying Algorithm 3 to execute the search for an exact 
+
+DFEEDER , then (xn, yn) must be in H0, or out of H0.If (xn, yn) is not an element in H0, then according to the computing process of H0 (i.e., lines 3 to 3 in Algorithm 3), unplugging (xn, yn) it would definitively cause the LLM’s performance on DTRAIN from Y({xn|xn∈D TRAIN }) = 1|D TRAIN |
+
+to Y({xn|xn∈D TRAIN })̸ = 1|D TRAIN |.If (xn, yn) is an element in H0, then (xn, yn) must be in HUNNECESSARY ; otherwise, according to lines 3 to 3 in Algorithm 3, HUNNECESSARY ∪ { (xn, yn)} should be 
+
+HMAX and always stay in H· until becoming the root node (i.e., HUNNECESSARY should be updated to be HUNNECESSARY ∪{(xn, yn)}). Thus, (xn, yn) must be in HUNNECESSARY .However, all the data points in HUNNECESSARY are removed from DTRAIN , causing a contradiction. Hence, unplugging 
+
+(xn, yn) would change the LLM’s performance, namely necessity holds. Then, we consider applying Algorithm 4 for searching an exact DFEEDER . Similarly, if (xn, yn) is not selected when checking the necessity, then unplugging (xn, yn) would definitively cause a degradation of the LLM’s performance. If (xn, yn) is selected during checking the necessity, then 
+
+(xn, yn) must be included in Dr ; otherwise, Dr would con-tinue to update, since the condition of stopping iteration is that there is no or only one unnecessary node. However, all the data points are removed from DTRAIN , causing a con-tradiction. Hence, unplugging (xn, yn) would change the LLM’s performance, namely necessity holds. Combining the above analysis of sufficiency and necessity, we can conclude that DFEEDER is an exact FEEDER for DTRAIN .
+
+A5. FEEDER in In-context Learning Setting 
+
+A5.1. Demonstration Selectors 
+
+As described in Section 5.1, when applied in the ICL setting, our DFEEDER is assessed by serving as the selection pool, replacing DTRAIN for existing demonstration selectors. The first one is a random selector, denoted as Random, which randomly selects samples from the selection pool. The second one is a similarity-based selector, denoted as Similarity, which selects samples similar to the test samples. Formally, let DSELECT denote the selection pool. Then, for each test sample xm, the metric of similarity can be written as: 
+
+SIM (xm, xn) = COS (TRANSFORMER (xm), TRANSFORMER (xn)) ,
+
+(27) where xn ∈ D SELECT , COS (·) is a cosine similarity met-ric, and TRANSFORMER (·) denotes a sentence transformer (Reimers & Gurevych, 2019). Here, we directly use the Sentence Transformers library 2 from Hugging Face in our implementation. Then, we are able to select Nshot samples with maximum SIM values from DSELECT .The third one is a diversity-based selector, denoted as Di-versity, where we adopt the maximal marginal relevance method (Carbonell & Goldstein, 1998) as the metric of Di-
+
+> 2
+
+https://huggingface.co/ sentence-transformers 
+
+20 Supplementary Materials: FEEDER 
+
+Table A3. Performance comparisons on text classification datasets are conducted in the in-context learning setting. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. This table is extended from Table 1. 
+
+ΨLLM (·) D n FPB SST-5 TREC Random Similarity Diversity Random Similarity Diversity Random Similarity Diversity GPT-2 (0.3B) 
+
+DTRAIN 
+
+1 27.2 (6.1) 25.3 (0.1) 25.3 (0.1) 14.5 (6.1) 22.7 (0.2) 22.7 (0.2) 19.4 (6.4) 42.8 (0.1) 42.8 (0.1) 
+
+2 27.4 (6.2) 45.8 (0.2) 40.4 (0.1) 18.0 (5.8) 25.6 (0.1) 23.7 (0.2) 21.4 (4.7) 57.2 (0.2) 51.4 (0.1) 
+
+5 26.3 (4.5) 55.9 (0.1) 44.7 (0.2) 26.5 (5.3) 32.3 (0.2) 27.8 (0.1) 37.6 (5.1) 66.0 (0.3) 61.4 (0.3) 
+
+10 27.8 (5.1) 63.1 (0.1) 50.7 (0.1) 14.9 (3.9) 35.3 (0.1) 30.4 (0.2) 53.0 (5.2) 71.4 (0.2) 65.8 (0.3) 
+
+DFEEDER 
+
+1 28.4 (3.4) 28.8 (2.1) 28.8 (2.1) 15.4 (5.2) 23.7 (1.7) 23.7 (1.7) 37.4 (3.6) 48.4 (1.6) 48.4 (1.6) 
+
+2 35.5 (4.3) 47.4 (2.6) 37.9 (1.9) 20.9 (4.7) 27.9 (1.1) 25.8 (1.3) 27.6 (3.2) 58.8 (2.2) 52.1 (1.9) 
+
+5 28.3 (3.0) 54.6 (1.7) 47.9 (1.0) 28.6 (3.4) 33.2 (1.8) 27.4 (1.7) 40.8 (3.0) 67.4 (1.2) 61.8 (1.3) 
+
+10 39.6 (3.4) 66.5 (2.3) 51.8 (1.2) 17.6 (2.2) 36.9 (1.9) 29.8 (1.7) 44.6 (2.8) 74.6 (1.4) 67.6 (1.9) 
+
+GPT-2 (0.8B) 
+
+DTRAIN 
+
+1 33.8 (5.2) 29.9 (0.1) 29.9 (0.1) 14.2 (4.9) 25.2 (0.1) 25.2 (0.1) 21.0 (4.6) 53.2 (0.2) 53.2 (0.2) 
+
+2 27.0 (6.1) 55.4 (0.2) 49.9 (0.3) 18.1 (5.1) 29.7 (0.1) 24.4 (0.2) 28.2 (4.4) 62.6 (0.2) 60.6 (0.2) 
+
+5 27.2 (4.8) 64.3 (0.1) 45.1 (0.3) 25.6 (4.8) 34.1 (0.1) 30.8 (0.1) 35.4 (5.7) 63.4 (0.1) 64.6 (0.1) 
+
+10 47.0 (5.5) 65.5 (0.2) 52.9 (0.1) 28.7 (4.2) 38.7 (0.1) 36.6 (0.1) 43.2 (4.8) 66.0 (0.1) 68.8 (0.1) 
+
+DFEEDER 
+
+1 33.8 (4.4) 32.6 (0.7) 32.6 (0.7) 18.7 (3.0) 25.5 (2.2) 25.5 (2.2) 22.4 (3.8) 52.6 (2.1) 52.6 (2.1) 
+
+2 37.5 (4.7) 54.8 (1.1) 47.6 (1.3) 25.2 (3.8) 29.7 (1.9) 24.1 (2.1) 34.6 (3.5) 64.2 (1.8) 59.4 (2.0) 
+
+5 38.9 (3.3) 64.5 (1.3) 48.0 (2.7) 39.3 (2.9) 35.2 (1.1) 31.0 (1.2) 45.4 (3.3) 65.5 (1.5) 64.9 (1.7) 
+
+10 63.5 (2.8) 66.7 (1.6) 53.1 (1.5) 39.6 (3.0) 39.8 (1.8) 37.8 (1.6) 55.8 (3.8) 70.4 (2.0) 68.6 (1.7) 
+
+GPT-neo (1.3B) 
+
+DTRAIN 
+
+1 54.9 (3.9) 61.6 (0.1) 61.6 (0.1) 12.8 (2.7) 20.2 (0.1) 20.2 (0.1) 11.0 (3.2) 57.2 (0.2) 57.2 (0.2) 
+
+2 53.6 (4.0) 66.8 (0.2) 60.0 (0.1) 17.9 (3.6) 26.9 (0.1) 22.7 (0.1) 17.6 (3.1) 52.6 (0.2) 42.2 (0.2) 
+
+5 28.2 (4.0) 68.2 (0.1) 60.4 (0.1) 19.0 (3.9) 29.2 (0.1) 25.1 (0.1) 25.2 (3.8) 66.4 (0.1) 61.8 (0.1) 
+
+10 49.0 (4.8) 75.8 (0.1) 71.1 (0.2) 12.7 (2.8) 33.7 (0.2) 31.9 (0.1) 41.6 (4.4) 70.6 (0.1) 69.0 (0.1) 
+
+DFEEDER 
+
+1 58.1 (4.7) 61.8 (1.4) 61.8 (1.4) 18.5 (2.1) 20.6 (1.8) 20.6 (1.4) 18.2 (2.4) 56.4 (1.3) 56.4 (1.3) 
+
+2 61.4 (3.3) 64.1 (1.5) 58.8 (1.1) 19.7 (2.7) 27.4 (2.1) 22.8 (1.8) 27.8 (2.7) 54.0 (1.4) 44.5 (1.6) 
+
+5 43.2 (2.6) 68.8 (1.8) 62.7 (1.3) 19.2 (3.2) 30.2 (2.7) 26.4 (2.4) 50.4 (3.2) 68.0 (1.4) 62.6 (1.9) 
+
+10 61.4 (2.3) 74.8 (1.9) 71.9 (1.8) 15.4 (2.4) 37.0 (1.5) 34.5 (1.9) 45.2 (2.9) 72.8 (1.4) 69.8 (1.5) 
+
+Gemma-2 (2B) 
+
+DTRAIN 
+
+1 58.2 (5.7) 62.5 (0.1) 62.5 (0.1) 21.5 (3.9) 22.5 (0.1) 22.5 (0.1) 21.9 (3.4) 52.3 (0.1) 52.3 (0.1) 
+
+2 59.2 (5.9) 66.2 (0.4) 65.8 (0.3) 26.5 (3.6) 42.5 (0.6) 42.2 (0.6) 35.6 (4.4) 60.0 (0.2) 59.1 (0.1) 
+
+5 48.6 (3.6) 76.6 (0.4) 78.8 (0.6) 26.6 (2.5) 48.8 (0.3) 41.2 (0.4) 55.8 (2.9) 82.2 (0.2) 71.1 (0.6) 
+
+10 35.2 (6.5) 79.5 (0.4) 78.8 (0.2) 36.6 (4.4) 50.2 (0.8) 43.3 (0.4) 51.1 (3.3) 84.3 (0.5) 75.0 (0.4) 
+
+DFEEDER 
+
+1 59.9 (4.4) 64.6 (0.6) 64.6 (0.6) 22.6 (4.3) 25.8 (1.3) 25.8 (1.3) 26.2 (1.8) 55.1 (1.8) 55.1 (1.8) 
+
+2 55.4 (2.4) 67.8 (1.8) 67.0 (1.1) 28.7 (2.3) 45.4 (1.0) 46.8 (1.1) 40.8 (1.5) 63.6 (1.3) 62.8 (1.6) 
+
+5 52.2 (3.4) 88.0 (4.6) 80.1 (3.2) 30.5 (2.0) 52.6 (1.9) 54.4 (1.4) 60.4 (2.5) 87.8 (1.6) 73.0 (1.2) 
+
+10 39.1 (5.1) 81.3 (3.3) 83.8 (2.4) 36.8 (2.2) 62.5 (1.5) 54.9 (1.3) 58.1 (5.2) 88.9 (1.8) 83.4 (1.4) 
+
+GPT-3 (6B) 
+
+DTRAIN 
+
+1 30.7 (5.5) 55.3 (0.1) 55.3 (0.1) 19.6 (3.6) 20.5 (0.1) 20.5 (0.1) 21.4 (4.4) 50.7 (0.1) 50.7 (0.1) 
+
+2 33.4 (4.9) 64.9 (0.4) 65.5 (0.3) 24.1 (3.0) 30.5 (0.4) 31.6 (0.3) 34.4 (4.0) 58.8 (0.2) 60.7 (0.1) 
+
+5 40.6 (3.0) 75.0 (0.4) 74.9 (0.1) 24.1 (2.5) 32.5 (0.3) 35.6 (0.2) 51.8 (2.9) 71.2 (0.2) 70.6 (0.4) 
+
+10 25.9 (6.5) 78.5 (0.4) 79.5 (0.2) 35.5 (4.2) 38.9 (0.1) 40.5 (0.3) 49.5 (3.6) 72.5 (0.1) 73.0 (0.2) 
+
+DFEEDER 
+
+1 31.2 (4.8) 54.8 (0.8) 54.8 (0.8) 20.6 (3.1) 27.8 (1.3) 27.8 (1.3) 32.2 (1.8) 52.1 (1.8) 52.1 (1.8) 
+
+2 35.4 (2.4) 65.8 (1.8) 67.1 (0.9) 28.7 (2.3) 33.4 (1.4) 33.0 (1.1) 44.8 (2.5) 60.1 (1.5) 61.8 (1.4) 
+
+5 42.2 (3.4) 77.9 (3.6) 78.4 (3.2) 28.5 (2.0) 35.6 (1.3) 37.4 (1.4) 53.4 (2.7) 75.8 (1.6) 72.2 (1.2) 
+
+10 39.1 (5.1) 80.3 (3.3) 82.8 (2.4) 36.8 (2.2) 41.5 (1.5) 40.9 (1.3) 54.1 (5.2) 76.9 (1.8) 80.4 (1.4) 
+
+Llama-2 (7B) 
+
+DTRAIN 
+
+1 29.0 (4.7) 47.1 (0.1) 47.1 (0.1) 28.6 (2.9) 29.7 (0.1) 29.7 (0.1) 35.2 (3.7) 54.2 (0.1) 54.2 (0.1) 
+
+2 27.4 (3.4) 68.4 (0.2) 67.1 (0.3) 35.9 (3.1) 33.9 (0.1) 33.5 (0.3) 45.0 (4.0) 69.4 (0.1) 63.6 (0.1) 
+
+5 39.7 (3.2) 80.3 (0.2) 78.9 (0.1) 37.9 (2.3) 38.3 (0.2) 37.0 (0.1) 53.0 (3.6) 79.0 (0.2) 70.4 (0.3) 
+
+10 37.9 (2.6) 87.4 (0.3) 86.5 (0.2) 38.4 (3.8) 37.5 (0.1) 40.0 (0.2) 58.0 (2.3) 83.4 (0.1) 79.2 (0.1) 
+
+DFEEDER 
+
+1 33.7 (5.3) 51.7 (0.8) 51.7 (0.8) 27.6 (2.4) 32.3 (1.5) 32.3 (1.3) 41.2 (2.1) 56.8 (1.8) 56.8 (1.8) 
+
+2 39.6 (5.0) 68.7 (1.5) 69.8 (0.7) 39.5 (2.5) 32.6 (1.2) 32.7 (1.1) 53.8 (2.3) 68.6 (1.7) 63.5 (1.3) 
+
+5 45.6 (4.8) 87.9 (4.8) 79.5 (3.5) 39.2 (2.0) 38.7 (1.3) 39.4 (1.0) 58.2 (2.8) 82.8 (1.6) 71.8 (1.4) 
+
+10 37.8 (6.4) 87.1 (3.9) 87.8 (2.2) 39.7 (2.8) 39.0 (1.0) 41.6 (1.3) 59.8 (3.1) 86.0 (1.9) 83.4 (2.0) 
+
+21 Supplementary Materials: FEEDER 
+
+Table A4. A complementary table to Table A3 presents the corresponding results for the demonstration selectors Uncertainty, Clustering, Latent. 
+
+ΨLLM (·) D n FPB SST-5 TREC Uncertainty Clustering Latent Uncertainty Clustering Latent Uncertainty Clustering Latent GPT-3 (6B) 
+
+DTRAIN 
+
+1 55.8 (6.3) 56.3 (4.0) 58.0 (2.5) 29.0 (2.9) 27.5 (1.5) 25.8 (1.1) 52.0 (6.5) 49.8 (1.5) 50.2 (1.2) 
+
+2 67.8 (3.7) 66.5 (4.1) 66.3 (3.5) 35.6 (4.2) 36.1 (2.2) 34.0 (2.4) 59.6 (4.0) 60.8 (5.0) 58.5 (3.3) 
+
+5 76.7 (4.5) 78.2 (4.4) 79.4 (4.2) 41.8 (3.3) 42.2 (3.3) 40.7 (4.4) 65.4 (3.5) 66.4 (4.3) 65.8 (3.3) 
+
+10 78.3 (4.8) 80.7 (3.8) 81.3 (4.1) 40.5 (3.8) 38.8 (3.9) 36.8 (4.1) 78.4 (4.2) 72.1 (3.6) 71.5 (4.5) 
+
+DFEEDER 
+
+1 56.3 (4.2) 57.9 (4.4) 58.2 (3.2) 32.3 (2.4) 29.4 (3.4) 28.3 (2.6) 53.8 (2.1) 50.8 (3.5) 52.5 (5.1) 
+
+2 69.8 (3.0) 69.7 (3.5) 69.5 (2.5) 37.1 (2.5) 42.5 (3.5) 38.2 (3.2) 60.1 (2.1) 57.8 (4.8) 59.1 (3.5) 
+
+5 82.3 (3.8) 82.0 (2.4) 81.8 (2.9) 44.2 (4.0) 45.8 (3.8) 44.4 (2.9) 68.4 (2.7) 66.6 (3.7) 67.3 (2.4) 
+
+10 80.8 (3.4) 83.0 (2.4) 83.8 (2.9) 42.2 (2.8) 40.8 (3.8) 40.4 (2.9) 82.4 (3.0) 74.7 (3.1) 73.5 (2.5) 
+
+Llama-2 (7B) 
+
+DTRAIN 
+
+1 49.0 (6.6) 47.5 (5.6) 47.5 (5.1) 36.2 (2.4) 37.2 (3.7) 38.7 (4.1) 55.1 (6.1) 54.1 (4.0) 54.0 (3.3) 
+
+2 68.2 (4.8) 67.8 (3.5) 68.7 (4.1) 35.1 (4.2) 32.5 (2.0) 34.7 (4.2) 67.5 (4.5) 68.2 (4.0) 66.4 (1.3) 
+
+5 80.9 (3.2) 81.6 (2.2) 83.8 (1.2) 36.7 (3.8) 38.5 (3.0) 39.2 (1.2) 68.2 (3.7) 69.2 (2.5) 67.3 (2.2) 
+
+10 86.2 (4.6) 85.1 (4.4) 87.3 (2.1) 36.4 (3.1) 35.2 (3.7) 39.8 (4.1) 86.5 (4.3) 85.6 (4.0) 87.3 (2.2) 
+
+DFEEDER 
+
+1 51.2 (4.8) 48.9 (4.3) 48.7 (5.1) 41.8 (2.4) 44.4 (3.5) 43.3 (2.7) 58.0 (2.1) 62.2 (2.5) 62.8 (1.8) 
+
+2 71.8 (3.0) 72.8 (3.4) 73.5 (2.4) 45.1 (3.1) 45.3 (3.1) 46.5 (4.0) 69.5 (2.3) 70.8 (2.3) 70.6 (2.7) 
+
+5 88.5 (3.8) 85.7 (4.8) 86.9 (2.8) 42.1 (4.6) 42.3 (4.5) 40.8 (4.1) 72.8 (2.8) 75.8 (3.8) 69.3 (2.6) 
+
+10 88.8 (3.4) 91.1 (4.4) 89.8 (2.9) 46.9 (2.2) 50.1 (2.0) 53.0 (2.2) 87.4 (3.1) 88.5 (3.4) 89.0 (2.7) 
+
+Table A5. Performance comparisons on text classification datasets are conducted in the fine-tuning setting, where we tune the LLMs and evaluate their few-shot inference performance. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. This table is extended from Table 3. 
+
+ΨLLM (·) D n FPB SST-5 TREC Random Similarity Diversity Random Similarity Diversity Random Similarity Diversity GPT-2 (0.3B) 
+
+DTRAIN 
+
+1 58.3 (5.7) 68.4 (0.1) 67.4 (0.1) 55.5 (4.8) 60.2 (0.4) 58.4 (0.2) 59.2 (5.2) 70.0 (0.1) 68.0 (0.1) 
+
+2 58.5 (5.2) 72.3 (0.4) 70.1 (0.2) 58.5 (4.2) 60.4 (0.6) 61.2 (0.4) 57.7 (5.2) 70.1 (0.2) 70.3 (0.4) 
+
+5 67.8 (5.1) 66.2 (0.4) 65.7 (0.3) 58.6 (5.2) 60.4 (0.7) 61.8 (0.5) 66.3 (4.5) 72.8 (0.4) 70.2 (0.5) 
+
+10 58.2 (4.4) 63.3 (0.6) 65.6 (0.3) 61.4 (4.3) 60.4 (0.4) 61.8 (0.2) 60.9 (3.8) 71.3 (0.5) 72.5 (0.9) 
+
+DFEEDER 
+
+1 65.0 (5.5) 77.3 (1.3) 73.3 (1.3) 61.7 (4.2) 74.8 (1.8) 74.4 (0.8) 63.9 (4.0) 74.3 (0.7) 75.3 (0.7) 
+
+2 62.2 (3.4) 75.0 (1.1) 74.3 (1.5) 62.3 (3.4) 63.4 (1.8) 62.6 (1.2) 60.1 (3.5) 76.1 (1.7) 74.4 (0.9) 
+
+5 70.4 (3.2) 78.8 (1.6) 76.4 (1.0) 62.4 (4.2) 62.2 (1.4) 66.4 (1.3) 68.8 (3.2) 77.2 (3.3) 76.6 (2.9) 
+
+10 62.3 (3.3) 80.6 (1.3) 78.6 (1.9) 63.9 (4.5) 78.6 (1.9) 71.0 (1.2) 68.7 (2.7) 72.2 (1.7) 75.7 (1.9) 
+
+GPT-2 (0.8B) 
+
+DTRAIN 
+
+1 60.3 (4.7) 73.4 (0.1) 73.4 (0.1) 57.5 (5.1) 64.3 (0.2) 64.3 (0.2) 61.1 (5.2) 77.3 (0.1) 77.3 (0.1) 
+
+2 62.5 (5.2) 75.3 (0.4) 75.1 (0.3) 62.5 (4.2) 65.4 (0.6) 66.2 (0.4) 62.7 (5.2) 78.1 (0.2) 79.3 (0.4) 
+
+5 71.8 (5.1) 72.2 (0.4) 70.1 (0.3) 63.6 (5.2) 67.4 (0.7) 68.6 (0.6) 64.3 (4.5) 76.8 (0.4) 74.2 (0.5) 
+
+10 63.2 (4.4) 67.3 (0.6) 68.6 (0.3) 66.4 (4.3) 68.4 (0.4) 67.8 (0.2) 66.9 (3.8) 78.3 (0.5) 75.5 (0.9) 
+
+DFEEDER 
+
+1 69.0 (5.3) 81.3 (1.3) 81.3 (1.3) 59.8 (4.2) 72.8 (0.8) 72.8 (0.8) 65.9 (4.0) 83.3 (0.7) 83.3 (0.7) 
+
+2 73.2 (3.4) 82.0 (1.1) 83.3 (1.5) 65.3 (3.4) 73.4 (1.8) 72.6 (1.2) 62.1 (3.5) 80.1 (1.7) 82.2 (0.9) 
+
+5 74.4 (3.4) 84.8 (1.6) 86.4 (1.4) 67.4 (3.9) 77.5 (1.0) 76.7 (1.4) 69.8 (3.2) 83.2 (3.3) 84.6 (2.9) 
+
+10 75.3 (3.3) 85.6 (1.3) 87.6 (1.9) 58.9 (3.5) 78.6 (1.7) 79.0 (1.2) 69.7 (2.7) 86.2 (1.7) 85.7 (1.9) 
+
+GPT-neo (1.3B) 
+
+DTRAIN 
+
+1 62.7 (5.7) 78.4 (0.1) 78.4 (0.1) 60.3 (4.1) 66.6 (1.4) 66.6 (1.4) 63.3 (5.2) 79.5 (0.4) 79.5 (0.4) 
+
+2 63.1 (4.6) 74.2 (0.3) 73.1 (0.2) 64.5 (3.2) 66.8 (0.8) 68.4 (0.7) 63.5 (5.7) 81.2 (0.4) 81.4 (0.6) 
+
+5 70.8 (5.1) 73.3 (0.1) 72.7 (0.2) 63.6 (4.1) 70.8 (0.4) 70.8 (0.4) 67.8 (4.7) 80.6 (0.5) 82.0 (0.4) 
+
+10 62.2 (4.4) 63.0 (0.6) 69.6 (0.5) 65.8 (2.9) 69.5 (0.3) 68.8 (0.6) 68.1 (3.8) 78.8 (0.4) 82.4 (0.5) 
+
+DFEEDER 
+
+1 73.0 (4.4) 83.5 (1.5) 83.5 (1.5) 63.3 (3.1) 72.7 (1.3) 72.7 (1.3) 64.6 (3.2) 84.6 (0.8) 84.6 (0.8) 
+
+2 76.1 (3.8) 84.1 (1.4) 82.5 (1.7) 65.6 (2.7) 76.4 (0.7) 78.6 (0.8) 64.2 (3.7) 85.5 (0.7) 86.3 (0.9) 
+
+5 75.7 (3.5) 90.7 (1.5) 88.1 (1.9) 67.4 (2.9) 79.5 (1.8) 79.7 (1.5) 70.8 (3.2) 88.2 (2.3) 89.6 (1.9) 
+
+10 77.5 (3.3) 92.6 (1.3) 90.6 (1.8) 68.9 (2.0) 82.6 (1.7) 80.0 (1.6) 73.7 (2.7) 91.2 (1.7) 86.7 (1.9) 
+
+22 Supplementary Materials: FEEDER 
+
+versity. Formally, we have: 
+
+DIV (xm, xn) = SIM (xm, xn)−η· max  
+
+> xn′∈D ′
+> SELECT
+
+SIM (xm, xn′ ),
+
+(28) where xn ∈ D SELECT − D ′
+
+> SELECT
+
+, and D′ 
+
+> SELECT
+
+denotes the set of previously selected instances. We can see that Diversity prefers the instance that is both similar to the test samples meanwhile distant to previously selected instances. η is a hyper-parameter to balance the above two parts. We set 
+
+η = 1 in our experiment. The fourth one is an uncertainty-based selector (K ¨oksal et al., 2022), denoted as Uncertainty, which conducts selec-tions according to their uncertainty metric; The fifth one is a clustering-based selector (Zhou et al., 2023), denoted as Clustering, which searches demonstra-tions by clustering. The sixth one uses LLMs as latent variable models (Wang et al., 2024), denoted as Latent, which learns latent variables for down-streaming ICL. In our experiment, we run our approximation algorithm for 1 run to get DFEEDER , and then treat DFEEDER as the selection pool for the above demonstration selectors. In our results, we report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. We also want to emphasize that since our pre-selector and pre-selection process are novel, we evaluate the performance of FEEDER in an ablation fashion. Specifically, our results (denoted as DFEEDER in the D column) can be interpreted as FEEDER + X (where X represents any demonstration re-triever described above), meaning that FEEDER is used for pre-selection of input demonstrations, and X is used to select specific demonstrations considering the target inputs. Our baseline (denoted as DTRAIN in the D column) can be formu-lated as X + X, meaning X is used for both pre-selection of input demonstrations and for selecting specific demonstra-tions with regard to the target inputs. 
+
+A5.2. Additional Results with Diverse Datasets 
+
+We report performance comparison results on text classifi-cation datasets SUBJ, SST-2, and COLA datasets in Table 1. We include the results of FPB, SST-5, and TREC datasets in Table A3, whose trend is consistent with our results in Table 1. These results further verify the superiority of our 
+
+FEEDER in ICL. Besides three basic demonstration selectors, denoted as Ran-dom, Similarity, and Diversity, we also examine the perfor-mance of FEEDER with some recently proposed demonstra-tion selectors, denoted as Uncertainty, Clustering, and La-tent. We summarize the corresponding results in Table A4, whose trend is consistent with our results in Table A2. Over-all, compared to using the entire training dataset DTRAIN 
+
+as the retrieval pool, treating its core set DFEEDER as the retrieval pool can improve the LLM performance at most cases. These results are consistent with the analysis reported in Section 5.1, which together verify that our FEEDER col-laborating with various demonstration selectors works well in ICL. 
+
+A5.3. Additional Results with Diverse Demonstration Selectors 
+
+We report performance comparison results on the reason-ing dataset GSM8K and the semantic parsing dataset SM-CALFlow in Table 2. The corresponding results for ad-ditional demonstration selectors, Clustering and Latent, are provided in Table A6, showing a similar trend. To-gether, these results further demonstrate the superiority of our FEEDER framework in the in-context learning setting. 
+
+A5.4. Performance Comparison with Different Number of Iterations 
+
+We report performance comparison results of FEEDER with different runs R in Figure 3 in Section 5.1. Here, we further evaluate the performance of FEEDER with different iterations 
+
+K. The corresponding results are depicted in Figure A6. This figure shows a similar trend to Figure 3, which also indicates that our method can allow the LLM to achieve comparable performance with fewer samples. Combining all the above results, we observe that both in-creasing the tree depth (i.e., the number of iterations K) in each round and increasing the number of rounds R con-tribute to reducing the size of the resulting FEEDER set. However, there are notable trade-offs between these two approaches. Increasing the tree depth is computationally more expensive but offers greater robustness, as it mini-mizes the risk of mistakenly filtering out useful samples. On the other hand, increasing the number of rounds is relatively inexpensive but carries a higher likelihood of discarding valuable data points due to less rigorous evaluations. 
+
+A6. Scaling Up FEEDER into Real-world Applications 
+
+A6.1. Scaling up FEEDER to larger LLMs. 
+
+As the LLM scales up in size (e.g., scaling up to Llama-65B (Touvron et al., 2023) and Gemma-70B (Team et al., 2024)), the execution of our approximation algorithm for searching DFEEDER can become exceedingly time-consuming. In response to this challenge, we propose a strategy wherein a smaller LLM is employed to generate a FEEDER set, which is then stored and utilized by the larger LLM. To assess the viability of this approach, we conducted an experiment 23 Supplementary Materials: FEEDER 
+
+Table A6. Performance comparisons on reasoning GSM8K dataset and semantic-parsing SMCALFlow dataset are conducted in the in-context learning setting. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. This table is extended from Table 2. 
+
+ΨLLM (·) D n GSM8K SMCALFlow Clustering Latent Clustering Latent Gemma-2 (2B) 
+
+DTRAIN 
+
+1 16.17 (0.18) 16.20 (0.19) 20.02 (0.21) 19.54 (0.14) 
+
+2 19.89 (0.96) 20.52 (0.15) 22.58 (0.45) 23.05 (0.36) 
+
+5 21.31 (0.84) 23.56 (0.66) 29.30 (0.90) 28.65 (0.95) 
+
+10 22.52 (0.49) 23.85 (0.65) 30.12 (1.11) 31.11 (0.91) 
+
+DFEEDER 
+
+1 17.25 (0.21) 16.68 (0.24) 21.12 (1.78) 20.89 (1.21) 
+
+2 20.68 (0.83) 21.01 (0.85) 22.85 (2.65) 25.03 (0.18) 
+
+5 22.55 (0.75) 23.05 (0.77) 31.20 (1.15) 29.54 (4.58) 
+
+10 22.75 (0.85) 24.02 (2.20) 32.10 (2.01) 32.48 (1.52) 
+
+GPT-3 (6B) 
+
+DTRAIN 
+
+1 2.95 (0.12) 2.87 (0.25) 9.95 (0.79) 9.21 (0.85) 
+
+2 4.78 (0.33) 4.21 (0.25) 10.12 (0.46) 10.14 (0.88) 
+
+5 7.21 (0.78) 8.00 (1.05) 12.31 (1.11) 12.15 (1.30) 
+
+10 8.05 (1.20) 7.44 (1.25) 14.14 (1.57) 13.99 (1.54) 
+
+DFEEDER 
+
+1 4.10 (0.22) 3.25 (0.24) 12.52 (1.13) 11.42 (1.02) 
+
+2 4.26 (0.64) 4.55 (0.82) 11.73 (0.54) 12.05 (0.80) 
+
+5 8.85 (1.28) 8.14 (0.87) 13.58 (1.44) 12.44 (1.69) 
+
+10 9.52 (1.88) 8.50 (1.21) 15.08 (1.91) 16.50 (1.25) 
+
+Llamma-2 (7B) 
+
+DTRAIN 
+
+1 3.68 (0.89) 3.98 (0.88) 10.12 (0.95) 9.25 (0.85) 
+
+2 5.20 (0.38) 5.55 (0.85) 11.05 (1.36) 12.52 (1.45) 
+
+5 7.58 (0.89) 7.52 (0.96) 15.18 (1.15) 15.30 (1.20) 
+
+10 9.85 (0.85) 9.21 (0.98) 17.95 (1.25) 18.55 (2.01) 
+
+DFEEDER 
+
+1 4.25 (0.21) 4.17 (0.89) 11.89 (0.51) 12.05 (0.63) 
+
+2 5.88 (0.63) 6.02 (0.58) 13.03 (0.16) 14.13 (1.10) 
+
+5 8.22 (1.01) 9.17 (0.98) 18.20 (3.66) 19.66 (5.20) 
+
+10 10.17 (1.22) 9.65 (0.83) 22.11 (1.22) 21.25 (1.26) 
+
+comparing the performance of using GPT-2 variants and GPT-neo as the LLMs for obtaining a FEEDER set, and then we use this set as the retrieval pool to acquire demonstrations for GPT-neo. Results summarized in Table A7 demonstrate that even when DFEEDER is pre-selected by a small LLM, it contributes to improved performance, compared to using 
+
+DTRAIN , as reported in Table 1. This observation suggests the potential feasibility of employing a more compact LLM for pre-selecting DFEEDER to enhance the performance of a larger LLM. 
+
+A6.2. Scaling up FEEDER by Incremental Update. 
+
+Notice that numerous real-world datasets are temporal and require frequent updates. Re-running the tree based ap-proximation algorithm for FEEDER over all samples can be excessively time-consuming. To address this, we design an incremental approach, treating the unchanged portion as a plug-and-play FEEDER set and the LLM as a whole, forming a new “LLM”. Therefore, we can apply FEEDER 
+
+solely to compute incremental data for the modified part, encompassing newly added and modified data points. Also, a significant challenge of FEEDER arises from the tempo-ral nature of many real-world datasets, some of which re-quire frequent updates, potentially on a daily basis. The conventional approach of recalculating a FEEDER over all unchanged and changed samples can be time-consuming in such dynamic scenarios. To address this challenge, we intro-duce an incremental update algorithm for FEEDER , enabling the efficient re-computation of only the changed portions, including newly added and modified samples. As depicted in Figure A3, once a FEEDER set for the original dataset is generated, we treat the unchanged part of plug-and-play plugged data and the LLM as a whole (depicted by the dashed box) as a new “LLM”. Subsequently, we apply FEEDER exclusively to compute incremental data for the changed part, covering newly added and modified data points. This strategy aims to enhance the efficiency and responsiveness of FEEDER in the context of evolving and temporal datasets. 
+
+A7. Integrating Algorithm 4 in FEEDER 
+
+One limitation to directly applying Algorithm 3 or 4 is that 
+
+DTRAIN is too large to be directly used as input demonstra-tions. For this purpose, we incorporate running Algorithm 4 for one round into our FEEDER as follows. As shown in Figure A2, we place Algorithm 4 after the demonstration selector to filter out the unnecessary parts from the pre-selected data. Concretely, we first select n samples from our FEEDER set (i.e., DFEEDER ), then filter retrieved samples 24 Supplementary Materials: FEEDER 
+
+Table A7. Performance comparisons among using different LLMs GPT-2, GPT-3, GPT-neo as the base for acquiring a FEEDER set and using GPT-neo for inference on COLA dataset are conducted in the in-context learning setting. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots.                                                                                           
+
+> ΨLLM (·)DnGPT-2 (0.8B) GPT-3 (6B) GPT-neo (1.3B)
+> Random Similarity Diversity Random Similarity Diversity Random Similarity Diversity GPT-neo (1.3B) DFEEDER
+> 123.7 (5.7) 31.0 (1.3) 31.0 (1.3) 25.3 (4.1) 34.6 (1.8) 34.6 (1.8) 28.3 (5.4) 34.8 (1.3) 34.8 (1.3)
+> 245.1 (5.6) 49.7 (1.4) 46.1 (0.8) 58.5 (3.2) 57.8 (1.2) 56.4 (1.0) 69.3 (3.7) 64.7 (1.4) 64.7 (1.6)
+> 549.4 (4.6) 58.1 (2.5) 59.1 (1.9) 54.6 (3.8) 64.5 (1.1) 61.7 (2.4) 68.7 (3.2) 67.2 (2.4) 65.8 (1.8)
+> 10 59.4 (4.6) 62.4 (1.5) 65.8 (1.5) 60.6 (3.8) 64.7 (1.8) 66.0 (1.4) 69.8 (2.8) 68.8 (1.4) 68.9 (1.3)
+
+Integrating Exact Extractor of FEEDER into FEEDER   
+
+> FEEDER Input
+> and Output
+> Training
+> Dataset
+> Frozen
+> Large Language Model
+> Test
+> Input Data Output to T est
+> Input
+> conditioned
+> Demonstration
+> Retriever
+> Exact FEEDER
+> Extractor
+
+Figure A2. Integrating our extraction algorithm for FEEDER (i.e., Algorithm 4) into our in-context learning framework (as introduced in Figure 1(a)). 
+
+by running Algorithm 4 for one round (treating the set of retrieved samples as DIN ). Then, re-select n − |D OUT | where 
+
+DOUT indicates the output of Algorithm 4. Frozen Large 
+
+Language Model 
+
+Scaling Up FEEDER by Incremental Update 
+
+Updated FEEDER 
+
+> conditioned
+> conditioned
+
+Training 
+
+Dataset 
+
+Incremental 
+
+Training Dataset 
+
+FEEDER for 
+
+Training Dataset 
+
+FEEDER 
+
+Extractor 
+
+FEEDER 
+
+Extractor 
+
+FEEDER for 
+
+Incremental 
+
+Dataset 
+
+Figure A3. In order to scale up FEEDER for real-world applications dealing with dynamic data, we introduce an incremental update algorithm. This algorithm is designed to efficiently handle changes in training examples, avoiding the need to recompute over un-changed training examples. 
+
+A8. FEEDER in Fine-tuning Setting 
+
+A8.1. Implementation Details 
+
+As summarized in Algorithm 1 in Section 2, we can in-tegrate our FEEDER selection and LLM fine-tuning into a bi-level optimization problem. To evaluate the performance of our bi-level optimization, we first run Algorithm 1 for one run to get a pre-selected FEEDER set (i.e., DFEEDER ) and a tuned LLM. Then, we update our FEEDER set with the tuned LLM and evaluate the performance of LLM in the in-context learning setting (i.e., few-shot inference), where we allow the LLM to retrieve relevant information from the pre-selected FEEDER set or the training dataset. Concretely, our baseline is to first tune the LLM on the entire training dataset (i.e., DTRAIN ) and then do few-shot inference on the test dataset (i.e., DTEST ) with DTRAIN as the retrieval pool. In contrast, ours is to first pre-select a FEEDER set (i.e., 
+
+DFEEDER ) from DTRAIN and then tune the LLM on DFEEDER .Our FEEDER set is updated according to the tuned LLM using Algorithm 2 for 1 run, and our approach is evaluated on DTEST with the updated DFEEDER as the retrieval pool. We conduct the fine-tuning pipeline in this manner to not only verify the superiority of our FEEDER but also to validate our bi-level optimization framework, which is able to tune both the FEEDER set and the LLMs in each loop. We list some key hyper-parameters for fine-tuning as fol-lows. The batch size is set as 32, the warm steps is set as 100, the learning rate is set as 5 × 10 −5, and the weight decay is set as 0.01. All our experiments are conducted with NVIDIA A100s 3.
+
+A8.2. Additional Results with Diverse Datasets 
+
+We report performance comparison results on text classifi-cation datasets SUBJ, SST-2, and COLA datasets in Table 3. We include the results of FPB, SST-5, and TREC datasets in Table A5, whose trend is consistent with our analysis in Section 5.2. These results further verify the superiority of our FEEDER in the fine-tuning setting. 25 Supplementary Materials: FEEDER 
+
+Table A8. Performance comparisons between using randomly-selected D∗ 
+
+> TRAIN
+
+(where |D ∗
+
+> TRAIN
+
+| = |D TRAIN |) as the base for acquiring a 
+
+FEEDER set and using GPT-neo for inference on SST-2, SST-5, and COLA datasets are conducted in ICL. We report both the mean and variance of accuracy using 8 different seeds and 5 different permutations of n-shots. 
+
+ΨLLM (·) D n SST-2 SST-5 COLA Random Similarity Diversity Random Similarity Diversity Random Similarity Diversity GPT-neo (1.3B) 
+
+DTRAIN 
+
+2 76.8 (3.5) 81.5 (0.1) 76.3 (0.4) 17.9 (3.6) 26.9 (0.1) 22.7 (0.1) 30.7 (3.1) 55.5 (0.2) 56.5 (0.4) 
+
+5 65.1 (3.5) 80.8 (0.2) 66.1 (0.3) 19.0 (3.9) 29.2 (0.1) 25.1 (0.1) 40.0 (3.6) 55.9 (0.1) 52.5 (0.2) 
+
+D∗
+
+> TRAIN
+
+2 73.2 (3.6) 77.8 (2.3) 72.4 (2.4) 14.5 (3.8) 23.3 (3.6) 20.0 (1.0) 28.3 (5.4) 48.8 (3.3) 49.7 (3.1) 
+
+5 62.4 (3.5) 77.6 (3.3) 62.2 (2.2) 16.6 (2.8) 25.5 (2.1) 27.7 (2.8) 33.8 (4.4) 50.2 (3.4) 48.7 (2.8) 
+
+DFEEDER 
+
+2 75.1 (2.8) 82.6 (2.1) 78.5 (1.9) 19.7 (2.7) 27.4 (2.1) 22.8 (1.8) 59.3 (3.7) 64.7 (1.4) 64.7 (1.6) 
+
+5 73.2 (4.2) 82.9 (2.7) 71.6 (2.4) 19.2 (3.2) 30.2 (1.1) 26.4 (2.4) 58.7 (3.2) 67.2 (2.4) 65.8 (1.8) 
+
+A9. In-Depth Analysis of FEEDER 
+
+A9.1. Performance Gap between using FEEDER and RAN 
+
+as Pre-Selector 
+
+As our paper introduces a new pre-selection stage before the demonstration selection process, we also include an ablation study that randomly selects the same number of samples to form a randomly selected training dataset, denoted as 
+
+D∗
+
+> TRAIN
+
+, which matches the sample size of DFEEDER . The cor-responding results are reported in Table A8. A comparison of Table A8 with Tables 1 and A3 indicates that replacing the entire training dataset with randomly selected samples significantly degrades LLM performance. In contrast, the 
+
+FEEDER -selected samples act as a core set that summarizes the key information of the entire training dataset. By fo-cusing on high-value samples, our approach enables LLMs to achieve better performance, effectively leveraging the essential knowledge within the dataset. 
+
+A9.2. Performance Gap among Using Different Numbers of Rounds and Different Depths of Tree 
+
+FEEDER ’s performance first rises and then drops with in-creasing tree algorithm runs R. Figure A4 visualizes the impact of employing different numbers of runs of our ap-proximation algorithm (as described in Section 4) to derive 
+
+DFEEDER for fine-tuning NEO . For ease of comparison, the results of fine-tuning NEO on DTRAIN are also included with the blue line. The observations suggest that fine-tuning with a smaller dataset with high data quality can enhance perfor-mance, but excessively reducing the dataset size may not lead to the desired outcomes. Also, it also indicates that fine-tuning LLMs on “unnecessary” data samples would not help. As described in Section 4, we set the tree depth to 2 (cor-responding to K = 1 ), utilizing the one-shot inference capability of LLMs as the sufficiency filter to eliminate un-necessary samples. To further explore the performance im-
+
+> 3
+
+https://www.nvidia.com/en-us/ data-center/a100/ 
+
+Figure A4. Performance comparisons on fine-tuning NEO with run-ning our approximation algorithm to pre-select DFEEDER with dif-ferent run R. Our evaluation operates on COLA dataset in the zero-shot setting after fine-tuning on 1000 and 2000 batches. 
+
+Figure A5. Performance comparisons on fine-tuning NEO with run-ning our approximation algorithm to pre-select DFEEDER with dif-ferent round K. Our evaluation operates on COLA dataset in the zero-shot setting after fine-tuning on 1000 and 2000 batches. 
+
+26 Supplementary Materials: FEEDER 
+
+pact of varying tree depths, we investigate the performance gap associated with different depths of the tree. Figure A5 visualizes the impact of employing different numbers of runs of our approximation algorithm (as outlined in Sec-tion 4) to derive DFEEDER for fine-tuning NEO . For ease of comparison, the results of fine-tuning NEO on DTRAIN are also presented as a baseline (depicted by the blue line). The results suggest that fine-tuning with a smaller, high-quality dataset can significantly enhance performance. However, when comparing to Figure A4, we observe that increasing the tree depth leads to more “smoothing” changes in the LLM performance. There are two potential explanations for this phenomenon: (i) The hyper-parameter K, which controls the tree depth, typically changes within a relatively small scope compared to R due to its high computational cost and diminishing returns. While increasing K initially enhances the filtering process by leveraging deeper eval-uations of sufficiency, the marginal improvements in the quality or size of the resulting FEEDER set decreases as K
+
+grows. (ii) Increasing the tree depth corresponds to per-forming n-shot inference to satisfy the sufficiency condition described in Eq. (7). This is significantly more challeng-ing than a one-shot inference check and results in a much smaller reduction in the number of samples in the train-ing dataset. (iii) Leveraging the n-shot inference capability of LLMs may yield more robust results. Specifically, the unnecessary samples filtered out by an n-shot sufficiency check are more likely to be genuinely unnecessary, thereby ensuring a higher-quality training set for fine-tuning. 
+
+A9.3. Performance Gap between our Approximately Computed FEEDER Set and Exact FEEDER Set 
+
+As described in Section 4, our approximation algorithm en-sures the sufficiency of the resulting FEEDER set but does not guarantee the necessity of each sample within it. To address this, we employ the integration method outlined in Appendix A7, which ensures that the selected demon-strations are both sufficient and necessary. We denote this refined set as D∗
+
+> FEEDER
+
+. We compare the performance of few-shot preference using DFEEDER , D∗
+
+> FEEDER
+
+, and DTRAIN , with the results summarized in Table A9. The results indicates that 
+
+D∗ 
+
+> FEEDER
+
+achieves a slight improvement in LLM performance compared to DFEEDER , further validating the effectiveness of integrating sufficiency and necessity in the pre-selection process. We further evaluate the robustness of our D∗ 
+
+> FEEDER
+
+and 
+
+DFEEDER by duplicating the training dataset DTRAIN . The du-plicated dataset is denoted as D′
+
+> TRAIN
+
+, and the corresponding resulting sets derived using our approximation and integra-tion methods are denoted as D′ 
+
+> FEEDER
+
+and D∗′ 
+
+> FEEDER
+
+respec-tively. The results of this evaluation are summarized in Table A9. From the table, we observe that both random and similarity-based demonstration retrievers are significantly impacted by the duplicated dataset. This is because the re-trieved demonstrations can include duplicates, particularly when using a similarity-based retriever, as similarity scores are calculated independently for each sample. In contrast, our D′ 
+
+> FEEDER
+
+and D∗′ 
+
+> FEEDER
+
+act as “weak” and “strong” filters, respectively, by effectively removing redundant or unnec-essary samples from the input. The “weak” filter provided by D′ 
+
+> FEEDER
+
+ensures sufficiency by eliminating a significant portion of redundant data while maintaining the core in-formation needed for the task. On other hand, the “strong” filter represented by D∗′ 
+
+> FEEDER
+
+not only ensures sufficiency but also guarantees necessity, leading to an even more re-fined dataset that further enhances model robustness and performance. This differentiation highlights the flexibility and effectiveness of our filtering mechanisms in handling noisy or duplicated datasets. 
+
+A10. Case Study with Artificial Data Points Generated by LLMs 
+
+A10.1. Case Study for Transitivity of LLMs 
+
+To illustrate the transitivity of LLMs, we conducted a simple experiment using gpt -3.5-turbo . We prompted the model with the question which place does Jerry lives in? LLM responses with I’m sorry, but I don’t have access to personal information about individuals, including your friend Jerry. 
+
+Then, let DA, DB, DC denote the city, the country, and the continent he lives in. Then, we can observe that if we tell the LLM about the city (e.g., London), then the LLM can tell about the country (e.g., United Kingdom); if we tell the LLM about the country (e.g., United Kingdom), then the LLM can tell about the continent (e.g., Europe). Also, if we tell the LLM about the city (e.g., London), then we ask about the continent, and the LLM also can tell (e.g., Europe). This observation is one case to demonstrate the transitivity of sufficiency. 
+
+A10.2. Case Study for Demonstrations Selection Should be Aware of LLMs in Use 
+
+Subsequently, we conduct a case study to substantiate the central proposition of this paper: Whether the assessment of the quality of a demonstration should depend on the specific LLM in use. We consider the factual error made by Google Bard in the first demo 4. Bard said The James Webb Space Telescope took the very first pictures of a planet outside of our own solar system . However, the fact is The Very Large Telescope took the very first pictures of a planet outside of our own solar system . Based on the above statements, we produce 
+
+> 4https://www.theverge.com/2023/2/8/ 23590864/google-ai-chatbot-bard-mistake -error-exoplanet-demo
+
+27 Supplementary Materials: FEEDER 
+
+Table A9. Results of performance difference between using D∗ 
+
+> FEEDER
+
+(derived by using FEEDER version introduced in Appendix A7), we also evaluate the performance of our variants of FEEDER with duplicated training dataset. We evaluate GPT-neo’s performance on the n-shot settings. 
+
+ΨLLM (·) D n SST-2 SST-5 COLA Random Similarity Diversity Random Similarity Diversity Random Similarity Diversity GPT-neo (1.3B) 
+
+DTRAIN 
+
+2 76.8 (3.5) 81.5 (0.1) 76.3 (0.4) 17.9 (3.6) 26.9 (0.1) 22.7 (0.1) 30.7 (3.1) 55.5 (0.2) 56.5 (0.4) 
+
+5 65.1 (3.5) 80.8 (0.2) 66.1 (0.3) 19.0 (3.9) 29.2 (0.1) 25.1 (0.1) 40.0 (3.6) 55.9 (0.1) 52.5 (0.2) 
+
+D′
+
+> TRAIN
+
+2 73.4 (6.6) 78.4 (0.3) 75.4 (2.4) 14.9 (3.8) 22.7 (2.9) 21.7 (1.0) 29.3 (5.4) 49.8 (1.3) 52.7 (3.3) 
+
+5 59.4 (3.5) 75.3 (1.3) 64.1 (3.5) 17.5 (2.8) 23.5 (2.1) 22.7 (2.8) 37.8 (4.2) 51.2 (1.4) 51.0 (2.3) 
+
+DFEEDER 
+
+2 75.1 (2.8) 82.6 (2.1) 78.5 (1.9) 19.7 (2.7) 27.4 (2.1) 22.8 (1.8) 59.3 (3.7) 64.7 (1.4) 64.7 (1.6) 
+
+5 73.2 (4.2) 82.9 (2.7) 71.6 (2.4) 19.2 (3.2) 30.2 (1.1) 26.4 (2.4) 58.7 (3.2) 67.2 (2.4) 65.8 (1.8) 
+
+D′
+
+> FEEDER
+
+2 74.3 (2.9) 81.3 (1.1) 76.4 (1.8) 18.2 (2.2) 26.1 (2.1) 21.0 (1.8) 58.3 (2.7) 62.5 (1.4) 63.5 (1.1) 
+
+5 71.1 (3.2) 80.0 (2.4) 69.8 (2.1) 19.0 (2.0) 29.4 (1.3) 25.3 (2.1) 57.5 (3.0) 65.0 (2.4) 64.1 (1.8) 
+
+D∗
+
+> FEEDER
+
+2 75.6 (1.8) 83.1 (1.0) 79.0 (1.1) 20.1 (2.0) 27.8 (2.3) 23.1 (1.2) 60.2 (3.2) 64.9 (1.4) 65.0 (1.1) 
+
+5 73.7 (4.1) 82.8 (2.2) 71.8 (2.1) 19.0 (3.0) 31.2 (1.0) 26.3 (2.1) 59.2 (2.7) 67.3 (2.1) 65.4 (2.2) 
+
+D∗′
+
+> FEEDER
+
+2 75.2 (2.0) 82.8 (2.0) 78.4 (1.3) 19.9 (2.2) 27.0 (2.1) 22.7 (1.8) 59.4 (1.7) 64.9 (1.2) 64.5 (1.2) 
+
+5 73.5 (4.2) 82.4 (2.2) 71.3 (2.2) 18.9 (2.2) 29.9 (1.0) 26.2 (1.2) 56.5 (2.2) 65.5 (2.2) 64.7 (1.4) 
+
+the question What took the very first pictures of a planet outside of our own solar system? 
+
+We ask the question to gpt -3.5-turbo . The corresponding answer is: 
+
+The first pictures of a planet outside of our own solar sys-tem were taken by the Hubble Space Telescope in 2008. The planet, named Fomalhaut b, orbits the star Fomalhaut, which is located about 25 light-years away from Earth in the constellation Piscis Austrinus. 
+
+We can see that the above answer is incorrect. We prompt the fact into the LLM, then the answer is: 
+
+The Very Large Telescope took the very first pictures of a planet outside of our own solar system. 
+
+This indicates that prompting the fact works. We further ask 
+
+gpt -3.5-turbo to generate some sufficient statements for the fact. The following is its output: 
+
+1. The Very Large Telescope made history by capturing the first-ever images of a planet beyond our solar system. 2. Thanks to the advanced technology of the Very Large Telescope, scientists were able to capture the first-ever pho-tographs of an exoplanet. 3. The groundbreaking images captured by the Very Large Telescope marked a major milestone in the study of exoplan-ets. 4. The discovery of a planet outside of our solar system was made possible by the cutting-edge capabilities of the Very Large Telescope. 5. The Very Large Telescope’s ability to capture images of distant celestial bodies allowed scientists to observe an exoplanet for the first time in history. 
+
+We also evaluate separately using the above statements as a prompt to gpt -3.5-turbo , and either one of them can lead to the correct answer. We provide detailed answers as follows. 
+
+1. The Very Large Telescope took the very first pictures of a planet outside of our own solar system. 2. The Very Large Telescope took the very first pictures of a planet outside of our own solar system. 3. The Very Large Telescope took the very first pictures of a planet outside of our own solar system. 4. The Very Large Telescope took the very first pictures of a planet outside of our own solar system. 5. The Very Large Telescope took the very first pictures of a planet outside of our own solar system. 
+
+We can see, in this case, that either one of the statements generated by gpt -3.5-turbo , is a sufficient and necessary instance to answer What took the very first pictures of a planet outside of our own solar system? 
+
+We further evaluate the performance of gpt -j-6b . Without any prompt (i.e., in the zero-shot setting), its answer is: 
+
+The Hubble Space Telescope. 
+
+We then prompt the above 5 statements provided by gpt -
+
+3.5-turbo into gpt -j-6b , then the answer is: 
+
+1. The first-ever images of a planet beyond our solar system have been captured by the Very Large Telescope in Chile. 2. The Hubble Space Telescope. 3. A team of astronomers led by the University of Arizona’s 
+
+28 Supplementary Materials: FEEDER                
+
+> /(!#,*$.#, .&*)-
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> &1#
+> 
+> 
+> 
+> 
+> 
+> 
+>  
+>  
+>  
+> 
+> 
+> /(!#,*$*/)"-
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> !( ''
+> 
+>  
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> '&+  0
+
+'&+ 0                      
+
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> *%'*--'&+  0
+> 
+> /(!#,*$.#, .&*)-
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> &1#
+> !
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+> 
+>  
+> 
+> 
+> /(!#,*$*/)"-
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> !( ''
+> 
+>  
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> '&+  0
+
+'&+ 0                   
+
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> *%'*--'&+  0
+> 
+> 0)!$-+%/$-/'+*.
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> '2$
+> "
+>  
+>  
+>  
+> 
+> 
+>  
+>  
+> 
+> 
+> 
+> 
+> 0)!$-+%+0*#.
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> !) ((
+> 
+>  
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> (',  1
+
+(', 1                         
+
+> 
+> /(!#,*$.#, .&*)-
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> &1#
+> " 
+>  
+> 
+>  
+> 
+> 
+> 
+> 
+> 
+> /(!#,*$*/
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> !( ''
+> 
+> .' "+)#-"+-%)(,
+> 
+> 
+> 
+> 
+> 
+> 
+> %0"
+> "
+>  
+> 
+> 
+>  
+>  
+>  
+> 
+> 
+> .' "+)#).(!,
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> '&&
+> 
+>  
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> &%*/
+
+&%*/                      
+
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> )$&),,&%*/
+> 
+> .' "+)#-"+-%)(,
+> 
+> 
+> 
+> 
+> 
+> 
+> %0"
+> #
+>  
+>  
+>  
+> 
+> 
+>  
+>  
+>  
+> 
+> 
+> .' "+)#).(!,
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> '&&
+> 
+>  
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> &%*/
+
+&%*/                    
+
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> )$&),,&%*/
+> 
+> .' "+)#-"+-%)(,
+> 
+> 
+> 
+> 
+> 
+> 
+> %0"
+> $
+>  
+> 
+>  
+> 
+>  
+> 
+>  
+> 
+> 
+> 
+> 
+> .' "+)#).(!,
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> '&&
+> 
+>  
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> &%*/
+
+&%*/             
+
+> 
+> /( ",*#.",.&*)-
+> 
+> 
+> 
+> 
+> 
+> 
+> &1"
+> % 
+>  
+> 
+> 
+> 
+> 
+> 
+>  
+>  
+>  
+> 
+> 
+> /( ",*#*
+>  
+>  
+>  
+>  
+> 
+> 
+> 
+> ('
+
+Figure A6. Performance comparisons for running our approximation algorithm to pre-select FEEDER with different iterations K are evaluated in terms of accuracy (denoted as ACC) with RAN as the retriever and the size of the resulting FEEDER set (denoted as Size). Each sub-figure is entitled with Dataset+LLM base+n shots. 
+
+Michael Liu. 4. The Hubble Space Telescope. 5. The Very Large Telescope. 
+
+We can see that only the 1-st statement or the 5-th statement is a sufficient and necessary instance. Combining the results of gpt -j-6b and the results of gpt -3.5-turbo can verify the core insight of our paper: the measurement over prompting a demonstration should consider what LLM is in use. 
+
+Furthermore, we also evaluate the performance of 3 GPT variants used in the paper. We begin by evaluating the zero-shot performance of gpt -neo -1.3B (denoted as NEO in the experiment), and its result is: 
+
+The first pictures of a planet outside of our own solar system were taken by the Voyager 1 spacecraft in 1977. 
+
+We then prompt the above 5 statements into gpt -neo -1.3B ,then the answer is: 
+
+1. The very large telescope was built in the early 1990s by the European Southern Observatory (ESO) in Chile. The Very Large Telescope. 2. The Very Large Telescope in Chile. 3. The Very Large Telescope (VLT) in Chile. 4. The Very Large Telescope. 5. The Very Large Telescope in Chile. 
+
+The above results show that either one of the latter 4 state-ments is a sufficient instance. The results of gpt2 -large 
+
+(denoted as LAR in the experiment) show that neither of the 5 statements is a sufficient and necessary instance: 
+
+1. The very large telescope was built in the early 1990s by the European Southern Observatory (ESO) in Chile. The Very Large Telescope. 2. The Hubble Space Telescope. 3. The first pictures of a planet outside of our own solar system were taken by the Hubble Space Telescope in 1990. 4. The Hubble Space Telescope. 5. The very first pictures of a planet outside of our own solar system were taken by the Hubble Space Telescope. 
+
+The results of gpt2 -medium (denoted as MED in the experi-ment) show that only the 4-th statement is not a sufficient and necessary instance: 
+
+1. The Very Large Telescope. 2. The Very Large Telescope. 3. The Very Large Telescope. 4. The Hubble Space Telescope. 5. The Very Large Telescope. 
+
+All the above results verify that quality of one demonstration 29 Supplementary Materials: FEEDER 
+
+should be LLM-specific, which is the key idea of our paper. 
+
+Algorithm 4 Alternative Exact Algorithm for FEEDER 
+
+Input: Training dataset DTRAIN .
+
+Output: Exact FEEDER eDFEEDER .Initialize the number of rounds r = 0 .Initialize the set of unnecessary data Dr = ∅.
+
+repeat 
+
+Initialize k = 1 .Initialize H0 = ∅.Update input data by removing the unnecessary part 
+
+DIN = DTRAIN − D r .
+
+for each instance (xn, yn) ∈ D IN do 
+
+Check Y({xn′ |xn′ ∈D IN }) = 1|D IN ||unplug (( xn, yn
+
+)); C, S (a), C = DIN , S = ( Y({xn′ |xn′ ∈D IN }) =
+
+1|D IN | ).If (a) holds, let Hn = {(xn, yn)} and append Hn
+
+to H0.
+
+repeat for each pair (Hi, Hj ) where Hi, Hj ∈ Hk−1 do 
+
+Check Y({xn|xn∈D IN }) = 1|D IN ||unplug (Hi ∪Hj ); C, S (b), where C = DIN and S =(Y({xn′ |xn′ ∈D IN }) = 1|D IN | ).If (b) holds, generate a new node Hi ∪ H j , ap-pend it to Hk, and assign Hi ∪ H j ; otherwise, append Hi and Hj to Hk.Remove Hi, Hj from Hk−1, i.e., Hk−1 =
+
+Hk−1 − {H i, Hj }.Grow tree from bottom to top via k = k + 1 .
+
+until |Hk| = 1 where we assume the current round is K;Let HUNNCESSARY denote only one element (i.e. the root node) in HK .Update the number of rounds, i.e., r = r + 1 .Update Dr to include the unnecessary part HUNNCESSARY ,i.e., Dr = Dr ∪ H UNNCESSARY .
+
+until |H UNNCESSARY | ≤ 1;Assign eDFEEDER as removing Dr from DTRAIN , i.e., eDFEEDER =
+
+DTRAIN − D r .30
