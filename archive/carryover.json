@@ -1,12 +1,59 @@
 {
-  "generated_at": "2026-06-09T03:43:23.914852+00:00",
-  "updated_date": "20260531-20260609",
+  "generated_at": "2026-06-09T12:12:06.368475+00:00",
+  "updated_date": "20260511-20260609",
   "carryover_days": 9,
   "tag_states": {
     "pe": {
       "updated_date": "20260531-20260609",
       "carryover_days": 9,
       "items": []
+    },
+    "prompt-evol": {
+      "updated_date": "20260511-20260609",
+      "carryover_days": 9,
+      "items": [
+        {
+          "id": "2605.26046v1",
+          "source": "arxiv",
+          "title": "When Gradients Collide: Failure Modes of Multi-Objective Prompt Optimization for LLM Judges",
+          "abstract": "Customizing an LLM judge to a specific task or domain often involves optimizing its prompt across multiple evaluation criteria simultaneously. Textual gradient methods automate this for a single judge criterion, however they produce natural-language critiques, not numerical vectors. Thus, the conflict-resolution toolkit of multi-task learning (PCGrad, MGDA) doesn't apply to the multi-objective textual gradient setting. We test five decomposition modes of textual gradient optimizers by varying how much cross-task information the loss, gradient and optimizer LLMs share. In 6 of 10 configurations, we observe that optimization never improves over the initial prompt. Gradient specificity drops by 59% (from 9.0 to 3.7) when the gradient LLM processes multiple criteria jointly. Separately, we observe that naively combining per-task instructions into a single prompt degrades Spearman's rho by -5.3%. These results identify two separable failure modes: optimization-time gradient dilution and inference-time instruction interference, which together constrain the design space for multi-objective judge customization using textual feedback.",
+          "authors": [
+            "Parth Darshan",
+            "Abhishek Divekar"
+          ],
+          "primary_category": "cs.CL",
+          "categories": [
+            "cs.CL",
+            "cs.AI",
+            "cs.LG",
+            "cs.MA",
+            "cs.SE"
+          ],
+          "published": "2026-05-25T17:08:55+00:00",
+          "link": "https://arxiv.org/pdf/2605.26046v1",
+          "tags": [
+            "keyword:prompt-evol",
+            "query:prompt-evol"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "Studies failure modes of multi-objective prompt optimization using textual gradients, revealing challenges in iterative prompt refinement.",
+          "llm_evidence_cn": "研究使用文本梯度的多目标提示优化失败模式，揭示迭代提示精炼中的挑战。",
+          "llm_evidence": "研究使用文本梯度的多目标提示优化失败模式，揭示迭代提示精炼中的挑战。",
+          "canonical_evidence": "研究使用文本梯度的多目标提示优化失败模式，揭示迭代提示精炼中的挑战。",
+          "llm_tldr_en": "Investigates multi-objective prompt optimization for LLM judges via textual gradients, finding that gradient specificity degrades when tasks share information, and 6 out of 10 configurations fail to improve over the initial prompt, highlighting pitfalls in iterative prompt improvement.",
+          "llm_tldr_cn": "针对为LLM评判器同时优化多个评估标准的提示，研究文本梯度方法在多目标场景下的失败模式。实验表明，当损失、梯度和优化器LLM间共享任务信息时，梯度针对性下降59%，10种配置中有6种从未优于初始提示。该工作揭示了迭代文本梯度优化的潜在冲突，为多目标提示改进提供了警示性发现。",
+          "llm_tldr": "针对为LLM评判器同时优化多个评估标准的提示，研究文本梯度方法在多目标场景下的失败模式。实验表明，当损失、梯度和优化器LLM间共享任务信息时，梯度针对性下降59%，10种配置中有6种从未优于初始提示。该工作揭示了迭代文本梯度优化的潜在冲突，为多目标提示改进提供了警示性发现。",
+          "llm_tags": [
+            "query:prompt-evol"
+          ],
+          "matched_query_tag": "query:prompt-evol",
+          "matched_query_text": "iterative prompt optimization strategies",
+          "matched_requirement_id": "req-10",
+          "selection_source": "carryover_cache",
+          "paper_id": "2605.26046v1",
+          "carry_days": 1
+        }
+      ]
     }
   }
 }

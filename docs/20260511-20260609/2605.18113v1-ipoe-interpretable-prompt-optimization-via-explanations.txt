@@ -1,0 +1,450 @@
+Title: iPOE: Interpretable Prompt Optimization via Explanations
+
+URL Source: https://arxiv.org/pdf/2605.18113v1
+
+Published Time: Tue, 19 May 2026 02:12:19 GMT
+
+Number of Pages: 17
+
+Markdown Content:
+# iPOE: Interpretable Prompt Optimization via Explanations 
+
+## Jiahui Li, Sean Papay and Roman Klinger 
+
+## Fundamentals of Natural Language Processing, University of Bamberg, Germany 
+
+## {jiahui.li,sean.papay,roman.klinger}@uni-bamberg.de 
+
+## Abstract 
+
+Prompt optimization has often been framed as a discrete search problem to find high-performing and robust instructions for an LLM. However, the search result might not make it transparent why and where specific prompt changes lead to performance gains. This is in contrast to how humans are instructed for anno-tation tasks. Here, researchers carefully design annotation guidelines, leading to enhanced an-notation consistency. Our paper aims at joining these two approaches and introduces iPOE, a novel interpretable prompt optimization strat-egy via explanations. We guide the prompt optimization process by automatically created guidelines from explanations of annotation de-cisions (either automatically generated or from humans). This set of guidelines is furthermore optimized by as series of operations, includ-ing removing, adding, shuffling, and merging. The resulting prompt includes guidelines that instruct the annotation, making the decision process of the LLM and the optimization trans-parent. It therefore supports also laypeople in the area of prompt optimization, particularly in challenging domains requiring expertise. In our experiments on four datasets, we find that iPOE can improves over prompts without guidelines and with random selected guidelines by up to 
+
+31% and 35% , respectively. Moreover, LLM explanations can replace human explanations in the proposed method. 
+
+## 1 Introduction 
+
+The effectiveness of large language models (LLM) often relies on the expertise of a prompt engi-neer (Mishra et al., 2022; Liu et al., 2023; Tan et al., 2024). A challenge for them is prompt brittleness, wherein minor modifications in prompt phrasing lead to substantial differences in LLM outputs (Lu et al., 2022; Tang et al., 2024). One approach to support the development of prompts are discrete search strategies to optimize hard prompts that aim at identifying prompt variants yielding improved Is the following text hatespeech? 
+
+> Think through the following guidelines:
+> 1. To identify hate speech, consider presence of
+> derogatory terms or slurs…
+> 2. When detecting hate speech, assign a label
+> of 'normal' if the text is used in a factual…
+> “Those two were the first racist in the white house.”
+> Is the following text hatespeech?
+> “Those two were the first racist in the white house.”
+> Explanations Pool
+> Label: normal
+> Explanation: The text contains the
+> word ‘racist', but it is used in a
+> factual and descriptive manner…
+> Example
+> Prompt Optimization
+
+Figure 1: The depiction of our proposed iPOE method to generate guidelines as a prompt. The example prompts are bolded and the text is quoted. 
+
+performance (Pryzant et al., 2023; Prasad et al., 2023). However, content-level modifications, such as incorporating explicit task descriptions or guid-ance, have a greater impact on model performance than lexical perturbations (Lampinen et al., 2022; Yugeswardeenoo et al., 2024; Li et al., 2025). A similar strategy for improving human anno-tator performance is to provide clearer instruc-tions. Such instructions, the annotation guidelines, are also often iteratively improved, by measuring inter-annotator agreement (Griffitt and Strassel, 2016) and adapting them if needed. Good in-structions have a substantial impact on annota-tion quality (Pradhan et al., 2022; Fazelpour and De-Arteaga, 2022). Interestingly, such annota-tion guidelines can also enhance performance by mitigating bias and ambiguity for LLMs reason-1
+
+> arXiv:2605.18113v1 [cs.CL] 18 May 2026
+
+ing (Wang et al., 2023). This combination of using annotation guidelines for humans in LLMs is arguably a mismatch. As LLMs are not human annotators, applying such guidelines to a prompt does not guarantee the con-sistency of LLMs to capture or adhere to concept definitions specified in these guidelines (Zhang et al., 2023; Fonseca and Cohen, 2024). This obser-vation highlights the weakness of applying existing annotation guidelines, which are designed by hu-mans and targeted at humans, directly to LLMs. Moreover, manually crafting high-quality guide-lines is itself a challenging task, requiring exper-tise not only in the task domain but also in under-standing model behavior (Reynolds and McDonell, 2021; Zamfirescu-Pereira et al., 2023). We therefore propose to use the idea of itera-tively refining guidelines, as commonly done for humans, but consequently with LLMs. Our ap-proach iPOE (Interpretable Prompt Optimization via Explanations) derives guidelines from explana-tions of annotation decisions. These decision ex-planations are part of some data sets, but can also automatically created posthoc. We illustrate the approach in Figure 1: The output of our method consists of an augmentation of an iteratively op-timized set of guidelines that extend an existing prompt for a given task in an interpretable man-ner. All of our data and code is available at 
+
+https://Blinded-for-review/ 1.
+
+## 2 Related Work 
+
+In the following, we discuss related work on an-notation guideline development for human anno-tations, prompt optimization methods, and annota-tion guideline use in prompts. 
+
+2.1 Annotation Guidelines for Humans 
+
+Traditional annotation process requires iterative re-finement of guidelines between researchers and annotators to ensure clarity of tasks (Griffitt and Strassel, 2016). This process involves multiple rounds of inspecting annotation disagreements, dis-cussing with annotators, and identifying patterns to improve the guidelines. The final guidelines often consist of a detailed description of the task, examples, and relevant cri-teria for particular cases. Cole (2011) highlight the importance of knowledge formulation in guide-
+
+> 1The supplementary material is bigger than OpenReview allows, and we will make it available upon paper acceptance.
+
+lines, revealing that humans’ understanding of a task evolves throughout the process of information searching. The lack of specificity about precise mechanisms can also bring implicit biases during the annotation process, leading to invalid experi-mental designs (Fazelpour and De-Arteaga, 2022). Although recent crowd-sourcing approaches make annotation more accessible and cost-effective, they can also introduce additional ambiguity. Prad-han et al. (2022) demonstrate that fine-grained an-notation guidelines can mitigate such ambiguity and improve data quality. Similarly, Kulesza et al. (2014) propose structured labeling solutions to en-hance human annotation consistency for machine learning systems. 
+
+2.2 Prompt Optimization 
+
+To address the limitation of manually designed prompts, early work proposed to automatically cre-ate prompts for models (Shin et al., 2020). They formulate prompt optimization as a discrete search problem. Previous methods explored heuristic search, such as beam search for the zero-shot re-ranking process (Cho et al., 2023), or the use of edit operations including delete, swap, add, and para-phrase to navigate the prompt space (Prasad et al., 2023). Similarly, Resendiz and Klinger (2023) pro-pose an automatic prompt optimization approach for emotion-conditioned text generation by adding, removing, or replacing tokens. Yang et al. (2024) and Li and Klinger (2025) search for new prompt candidates by edit-based and LLM rewriting meth-ods supported by human understanding on addi-tional information. Evolutionary strategies were also employed to balance exploration and exploita-tion in discrete prompt search (Guo et al., 2025). However, their work lacks contextual information about the task, and the limited search space does not help mitigate potential biases in the task prompt. Therefore, we are inspired to incorporate an ex-panded context space and frame the problem as searching for an optimal set of guidelines. Another major research thread leverages prefer-ence signals or structured feedback. Pryzant et al. (2023) introduce natural language “gradients” to critique prompts and guide optimization, while Do et al. (2024) ask an LLM to propose edits based on the analysis of prompt-output pairs loss. Cheng et al. (2024) refine user prompts by incorporating human and AI preferences, constructing pairs of the original instruction and its optimized version to train a sequence-to-sequence instruction optimizer. 2G 
+
+> Operating on
+> Guidelines
+> Add
+> Remove
+> Replace
+> Merge
+> Shuffle
+> F( G' )>F( G)
+> Yes
+> No
+> Updating G
+> G
+
+? G'  
+
+> Subsam ple
+> G'
+> LLM Labeled Data
+> +
+> Explanations
+> Guidelines
+> Guideline Set Adjusted Guideline Set
+> Comparing Performance
+
+Figure 2: The conceptual workflow of our iPOE ap-proach. G refers to the current guideline set which is an empty set in the very beginning, and G′ is the updated guideline set from the operations that achieves the best performance. F (·) refers to a performance metric. 
+
+Our approach also aim to exploit such additional in-formation either provided by humans or LLMs, but instead to generate rules and guidelines by learning from explanations. 
+
+2.3 Annotation Guideline Use in Prompts 
+
+Building on top of effective human annotation pro-cess, recent work focus on exploiting annotator guidelines during the model development process. These guidelines are a natural source of informa-tion, which constitute high-quality information on the task. Sainz et al. (2024) fine-tune models to comply with released guidelines by authors, re-sulting in improved zero-shot information extrac-tion performance. Wang et al. (2023) show that expert-written instructions can enhance LLMs on information extraction tasks, emphasizing the value of explicit task guidance. In contrast, other stud-ies express less confidence in directly incorporat-ing human annotation guidelines into model inputs. Zhang et al. (2023) report only limited enhance-ment when integrating annotator guidelines into prompts for LLMs. Fonseca and Cohen (2024) find that LLMs exhibit inconsistent capabilities when leveraging their manually designed anno-tation guidelines with conceptual definitions for classification tasks. Thus, our work concentrates 
+
+Algorithm 1 Prompt Optimization with Guidelines 
+
+Require: P : prompt prefix; D: training data; I:maximum iterations; O: guideline operators  
+
+> 1:
+
+R ← LLM( D) ▷ generate guidelines pool  
+
+> 2:
+
+G ← ∅ ▷ current guideline set  
+
+> 3:
+
+S ← F (P ⊕ G) ▷ score of prompt prefix concatenated with current guidelines  
+
+> 4:
+
+for i = 1 to I do  
+
+> 5:
+
+g ∼ Sample( R) 
+
+> 6:
+
+for all o ∈ O do  
+
+> 7:
+
+G′ ← o(G, g ) 
+
+> 8:
+
+S′ ← F (P ⊕ G′) 
+
+> 9:
+
+if S′ > S then  
+
+> 10:
+
+G ← G′ 
+
+> 11:
+
+S ← S′ 
+
+> 12:
+
+end if  
+
+> 13:
+
+end for  
+
+> 14:
+
+end for  
+
+> 15:
+
+return P ⊕ G
+
+on automatically constructing more comprehensive guidelines that adapt to model understanding. While language models are known to acquire sufficient conceptual structure to generalize across related concepts (Patel and Pavlick, 2022), Min et al. (2022) observe that LLMs gain limited bene-fit from input–label examples alone. Therefore, we exploit the generalization abilities of LLMs to gen-erate new annotation guidelines by learning from provided samples along with explanations. 
+
+## 3 Methods 
+
+Figure 2 illustrates the conceptual workflow of our iPOE approach. The labeled data along with its explanations is first converted to a guideline pool. Then the workflow begins with a prompt prefix and proceeds through a number of iterations to upgrade the guideline set. For each iteration, multiple opera-tions are applied with guidelines sampled from the guideline pool. We also provide a formal explana-tion of the method in Algorithm 1. In this section, we explain the prompt optimization process and operations used to edit the guideline set in details. 
+
+Iterative Optimization. We first employ a LLM to produce rule-like guidelines from the human la-beled data along with its explanations, either writ-ten by humans or LLMs, to obtain the guidelines pool R for the optimization process. The work-flow begins with a prompt prefix P and the current guideline set G is empty. In each iteration, we 3Type Prompt 
+
+Natural language explanation 
+
+"role": "user", "content": Provide a brief explanation for why the given label was chosen in the above task. When writing the explanation, you may describe the key cause or feature that led to your decision, link it to the general rule, principle, or pattern defined in the task, and keep only relevant details. Text: {text} Label: {label} 
+
+Feature attributions explanation 
+
+"role": "user", "content": Highlight the words or phrases in the text that contribute most significantly to the assignment of the given label. Text: {text} Label: {label} 
+
+Guideline for natural language explanation 
+
+"role": "user", "content": Using the provided sample text and its corresponding human annotation, along with alist of feature attribution explanations that are most responsible for why the label was chosen, provide a rule-based guideline for performing this {task_name} task. The guideline should be written in one paragraph. Text: {text} Label: {label} Explanation: {explanation} 
+
+Guideline for feature attributions explanation 
+
+"role": "user", "content": Using the provided sample text and its corresponding human annotation, along with alist of feature attribution explanations that are most responsible for why the label was chosen, provide a rule-based guideline for performing this {task_name} task. The guideline should be written in one paragraph. Text: {text} Label: {label} Explanation: {explanation} 
+
+Merge guidelines 
+
+"role": "user", "content": Please rewrite the following guidelines into one guideline. 1: {guideline 1} 2: {guideline 2} ... 
+
+Structured system prompt 
+
+"role": "system", "content": Provide the explanation in exactly one valid JSON object — nothing else. The JSON object must have exactly one field: {"{feature_name}": "<{feature}>"} 
+
+Table 1: Meta prompts to generate different types of explanations and respective guidelines. The structured system prompt is employed for the system role of all prompts to generate .json format outputs. 
+
+subsample a small set of guidelines g and perform a set of guideline operators O on g respectively. Among all possible operations, we compute the performance scores evaluated on the training data and attain the new guideline set G′ that achieves the highest performance: 
+
+G′ = arg max 
+
+> o∈O
+> g⊂R
+
+F (P ⊕ o(G, g )) ,
+
+where F denotes the performance metric and ⊕
+
+refers to the concatenation of two strings. The framework then checks whether the winner opera-tion yields an improvement: 
+
+F (P ⊕ G′) > F (P ⊕ G).
+
+If the candidate operation improves performance, the guidelines are updated according to 
+
+G ← G′.
+
+Otherwise, the update is rejected, and the system remains the current guideline set. The above steps are repeated iteratively until a predefined maximum iteration I.
+
+Operations. Each operation is performed on a set of selected guidelines which is sampled from the generated guidelines database. We provide two sampling strategies: no-control (iPOE) and label-control (iPOE-lb). The no-control method refers to random sampling without any control of which label the sampled guidelines belong to. The label-control method uses uniform sampling according to the gold label of related guidelines, which en-sures that guidelines exist in the set for each label. The two methods are employed differently in each iteration when a guideline set are subsampled from the guideline pool, which only affect the ‘remove’ 4Dataset Train Va/Te Exph Typ 
+
+crowd-enVent 5184 648 985 Na HealthFC 600 75 600 Na HealthVer 11464 1433 0 —HateXplain 9132 1142 9132 Fe 
+
+Table 2: Statistics of the evaluated datasets. Train, Va/Te :Number of retained instances for train, validation, and test splits. The validation and test splits contain the same number of instances. Exph : Number of avail-able instances that are annotated with explanations; Typ :Type of explanation; Na : Natural language explanation; 
+
+Fe : Feature attributions explanation. 
+
+operation. The full list of operations are: • Add: Add the selected guidelines in the end of the current guideline set. • Remove: Remove n guidelines in the current set randomly for the vanilla method, where n
+
+is the number of selected guidelines, or n = 1 
+
+if the current guideline set is smaller than the selected guideline set; remove one random guideline per label that exists in the selected guideline set for the label-control method. • Replace: Replace the guidelines which are removed in the ‘Remove’ operation with the selected guidelines. • Merge: Merge the selected guidelines with the guidelines in the current set that share the same gold label using a LLM. The meta-prompts for merging guidelines are shown in Table 1 and an example for this operation is provided in Appendix A.1. • Shuffle: Shuffle the order of guidelines in the current set. 
+
+## 4 Experiments 
+
+We evaluate our iPOE approach on four tasks across three LLMs. The experiments involve both human-written and LLM-generated explanations to validate the feasibility of replacing human effort with LLMs for producing guidelines in the iPOE method. Table 3 provides an example of these two explanation types and respective guidelines. The evaluation covers two types of explanations: natu-ral language explanations and feature attributions, which are among the primary explanation types col-lected and studied in explainability research. In this       
+
+> Field Text
+> Instance Text: I felt ... when I had to do the dishes earlier. Label: boredom Exp-h I hate the repetitive nature of dishes. Ugh. Gl-h Label the emotion as ’boredom’ when the text expresses a negative reaction to a repet-itive, monotonous, or tedious task, such as doing dishes, that is performed without engagement or enjoyment, and when the speaker explicitly or implicitly conveys frus-tration or disdain toward the routine nature of the activity. Exp-llm The label ’boredom’ was chosen because the text describes a mundane and routine task (doing the dishes) without any strong emotional connotation or excitement. This suggests a lack of engagement or interest, which is characteristic of boredom. Gl-llm When classifying emotions in text, select the label ’boredom’ if the text describes a mun-dane or routine task with a lack of strong emotional connotation or excitement, sug-gesting a lack of engagement or interest.
+
+Table 3: An example for human-written and LLM-generated explanations and corresponding guidelines. 
+
+Instance : An instance text and gold label from the crowd-enVent dataset; Exp-h : Human-written expla-nations; Exp-llm : LLM-generated explanations; Gl-h :Guidelines produced from Exp-h ; Gl-llm : Guidelines produced from Exp-llm .
+
+section, we will discuss the experimental settings and results in details. 
+
+4.1 Experimental Setting 
+
+In this section, we first describe the datasets and tasks used in our study, followed by the specific settings employed to obtain LLM predictions. We then outline the baselines used to compare with the iPOE approach. 
+
+Tasks. We evaluate our approach on four English-language datasets from three challenging domains in natural language processing: the CROWD -
+
+> EN
+
+VENT dataset (Troiano et al., 2023) for emo-tion classification, the H EALTH FC (Vladika et al., 2024) and H EALTH VER (Sarrouti et al., 2021) datasets for health fact-checking, and the H ATE X- 
+
+> PLAIN
+
+for hate speech detection (Mathew et al., 2021). The datasets crowd-enVent and HealthFC provide explanations in natural language, while Ha-teXplain offers feature attributions as explanations. There’s no human-written explanations for the la-beled data in HealthVer. All the datasets are split into train, validation, and test sets in a proportion of 80%, 10%, 10% respectively. Their statistics are shown in Table 2. 5Dataset Model Vanilla Rand-h Rand-llm iPOE-h iPOE-lb-h iPOE-llm iPOE-lb-llm                                                                                              
+
+> crowd-enVent Qwen3-4B .35 .36 .43 .50 .49 .50 .50
+> LLama3-8B .34 .43 .37 .48 .51 .49 .48 Qwen3-30B .40 .40 .45 .50 .51 .54 .50 HealthFC Qwen3-4B .60 .46 .65 .84 .83 .80 .84
+> LLama3-8B .48 .38 .63 .84 .76 .79 .78 Qwen3-30B .71 .77 .76 .80 .77 .79 .79 HealthVer Qwen3-4B .40 .35 .25 .62 .63 .64 .62 LLama3-8B .41 .34 .34 .60 .60 .63 .63 Qwen3-30B .63 .59 .59 .64 .64 .68 .67 HateXplain
+> Fe Na Fe Na
+> Qwen3-4B .44 .40 .25 .53 .53 .53 .54 .52 .52 LLama3-8B .36 .43 .48 .55 .53 .54 .53 .54 .51 Qwen3-30B .45 .48 .46 .57 .56 .57 .55 .54 .56
+
+Table 4: F1 scores of guideline prompts from different optimization methods for three LLMs. Vanilla : use only the prefix prompt. Rand-h : use the prefix prompt and randomly selected guidelines generated from human explanations. 
+
+Rand-llm : use the prefix prompt and randomly selected guidelines generated from LLM explanations. iPOE-h : use the prefix prompt and guidelines generated from the iPOE method without label control using human explanations. 
+
+iPOE-lb-h : use the prefix prompt and guidelines generated from the iPOE method with label control using human explanations. iPOE-llm : use the prefix prompt and guidelines generated from the iPOE method without label control using LLM explanations. iPOE-lb-llm : use the prefix prompt and guidelines generated from the iPOE method with label control using LLM explanations; Fe : use feature attributions to generate guidelines; Na : use natural language explanations to generate guidelines. The proposed methods are introduced in Section 3, LLMs are explained in Section 4.1, and the associated meta-prompts are displayed in Table 1. 
+
+For each dataset, we use human-written and LLM-generated explanations for producing guide-lines respectively. The explanations generated by LLMs share the same type with corresponding hu-man annotation. Considering that H EALTH VER 
+
+offers no human explanations but shares the same task domain with H EALTH FC, we use guidelines derived from the human annotation of H EALTH FC during the optimization process for H EALTH VER .
+
+LLMs. We select three LLMs capable of lo-cal deployment for evaluation: LLama-3.1-8B-Instruct (Patterson et al., 2022), Qwen3-4B-Instruct-2507 and Qwen3-30B-A3B-Instruct-2507 (Qwen, 2025). 2 All models are accessed and executed using the HuggingFace library ecosystem. In order to invoke the creativity of LLM genera-tions, we enable stochastic decoding via sampling for generating explanations and guidelines. Specif-ically, the decoding configuration was selected to match typical deployments, with top_p=0.9 ,
+
+temperature=0.6 , and top_k=50 . But the greedy decoding is used for predicting labels to avoid the problem of LLM uncertainty. The experiments are run on Nvidia A40 GPUs, with a total estimation 
+
+> 2https://huggingface.co/ :
+> meta-llama/Llama-3.1-8B-Instruct ,
+> Qwen/Qwen3-4B-Instruct-2507 ,
+> Qwen/Qwen3-30B-A3B-Instruct-2507 .
+
+of 15 , 860 GPU hours for our study. Model predic-tions are elicited in a zero-shot fashion: for each instance, the model is presented with the prompt, followed by the instance text. The generated text is then parsed by attempting to extract one of the requested labels from a .json format output. The meta prompts used in our study are listed in Table 1. The guideline prompt is evaluated with F1-macro measure for both training iterations and final test-ing. Considering the computational constraints, we set up the maximum optimization iterations as 
+
+500 for the LLama-3.1-8B-Instruct and Qwen3-4B-Instruct-2507 models, while 300 for the Qwen3-30B-A3B-Instruct-2507 model. 
+
+Baselines. To evaluate the effectiveness of our optimization process, we compare the proposed prompt optimization approach against two base-lines: (1) Vanilla, which uses the prefix prompt without guidelines, and (2) Random, which uses a randomly selected guideline set whose size equals the number of labels for each task. 
+
+4.2 Results 
+
+In the following, we present the results and analy-sis of the experiments described above. We begin by summarizing the performance of the iPOE ap-proach compared to the baseline methods. Next, we 6examine the effectiveness of the proposed method when human explanations are replaced with expla-nations generated by LLMs. We then report a case study in medical fact-checking to evaluate whether guidelines derived from one data distribution can be applied to another distribution within the same domain. Additionally, we investigate whether dif-ferent types of explanations influence the quality of producing the guidelines. Finally, we qualitatively analyze the evolution of the guideline set in one of the tasks. 
+
+Overall results. Table 4 reports the overall F1 scores on the test data. For our iPOE methods, we select the prompts which achieve the highest score on the validation data. We also provide the training and validation learning curves during the prompt optimization process in Appendix 3. Across all evaluated datasets and LLMs, our iPOE approach consistently outperforms the baselines. On aver-age, iPOE-h (human explanations without label control) improves over vanilla and random by 34% 
+
+and 39% , respectively. iPOE-lb-h (human expla-nations with label control) outperforms the two baselines by 32% and 37% , respectively. These re-sults suggest that label control during the guideline subsampling process has only a minor impact on the general performance. 
+
+Human explanations vs. LLM explanations. 
+
+To reduce human effort for the iPOE approach, we construct guidelines from LLM-generated explana-tions. As shown in Table 4, iPOE-llm (LLM expla-nations without label control) improves over vanilla and random (using LLM explanations) by 34% and 
+
+32% , respectively, while iPOE-lb-llm (LLM expla-nations with label control) achieves gains of 33% 
+
+and 31% . This indicates that LLM-generated ex-planations can produce guidelines for the iPOE approach with performance comparable to those derived from human-written explanations. Qualitatively, we observe that guidelines derived from human explanations exhibit similar patterns and logical rules to those generated from LLM explanations. An example from the emotion classi-fication task is illustrated in Table 3. 
+
+Out-of-distribution evaluation. The datasets containing human-written explanations for health fact-checking are scarce, and the selected HealthFC dataset is relatively small. To strengthen the robust-ness of our evaluation for the health fact-checking task, we specifically apply guidelines derived from the HealthFC dataset to the HealthVer dataset, which does not provide human explanations. Al-though both datasets address the same task domain, they differ in data distributions. The HealthFC dataset primarily focuses on German clinical trial claims, whereas the HealthVer dataset centers on health-related claims about COVID-19. Our re-sults show that guidelines generated using the iPOE method can effectively support out-of-distribution reasoning within the same domain. Moreover, the out-of-distribution guidelines exhibit capabilities comparable to those of the guidelines generated from the original distribution of the HealthVer train-ing data using LLM explanations. Both sets of guidelines share similar pattern. However, the HealthVer guidelines frequently include examples related to COVID-19. 
+
+Feature attributions vs. natural language expla-nations. For the hate speech detection task, we compare the application of guidelines derived from two explanation modalities including feature attri-butions and natural language explanations. In our previous evaluations on emotion classification and health fact-checking tasks, LLM-generated expla-nations were shown to provide comparable sup-port for guideline generation. We therefore use LLMs to generate natural language explanations from the labeled data in the HateXplain dataset, which originally provides only feature attribution explanations. Our results indicate that both ex-planation modalities yield guidelines with similar patterns and comparable effectiveness during the optimization process. 
+
+Qualitative analysis. To further compare the dif-ference between the iPOE approach and the base-line, we present several examples along with the predictions of the iPOE-h and vanilla methods in Table 5. The associated prompts are provided in Appendix A.3. The predictions are generated by the Llama-3.1-8B-Instruct model for the hate speech detection task. Specifically, we select 10 
+
+instances in which the vanilla method fails but the iPOE method succeeds. The examples illustrate in-correct predictions generated by the vanilla method from three perspectives: (1) instances labeled as ‘normal’ are misclassified as ‘hatespeech’ or ‘of-fensive’ text; (2) instances labeled as ‘hatespeech’ are predicted as ‘normal’; and (3) instances labeled as ‘offensive’ are wrongly viewed as ‘hatespeech’. In case (1), the guidelines provide clarifications for the label ‘normal’ and include examples of expres-7Text Gold Vanilla iPOE                               
+
+> everything is pretentious when you are ignorant trailer trash inspirational normal hatespeech normal miss my ghetto bitches normal hatespeech normal hiring a cleaning lady as a woman is ghetto debate your mom normal hatespeech normal looks like your average ghetto hopper normal offensive normal we went to the zoo to feed the niglet hatespeech normal hatespeech the muzrat euro marathon hatespeech normal hatespeech why are men actually retarded offensive hatespeech offensive can not fight for shit lmao literally arabs can not fight for shit offensive hatespeech offensive they must be a big minority in d.c. seeing <number> voted for the devil bitch offensive hatespeech offensive thank god no more of that chinaman and protea favourite tabraiz shamsi offensive hatespeech offensive
+
+Table 5: Example instances in which the vanilla baseline fails but the iPOE method succeeds. The instances are selected from the HateXplain dataset. Gold : the gold label from the original dataset; Vanilla : the label predicted by the vanilla baseline; iPOE : the label predicted by the iPOE method. The vanilla baseline uses only the prefix prompt without guidelines. For these examples, the iPOE method incorporates human explanations and the Llama-3.1-8B-Instruct model. The prefix prompt and guidelines are provided in Appendix A.3. 
+
+sions that may appear ironic but are not hateful. In case (2), the guidelines list typical derogatory terms associated with particular groups or individ-uals, which helps identify genuinely hateful con-tent. In case (3), the guidelines present specific rules and examples that help distinguish offensive content from hate speech. Across all cases, the vanilla prompt lacks such clarifications and exam-ples, which likely contributes to the model’s mis-understandings and resulting misclassifications. Additionally, we provide an example of the iPOE development process trained on the HealthVer dataset in Appendix A.4. The explanations and associated guidelines are generated by the Qwen3-4B-Instruct-2507 model. Several patterns are ob-served from this process. First, the guidelines pro-duced by LLMs tend to be longer than the corre-sponding explanations. The LLMs often supple-ment the guidelines with a formal description of how to select a specific label, along with typical instances and illustrative examples. We agree that this additional information helps clarify the task and improves readability. Second, some guidelines not only describe the features of the selected label but also explain how it differs from other labels, which assists in reducing bias and ambiguity in the task. Third, across all tasks, the ‘Merge’ operation accounts for the largest proportion of edits. This operation rewrites multiple guidelines derived from the same gold label into a more comprehensive yet concise form. 
+
+## 5 Conclusion and Future Work 
+
+We proposed interpretable prompt optimization as a novel approach to produce guidelines using either human-written or LLM-generated explana-tions. The guidelines are expected to support LLMs prediction. To search for the optimal guideline set, we further iteratively apply a series of operations in-cluding removing, adding, shuffling, and merging. With this approach, we instruct the LLM annota-tion by effective guidelines, offering a transparent decision process of the LLM and the optimization. Our results span four datasets for three do-mains and suggest that iPOE can enhance perfor-mance while producing prompts that are human-understandable and interpretable. Moreover, we demonstrate that LLM-generated explanations can effectively replace human-written explanations within the proposed approach, thereby reducing the need for costly human effort. The out-of-distribution evaluation also provides encouraging evidence that iPOE can be applied to other domains where human annotations are difficult to obtain. The proposed approach has revealed several chal-lenges that deserve further investigation. There is a need to explore more efficient methodologies for a faster convergence of the learning process. It is important to experiment with more rounds of the optimization process for a stable result. To evaluate the robustness of our work, we propose to compare with applying various prompt perturbation methods to the prefix prompt. 
+
+## Limitations 
+
+Despite the promising performance of our ap-proach, we observe several limitations. First, the availability of human-written explanations, es-pecially feature attributions, is limited. Conse-quently, the comparison between human-generated and LLM-generated explanations, as well as across different explanation types, remains constrained 8in scope. A more comprehensive analysis would require a more diverse collection of human anno-tations. Second, the optimization process was con-ducted for one round because of computational constraints. Running multiple optimization rounds could improve robustness and stability of the re-sults. Lastly, even though we qualitatively assess that the proposed guideline set enhances the inter-pretability of the relationship between task perfor-mance and prompt design, and that the prompts themselves facilitate user understanding of the task, we did not conduct a human study to validate these claims, primarily due to the associated costs. Incor-porating human evaluations would strengthen the evidence for the practical interpretability benefits of our approach. 
+
+## Ethical Considerations 
+
+The datasets used for our experiments are publicly available and we ensure that they have been col-lected according to ethical standards before em-ploying them. We do not change the intentional use for the evaluated datasets and LLMs. Our method does not contribute to the republication or redistribution of any datasets and models. We believe our findings provide valuable insights for future research in automatic annotation processes using LLMs. We acknowledge that the evaluated datasets involves potential ethical challenges. How-ever, as our work does not introduce a novel task and instead builds upon existing tasks, we do not anticipate additional ethical concerns beyond those already associated with prior work. Additionally, ChatGPT (OpenAI, 2025) was used to improve code generation for making figures and tables, as well as to assist with grammar and vocabulary in the text of some paragraphs of this paper. 
+
+## Acknowledgments 
+
+Blinded for review 
+
+## References 
+
+Jiale Cheng, Xiao Liu, Kehan Zheng, Pei Ke, Hongning Wang, Yuxiao Dong, Jie Tang, and Minlie Huang. 2024. Black-box prompt optimization: Aligning large language models without model training. In 
+
+Proceedings of the 62nd Annual Meeting of the As-sociation for Computational Linguistics (Volume 1: Long Papers) , pages 3201–3219, Bangkok, Thailand. Association for Computational Linguistics. Sukmin Cho, Soyeong Jeong, Jeong yeon Seo, and Jong Park. 2023. Discrete prompt optimization via con-strained generation for zero-shot re-ranker. In Find-ings of the Association for Computational Linguis-tics: ACL 2023 , pages 960–971, Toronto, Canada. Association for Computational Linguistics. Charles Cole. 2011. A theory of information need for information retrieval that connects information to knowledge. J. Am. Soc. Inf. Sci. Technol. ,62(7):1216–1231. Xuan Long Do, Yiran Zhao, Hannah Brown, Yuxi Xie, James Xu Zhao, Nancy F. Chen, Kenji Kawaguchi, Michael Shieh, and Junxian He. 2024. Prompt op-timization via adversarial in-context learning. In 
+
+Proceedings of the 62nd Annual Meeting of the As-sociation for Computational Linguistics (Volume 1: Long Papers) , pages 7308–7327, Bangkok, Thailand. Association for Computational Linguistics. Sina Fazelpour and Maria De-Arteaga. 2022. Diver-sity in sociotechnical machine learning systems. Big Data & Society , 9(1):20539517221082027. Marcio Fonseca and Shay Cohen. 2024. Can large lan-guage models follow concept annotation guidelines? a case study on scientific and financial domains. In 
+
+Findings of the Association for Computational Lin-guistics: ACL 2024 , pages 8027–8042, Bangkok, Thailand. Association for Computational Linguistics. Kira Griffitt and Stephanie Strassel. 2016. The query of everything: Developing open-domain, natural-language queries for BOLT information retrieval. In 
+
+Proceedings of the Tenth International Conference on Language Resources and Evaluation (LREC’16) ,pages 3741–3747, Portorož, Slovenia. European Lan-guage Resources Association (ELRA). Qingyan Guo, Rui Wang, Junliang Guo, Bei Li, Kaitao Song, Xu Tan, Guoqing Liu, Jiang Bian, and Yu-jiu Yang. 2025. Evoprompt: Connecting llms with evolutionary algorithms yields powerful prompt opti-mizers. Preprint , arXiv:2309.08532. Todd Kulesza, Saleema Amershi, Rich Caruana, Danyel Fisher, and Denis Charles. 2014. Structured labeling for facilitating concept evolution in machine learning. In Proceedings of the SIGCHI Conference on Hu-man Factors in Computing Systems , CHI ’14, page 3075–3084, New York, NY, USA. Association for Computing Machinery. Andrew Lampinen, Ishita Dasgupta, Stephanie Chan, Kory Mathewson, Mh Tessler, Antonia Creswell, James McClelland, Jane Wang, and Felix Hill. 2022. Can language models learn from explanations in con-text? In Findings of the Association for Computa-tional Linguistics: EMNLP 2022 , pages 537–563, Abu Dhabi, United Arab Emirates. Association for Computational Linguistics. Jiahui Li and Roman Klinger. 2025. iPrOp: Interac-tive prompt optimization for large language models with a human in the loop. In Proceedings of the 
+
+963rd Annual Meeting of the Association for Com-putational Linguistics (Volume 4: Student Research Workshop) , pages 276–285, Vienna, Austria. Associ-ation for Computational Linguistics. Jiahui Li, Sean Papay, and Roman Klinger. 2025. Are humans as brittle as large language models? In 
+
+Proceedings of the 14th International Joint Confer-ence on Natural Language Processing and the 4th Conference of the Asia-Pacific Chapter of the Asso-ciation for Computational Linguistics , pages 2130– 2155, Mumbai, India. The Asian Federation of Nat-ural Language Processing and The Association for Computational Linguistics. Pengfei Liu, Weizhe Yuan, Jinlan Fu, Zhengbao Jiang, Hiroaki Hayashi, and Graham Neubig. 2023. Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing. 
+
+ACM Comput. Surv. , 55(9). Yao Lu, Max Bartolo, Alastair Moore, Sebastian Riedel, and Pontus Stenetorp. 2022. Fantastically ordered prompts and where to find them: Overcoming few-shot prompt order sensitivity. In Proceedings of the 60th Annual Meeting of the Association for Compu-tational Linguistics (Volume 1: Long Papers) , pages 8086–8098, Dublin, Ireland. Association for Compu-tational Linguistics. Binny Mathew, Punyajoy Saha, Seid Muhie Yimam, Chris Biemann, Pawan Goyal, and Animesh Mukher-jee. 2021. Hatexplain: A benchmark dataset for explainable hate speech detection. Proceedings of the AAAI Conference on Artificial Intelligence ,35(17):14867–14875. Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe, Mike Lewis, Hannaneh Hajishirzi, and Luke Zettle-moyer. 2022. Rethinking the role of demonstrations: What makes in-context learning work? In Proceed-ings of the 2022 Conference on Empirical Methods in Natural Language Processing , pages 11048–11064, Abu Dhabi, United Arab Emirates. Association for Computational Linguistics. Swaroop Mishra, Daniel Khashabi, Chitta Baral, and Hannaneh Hajishirzi. 2022. Cross-task generaliza-tion via natural language crowdsourcing instructions. In Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 3470–3487, Dublin, Ireland. Association for Computational Linguistics. OpenAI. 2025. Chatgpt (gpt-4). https://chat. openai.com . Large language model. Roma Patel and Ellie Pavlick. 2022. Mapping language models to grounded conceptual spaces. In Interna-tional Conference on Learning Representations .David Patterson, Joseph Gonzalez, Urs Hölzle, Quoc Le, Chen Liang, Lluis-Miquel Munguia, Daniel Rothchild, David So, Maud Texier, and Jeff Dean. 2022. The carbon footprint of machine learn-ing training will plateau, then shrink. Preprint ,arXiv:2204.05149. Vivek K. Pradhan, Mike Schaekermann, and Matthew Lease. 2022. In search of ambiguity: A three-stage workflow design to clarify annotation guidelines for crowd workers. Frontiers in Artificial Intelligence ,5:828187. Archiki Prasad, Peter Hase, Xiang Zhou, and Mohit Bansal. 2023. GrIPS: Gradient-free, edit-based in-struction search for prompting large language models. In Proceedings of the 17th Conference of the Euro-pean Chapter of the Association for Computational Linguistics , pages 3845–3864, Dubrovnik, Croatia. Association for Computational Linguistics. Reid Pryzant, Dan Iter, Jerry Li, Yin Lee, Chenguang Zhu, and Michael Zeng. 2023. Automatic prompt op-timization with “gradient descent” and beam search. In Proceedings of the 2023 Conference on Empiri-cal Methods in Natural Language Processing , pages 7957–7968, Singapore. Association for Computa-tional Linguistics. Team Qwen. 2025. Qwen3 technical report. Preprint ,arXiv:2505.09388. Yarik Menchaca Resendiz and Roman Klinger. 2023. Emotion-conditioned text generation through auto-matic prompt optimization. In Proceedings of the 1st Workshop on Taming Large Language Models: Controllability in the era of Interactive Assistants! ,pages 24–30, Prague, Czech Republic. Association for Computational Linguistics. Laria Reynolds and Kyle McDonell. 2021. Prompt pro-gramming for large language models: Beyond the few-shot paradigm. In Extended Abstracts of the 2021 CHI Conference on Human Factors in Com-puting Systems , CHI EA ’21, New York, NY, USA. Association for Computing Machinery. Oscar Sainz, Iker García-Ferrero, Rodrigo Agerri, Oier Lacalle, German Rigau, and Eneko Agirre. 2024. Gollie: Annotation guidelines improve zero-shot information-extraction. In International Conference on Learning Representations , volume 2024, pages 47083–47107. Mourad Sarrouti, Asma Ben Abacha, Yassine Mrabet, and Dina Demner-Fushman. 2021. Evidence-based fact-checking of health-related claims. In Findings of the Association for Computational Linguistics: EMNLP 2021 , pages 3499–3512, Punta Cana, Do-minican Republic. Association for Computational Linguistics. Taylor Shin, Yasaman Razeghi, Robert L. Logan IV, Eric Wallace, and Sameer Singh. 2020. AutoPrompt: Elic-iting Knowledge from Language Models with Auto-matically Generated Prompts. In Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP) , pages 4222–4235, Online. Association for Computational Linguistics. Zhen Tan, Dawei Li, Song Wang, Alimohammad Beigi, Bohan Jiang, Amrita Bhattacharjee, Man-sooreh Karami, Jundong Li, Lu Cheng, and Huan Liu. 
+
+10 2024. Large language models for data annotation and synthesis: A survey. In Proceedings of the 2024 Con-ference on Empirical Methods in Natural Language Processing , pages 930–957, Miami, Florida, USA. Association for Computational Linguistics. Raphael Tang, Crystina Zhang, Xueguang Ma, Jimmy Lin, and Ferhan Ture. 2024. Found in the middle: Permutation self-consistency improves listwise rank-ing in large language models. In Proceedings of the 2024 Conference of the North American Chap-ter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pages 2327–2340, Mexico City, Mexico. As-sociation for Computational Linguistics. Enrica Troiano, Laura Oberländer, and Roman Klinger. 2023. Dimensional modeling of emotions in text with appraisal theories: Corpus creation, annotation reliability, and prediction. Computational Linguis-tics , 49(1):1–72. Juraj Vladika, Phillip Schneider, and Florian Matthes. 2024. HealthFC: Verifying health claims with evidence-based medical fact-checking. In Proceed-ings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024) , pages 8095– 8107, Torino, Italia. ELRA and ICCL. Xiao Wang, Weikang Zhou, Can Zu, Han Xia, Tianze Chen, Yuansen Zhang, Rui Zheng, Junjie Ye, Qi Zhang, Tao Gui, Jihua Kang, Jingsheng Yang, Siyuan Li, and Chunsai Du. 2023. Instructuie: Multi-task instruction tuning for unified information extrac-tion. Preprint , arXiv:2304.08085. Muchen Yang, Moxin Li, Yongle Li, Zijun Chen, Chong-ming Gao, Junqi Zhang, Yangyang Li, and Fuli Feng. 2024. Dual-phase accelerated prompt optimization. In Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 12163–12173, Mi-ami, Florida, USA. Association for Computational Linguistics. Dharunish Yugeswardeenoo, Kevin Zhu, and Sean O’Brien. 2024. Question-analysis prompting im-proves LLM performance in reasoning tasks. In 
+
+Proceedings of the 62nd Annual Meeting of the Asso-ciation for Computational Linguistics (Volume 4: Stu-dent Research Workshop) , pages 402–413, Bangkok, Thailand. Association for Computational Linguistics. J.D. Zamfirescu-Pereira, Richmond Y. Wong, Bjoern Hartmann, and Qian Yang. 2023. Why johnny can’t prompt: How non-ai experts try (and fail) to design llm prompts. In Proceedings of the 2023 CHI Confer-ence on Human Factors in Computing Systems , CHI ’23, New York, NY, USA. Association for Computing Machinery. Mozhi Zhang, Hang Yan, Yaqian Zhou, and Xipeng Qiu. 2023. Promptner: A prompting method for few-shot named entity recognition via k nearest neighbor search. Preprint , arXiv:2305.12217. 
+
+## A Appendix 
+
+A.1 An example for the ‘Merge’ operation 
+
+Table 6 illustrates an example for the ‘Merge’ op-eration introduced in Section 3. This example is derived from the HealthFC dataset using guide-lines generated from human-written explanations by the LLama-3.1-8B-Instruct model. The updated guideline set is the result of merging the current guideline set and sample guidelines. 
+
+A.2 Learning curves of F1 scores for iPOE 
+
+Figure 3 plots the learning curves of F1 scores on the training and validation sets for the proposed approach. The plots are arranged in a 4 × 3 grid, corresponding to four datasets and three LLMs. 
+
+A.3 Example prompts for the vanilla and iPOE methods 
+
+In Section 4.2, we discuss 10 instances for the hate speech detection task where the vanilla baseline fails but our iPOE method succeeds. We provide the prompts used in these two methods in Table 7. 
+
+A.4 An example for guidelines development 
+
+We present an example for the iterative guide-lines development process trained on the HealthVer dataset and the Qwen3-4B-Instruct-2507 model us-ing the iPOE-llm method in table 8. 11 0.3                   
+
+> 0.4
+> 0.5
+> crowd-enVent
+> Llama-3.1-8B Qwen3-4B Qwen3-30B
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> HealthFC
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> healthver
+> 0100 200 300 400 500
+> 0.35
+> 0.40
+> 0.45
+> 0.50
+> 0.55
+> 0.60
+> HateXplain
+> 0100 200 300 400 500 060 120 180 240 300
+> iPOE-h valid
+> iPOE-h train
+> iPOE-lb-h valid
+> iPOE-lb-h train
+> iPOE-llm valid
+> iPOE-llm train
+> iPOE-lb-llm valid
+> iPOE-lb-llm train
+
+Figure 3: Learning curves of F1 scores on the training and validation sets for our iPOE approach. Each plot corresponds to a (dataset, LLM) pair introduced in Section 4.1. LLM names are shown at the top, and dataset names on the left. The legend for each method is displayed at the bottom and is introduced in Section 3. iPOE-h : use the prefix prompt and guidelines generated from the iPOE method without label control using human explanations. 
+
+iPOE-lb-h : use the prefix prompt and guidelines generated from the iPOE method with label control using human explanations. iPOE-llm : use the prefix prompt and guidelines generated from the iPOE method without label control using LLM explanations. iPOE-lb-llm : use the prefix prompt and guidelines generated from the iPOE method with label control using LLM explanations. 
+
+12 Field Text Current Guideline Set 1. Identify the claim being made, which in this case is whether cancer can be detected by dark field analysis of the blood. Determine if the evidence provided supports or refutes the claim; if the evidence is inconclusive, consider any limitations mentioned, such as the number of participants. Evaluate the credibility of the evidence, noting if a thorough search was conducted across multiple research databases and if the results were consistent. Assess the implications of the evidence on the claim, considering the potential consequences of a false diagnosis, such as uncertainty among those affected. Based on the evaluation, assign a label to the claim, such as " refuted " if the evidence indicates that the claim is false or unsupported, and provide a clear explanation for the chosen label. 2. To label a claim as supported , the evidence must provide a well-established and quantifiable benefit of the treatment (e.g., ’an average of four to five days’ faster healing) for a specific type of wound or condition (e.g., second-degree burns) that is consistent with the explanation and not contradicted by other information in the text. 3. label the task as " not enough information " if the provided text and its corresponding annotation indicate that the effectiveness or reliability of a medical intervention or measure (such as screening) is uncertain, inconclusive, or lacks solid data, as evident from phrases like "it is currently uncertain," "cannot reliably identify," or "not well established." 
+
+Sampled Guidelines 1. To perform the medical language inference task, label a claim as "" not enough information "" when the evidence provided either lacks direct studies examining the healing effects of the method in question, or when existing evidence contradicts a fundamental assumption of the method, but does not provide conclusive proof of its efficacy or ineffectiveness. 2. Identify the claim and the evidence provided to support or refute it, then assess the quality and reliability of the evidence by looking for high-quality studies and expert opinions. Next, evaluate the key findings of the evidence, focusing on the comparison of the active ingredient rivaroxaban to other anticoagulants, and determine whether the evidence supports or refutes the claim. If the evidence shows that rivaroxaban has a lower risk of bleeding than other anticoagulants, or if there is no significant difference, then the claim is refuted . However, if the evidence suggests that rivaroxaban has a higher risk of bleeding than other anticoagulants, then the claim is supported. 3. Identify the claim being made, which should be a clear and concise statement about a medical topic. Locate the evidence provided to support or refute the claim, which should include references to credible sources, such as research papers. Evaluate the strength and relevance of the evidence, considering factors like the study design, sample size, and outcome measures. Assess the consistency and reliability of the findings, noting any limitations or potential biases in the evidence. Consider alternative explanations for the observed effects, accounting for potential confounding variables and the possibility of chance or coincidence. Determine the scope and applicability of the evidence, recognizing any gaps in the research, particularly regarding specific populations, such as women. Based on the evaluation of the evidence, decide whether the claim is supported , refuted, or remains uncertain, and provide a clear justification for the chosen label. 
+
+Updated Guideline Set 1. To evaluate the claim about a medical topic, follow these steps: (1) identify the claim and locate the provided evidence, including references to credible sources; (2) assess the strength, relevance, and consistency of the evidence, considering factors like study design, sample size, outcome measures, limitations, and potential biases; (3) evaluate the scope and applicability of the evidence, accounting for gaps in the research, particularly regarding specific populations; (4) based on the evaluation, decide whether the claim is supported, refuted , or remains uncertain, and provide a clear justification; and (5) for specific claims about anticoagulants, such as rivaroxaban, assess the key findings and compare the active ingredient to other anticoagulants, refuting the claim if the evidence shows a lower risk of bleeding or no significant difference. 2. To label a claim, identify the claim being made and locate the evidence provided to support or refute it. Evaluate the strength and relevance of the evidence, considering factors like study design, sample size, and outcome measures. Assess the consistency and reliability of the findings, noting limitations and potential biases. Consider alternative explanations and the scope and applicability of the evidence. Determine whether the claim is supported , refuted, or remains uncertain based on the evaluation, and provide a clear justification for the chosen label. A claim is considered supported if the evidence provides a well-established and quantifiable benefit for a specific type of wound or condition that is consistent with the explanation and not contradicted by other information in the text. 3. Label the task as ’ not enough information ’ if the provided text and its corresponding annotation indicate that the effectiveness or reliability of a medical intervention or measure is uncertain, inconclusive, or lacks solid data, as evident from phrases like ’it is currently uncertain,’ ’cannot reliably identify,’ or ’not well established.’ This includes situations where the evidence lacks direct studies examining the healing effects of the method in question or when existing evidence contradicts a fundamental assumption of the method, but does not provide conclusive proof of its efficacy or ineffectiveness. 
+
+Table 6: An example for the ‘Merge’ operation from the HealthFC dataset using guidelines generated from human-written explanations by the LLama-3.1-8B-Instruct model. The labels for generating corresponding guidelines are bolded in the text. 
+
+13 Method Prompt 
+
+Vanilla Classify the following text based on whether it contains abusive language using one of the labels hatespeech, offensive, normal. iPOE Classify the following text based on whether it contains abusive language using one of the labels hatespeech, offensive, normal. Think through the following guidelines before giving the final answer. guidelines: 1. Assign the ’hatespeech’ label to a text if it contains a word or phrase that is explicitly derogatory or pejorative towards a particular group or individual, such as racial or ethnic slurs, as indicated by the presence of a feature attribution explanation that identifies a term like ’kike’ as the primary reason for the label choice. 2. explicit profanity or slurs, such as words with derogatory connotations towards a specific group, and aggressive or condescending language, including phrases that imply intellectual superiority or belittling of others. The presence of either feature, especially when used in a derogatory manner, is sufficient to warrant the ’offensive’ label. 3. When detecting hate speech, assign a label of ’normal’ if the text contains a feature attribution that is a pejorative term, but is used to describe a group or individual in a way that is intended to be ironic or critical, rather than hateful or derogatory. For example, if a word like ’ghetto’ is used to describe a name or a group in a way that is meant to highlight its perceived authenticity or lack of pretension, rather than to express contempt or disdain, then the text should be labeled as ’normal’. 4. To detect hate speech, identify and flag instances where derogatory terms such as ’illegal’, inflammatory labels like ’immigrants’, and phrases that convey exclusion or denial of identity, e.g., ’aren’t americans’, are used. Additionally, pay attention to grammatical irregularities, such as the use of possessive apostrophes in non-standard contexts, denoted by ”’. 5. To detect hate speech, identify and count instances of derogatory feature attributions such as slurs, insults, and ethnic or religious epithets, including but not limited to words with derogatory connotations like ’arsed’,’moslem’, and’shite’, and classify the text as hate speech if at least one such attribution is present. 6. Assign the label ’offensive’ if the text contains phrases that explicitly condone violence, promote discriminatory ideologies, or dehumanize specific groups, such as the mention of ’rape’ and ’abuse’ in relation to women, or if it expresses contempt towards entire societies, like ’western society is corrupt’ or describes certain groups as ’inferior’, and if the text is associated with a specific ideology or institution that is known to promote hate speech, like ’islam has faith schools’. 7. if a text contains words or phrases that explicitly target or demean a specific group based on their race, ethnicity, or religion, such as derogatory terms (’niggers’, ’jews’) or phrases that assign inferior roles or power (’only men have political power’), and the tone is threatening or aggressive (’obey or leave’, ’will volunteer for the ovens’), classify the text as hate speech. 8. To detect hate speech, identify instances where derogatory terms or slurs are used to target specific ethnic or national groups, as indicated by the presence of words like ’pakis’, which is a derogatory term for people of Pakistani descent. Consider the context and tone of the text, and if it contains language that is discriminatory, offensive, or incites hatred towards a particular group, classify it as hate speech. 9. Assign a label of ’offensive’ if the text contains words or phrases that express hatred or intolerance towards a particular group, such as’muslim’ or ’preachers’, and the tone is critical or dismissive, as indicated by phrases like ’are free to spout their hatred unhindered’. 10. To identify hate speech, look for the use of derogatory terms such as racial slurs (e.g. ’nigger’), explicit references to racist stereotypes (e.g.’magic negro’), and phrases that promote segregation or exclusion (e.g. ’be somewhere else’). Additionally, consider the context in which these terms are used, and whether they are accompanied by language that implies a desire to exclude or marginalize individuals based on their race or ethnicity. 11. When detecting hate speech, if the text contains words or phrases that are explicitly derogatory or pejorative towards a particular group or individual, such as ’kike’,’shill’, or phrases that reference conspiracy theories like ’the matrix’, and the overall tone of the text is hostile or exclusionary, classify the text as hate speech. 12. When detecting hate speech, consider the presence of derogatory terms or slurs that target individuals with disabilities, such as’retard’, and label the text as ’offensive’ if any of these terms are found, as they are widely recognized as hurtful and demeaning language. 
+
+Table 7: An example for prompts used in the vanilla and iPOE methods evaluated on the HateXplain dataset. The vanilla baseline is described in Section 4.1. The iPOE prompt is created using human explanations by the LLama-3.1-8B-Instruct model, which achieves the highest performance on the validation data. 
+
+14 Table 8: Guidelines development in the optimization process for the HealthVer dataset with the iPOE-llm method using the Qwen3-4B-Instruct-2507 model. 
+
+Iteration Operation Guidelines 
+
+1 add 1. If the evidence explicitly mentions or lists a cardiovascular or cerebrovascular condition, such as hypertension or stroke, as a predictor or risk factor for severe COVID-19 illness, and the claim states that such conditions may increase the risk of severe illness from COVID-19, then the claim is supported. This includes cases where hypertension or other related conditions are ranked among the strongest or significant predictors of severe illness, as stated in the evidence, even if other conditions like diabetes or obesity are also mentioned. 2. If the evidence discusses immunological mechanisms such as acquired immunity or protection against re-exposure to a virus, and does not address the subjective experience, duration, or physical/mental sensations associated with recovery from a viral infection, then the relationship between the claim and evidence is neutral because the evidence neither supports nor contradicts the claim about the feeling of recovery. The label should be ’Neutral’ when the evidence is scientifically relevant to immunity but irrelevant to the sensory or experiential aspects of recovery. 3. A claim that asserts both a supported effect (e.g., face masks reducing COVID-19 spread) and an unsupported or unmentioned effect (e.g., masks working against other pathogens) should be labeled ’not enough information’ if the evidence only supports the first part and provides no information about the second. The label ’Supports’ is only appropriate when the evidence directly and fully supports all components of the claim; otherwise, if any part of the claim is not addressed or cannot be verified by the evidence, the correct label is ’not enough information’. 4 replace 1. If a claim asserts a strong, specific effect such as’significantly improving’ symptoms in a particular disease (e.g., COVID- for a treatment (e.g., Vitamin C), and the evidence only indicates potential benefit for respiratory viral infections or nutrient deficiency without specifying a significant improvement in symptoms for that specific condition, then the claim should be labeled as refuted because the strength and specificity of the claim exceed what is supported by the evidence. 2. If the evidence indicates that nicotine has a preventive or modulatory effect on an inflammatory response or other physiological process in the lungs, and this effect is presented as a plausible biological mechanism that could explain the protective effects of smoking, then the claim is supported. This includes cases where the evidence suggests a direct or indirect role of nicotine in reducing inflammation or modulating lung function, even in the context of smoking’s overall harm. 3. If the evidence provides a direct, quantitative relationship showing that an increase in temperature leads to a reduction in the daily growth rate of COVID-19 cases, even if the reduction is modest, then the claim that ’COVID-19 cases drop in warm weather, but not much’ is supported. This includes cases where temperature is identified as a key factor influencing case growth, with specific numerical data indicating a decrease in case rates per degree Celsius rise in temperature, regardless of the magnitude of the drop. 10 merge 1. A claim is supported if the evidence provides a direct, quantitative, or plausible biological mechanism that aligns with the specificity and strength of the assertion—such as a demonstrated effect of temperature on case growth, a biological role of nicotine in modulating lung inflammation, or a specific, measurable benefit of a treatment on a defined condition. However, if the claim asserts a strong, specific effect (e.g., significantly improving symptoms of a particular disease) that is not directly or sufficiently supported by the evidence—especially when the evidence only indicates potential benefit in broader contexts—then the claim is refuted. 14 merge 1. A claim is supported if the evidence provides a direct, quantitative, or plausible biological mechanism that aligns with the specificity and strength of the assertion—such as a demonstrated effect of temperature on virus transmission, a biological role of a substance in modulating disease processes, or a specific, measurable benefit of a treatment on a defined condition. Claims of strong, specific effects—such as significantly improving symptoms of a particular disease—may be refuted if the evidence only suggests potential benefit in broader contexts. Additionally, claims that a vaccine developed for one condition offers non-specific protection against another disease—such as COVID-19—may be supported if the evidence indicates such protection could reduce transmission or save lives. Similarly, claims that specific climatological factors (like lower winter humidity) contribute to faster spread of a virus are considered supported when the evidence implies a relevant relationship between environmental conditions and viral transmission, even if not explicitly stated. Continued on next page 
+
+15 Table 8 – continued from previous page 
+
+Iteration Operation Guidelines 
+
+18 merge 1. A claim is supported if the evidence provides a direct, quantitative, or plausible biological mechanism that aligns with the specificity and strength of the assertion—such as a demonstrated effect of temperature on virus transmission, a biological role of a substance in modulating disease processes, or a specific, measurable benefit of a treatment on a defined condition. Claims of strong, specific effects—such as significantly improving symptoms of a particular disease—may be refuted if the evidence only suggests potential benefit in broader contexts. Claims of non-specific protection, such as a vaccine developed for one condition offering protection against another disease like COVID-19, are supported if the evidence indicates such protection could reduce transmission or save lives. Similarly, claims linking climatological factors (e.g., lower winter humidity) to faster virus spread are supported when the evidence shows a relevant relationship between environmental conditions and transmission, even if not explicitly stated. However, a claim that a condition increases risk for complications and includes a mention of risk reduction methods should be labeled ’Supports’ only if the evidence explicitly addresses both the increased risk and the availability or effectiveness of mitigation strategies; otherwise, it should be labeled ’not enough information’ due to the lack of substantiation for risk reduction methods. 34 merge 1. A claim is supported if the evidence provides a direct, quantitative, or plausible biological mechanism that aligns with the specificity and strength of the assertion—such as a demonstrated effect of temperature on virus transmission, a biological role of a substance in modulating disease processes, or a specific, measurable benefit of a treatment on a defined condition. Claims of strong, specific effects—such as significantly improving symptoms of a particular disease—may be refuted if the evidence only suggests potential benefit in broader contexts. Claims of non-specific protection, such as a vaccine developed for one condition offering protection against another disease like COVID-19, are supported if the evidence indicates such protection could reduce transmission or save lives. Similarly, claims linking climatological factors (e.g., lower winter humidity) to faster virus spread are supported when the evidence shows a relevant relationship between environmental conditions and transmission, even if not explicitly stated. However, a claim that a condition increases risk for complications and includes a mention of risk reduction methods should be labeled ’Supports’ only if the evidence explicitly addresses both the increased risk and the availability or effectiveness of mitigation strategies; otherwise, it should be labeled ’not enough information’ due to the lack of substantiation for risk reduction methods. 39 merge 1. A claim is supported if the evidence provides a direct, quantitative, or plausible biological mechanism that aligns with the specificity and strength of the assertion—such as a demonstrated effect of temperature on virus transmission, a biological role of a substance in modulating disease processes, or a specific, measurable benefit of a treatment on a defined condition. Claims of strong, specific effects—such as significantly improving symptoms of a particular disease—may be refuted if the evidence only suggests potential benefit in broader contexts. Claims of non-specific protection, such as a vaccine developed for one condition offering protection against another disease like COVID-19, are supported if the evidence indicates such protection could reduce transmission or save lives. Similarly, claims linking climatological factors (e.g., lower winter humidity) to faster virus spread are supported when the evidence shows a relevant relationship between environmental conditions and transmission, even if not explicitly stated. However, a claim that a condition increases risk for complications and includes a mention of risk reduction methods should be labeled ’Supports’ only if the evidence explicitly addresses both the increased risk and the availability or effectiveness of mitigation strategies; otherwise, it should be labeled ’not enough information’ due to the lack of substantiation for risk reduction methods. 43 replace 1. A claim that a face mask will protect you from Covid-19 is supported if the evidence acknowl-edges or aligns with the medical understanding that masks can reduce transmission by blocking respiratory droplets, even if it notes limited usage or societal adoption. The label’refutes’ should only be applied when the evidence directly contradicts the protective efficacy of face masks, such as by claiming they are ineffective or have no impact on transmission. If the evidence merely points out low usage without challenging the protective function, the claim is supported and the label should be’supported’ rather than’refutes’. 235 merge 1. A claim that a face mask will protect you from Covid-19 is supported if the evidence acknowl-edges or aligns with the medical understanding that masks can reduce transmission by blocking respiratory droplets, even if it notes limited usage or societal adoption. The label’refutes’ should only be applied when the evidence directly contradicts the protective efficacy of face masks, such as by claiming they are ineffective or have no impact on transmission. If the evidence merely points out low usage without challenging the protective function, the claim is supported and the label should be’supported’ rather than’refutes’. Continued on next page 
+
+16 Table 8 – continued from previous page 
+
+Iteration Operation Guidelines 
+
+316 add 1. A claim that a face mask will protect you from Covid-19 is supported if the evidence acknowl-edges or aligns with the medical understanding that masks can reduce transmission by blocking respiratory droplets, even if it notes limited usage or societal adoption. The label’refutes’ should only be applied when the evidence directly contradicts the protective efficacy of face masks, such as by claiming they are ineffective or have no impact on transmission. If the evidence merely points out low usage without challenging the protective function, the claim is supported and the label should be’supported’ rather than’refutes’. 2. If the evidence states there is no supporting evidence to discourage the use of a medication (such as ibuprofen) in the context of symptoms like fever and COVID-19, the claim that the medication should be avoided because it can worsen the disease is refuted, as the evidence directly contradicts the claim’s validity by lacking any scientific basis to support the recommended avoidance. 3. If the evidence only describes the methods or tools used to assess mental health without providing any specific findings, data, or results related to the populations mentioned in the claim (such as youth, minorities, or essential workers), the label should be ’Neutral’ because the evidence does not support, contradict, or verify the claim; the absence of specific findings means the claim cannot be evaluated based on the provided information. 4. Label ’Supports’ when the evidence confirms or aligns with the claim regarding the origin of the virus (e.g., bat origin) and either provides indirect support through genomic clustering with bat or pangolin coronaviruses, while acknowledging that the specific intermediate animal transmitting the virus to humans remains unknown, as stated in the claim. The label should be assigned if the evidence does not contradict the claim and maintains consistency with the stated scientific uncertainty about the transmission pathway. 
+
+17
