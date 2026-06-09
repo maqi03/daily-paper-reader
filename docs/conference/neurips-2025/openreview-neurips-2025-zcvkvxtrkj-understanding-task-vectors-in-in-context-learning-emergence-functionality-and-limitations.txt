@@ -1,0 +1,6816 @@
+Title: 13536_Understanding_Task_Vecto.pdf
+
+URL Source: https://openreview.net/pdf?id=zcVKvXtrkJ
+
+Number of Pages: 36
+
+Markdown Content:
+# Understanding Task Vectors in In-Context Learning: Emergence, Functionality, and Limitations 
+
+Anonymous Author(s) 
+
+Affiliation Address 
+
+email 
+
+## Abstract 
+
+Task vectors offer a compelling mechanism for accelerating inference in in-context 1
+
+learning (ICL) by distilling task-specific information into a single, reusable rep-2
+
+resentation. Despite their empirical success, the underlying principles governing 3
+
+their emergence and functionality remain unclear. This work proposes the Linear 4
+
+Combination Conjecture , positing that task vectors act as single in-context demon-5
+
+strations formed through linear combinations of the original ones. We provide 6
+
+both theoretical and empirical support for this conjecture. First, we show that task 7
+
+vectors naturally emerge in linear transformers trained on triplet-formatted prompts 8
+
+through loss landscape analysis. Next, we predict the failure of task vectors on 9
+
+representing high-rank mappings and confirm this on practical LLMs. Our findings 10 
+
+are further validated through saliency analyses and parameter visualization, sug-11 
+
+gesting an enhancement of task vectors by injecting multiple ones into few-shot 12 
+
+prompts. Together, our results advance the understanding of task vectors and shed 13 
+
+light on the mechanisms underlying ICL in transformer-based models. 14 
+
+## 1 Introduction 15 
+
+In-context learning (ICL) is a core capability of large language models (LLMs), allowing them to 16 
+
+perform new tasks without parameter updates by conditioning on a few input-output examples in 17 
+
+the prompt [ 2]. Unlike traditional training, ICL relies on attention-based mechanisms to infer task 18 
+
+structure directly from context. This surprising generalization ability has led to growing interest in 19 
+
+uncovering the principles of learning purely from contextual examples [21, 3, 4, 15, 5]. 20 
+
+A recent work investigates the task vector method [ 7 ] (concurrent works include function vectors 21 
+
+[ 16 ] and in-context vectors [ 13 ]), a technique that distills underlying task information from ICL 22 
+
+demonstrations into a single vector. Typically, ICL prompts are structured as sequences of triplets, 23 
+
+each encoding a semantic mapping, in addition to a query at the end (e.g., “hot → cold, up → down, 24 
+
+day → night, dark →”). Task vectors are then extracted from the hidden states of the last ( →) token. 25 
+
+Once obtained, these vectors can be injected into the same position in new prompts (e.g., “big →”), 26 
+
+enabling the model to generalize to unseen inputs in a zero-shot fashion. 27 
+
+Task vectors have been shown to naturally emerge even in small transformer models trained from 28 
+
+scratch on synthetic data [ 24 ], suggesting that their formation is a general property of attention-based 29 
+
+architectures. Recent studies further demonstrate that task vectors can be enhanced by aggregating 30 
+
+hidden states across multiple layers and multiple arrow tokens [ 12 ]. Beyond language models, task 31 
+
+vectors are also found effective in large-scale visual [8] and multi-modal [9] models. 32 
+
+Despite their empirical effectiveness, the underlying mechanism of task vectors, especially how they 33 
+
+emerge, function, and encode task information, remains poorly understood. This paper takes a step 34 
+
+toward unveiling the principles behind it by introducing the following conjecture: 35 
+
+Submitted to 39th Conference on Neural Information Processing Systems (NeurIPS 2025). Do not distribute. hot up down dark → → → →cold day night light big →
+
+> small
+> Preprocessing Stage Predict & Output Task Vector Formation Weighted Summation
+
+(a) (b) Figure 1: Overview of task vector and our main conjecture. (a) Task vector emerges during ICL as a linear combination of preceding in-context demonstrations. (b) It can then be injected into zero-shot prompts and functions as a single, representative demonstration, facilitating efficient prediction. 
+
+Linear Combination Conjecture 
+
+The injected task vector functions as a single in-context demonstration, formed through a linear combination of the original demonstrations (hidden states). 
+
+> 36
+
+Figure 1 provides an intuitive illustration for our conjecture. In the following sections, we validate this 37 
+
+conjecture through various empirical and theoretical perspectives. These analyses comprehensively 38 
+
+explain how task vectors naturally emerge within attention-based model architectures, effectively 39 
+
+encode task-related information, and facilitate inference in zero-shot prompts. Our work advances the 40 
+
+understanding of the underlying mechanisms behind ICL, clarifying both the efficacy and limitations 41 
+
+of task vectors in transformer-based LLMs. The highlights of this paper are as follows: 42 
+
+• Theoretical Justification in Linear Transformers: We theoretically characterize the critical 43 
+
+points of linear-attention transformers and demonstrate how they solve random linear regression 44 
+
+tasks through embedding concatenation and gradient descent. With a triplet-formatted input 45 
+
+prompt structure, task vectors naturally emerge at arrow tokens as linear combinations of the 46 
+
+in-context demonstrations. These vectors serve as redundancy against information loss induced by 47 
+
+dropout, thereby improving robustness. Empirically, the learned linear model parameters closely 48 
+
+align with the predicted structure and successfully replicate the task vector mechanism. 49 
+
+• Empirical Verification in Practical LLMs: We visualize the information flow in LLMs with 50 
+
+saliency analysis and observe patterns consistent with linear models, suggesting they share similar 51 
+
+underlying mechanisms. According to our conjecture, inference with task vectors is analogous to 52 
+
+1-shot ICL, which is inherently limited to rank-one meta-predictors under the gradient descent 53 
+
+perspective. To validate this, we introduce a series of bijection tasks that are provably unsolvable 54 
+
+by rank-one predictors, and empirically confirm this failure in real-world transformers. Building 55 
+
+on these insights, we enhance the standard task vector method by injecting multiple vectors into 56 
+
+few-shot prompts, resulting in consistent performance gains across a range of ICL tasks. 57 
+
+## 2 Setting: Random Linear Regression with Linear-Attention Transformers 58 
+
+Notations: We write [n] = {1, · · · , n }. The Hadamard product is denoted by ◦, and the Kronecker 59 
+
+product by ⊗. The identity matrix of dimension n is denoted by In, while 0n and 0m×n represent zero 60 
+
+vectors or matrices of the corresponding dimensions. Subscripts are omitted when the dimensions are 61 
+
+clear from context. We define M(M ) = Λ ∈ Rdim( M ) Λ = M ◦ A, A ∈ Rdim( M ) as the set of 62 
+
+masked matrices induced by the binary mask M . For a general matrix A, the element at the i-th row 63 
+
+and j-th column is denoted by Ai,j , and the sub-block from rows i to k and columns j to l is denoted 64 
+
+by Ai:k,j :l. diag( A1, · · · , A n) represents the block-diagonal matrix constructed by {Ai}ni=1 .65 
+
+Random Linear Regression: Following the settings in literature [ 6, 17 , 1, 20 ], we consider training 66 
+
+linear transformers on random instances of linear regression. Let {xi}n+1  
+
+> i=1
+
+, where xi ∈ Rd, denote 67 
+
+covariates drawn i.i.d. from distribution Px, and let {wi}di=1 , where wi ∈ Rd, denote coefficients 68 
+
+drawn i.i.d. from distribution Pw. Define the coefficient matrix as W = [ w1 · · · wd] ⊤ ∈ Rd×d.69 
+
+The responses are then generated as yi = W x i for i ∈ [n + 1] . We denote by X, Y ∈ Rd×n the 70 
+
+matrices whose columns are xi and yi, respectively, for i ∈ [n]. The query covariate and response are 71 
+
+denoted by xtest = xn+1 and ytest = yn+1 respectively. 72 
+
+2Linear Self-Attention Transformer: Following prior works [ 17 , 1 , 20 ], we consider transformers 73 
+
+composed of linear self-attention layers. Let Z0 ∈ R2d×dp denote the input matrix constructed from 74 
+
+X, Y and xtest but excluding ytest , where dp denotes the number of tokens. The transformer is 75 
+
+defined by stacking L attention blocks with skip connections, where the l-th layer is expressed as: 76 
+
+Zl = Zl−1 + 1 
+
+> n
+
+Attn Vl,Q l (Zl−1), Attn V,Q (Z) = V ZM  Z⊤QZ . (1) Here, the trainable parameters are {Vl, Q l}Ll=1 , where Vl ∈ R2d×2d represents a reparameterization 77 
+
+of the projection and value matrices, and Ql ∈ R2d×2d denotes the query and key matrices. Following 78 
+
+the work [ 1], we adopt a masking matrix M = diag( Idp−1, 0) to prevent attention from earlier tokens 79 
+
+to the final one. The output of the transformer is defined as TF  Z0; {Vl, Q l}Ll=1 
+
+ = ( ZL)(d+1:2 d),d p
+
+> 80
+
+(i.e., the latter half of the last column). This definition aligns with the structure of the input Z0, which 81 
+
+will be further discussed in subsequent sections. During training, the parameters are optimized to 82 
+
+minimize the expected ICL risk over random linear regression instances: 83 
+
+L {Vl, Q l}Ll=1 
+
+ = EZ0,W TF  Z0; {Vl, Q l}Ll=1 
+
+ + W x test 
+
+> 22
+
+. (2) 
+
+## 3 Emergence of Task Vectors in Linear-Attention Transformers 84 
+
+Firstly, we present theoretical evidence indicating that task vectors naturally arise even in simple 85 
+
+linear transformers. Specifically, we analyze the loss landscape of the in-context risk, focusing on the 86 
+
+properties of its critical points. As a startup, recall the standard linear regression setup [ 1, 20 ], where 87 
+
+the (xi, y i) pairs for each demonstration are concatenated to form the input prompt: 88 
+
+Z0 =
+
+X xtest 
+
+Y 0
+
+
+
+=
+
+x1 x2 · · · xn xtest 
+
+y1 y2 · · · yn 0
+
+
+
+∈ R2d×(n+1) . (3) According to existing analyses [ 1, 25 , 14 ], each attention layer in this setting performs one step of 89 
+
+gradient descent on the coefficient matrix W . Specifically, the theoretically optimal single-layer (pos-90 
+
+sibly nonlinear) attention [ 10 ] implements the following predictive function [ 1] when the covariates 91 
+
+are drawn from Px = N (0 , I d), by selecting V1 ∝ diag(0 d×d, I d) and Q1 ∝ diag( Id, 0d×d):92 
+
+TF (Z0; ( V1, Q 1)) = − 1 
+
+> n
+
+Y σ (X)⊤σ(xtest ), where σ : Rd 7 → Rr is a kernel function . (4) Here, we abbreviate [σ(x1) · · · σ(xn)] as σ(X). Equation (4) employs W ′ ∝ Y σ (X)⊤ as an 93 
+
+estimate of coefficient matrix W , yielding prediction ˆytest = W ′σ(xtest ). In this paper, we consider 94 
+
+alternative settings more reflective of practical scenarios, where xi and yi are separated as distinct 95 
+
+tokens. As noted [ 26 ], such separation necessitates the usage of position encodings for bi-directional 96 
+
+attention. Following prior analysis [ 11 ], we assume that position encodings are appended to the input 97 
+
+tokens, and reformulate the layer-wise update rule of self-attention as: 98 
+
+Attn V,Q (Z) = V ZM Z⊤ P ⊤ Q
+
+ZP
+
+
+
+, where P ∈ Rdp×dp . (5) For analytical tractability, we take P = Idp as one-hot position encodings. Inspired by the parameter 99 
+
+structure in [1] and eq. (4), we further impose the following constraints on the trainable parameters: 100 
+
+Vl = diag( Al, B l), Ql = diag( Cl, 0d×d, D l), where Al, B l, C l ∈ Rd×d, D l ∈ Rdp×dp . (6) These parameterizations ensure that the projection and attention operations act independently on the 101 
+
+covariate, response, and positional components of the input. This structural decoupling is essential for 102 
+
+understanding how the transformer identifies the dependency between each (xi, y i) pair and revealing 103 
+
+the actual optimization algorithm being executed by the model. The proofs for the main theoretical 104 
+
+results in this paper are available in Appendix B. 105 
+
+3.1 Warm-up: Learning with Pairwise Demonstrations 106 
+
+We begin by analyzing the optimization of linear transformers on pairwise demonstrations. Following 107 
+
+previous approach [ 6, 19 , 22 ], we decompose each demonstration in eq. (3) into a pair of tokens 108 
+
+Zi 
+
+> 0
+
+=  xi 00 yi
+
+ ∈ R2d×2 to better reflect the practical ICL prompt structure: 109 
+
+Z0 = Z10 · · · Zn 
+
+> 0
+
+Ztest 0
+
+ =
+
+x1 0 · · · xn 0 xtest 00 y1 · · · 0 yn 0 0
+
+
+
+∈ R(2 d)×(2 n+2) . (7) 32
+
+> 1
+> 0
+> 1
+> 2
+
+(a) Dl (Pairwise) 2 
+
+> 1
+> 0
+> 1
+> 2
+
+(b) Dl (Triplet) 0.3  
+
+> 0.2
+> 0.1
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+
+(c) Λ4Λ⊤
+
+> 4
+
+Figure 2: Visualization of learned Dl weights. (a) Pairwise demonstrations yield a block-diagonal structure aligned with Theorem 1. (b) Triplet demonstrations yield a richer structure aligned with Theorem 2. (c) The learned matrix Λ4 has nearly orthonormal rows as suggested by Proposition 3. The following theorem suggests that certain critical points of the in-context risk effectively solve 110 
+
+the regression problem by first concatenating each pair of (xi, y i) into the same tokens, and then 111 
+
+executing a variant of the gradient descent algorithm to compute the prediction. To simplify notation, 112 
+
+we denote A = {Al}Ll=1 (similarly for B, C, and D) and present: 113 
+
+Theorem 1 (Critical Points; Pairwise Demonstrations ). Assume Px = N (0 , Σ) , Pw = N (0 , Σ−1)114 
+
+with some Σ ∈ Rd×d satisfying Σ ≻ 0. Define SI , SΣ ⊂ Rd×d and SP ⊂ Rdp×dp as 115 
+
+SI = {λI d | λ ∈ R}, SΣ = λΣ−1 λ ∈ R , SP = diag( In ⊗ Λ1, Λ2) Λ1, Λ2 ∈ R2×2 .
+
+Consider optimizing an L-layer linear transformer with pairwise demonstrations and parameter 116 
+
+configuration given in eq. (6) , we then have 117 
+
+inf A,B ∈S LI , C ∈S L 
+
+> Σ, D ∈S LP
+
+X 
+
+> H∈A∪B∪C∪D
+
+∇H L {Vl, Q l}Ll=1 
+
+ 2 
+
+> F
+
+= 0 .
+
+To understand the behavior of these critical points within a self-attention layer, we fix Σ = Id and 118 
+
+take Al, B l = Id, Cl = −λI d, and Dl = diag( In ⊗ Λ1, Λ2). Let the first and last d rows of Zl be 119 
+
+denoted by Xl and Yl, respectively. Under these settings, the update rule of each layer becomes: 120 
+
+Zl = Zl−1 − λZ l−1M X ⊤
+
+> l−1
+
+Xl−1 + Z1
+
+> l−1
+
+Λ1 · · · Znl−1Λ1 Ztest  
+
+> l−1
+
+diag(1 , 0)Λ 2
+
+ . (8) The above update can be decomposed into the following two distinct components: 121 
+
+• Gradient Descent: The first component, Zl ← Zl−1 − λZ l−1M X ⊤
+
+> l−1
+
+Xl−1, implements the 122 
+
+GD++ algorithm [ 17 ]. This variant enhances convergence speed over standard gradient descent by 123 
+
+improving the condition number of the Gram matrix X⊤
+
+> l−1
+
+Xl−1. Notably, this operation modifies 124 
+
+only Xl but not Yl for the first layer, as implied by the structure of Ql (eq. (6)). 125 
+
+• Embedding Concatenation: The second component, Zil ← Zil−1 + Zil−1Λ1 for i ∈ [n], mixes 126 
+
+each pair of (xi, y i) tokens. Given that xi and yi tokens are initially linearly separable as in 127 
+
+our formulation, this operation concatenates each (xi, y i) pair, thereby transforming pairwise 128 
+
+demonstrations into the original single-token format . For the query token Ztest  
+
+> l
+
+, this operation 129 
+
+copies xtest into the final token, reconstructing the structure in eq. (3), where each non-final token 130 
+
+directly concatenates (xi, y i) of a demonstration, and the final token contains only xtest .131 
+
+In summary, our analysis reveals that for pairwise demonstrations, the first attention layer leverages 132 
+
+position encodings to distinguish between covariate and response tokens, subsequently concatenating 133 
+
+them to form a single-token prompt structure. The remaining layers then apply the GD++ algorithm, 134 
+
+mirroring the learning dynamics on single-token demonstrations. As a result, an L-layer linear 135 
+
+transformer allocates one layer for embedding concatenation and utilizes the remaining L − 1136 
+
+layers to perform gradient descent . In Figure 2a, we visualize the learned Dl weights under the 137 
+
+setting of Theorem 1, and observe that they closely match the critical point structure of SP .138 
+
+3.2 Emergence of Task Vectors with Triplet Demonstrations 139 
+
+Next, to better reflect the prompt structure of practical ICL, we insert additional zero tokens between 140 
+
+each pair of (xi, y i) to simulate the arrow ( →) tokens. This reformulates each demonstration as a 141 
+
+triplet (xi, →, y i), enabling us to analyze the critical points with these triplet demonstrations: 142 
+
+Z0 =
+
+x1 0 0 · · · xn 0 0 xtest 0 00 0 y1 · · · 0 0 yn 0 0 0
+
+
+
+∈ R(2 d)×(3 n+3) . (9) 
+
+> 143
+
+4Theorem 2 (Critical Points; Triplet Demonstrations ). Assume Px = N (0 , Σ) , Pw = N (0 , Σ−1)144 
+
+with some Σ ∈ Rd×d satisfying Σ ≻ 0. Define SI , SΣ ⊂ Rd×d and SP ⊂ Rdp×dp as 145 
+
+SI = {λI d | λ ∈ R}, SΣ = λΣ−1 λ ∈ R ,
+
+SP =
+
+n
+
+diag( In ⊗ Λ1, Λ2) + In+1 ⊗ Λ3 + Λ 4 ⊗ Λ5
+
+Λ1, Λ2 ∈ M 
+
+ 1 0 1 0 0 0 1 0 1 
+
+
+
+, Λ3 ∈ M 
+
+ 0 0 0 0 1 0 0 0 0 
+
+
+
+, Λ4 ∈ R(n+1) ×(n+1) , Λ5 ∈ M 
+
+ 0 1 0 0 0 0 0 1 0 
+
+o 
+
+.
+
+Consider optimizing an L-layer linear transformer with triplet demonstrations and parameter config-146 
+
+uration given in eq. (6) , we then have 147 
+
+inf A,B ∈S LI , C ∈S L 
+
+> Σ, D ∈S LP
+
+X 
+
+> H∈A∪B∪C∪D
+
+∇H L {Vl, Q l}Ll=1 
+
+ 2 
+
+> F
+
+= 0 .
+
+To analyze the behavior of each attention layer, we note that the critical points for the matrices Al,148 
+
+Bl, and Cl remain consistent with Theorem 1, thereby implementing the GD++ algorithm. For the 149 
+
+matrix Dl, we decompose its structure into three distinct components: 150 
+
+• Embedding Concatenation: The first component, diag( In ⊗ Λ1, Λ2), mixes each pair of (xi, y i)151 
+
+tokens, effectively concatenating them — analogous to the operation analyzed in the previous 152 
+
+section. This converts all non-arrow tokens into single-token demonstrations. 153 
+
+• Self Magnification: The second component, In+1 ⊗ Λ3, scales the embeddings corresponding to 154 
+
+each arrow ( →) token by a fixed constant and adds them back to themselves. 155 
+
+• Task Vector Formation: The third component, Λ4 ⊗ Λ5, performs a weighted summation across 156 
+
+all demonstrations in the prompt. This operation is central to the emergence of task vectors. Let 157 
+
+[β1 · · · βn+1 ] ∈ Rn×(n+1) denote the first n rows of Λ4 (we will soon show that the last row 158 
+
+of Λ4 converges to zero), the first self-attention layer then outputs n + 1 linear combinations of 159 
+
+the demonstrations as the hidden states for the arrow tokens , expressed as zi 
+
+> tv
+
+= [ α1Xβ i 
+
+> α2Y β i
+
+] for 160 
+
+i ∈ [n + 1] , where α1, α 2 ∈ R are the two non-zero entries of Λ5. These vectors can then be 161 
+
+injected into zero-shot prompts and function as single-token demonstrations. 162 
+
+This mechanism provides strong theoretical evidence for our linear combination conjecture, demon-163 
+
+strating that task vectors naturally emerge from the optimization dynamics of linear-attention 164 
+
+transformers operating on triplet-formatted prompts . Notably, the structure of SP closely aligns 165 
+
+with our visualization of Dl in Figure 2b, confirming our theoretical analysis. We now further 166 
+
+investigate the structure of the weight matrix Λ4, and present the following result: 167 
+
+Proposition 3 (Optimal Task Vector Weights ). Assume Px, P w = N (0 , I d). Consider optimizing 168 
+
+a 2-layer linear-attention transformer with triplet demonstrations and parameter configuration given 169 
+
+in eq. (6) , and assume C1 = 0 . Let 170 
+
+D1 = diag( In ⊗ Λ1, Λ2) + In+1 ⊗ Λ3 + Λ 4 ⊗ Λ5 ∈ S P
+
+be any minimizer of the in-context risk L {Vl, Q l}Ll=1 
+
+, we then have Λ4 ∈ S U , where 171 
+
+SU = Λ ΛΛ ⊤ = λ diag( In, 0) , λ ∈ R .
+
+This result suggests that the optimal Λ4 weight matrix satisfies two key properties: (1) the last row 172 
+
+is zero, and (2) the first n rows are mutually orthonormal. These conditions imply that the learned 173 
+
+weight vectors β1, · · · , β n+1 are likely to be distinct. Therefore, the n + 1 task vectors produce 174 
+
+diverse linear combinations of the demonstrations, thereby enriching the representation within the 175 
+
+input prompt. This implication is verified in Figure 2c. While task vectors are typically extracted 176 
+
+from the final arrow ( →) token in standard usage, here we consider all arrow tokens as task vectors 177 
+
+as bi-directional attention allows each to aggregate information from the full prompt. 178 
+
+## 4 Validating the Linear Combination Conjecture on Bijection Tasks 179 
+
+We then present an empirical observation that supports our conjecture. Consider the setting where 180 
+
+task vectors are injected into zero-shot prompts. Based on our prior analysis, the injected task vector 181 
+
+ztv is formed as a linear combination of the original demonstrations. As a result, we show that the 182 
+
+injected prompt reconstructs the single-token structure in eq. (3) with only 1 demonstration: 183 
+
+Z0 = [ ztest ztv 0] = 
+
+xtest xtv 00 ytv 0
+
+
+
+=
+
+xtest Xβ 00 Y β 0
+
+
+
+∈ R2d×3, (10) 5x1 → y1 x2 → y2 x3 → y3 xtest →          
+
+> x1→y1x2→y2x3→y3xtest →
+
+(a) Saliency Map ( l = 10 )x1 → y1 x2 → y2 x3 → y3 xtest →           
+
+> x1→y1x2→y2x3→y3xtest →
+
+(b) Saliency Map ( l = 12 )1 5 10   
+
+> i
+> 1.2
+> 1.4
+> 1.6
+> ‖z−i
+> tv  − ztv ‖
+> 0.10
+> 0.15
+> 0.20
+> 0.25 βi
+
+(c) Task Vector Weights 
+
+Figure 3: Visualization of saliency matrices as bipartite graphs between layer l ( ) and l + 1 ( ), where edge widths indicate saliency magnitude; and variations in the extracted task vector after perturbing the i-th demonstration ( ), alongside the predicted weights ( ) obtained by optimizing Proposition 6. (a) Each yi token is primarily attending to its corresponding (xi, y i) pair, reflecting embedding concatenation. (b) The final ( →) token attends broadly to all yi tokens, indicating task vector formation — this occurs just before the optimal injection layer ( l = 13 ). (c) The predicted task vector weights closely match the trend of empirical results, validating our theoretical model. where the weight vector β ∈ Rn comes from the last column of Λ4 (Theorem 2). After the first layer, 184 
+
+the Λ2 matrix of SP moves xtest to the last token, reducing the prompt to a single-shot, single-token 185 
+
+demonstration. According to the optimal single-layer transformer (eq. (4)), the estimated coefficient 186 
+
+matrix is now W ′ = Y β (Xβ )⊤, which is rank-one. Therefore, if our main conjecture holds, task 187 
+
+vectors will be inherently limited in their expressiveness: they can only realize rank-one coefficient 188 
+
+matrices . This implication also naturally extends to multi-layer transformers. 189 
+
+While our analysis is conducted on linear-attention transformers, we demonstrate that similar learning 190 
+
+patterns also emerge within practical LLMs. Specifically, we visualize the layer-wise information 191 
+
+flow between tokens using saliency maps [ 18 ], where the saliency score for each attention matrix 192 
+
+is computed as S(Al) = P 
+
+> h
+
+|Al,h · ∂L/∂A l,h |, Al,h denotes the attention matrix of the h-th head 193 
+
+at layer l, and L is the ICL loss (i.e., the cross-entropy loss for predicting ytest ). As demonstrated 194 
+
+in Figures 3a and 3b, the saliency maps reveal certain patterns matching the ones of embedding 195 
+
+concatenation and weighted summation. Importantly, the latter occurs immediately before the optimal 196 
+
+task vector injection layer. This suggests that real-world models implement a similar algorithm to 197 
+
+solve ICL tasks and, consequently, inherit the same expressiveness limitation. 198 
+
+To verify this, we construct a specialized class of ICL tasks, named bijection tasks. Specifically, given 199 
+
+a bijective mapping from domain X to codomain Y, one can combine it with its inverse mapping 200 
+
+to form a new task that maps X ∪ Y onto itself. For instance, combining the "to uppercase" task 201 
+
+with its inverse "to lowercase" yields a bijection task that maps each letter to its opposite case, and a 202 
+
+valid ICL prompt takes the form: “a → A, B → b, c → C, D →”. Note that this differs from task 203 
+
+superposition [ 23 ], as each input corresponds to a unique, well-defined output. We then establish a 204 
+
+key limitation of rank-one coefficient matrices in addressing such tasks: 205 
+
+Proposition 4. Let x, y ∈ Rd be non-zero vectors. Then the following are equivalent: (1) There 206 
+
+exists a rank-one matrix W ∈ Rd×d such that y = W x and x = W y ; (2) x = y or x = −y.207 
+
+This result highlights that rank-one coefficient matrices cannot solve general bijection tasks , and 208 
+
+are restricted to only the identity mapping ( x = y) or the negation mapping ( x = −y). We further 209 
+
+verify this implication in real-world LLMs: as summarized in Table 1, both ICL and the task vector 210 
+
+method perform well on the original tasks and their inverses. Nevertheless, for the bijection tasks, 211 
+
+while ICL preserves performance in many cases, the task vector method consistently fails, confusing 212 
+
+examples from the two domains and yielding near-random predictions (50%). For instance, in the "to 213 
+
+uppercase" task, task vectors can predict the correct letter but fail to distinguish between uppercase 214 
+
+and lowercase. The only notable exceptions are the copy task (corresponding to the x = y case in 215 
+
+Proposition 4) and the antonym task (corresponding to x = −y). 216 
+
+Together, these findings empirically validate our conjecture: the task vector approach, which is 217 
+
+restricted to rank-one coefficient matrices, cannot solve general bijection tasks . While a variety 218 
+
+of ICL tasks have been explored to assess the capabilities of task vectors [ 7 , 16 , 12 ], the fundamental 219 
+
+limitation of task vectors in addressing these bijection tasks has not been previously identified. 220 
+
+6Table 1: Comparison of the accuracies of ICL and task vector on bijection tasks (Llama-7B, n = 10 ). We use gray text to indicate accuracies lower than 60% .
+
+Task Domain X Domain Y Example X → Y Y → X X ↔ Y 
+
+ICL TV ICL TV ICL TV To Upper {a, · · · , z } {A, · · · , Z } a → A 1.00 0.91 1.00 0.99 1.00 0.55 Translation English French hello → bonjour 0.83 0.84 0.82 0.70 0.54 0.35 English Italian hello → ciao 0.84 0.78 0.82 0.74 0.70 0.47 English Spanish hello → hola 0.92 0.88 0.89 0.75 0.64 0.43 Linguistic Present Gerund go → going 0.99 0.95 1.00 0.97 0.80 0.41 Present Past go → went 0.98 0.91 0.99 0.96 0.52 0.33 Present Past Perfect go → gone 0.82 0.82 0.94 0.65 0.55 0.33 Singular Plural dog → dogs 0.88 0.78 0.94 0.89 0.76 0.51 Copy {a, · · · , z, A, · · · , Z } A → A - - 1.00 0.98 Antonym Adjectives happy → sad 0.89 0.83 - 0.83 0.73 
+
+## 5 Further Discussions 221 
+
+Inseparable Covariates and Responses. In our main analysis, we assume that xi and yi embeddings 222 
+
+are linearly separable, allowing the addition xi + yi to act a concatenation operation. However, 223 
+
+recognizing that this assumption does not generally hold for real-world transformers, we extend our 224 
+
+analysis to the following setting, where xi and yi are no longer linearly separable. While this still 225 
+
+imposes a 2d-dimensional requirement on the hidden space, such a constraint is easily satisfied in 226 
+
+practical transformers, given the high dimensionality of their internal representations. 227 
+
+Z0 =
+
+ 0 0 · · · 0 0 0 0
+
+x1 y1 · · · xn yn xtest 0
+
+
+
+∈ R(2 d)×(2 n+2) . (11) We slightly modify the sparsity constraints for the first layer, and require (D0)2i, : = 0 for i ∈ [n + 1] :228 
+
+V0 =
+
+ 0 A0
+
+0d×d 0
+
+
+
+, Q0 =
+
+02d×2d 00 D0
+
+
+
+, where A0 ∈ Rd×d, D 0 ∈ Rdp×dp . (12) With these conditions, we are ready to establish the critical points for inseparable demonstrations. 229 
+
+Note that V0 and Q0 do not involve B0 and C0, so the sequences B and C have size L − 1.230 
+
+Theorem 5. Under the same settings as Theorem 1, define SI , SΣ ⊂ Rd×d and SP ⊂ Rdp×dp as 231 
+
+SI = {λI d | λ ∈ R}, SΣ = λΣ−1 λ ∈ R , SP = diag( In ⊗ Λ1, Λ2) Λ1, Λ2 ∈ R2×2 .
+
+Consider optimizing an L-layer linear transformer with inseparable pairwise demonstrations and 232 
+
+parameter configuration given in eq. (12) for the first layer and eq. (6) for the remaining layers, then 233 
+
+inf A∈S LI , B ∈S L−1  
+
+> I, C ∈S L−1Σ, D ∈S LP
+
+X 
+
+> H∈A∪B∪C∪D
+
+∇H L {Vl, Q l}Ll=1 
+
+ 2 
+
+> F
+
+= 0 .
+
+This result suggests that for inseparable demonstrations, the first layer performs a functionally similar 234 
+
+concatenation operation by "moving" the embedding of each xi to the corresponding yi position. 235 
+
+This enables the model to reconstruct the single-token structure without linear separability. 236 
+
+Optimal Weights for Causal Task Vectors. While task vectors naturally emerge in linear trans-237 
+
+formers, their embeddings do not directly help minimize the ICL risk, as evidenced by the identical 238 
+
+performance between pairwise and triplet formatted prompts (Figures 4a and 4b). Instead, we show 239 
+
+that task vectors contribute to minimizing the training (i.e., LLM pretraining) risk when token-wise 240 
+
+dropout is applied, acting as redundancies for in-context demonstrations that may be randomly 241 
+
+dropped during training. This redundancy ensures that essential task information is preserved and 242 
+
+continues to facilitate accurate prediction despite partial context loss. 243 
+
+Proposition 6. Under the same settings as Proposition 3, consider adding token-wise dropouts Ol:244 
+
+Zl = Zl−1Ol + 1 
+
+> n
+
+Attn Vl,Q l (Zl−1)Ol, where Ol = diag( o1 
+
+> l
+
+, · · · , o dp 
+
+> l
+
+), o il
+
+> i.i.d.
+
+∼ Bern( p).
+
+75 10 15 20 25 30     
+
+> n
+> 10 −2
+> 10 −1
+> 10 0
+> 10 1
+> ICL Risk
+> S ( L= 1 )P ( L= 2 )T ( L= 2 )S ( L= 2 )
+
+(a) Single- vs. Multi-Token ( L = 2 )5 10 15 20 25 30      
+
+> n
+> 10 −5
+> 10 −3
+> 10 −1
+> 10 1
+> ICL Risk
+> S ( L= 2 )P ( L= 3 )T ( L= 3 )S ( L= 3 )
+
+(b) Single- vs. Multi-Token ( L = 3 )2 3  
+
+> L
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> ICL Risk
+> ICL ( n= 1 )Task Vector
+
+(c) ICL vs. TV 
+
+Figure 4: (a, b) Comparison of the best ICL risk achieved using single (S), pairwise (P), and triplet (T) formatted prompts. (c) Performance comparison between 1-shot ICL and task vector. 
+
+Then any minimizer Λ4 of the in-context risk L {Vl, Q l}Ll=1 
+
+ satisfies (Λ 4)n+1 ,: = 0 and: 245 
+
+(Λ 4)1: n, : ∝ arg min 
+
+> Λ
+
+c1∥Λ∥44+c2
+
+Xni=1 ∥Λi, :∥42+c3
+
+Xn+1  
+
+> j=1
+
+∥Λ:,j ∥42+c4 ΛΛ ⊤ 2 
+
+> F
+
+, s.t. ∥Λ∥2 
+
+> F
+
+= 1 .
+
+where c1, · · · , c 4 are non-negative constants depending on Vl, Ql, and p.246 
+
+This result suggests that dropout introduces additional higher-order regularization on the task vec-247 
+
+tor weights, encouraging them to distribute more uniformly across demonstrations. Furthermore, 248 
+
+when considering causal attention (i.e., enforcing Λ4 to be upper-triangular), it induces a decaying 249 
+
+weight pattern from later to earlier demonstrations, which is also consistently observed in practical 250 
+
+transformer models as evidenced in Figure 3c. While dropout is not always applied during LLM pre-251 
+
+training or fine-tuning, the injection of position encodings and use of normalization act as alternative 252 
+
+sources of perturbation, thereby promoting the emergence of such redundancy. 253 
+
+Extra EOS Tokens. In our theoretical analysis, we consistently impose an additional zero token at 254 
+
+the end of the input prompt. While this token can be interpreted as an EOS token in practical models, 255 
+
+such a design choice is uncommon in standard ICL tasks. We justify this modeling decision with: 256 
+
+Proposition 7 (Informal) . Given any L-layer, single-head, d-dimensional linear-attention trans-257 
+
+former with EOS tokens, there exists an equivalent L-layer, two-head, 2d-dimensional linear-attention 258 
+
+transformer operating without EOS tokens. 259 
+
+This equivalence suggests that the same learning dynamics can be realized through multi-head 260 
+
+architectures without relying on explicit EOS tokens. Specifically, one head in this setting is dedicated 261 
+
+to task vector formation, while the other handles ICL prediction. This separation allows the model to 262 
+
+retain the functional role of the EOS token implicitly within its hidden states. Consequently, our prior 263 
+
+theoretical analysis can be naturally extended to practical models that omit explicit EOS tokens. 264 
+
+## 6 Experimental Studies 265 
+
+6.1 Synthetic Results with Random Linear Regression 266 
+
+In this section, we validate our critical points analysis with synthetic linear regression tasks. Specifi-267 
+
+cally, we examine the achievable ICL risk of linear transformers trained with single-token (eq. (3)), 268 
+
+pairwise (eq. (7)), and triplet (eq. (9)) demonstrations. We set the input dimension to d = 4 and 269 
+
+Px = Pw = N (0 , I d). For each setting, we train multiple models with different random seeds and 270 
+
+report the minimum ICL risk achieved as a proxy for the global optimum. The comparative results 271 
+
+across different numbers of layers L and demonstration formats are shown in Figures 4a and 4b. 272 
+
+These results support our theoretical analysis: when trained with pairwise or triplet demonstrations, the 273 
+
+transformer recovers the GD++ algorithm similar to the single-token case. Notably, the performance 274 
+
+of L-layer transformers with pairwise (P) and triplet (T) demonstrations closely aligns, indicating 275 
+
+a shared underlying learning pattern. Moreover, their performance consistently lies between that 276 
+
+of single-token (S) case L-layer and (L − 1) -layer models. The observed improvement over the 277 
+
+(L − 1) -layer single-token baselines comes from the additional GD++ performed solely on xi tokens 278 
+
+in the first layer, effectively acting as a "half-step" of gradient descent. 279 
+
+8Table 2: Accuracy comparison between standard ICL (Baseline), the task vector method (TaskV), and our strategy (TaskV-M). The experiment is conducted on Llama-13B with n = 10 .
+
+Method Knowledge Algorithmic Translation Linguistic Bijection Average 
+
+0-shot Baseline 6.90 ± 2.08 15.60 ± 1.72 7.00 ± 1.65 12.44 ± 1.74 8.27 ± 1.33 10.28 ± 0.98 
+
+TaskV 68.80 ± 2.66 86.20 ± 1.61 73.53 ± 0.91 85.24 ± 1.80 50.67 ± 2.32 72.26 ± 1.01 
+
+1-shot Baseline 69.50 ± 3.86 73.67 ± 1.56 57.80 ± 2.01 56.22 ± 1.57 44.76 ± 2.44 58.11 ± 0.63 
+
+TaskV 79.50 ± 2.35 88.47 ± 0.75 80.67 ± 2.56 89.11 ± 0.84 60.44 ± 2.07 78.79 ± 0.77 
+
+TaskV-M 81.30 ± 2.80 89.53 ± 0.65 80.13 ± 2.14 88.71 ± 0.62 61.78 ± 0.96 79.34 ± 0.37 
+
+2-shot Baseline 78.80 ± 3.30 85.07 ± 1.37 75.67 ± 2.64 76.80 ± 1.18 56.49 ± 2.87 72.92 ± 0.59 
+
+TaskV 84.60 ± 2.11 88.40 ± 0.68 84.33 ± 0.92 90.13 ± 0.92 62.44 ± 2.16 80.82 ± 0.42 
+
+TaskV-M 85.70 ± 1.63 89.27 ± 1.10 84.13 ± 1.15 89.64 ± 0.86 64.49 ± 2.02 81.48 ± 0.37 
+
+3-shot Baseline 86.20 ± 2.69 88.07 ± 1.06 80.00 ± 1.67 84.04 ± 1.19 62.18 ± 1.52 78.51 ± 0.42 
+
+TaskV 90.20 ± 2.23 88.67 ± 0.89 86.27 ± 2.31 92.31 ± 0.48 66.53 ± 0.94 83.53 ± 0.41 
+
+TaskV-M 90.30 ± 1.50 89.87 ± 0.83 86.07 ± 2.17 92.36 ± 0.72 68.13 ± 0.76 84.15 ± 0.52 
+
+4-shot Baseline 84.80 ± 2.06 88.07 ± 0.61 83.27 ± 1.82 88.89 ± 1.91 67.16 ± 1.47 81.52 ± 0.66 
+
+TaskV 88.70 ± 1.69 89.53 ± 1.34 86.27 ± 1.08 92.76 ± 0.54 70.44 ± 1.35 84.66 ± 0.39 
+
+TaskV-M 89.60 ± 1.43 91.00 ± 1.01 87.20 ± 0.62 92.36 ± 1.44 72.53 ± 0.94 85.64 ± 0.29 
+
+Additionally, we successfully reproduce the task vector method in linear transformers. Specifically, 280 
+
+we extract the hidden state of the final ( →) token from triplet demonstrations after the first layer, 281 
+
+and inject this vector into zero-shot prompts consisting of only xtest . To simulate the effect of layer 282 
+
+normalization used in practical transformers, we normalize the task vectors before inference and the 283 
+
+output vectors before ICL risk evaluation. As shown in Figure 4c, the performance of task vectors is 284 
+
+parallel to that of standard ICL with a single in-context example. This validates our conjecture that 285 
+
+the injected task vector effectively acts as a single demonstration. 286 
+
+6.2 Enhancing the Task Vector Method 287 
+
+We further explore an enhancement to the original task vector method. According to our previous 288 
+
+analysis, a single injected task vector may not provide sufficient information for inference on complex 289 
+
+tasks (e.g., bijection tasks). Moreover, in linear-attention models, each ( →) token functions as an 290 
+
+individual in-context demonstration during the gradient descent phase and thus contributes equally 291 
+
+to the ICL risk. Motivated by this, we extend the standard task vector method, which modifies only 292 
+
+the final arrow token, and propose a multi-vector variant that injects into every single arrow token 293 
+
+in few-shot prompts. This enriched injection scheme enables the model to leverage multiple new 294 
+
+demonstrations, thereby providing a more informative and distributed context for prediction. 295 
+
+We compare our multi-vector injection strategy (TaskV-M) against standard N -shot ICL (Baseline) 296 
+
+and the original task vector method (TaskV). For each N -shot prompt, we generate N + 1 distinct 297 
+
+ICL prompts to produce N + 1 task vectors, which are then used to replace the embeddings of 298 
+
+all arrow tokens in the input. For each task, performance is evaluated over 50 randomly sampled 299 
+
+prompts, with mean accuracy and standard deviation reported across 5 independent trials. The 300 
+
+final results, summarized in Table 2, span a diverse set of ICL task types, including Knowledge, 301 
+
+Algorithmic, Translation, Linguistic, and Bijection, showing that TaskV-M consistently outperforms 302 
+
+TaskV, especially on the more challenging bijection tasks. These findings support our analysis that 303 
+
+every arrow token contributes meaningfully to the model’s ICL capability. 304 
+
+## 7 Conclusion 305 
+
+This paper proposes the linear combination conjecture as a plausible explanation for the emergence 306 
+
+and functionality of task vectors in ICL. We support this conjecture with both empirical observations 307 
+
+and theoretical analysis, demonstrating how task vectors naturally arise under triplet-formatted 308 
+
+demonstrations in simple linear transformer models, and why this method inherently fails on general 309 
+
+bijection tasks. While the conjecture may not yet offer a complete characterization of ICL dynamics, 310 
+
+it provides a new perspective on the underlying mechanisms and offers a promising direction for 311 
+
+interpreting intermediate hidden states in modern transformer-based language models. 312 
+
+9References 313 
+
+[1] Kwangjun Ahn, Xiang Cheng, Hadi Daneshmand, and Suvrit Sra. Transformers learn to imple-314 
+
+ment preconditioned gradient descent for in-context learning. Advances in Neural Information 315 
+
+Processing Systems , 36:45614–45650, 2023. 316 
+
+[2] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal, 317 
+
+Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are 318 
+
+few-shot learners. Advances in neural information processing systems , 33:1877–1901, 2020. 319 
+
+[3] Stephanie Chan, Adam Santoro, Andrew Lampinen, Jane Wang, Aaditya Singh, Pierre 320 
+
+Richemond, James McClelland, and Felix Hill. Data distributional properties drive emer-321 
+
+gent in-context learning in transformers. Advances in neural information processing systems ,322 
+
+35:18878–18891, 2022. 323 
+
+[4] Damai Dai, Yutao Sun, Li Dong, Yaru Hao, Shuming Ma, Zhifang Sui, and Furu Wei. Why can 324 
+
+gpt learn in-context? language models secretly perform gradient descent as meta-optimizers. In 325 
+
+Findings of the Association for Computational Linguistics: ACL 2023 , pages 4005–4019, 2023. 326 
+
+[5] Gilad Deutch, Nadav Magar, Tomer Natan, and Guy Dar. In-context learning and gradient 327 
+
+descent revisited. In Proceedings of the 2024 Conference of the North American Chapter of the 328 
+
+Association for Computational Linguistics: Human Language Technologies (Volume 1: Long 329 
+
+Papers) , pages 1017–1028, 2024. 330 
+
+[6] Shivam Garg, Dimitris Tsipras, Percy S Liang, and Gregory Valiant. What can transformers 331 
+
+learn in-context? a case study of simple function classes. Advances in Neural Information 332 
+
+Processing Systems , 35:30583–30598, 2022. 333 
+
+[7] Roee Hendel, Mor Geva, and Amir Globerson. In-context learning creates task vectors. In 334 
+
+Findings of the Association for Computational Linguistics: EMNLP 2023 , pages 9318–9333, 335 
+
+2023. 336 
+
+[8] Alberto Hojel, Yutong Bai, Trevor Darrell, Amir Globerson, and Amir Bar. Finding visual task 337 
+
+vectors. In European Conference on Computer Vision , pages 257–273. Springer, 2024. 338 
+
+[9] Brandon Huang, Chancharik Mitra, Leonid Karlinsky, Assaf Arbelle, Trevor Darrell, and Roei 339 
+
+Herzig. Multimodal task vectors enable many-shot multimodal in-context learning. Advances 340 
+
+in Neural Information Processing Systems , 37:22124–22153, 2024. 341 
+
+[10] Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, and François Fleuret. Transformers 342 
+
+are rnns: Fast autoregressive transformers with linear attention. In International conference on 343 
+
+machine learning , pages 5156–5165. PMLR, 2020. 344 
+
+[11] Amirhossein Kazemnejad, Inkit Padhi, Karthikeyan Natesan Ramamurthy, Payel Das, and Siva 345 
+
+Reddy. The impact of positional encoding on length generalization in transformers. Advances 346 
+
+in Neural Information Processing Systems , 36:24892–24928, 2023. 347 
+
+[12] Dongfang Li, Xinshuo Hu, Zetian Sun, Baotian Hu, Min Zhang, et al. In-context learning state 348 
+
+vector with inner and momentum optimization. Advances in Neural Information Processing 349 
+
+Systems , 37:7797–7820, 2024. 350 
+
+[13] Sheng Liu, Haotian Ye, Lei Xing, and James Y Zou. In-context vectors: Making in context learn-351 
+
+ing more effective and controllable through latent space steering. In International Conference 352 
+
+on Machine Learning , pages 32287–32307. PMLR, 2024. 353 
+
+[14] Arvind V. Mahankali, Tatsunori Hashimoto, and Tengyu Ma. One step of gradient descent is 354 
+
+provably the optimal in-context learner with one layer of linear self-attention. In The Twelfth 355 
+
+International Conference on Learning Representations , 2024. 356 
+
+[15] Lingfeng Shen, Aayush Mishra, and Daniel Khashabi. Position: Do pretrained transformers 357 
+
+learn in-context by gradient descent? In Proceedings of the 41st International Conference on 358 
+
+Machine Learning , pages 44712–44740. PMLR, 2024. 359 
+
+10 [16] Eric Todd, Millicent Li, Arnab Sen Sharma, Aaron Mueller, Byron C Wallace, and David 360 
+
+Bau. Function vectors in large language models. In The Twelfth International Conference on 361 
+
+Learning Representations , 2024. 362 
+
+[17] Johannes Von Oswald, Eyvind Niklasson, Ettore Randazzo, João Sacramento, Alexander 363 
+
+Mordvintsev, Andrey Zhmoginov, and Max Vladymyrov. Transformers learn in-context by 364 
+
+gradient descent. In International Conference on Machine Learning , pages 35151–35174. 365 
+
+PMLR, 2023. 366 
+
+[18] Lean Wang, Lei Li, Damai Dai, Deli Chen, Hao Zhou, Fandong Meng, Jie Zhou, and Xu Sun. 367 
+
+Label words are anchors: An information flow perspective for understanding in-context learning. 368 
+
+In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing ,369 
+
+pages 9840–9855, 2023. 370 
+
+[19] Kevin Christian Wibisono and Yixin Wang. On the role of unstructured training data in 371 
+
+transformers’ in-context learning capabilities. In NeurIPS 2023 Workshop on Mathematics of 372 
+
+Modern Machine Learning , 2023. 373 
+
+[20] Jingfeng Wu, Difan Zou, Zixiang Chen, Vladimir Braverman, Quanquan Gu, and Peter Bartlett. 374 
+
+How many pretraining tasks are needed for in-context learning of linear regression? In The 375 
+
+Twelfth International Conference on Learning Representations , 2024. 376 
+
+[21] Sang Michael Xie, Aditi Raghunathan, Percy Liang, and Tengyu Ma. An explanation of 377 
+
+in-context learning as implicit bayesian inference. In International Conference on Learning 378 
+
+Representations , 2022. 379 
+
+[22] Yue Xing, Xiaofeng Lin, Chenheng Xu, Namjoon Suh, Qifan Song, and Guang Cheng. Theoret-380 
+
+ical understanding of in-context learning in shallow transformers with unstructured data. arXiv 381 
+
+preprint arXiv:2402.00743 , 2024. 382 
+
+[23] Zheyang Xiong, Ziyang Cai, John Cooper, Albert Ge, Vasilis Papageorgiou, Zack Sifakis, Ange-383 
+
+liki Giannou, Ziqian Lin, Liu Yang, Saurabh Agarwal, et al. Everything everywhere all at once: 384 
+
+Llms can in-context learn multiple tasks in superposition. arXiv preprint arXiv:2410.05603 ,385 
+
+2024. 386 
+
+[24] Liu Yang, Ziqian Lin, Kangwook Lee, Dimitris Papailiopoulos, and Robert Nowak. Task vectors 387 
+
+in in-context learning: Emergence, formation, and benefit. arXiv preprint arXiv:2501.09240 ,388 
+
+2025. 389 
+
+[25] Ruiqi Zhang, Spencer Frei, and Peter L Bartlett. Trained transformers learn linear models 390 
+
+in-context. Journal of Machine Learning Research , 25(49):1–55, 2024. 391 
+
+[26] Chunsheng Zuo, Pavel Guerzhoy, and Michael Guerzhoy. Position information emerges in causal 392 
+
+transformers without positional encodings via similarity of nearby embeddings. In Proceedings 393 
+
+of the 31st International Conference on Computational Linguistics , pages 9418–9430, 2025. 394 
+
+11 A Auxiliary Lemmas 395 
+
+Lemma 8 (Proposed in [ 1 ]) . Given positive objective function f (A) taking parameters A = {Ai}ni=1 ,396 
+
+where Ai ∈ Rdi×di . Let S = Π ni=1 Si ⊂ Πni=1 Rdi×di be a predefined parameter subspace. Define 397 
+
+eA(t, R i) = {A1, · · · , A i + tR i, · · · , A n} given i ∈ [1 , n ], Ri ∈ Rdi×di and t ∈ R. If for any A ∈ S 398 
+
+and Ri ∈ Rdi×di , there exists eRi ∈ S i such that 399 
+
+ddt f
+
+ eA(t, eRi)
+
+
+
+> t=0
+
+≤ ddt f
+
+ eA(t, R i)
+
+
+
+> t=0
+
+,
+
+then we have 400 
+
+inf 
+
+> A∈S
+> n
+
+X
+
+> i=1
+
+∥∇ Ai f (A)∥2 
+
+> F
+
+= 0 .
+
+Proof. This lemma is proved as part of the main theorems in [ 1]. We rearrange the proof here to 401 
+
+accommodate arbitrary function of matrices. Firstly, notice that for any R = {Ri}ni=1 ∈ Πni=1 Rdi×di ,402 
+
+> n
+
+X
+
+> i=1
+
+ddt f
+
+ eA(t, eRi)
+
+
+
+> t=0
+
+= ddt f (A + tR )
+
+> t=0
+
+.
+
+Therefore, the provided precondition is equivalent to stating that for any A ∈ S and R ∈ Πni=1 Rdi×di ,403 
+
+there exists eR ∈ S such that: 404 
+
+ddt f
+
+
+
+A + t eR
+
+
+
+> t=0
+
+≤ ddt f (A + tR ) t=0 
+
+.
+
+Let R = −∇ Af (A), we then have 405 
+
+ddt f (A + tR )
+
+> t=0
+
+=
+
+ df (A − t∇Af (A)) d( A − t∇Af (A)) , d( A − t∇Af (A)) 
+
+t
+
+
+
+> t=0
+
+= ⟨∇ Af (A), −∇ Af (A)⟩ = −∥∇ Af (A)∥2 
+
+> F
+
+.
+
+If the infimum of ∥∇ Af (A)∥2 
+
+> F
+
+is not zero but some positive value p, then the S-constrained gradient 406 
+
+flow induced by eR will lead to unbounded descent: 407 
+
+ddt f
+
+
+
+A + t eR
+
+
+
+> t=0
+
+≤ − p. 
+
+This contradicts the fact that f (A) ≥ 0 and concludes the proof. 408 
+
+The following lemma is an extension of Lemma 5 in [ 1 ] by accommodating multivariate y samples as 409 
+
+well as enabling a wider range of demonstration and transformer parameter configurations. 410 
+
+Lemma 9. Let x1, · · · , x n+1 be i.i.d. samples from an input distribution, and let W be sampled 411 
+
+independently of {xi}n+1  
+
+> i=1
+
+. Let Z0 ∈ R(2 d)×N , where N ∈ Z, be constructed of form 412 
+
+Z0 =
+
+∗ · · · ∗ ∗∗ · · · ∗ 0d
+
+
+
+∈ R(2 d)×N ,
+
+where the ∗ parts can be arbitrarily constructed from {xi}n+1  
+
+> i=1
+
+and W . Let eZ0 be defined as replacing 413 
+
+the zero part of Z0 by yn+1 :414 
+
+eZ0 =
+
+∗ · · · ∗ ∗∗ · · · ∗ yn+1 
+
+
+
+∈ R(2 d)×N .
+
+Let eZl be the output of the l-th layer of the linear transformer, and let eXl, eYl ∈ Rd×N be the first and 415 
+
+last d rows of eZl, respectively. Suppose that the {Ql}Ll=1 matrices are of form 416 
+
+Ql =
+
+ ∗|{z}  
+
+> dcolumns
+
+0(2 d+dp)×d ∗|{z}  
+
+> dpcolumns
+
+
+
+,
+
+Then the in-context risk of this L-layer linear transformer is equivalent to 417 
+
+L {Vl, Q l}Ll=1 
+
+ = E eZ0,W 
+
+h
+
+tr 
+
+
+
+(IN − M ) eY ⊤ 
+
+> L
+
+eYL(IN − M )
+
+i 
+
+. (13) 12 Proof. Let the Vl and Ql matrices be represented as: 418 
+
+Vl =
+
+V 1
+
+> l
+
+V 2
+
+> l
+
+
+
+, Ql = Q1 
+
+> l
+
+0 Q2
+
+> l
+
+ ,
+
+where V 1 
+
+> l
+
+, V 2 
+
+> l
+
+∈ Rd×2d, Q 1 
+
+> l
+
+∈ R(2 d+dp)×d, Q 2 
+
+> l
+
+∈ R(2 d+dp)×dp . Then the update rule in eq. (5) can 419 
+
+be rephrased as 420 
+
+Xl = Xl−1 + 1
+
+n V 1 
+
+> l
+
+Zl−1M Z⊤
+
+> l−1
+
+, P   Q1 
+
+> l
+
+Xl−1 + Q2 
+
+> l
+
+P ,Yl = Yl−1 + 1
+
+n V 2 
+
+> l
+
+Zl−1M Z⊤
+
+> l−1
+
+, P   Q1 
+
+> l
+
+Xl−1 + Q2 
+
+> l
+
+P .
+
+Let ∆Z = eZ0 − Z0, i.e. an all-zero matrix except that the last half of the last column is yn+1 . Let 421 
+
+∆X and ∆Y be its first and last d rows respectively, then ∆X = 0 and ∆Y = [0 · · · 0 yn+1 ].422 
+
+Note that eZl = Zl + ∆ Z holds for l = 0 trivially. Now suppose it holds for some l = k − 1, then 423 
+
+eXk = eXk−1 + 1
+
+n V 1 
+
+> k
+
+eZk−1M
+
+h eZ⊤
+
+> k−1
+
+, P 
+
+i 
+
+Q1 
+
+> k
+
+eXk−1 + Q2
+
+> k
+
+P
+
+
+
+= Xk−1 + 1
+
+n V 1 
+
+> k
+
+Zk−1M Z⊤
+
+> k−1
+
+, P   Q1
+
+> k
+
+Xk−1 + Q2
+
+> k
+
+P 
+
++ 1
+
+n V 1 
+
+> k
+
+∆Z M Z⊤
+
+> k−1
+
+, P   Q1
+
+> k
+
+Xk−1 + Q2
+
+> k
+
+P 
+
++ 1
+
+n V 1 
+
+> k
+
+Zk−1M ∆⊤ 
+
+> Z
+
+, 0dp×dp
+
+  Q1
+
+> k
+
+Xk−1 + Q2
+
+> k
+
+P 
+
++ 1
+
+n V 1 
+
+> k
+
+∆Z M ∆⊤ 
+
+> Z
+
+, 0dp×dp
+
+  Q1
+
+> k
+
+Xk−1 + Q2
+
+> k
+
+P 
+
+= Xk−1 + 1
+
+n V 1 
+
+> k
+
+Zk−1M Z⊤
+
+> k−1
+
+, P   Q1
+
+> k
+
+Xk−1 + Q2
+
+> k
+
+P  = Xk,
+
+where the last step holds by noticing that ∆Z M = 0 . Similarly, one can prove that 424 
+
+eYk = Yk−1 + ∆ Y + 1
+
+n V 2 
+
+> k
+
+Zk−1M Z⊤
+
+> k−1
+
+, P   Q1
+
+> k
+
+Xk−1 + Q2
+
+> k
+
+P  = Yk + ∆ Y .
+
+Therefore, it holds that for any l ∈ [1 , L ], eZl = Zl + ∆ Z . Recall the in-context risk in eq. (2): 425 
+
+L {Vl, Q l}Ll=1 
+
+ = EZ0,W (ZL)(d+1:2 d),N + yn+1 
+
+> 22
+
+= EZ0,W ∥(YL + ∆ Y )( IN − M )∥22
+
+= E eZ0,W 
+
+h
+
+tr 
+
+
+
+(IN − M ) eY ⊤ 
+
+> L
+
+eYL(IN − M )
+
+i 
+
+.
+
+The proof is complete. 426 
+
+## B Proof of Theoretical Results 427 
+
+B.1 Proof of Proposition 4 428 
+
+Proof. We will first prove sufficiency. Let W = ab ⊤ be a rank-one matrix, where a, b ∈ Rd. The 429 
+
+given conditions imply that x = W y = W W x = ab ⊤ab ⊤x, we then have b⊤x = b⊤ab ⊤ab ⊤x =430 
+
+(b⊤a)2b⊤x. Since b⊤x̸ = 0 , we can conclude that b⊤a = ±1. Then, x = ab ⊤ab ⊤x = ±ab ⊤x = ±y.431 
+
+To prove the necessity, it suffices to show that selecting W = xx ⊤/∥x∥22 when x = y satisfies the 432 
+
+given conditions (alternatively, select W = −xx ⊤/∥x∥22 when x = −y). 433 
+
+B.2 Proof of Theorem 1 434 
+
+Proof. To enhance the readability of the notations in this proof, we will drop the constant 1 
+
+> n
+
+factor 435 
+
+in linear attention. Furthermore, we will simplify eZ0, eX0 and eY0 in Lemma 9 as Z0, X0 and Y0436 
+
+13 respectively. This results in different definitions compared to the original ones, but we will not refer 437 
+
+to the original definitions in the remainder of this proof. 438 
+
+Z0 =
+
+X0
+
+Y0
+
+
+
+=
+
+x1 0 · · · xn 0 xtest 00 y1 · · · 0 yn 0 ytest 
+
+
+
+∈ R(2 d)×(2 n+2) .
+
+Let Zl be the output of the l-th layer of the transformer, and let Xl, Y l ∈ Rd×(2 n+2) denote the first 439 
+
+and last d rows of Zl, respectively. Under the constraint in eq. (6), we can verify that 440 
+
+Xl = Xl−1 + AlXl−1M (X⊤
+
+> l−1
+
+ClXl−1 + Dl),Yl = Yl−1 + BlYl−1M (X⊤
+
+> l−1
+
+ClXl−1 + Dl). (14) In the following analysis, we will use f (A ← B) to denote the result of the function f of A when 441 
+
+replacing the value of A with B. Additionally, we denote f (A ← B ∗ A) as f (A ∗
+
+←− B) for any 442 
+
+operator ∗. Therefore, f (A +
+
+←− B) = f (A ← A + B). We also denote f (A ×
+
+←− B) = f (A ← BA )443 
+
+and f (A ⋄
+
+←− B) = f (A ← AB ) for convenience. 444 
+
+Our goal is proving that, for any E ∈ A ∪ B ∪ C ∪ D and an arbitrary matrix R ∈ Rd×d (Rdp×dp
+
+> 445
+
+for D), there exists eR ∈ S I (SΣ for C, SP for D) such that 446 
+
+ddt L(E +
+
+←− t eR) t=0 
+
+≤ ddt L(E +
+
+←− tR ) t=0 
+
+. (15) Let X0 = [0 , x 1, · · · , 0, x test ] be a function of X0, we then have Y0 = W X 0. Let U⊥ ∈ Rd×d be a 447 
+
+uniformly sampled random orthonormal matrix, and let UΣ = Σ 1/2U⊥Σ−1/2. One can verify that 448 
+
+U −1Σ = Σ 1/2U ⊤⊥ Σ−1/2. By applying Lemma 9 and the fact that X0
+
+> d
+
+= UΣX0, we have that for any 449 
+
+given matrix R,450 
+
+ddt L(E +
+
+←− tR ) t=0 
+
+= ddt EX0,W 
+
+h
+
+tr 
+
+
+
+(I − M )Y ⊤ 
+
+> L
+
+(E +
+
+←− tR )YL(E +
+
+←− tR )( I − M )
+
+i 
+
+> t=0
+
+= 2 EX0,W 
+
+
+
+tr 
+
+
+
+(I − M )Y ⊤
+
+> L
+
+ddt YL(E +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 EX0,W,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )Y ⊤ 
+
+> L
+
+(X0
+
+> ×
+
+←− UΣ) ddt YL(X0
+
+> ×
+
+←− UΣ, E +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+.
+
+Next, we will show that eq. (15) holds for each one of Ai, B i, C i, D i for any i ∈ [1 , L ].451 
+
+1. Equation (15) holds for Ai.452 
+
+We first show that for any l ∈ [1 , L ], the following equations hold: 453 
+
+Xl(X0
+
+> ×
+
+←− UΣ) = UΣXl, (16) 
+
+ddt Xl(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+= UΣ
+
+ddt Xl(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+. (17) It is straightforward to verify that eq. (16) holds for l = 0 . Now suppose that eq. (16) holds for some 454 
+
+l = k − 1, we then have 455 
+
+Xk(X0
+
+> ×
+
+←− UΣ)= Xk−1(X0
+
+> ×
+
+←− UΣ) + AlXk−1(X0
+
+> ×
+
+←− UΣ)M
+
+
+
+X⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ)ClXk−1(X0
+
+> ×
+
+←− UΣ) + Dl
+
+
+
+= UΣXk−1 + AlUΣXk−1M  X⊤
+
+> k−1
+
+U ⊤ 
+
+> Σ
+
+ClUΣXk−1 + Dl
+
+
+
+= UΣ
+
+ Xk−1 + AlXk−1M  X⊤
+
+> k−1
+
+ClXk−1 + Dl
+
+ = UΣXk,
+
+where the third equality follows by noticing that when Al = alId and Cl = clΣ−1, we have 456 
+
+AlUΣ = UΣAl and U ⊤ 
+
+> Σ
+
+ClUΣ = Cl. This concludes the proof of eq. (16). 457 
+
+14 We now turn to the proof of eq. (17). Notice that when l < i , we naturally have 458 
+
+ddt Xl(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR ) t=0 
+
+= UΣ
+
+ddt Xl(Ai
+
+> +
+
+←− tU −1Σ RU Σ) t=0 
+
+= 0 .
+
+When l = i, it is easy to verify that 459 
+
+ddt Xl(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+= RU ΣXl−1M (X⊤
+
+> l−1
+
+U ⊤ 
+
+> Σ
+
+ClUΣXl−1 + Dl)= UΣ · U −1Σ RU ΣM (X⊤
+
+> l−1
+
+ClXl−1 + Dl)= UΣ
+
+ddt Xl(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+.
+
+Now suppose that eq. (17) holds for some l = k − 1 ≥ i, one can verify that: 460 
+
+ddt Xk(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+= ddt Xk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR ) t=0 
+
++ ddt AkXk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )M
+
+·
+
+
+
+X⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )CkXk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR ) + Dk
+
+
+
+> t=0
+
+= ddt Xk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
++ Ak
+
+ddt Xk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+M
+
+
+
+X⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ)CkXk−1(X0
+
+> ×
+
+←− UΣ) + Dk
+
+
+
++ AkXk−1(X0
+
+> ×
+
+←− UΣ)M ddt X⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR ) t=0 
+
+CkXk−1(X0
+
+> ×
+
+←− UΣ)+ AkXk−1(X0
+
+> ×
+
+←− UΣ)M X ⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ)Ck
+
+ddt Xk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+= UΣ
+
+ddt Xk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
++ UΣAk
+
+ddt Xk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+M  X⊤
+
+> k−1
+
+CkXk−1 + Dk
+
+
+
++ UΣAkXk−1M ddt X⊤
+
+> k−1
+
+(Ai
+
+> +
+
+←− tU −1Σ RU Σ) t=0 
+
+CkXk−1
+
++ UΣAkXk−1M X ⊤
+
+> k−1
+
+Ck
+
+ddt Xk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+= UΣ
+
+ddt Xk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
++ UΣ
+
+ddt AkXk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ)M
+
+·
+
+
+
+X⊤
+
+> k−1
+
+(Ai
+
+> +
+
+←− tU −1Σ RU Σ)CkXk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ) + Dk
+
+
+
+> t=0
+
+= UΣ
+
+ddt Xk(Ai
+
+> +
+
+←− tU −1Σ RU Σ) t=0 
+
+.
+
+This completes the proof of eq. (17). 461 
+
+Under the condition that Bl = blId for some bl ∈ R, we can simplify eq. (14) as 462 
+
+Yl = Yl−1 + blYl−1M (X⊤
+
+> l−1
+
+ClXl−1 + Dl)= Yl−1
+
+ I + blM (X⊤
+
+> l−1
+
+ClXl−1 + Dl)
+
+= Y0
+
+> l
+
+Y
+
+> j=1
+
+ I + bj M (X⊤
+
+> j−1
+
+Cj Xj−1 + Dj ).
+
+15 Define Gl = X0
+
+Qlj=1 
+
+ I + bj M (X⊤
+
+> j−1
+
+Cj Xj−1 + Dj ), then it satisfies that Yl = W G l. We are 463 
+
+ready to prove that similar results to eqs. (16) and (17) also hold for Gl, l ∈ [1 , L ]:464 
+
+Gl(X0
+
+> ×
+
+←− UΣ) = UΣGl, (18) 
+
+ddt Gl(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+= UΣ
+
+ddt Gl(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+. (19) Notice that eq. (18) holds trivially for l = 0 as G0 = X0. Now suppose that eq. (18) holds for some 465 
+
+l = k − 1, we then have 466 
+
+Gk(X0
+
+> ×
+
+←− UΣ) = Gk−1(X0
+
+> ×
+
+←− UΣ)
+
+
+
+I + bkM (X⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ)CkXk−1(X0
+
+> ×
+
+←− UΣ) + Dk)
+
+
+
+= UΣGk−1
+
+ I + bkM (X⊤
+
+> k−1
+
+CkXk−1 + Dk) = UΣGk.
+
+This concludes eq. (18). As for eq. (19), notice that both sides equal 0 when l ≤ i. Now suppose that 467 
+
+eq. (19) holds for some l = k − 1 ≥ i, we then have: 468 
+
+ddt Gk(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+= ddt Gk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
++ ddt bkGk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )M
+
+·
+
+
+
+X⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )CkXk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR ) + Dk
+
+
+
+> t=0
+
+= ddt Gk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
++ bk
+
+ddt Gk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+M
+
+
+
+X⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ)CkXk−1(X0
+
+> ×
+
+←− UΣ) + Dk
+
+
+
++ bkGk−1(X0
+
+> ×
+
+←− UΣ)M ddt X⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+CkXk−1(X0
+
+> ×
+
+←− UΣ)+ bkGk−1(X0
+
+> ×
+
+←− UΣ)M X ⊤
+
+> k−1
+
+(X0
+
+> ×
+
+←− UΣ)Ck
+
+ddt Xk−1(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR ) t=0 
+
+= UΣ
+
+ddt Gk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
++ bkUΣ
+
+ddt Gk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+M  X⊤
+
+> k−1
+
+CkXk−1 + Dk
+
+
+
++ bkUΣGk−1M ddt X⊤
+
+> k−1
+
+(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+CkXk−1
+
++ bkUΣGk−1M X ⊤
+
+> k−1
+
+Ck
+
+ddt Xk−1(Ai
+
+> +
+
+←− tU −1Σ RU Σ) t=0 
+
+= UΣ
+
+ddt Gk(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+.
+
+This concludes the proof of eq. (19). Consider the in-context risk: 469 
+
+ddt L(Ai
+
+> +
+
+←− tR )
+
+> t=0
+
+= 2 EX0,W,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )Y ⊤ 
+
+> L
+
+(X0
+
+> ×
+
+←− UΣ) ddt YL(X0
+
+> ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 EX0,W,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+U ⊤ 
+
+> Σ
+
+W ⊤W U Σ
+
+ddt GL(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt EU⊥
+
+h
+
+GL(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+i
+
+> t=0
+
+(I − M )
+
+ 
+
+16 = 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt GL(Ai
+
+> +
+
+←− EU⊥
+
+tU −1Σ RU Σ
+
+)
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt GL(Ai
+
+> +
+
+←− trI d) t=0 
+
+(I − M )
+
+ 
+
+= ddt EX0,W 
+
+h
+
+tr 
+
+
+
+(I − M )Y ⊤ 
+
+> L
+
+(Ai
+
+> +
+
+←− trI d)YL(Ai
+
+> +
+
+←− trI d)( I − M )
+
+i 
+
+> t=0
+
+= ddt L(Ai
+
+> +
+
+←− trI d)
+
+> t=0
+
+,
+
+where r = EU⊥ [U −1Σ RU Σ] = 1 
+
+> d
+
+tr  Σ−1/2RΣ1/2, and we used the fact that U ⊤ 
+
+> Σ
+
+Σ−1UΣ = Σ −1,470 
+
+and ddt GL(Ai
+
+> +
+
+←− tR ) t=0 
+
+is affine in R. This concludes that eq. (15) holds for Ai, i ∈ [1 , L ].471 
+
+2. Equation (15) holds for Bi.472 
+
+From the recursive expressions in eq. (14), we can conclude that the values of Xl do not depend on 473 
+
+Bi. Therefore, we naturally have 474 
+
+Xl(Bi
+
+> +
+
+←− tR ) = Xl. (20) Next, we would like to show that for any l ∈ [1 , L ],475 
+
+EW
+
+
+
+W ⊤ ddt Yl(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+
+
+= Σ −1 ddt Gl(bi
+
+> +
+
+←− t tr( R)) 
+
+> t=0
+
+. (21) When l < i , we can easily verify eq. (21) since both sides equal 0. When l = i, we can get 476 
+
+EW
+
+
+
+W ⊤ ddt Yl(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+
+
+= EW
+
+W ⊤RY l−1M  X⊤
+
+> l−1
+
+ClXl−1 + Dl
+
+ 
+
+= EW
+
+W ⊤RW Gl−1M  X⊤
+
+> l−1
+
+ClXl−1 + Dl
+
+
+
+= tr( R)Σ −1Gl−1M  X⊤
+
+> l−1
+
+ClXl−1 + Dl
+
+
+
+= Σ −1 ddt Gl(bi
+
+> +
+
+←− t tr( R)) 
+
+> t=0
+
+.
+
+Suppose that eq. (21) holds for some l = k − 1 ≥ i. One can then verify 477 
+
+EW
+
+
+
+W ⊤ ddt Yk(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+
+
+= EW
+
+
+
+W ⊤ ddt Yk−1(Bi
+
+> +
+
+←− tR ) I + bkM (X⊤
+
+> k−1
+
+CkXk−1 + Dk)
+
+> t=0
+
+
+
+= EW
+
+
+
+W ⊤ ddt Yk−1(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+ I + bkM (X⊤
+
+> k−1
+
+CkXk−1 + Dk)
+
+= Σ −1 ddt Gk−1(bi
+
+> +
+
+←− t tr( R)) 
+
+> t=0
+
+ I + bkM (X⊤
+
+> k−1
+
+CkXk−1 + Dk)
+
+= Σ −1 ddt Gk(bi
+
+> +
+
+←− t tr( R)) 
+
+> t=0
+
+.
+
+The proof of eq. (21) is complete. Now, look at the in-context risk, we have 478 
+
+ddt L(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+= 2 EX0,W 
+
+
+
+tr 
+
+
+
+(I − M )Y ⊤
+
+> L
+
+ddt YL(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+EW
+
+
+
+W ⊤ ddt YL(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+
+
+(I − M )
+
+ 
+
+= 2 EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt GL(bi
+
+> +
+
+←− t tr( R)) 
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 EX0,W 
+
+
+
+tr 
+
+
+
+(I − M )Y ⊤
+
+> L
+
+ddt YL(Bi
+
+> +
+
+←− t tr( R)Id) t=0 
+
+(I − M )
+
+ 
+
+17 = ddt L(Bi
+
+> +
+
+←− t tr( R)Id)
+
+> t=0
+
+.
+
+This concludes that eq. (15) holds for Bi, i ∈ [1 , L ].479 
+
+3. Equation (15) holds for Ci.480 
+
+Similar to the Ai case, we will first prove that for any l ∈ [1 , L ],481 
+
+ddt Xl(X0
+
+> ×
+
+←− UΣ, C i
+
+> +
+
+←− tR )
+
+> t=0
+
+= UΣ
+
+ddt Xl(Ci
+
+> +
+
+←− tU ⊤ 
+
+> Σ
+
+RU Σ)
+
+> t=0
+
+. (22) The equation above holds trivially for l < i . For the case l = i, we have 482 
+
+ddt Xl(X0
+
+> ×
+
+←− UΣ, C i
+
+> +
+
+←− tR ) t=0 
+
+= Aj Xl−1(X0
+
+> ×
+
+←− UΣ)M X ⊤
+
+> l−1
+
+(X0
+
+> ×
+
+←− UΣ)RX l−1(X0
+
+> ×
+
+←− UΣ)= UΣAj Xl−1M X ⊤
+
+> l−1
+
+U ⊤ 
+
+> Σ
+
+RU ΣXl−1 = UΣ
+
+ddt Xl(Ci
+
+> +
+
+←− tU ⊤ 
+
+> Σ
+
+RU Σ) t=0 
+
+.
+
+One can conclude the proof of eq. (22) through a similar reduction as eq. (17) for l > i layers. Next, 483 
+
+we establish the corresponding result for Gl:484 
+
+ddt Gl(X0
+
+> ×
+
+←− UΣ, C i
+
+> +
+
+←− tR )
+
+> t=0
+
+= UΣ
+
+ddt Gl(Ci
+
+> +
+
+←− tU ⊤ 
+
+> Σ
+
+RU Σ)
+
+> t=0
+
+. (23) This equation holds trivially for l < i . When taking l = i, we can verify that 485 
+
+ddt Gl(X0
+
+> ×
+
+←− UΣ, C i
+
+> +
+
+←− tR )
+
+> t=0
+
+= blGl−1(X0
+
+> ×
+
+←− UΣ)M X ⊤
+
+> l−1
+
+(X0
+
+> ×
+
+←− UΣ)RX l−1(X0
+
+> ×
+
+←− UΣ)= blUΣGl−1(X0
+
+> ×
+
+←− UΣ)M X ⊤
+
+> l−1
+
+U ⊤ 
+
+> Σ
+
+RU ΣXl−1
+
+= UΣ
+
+ddt Gl(Ci
+
+> +
+
+←− tU ⊤ 
+
+> Σ
+
+RU Σ)
+
+> t=0
+
+.
+
+For l > i layers, one can follow similar reductions as eq. (19) to finish the proof. We then consider 486 
+
+the in-context risk: 487 
+
+ddt L(Ci
+
+> +
+
+←− tR )
+
+> t=0
+
+= 2 EX0,W,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )Y ⊤ 
+
+> L
+
+(X0
+
+> ×
+
+←− UΣ) ddt YL(X0
+
+> ×
+
+←− UΣ, C i
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 EX0,W,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+U ⊤ 
+
+> Σ
+
+W ⊤W U Σ
+
+ddt GL(Ci
+
+> +
+
+←− tR ) t=0 
+
+(I − M )
+
+ 
+
+= 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt EU⊥
+
+h
+
+GL(Ci
+
+> +
+
+←− tU ⊤ 
+
+> Σ
+
+RU Σ)
+
+i
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt GL(Ci
+
+> +
+
+←− tr Σ−1)
+
+> t=0
+
+(I − M )
+
+ 
+
+= ddt EX0,W 
+
+h
+
+tr 
+
+
+
+(I − M )Y ⊤ 
+
+> L
+
+(Ci
+
+> +
+
+←− tr Σ−1)YL(Ci
+
+> +
+
+←− tr Σ−1)( I − M )
+
+i 
+
+> t=0
+
+= ddt L(Ci
+
+> +
+
+←− tr Σ−1) t=0 
+
+,
+
+where r = EU⊥ [U ⊤ 
+
+> Σ
+
+RU Σ] = 1 
+
+> d
+
+tr  Σ1/2RΣ1/2. This concludes that eq. (15) holds for Ci.488 
+
+4. Equation (15) holds for Di.489 
+
+Let Up ∈ Rn×n be a uniformly sampled permutation matrix, i.e., a binary matrix that has exactly one 1490 
+
+entry in each row and column with all other entries 0. Let U◦ = diag( Up ⊗ I2, I 2) ∈ R(2 n+2) ×(2 n+2) .491 
+
+18 One can verify that by multiplying X0U◦, it is equal to shuffling the first n 2-column sub-blocks of 492 
+
+X0 and keeping the last 2 columns unchanged. 493 
+
+Then, consider a matrix Uξ = diag( ξ1, . . . , ξ n+1 ) ∈ R(n+1) ×(n+1) where ξi
+
+> i.i.d.
+
+∼ Unif {± 1}, i.e., a 494 
+
+diagonal matrix with random ±1 entries. Let U± = Uξ ⊗ I2 ∈ R(2 n+2) ×(2 n+2) . Thus, U± = U ⊤±495 
+
+and X0U± is randomly flipping the sign of each 2-column sub-block in X0.496 
+
+We are going to prove that for any l ∈ [1 , L ], recalling that f (A ⋄
+
+←− B) = f (A ← AB ),497 
+
+Xl(X0
+
+> ⋄
+
+←− U±U◦) = XlU±U◦, (24) 
+
+Gl(X0
+
+> ⋄
+
+←− U±U◦) = GlU±U◦. (25) Equation (24) holds trivially for l = 0 . When eq. (24) holds for some l = k − 1, we can verify that 498 
+
+Xk(X0
+
+> ⋄
+
+←− U±U◦)= Xk−1U±U◦ + AkXk−1U±U◦M  U ⊤◦ U ⊤± X⊤
+
+> k−1
+
+CkXk−1U±U◦ + Dk
+
+
+
+= Xk−1U±U◦ + AkXk−1U±U◦M U ⊤◦ U ⊤±
+
+ X⊤
+
+> k−1
+
+CkXk−1 + U±U◦DkU ⊤◦ U ⊤±
+
+U±U◦
+
+= Xk−1U±U◦ + AkXk−1M  X⊤
+
+> k−1
+
+CkXk−1 + Dk
+
+U±U◦
+
+=  Xk−1 + AkXk−1M  X⊤
+
+> k−1
+
+CkXk−1 + Dk
+
+ U±U◦ = XkU±U◦.
+
+It uses the fact that there exists some D1 
+
+> i
+
+, D 2 
+
+> i
+
+∈ R2×2 such that Di = diag( In ⊗ D1 
+
+> i
+
+, D 2 
+
+> i
+
+), so 499 
+
+shuffling the first n 2 × 2 diagonal sub-blocks of Di does not change the matrix, and we have 500 
+
+U◦DiU ⊤◦ = Di. Similarly, we have U±DkU ⊤± = Dk. This concludes eq. (24), and eq. (25) could be 501 
+
+acquired similarly. 502 
+
+Next, we will establish the following equalities for Xl and Gl:503 
+
+ddt Xl(X0
+
+> ⋄
+
+←− U±U◦, D i
+
+> +
+
+←− tR )
+
+> t=0
+
+= ddt Xl(Di
+
+> +
+
+←− tU ±U◦RU ⊤◦ U ⊤± )
+
+> t=0
+
+U±U◦, (26) 
+
+ddt Gl(X0
+
+> ⋄
+
+←− U±U◦, D i
+
+> +
+
+←− tR ) t=0 
+
+= ddt Gl(Di
+
+> +
+
+←− tU ±U◦RU ⊤◦ U ⊤± ) t=0 
+
+U±U◦. (27) The proof follows by similar reductions as proving eqs. (17) and (19). 504 
+
+Finally, we consider the in-context risk under the permutation of Up and Uξ . Since each pair of 505 
+
+(xi, y i) is equivalently sampled from Gaussian distributions, we have X0
+
+> d
+
+= X0U±U◦. Therefore, 506 
+
+ddt L(Di
+
+> +
+
+←− tR )
+
+> t=0
+
+= 2 EX0,W 
+
+
+
+tr 
+
+
+
+(I − M )Y ⊤
+
+> L
+
+ddt YL(Di
+
+> +
+
+←− tR ) t=0 
+
+(I − M )
+
+ 
+
+= 2 EX0,W,U p,U ξ
+
+
+
+tr 
+
+
+
+(I −M )Y ⊤ 
+
+> L
+
+(X0
+
+> ⋄
+
+←− U±U◦) ddt YL(X0
+
+> ⋄
+
+←− U±U◦, D i
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 d EX0,U p,U ξ
+
+
+
+tr 
+
+
+
+(I −M )U ⊤◦ U ⊤± G⊤ 
+
+> L
+
+Σ−1 ddt GL(Di
+
+> +
+
+←− tU ±U◦RU ⊤◦ U ⊤± )
+
+> t=0
+
+U±U◦(I −M )
+
+ 
+
+= 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt EUp,U ξ
+
+h
+
+GL(Di
+
+> +
+
+←− tU ±U ⊤◦ RU ◦U±)
+
+i
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt GL(Di
+
+> +
+
+←− t eR) t=0 
+
+(I − M )
+
+ 
+
+= ddt L(Di
+
+> +
+
+←− t eR) t=0 
+
+,
+
+where eR = EUp,U ξ [U±U ⊤◦ RU ◦U±] = diag( In ⊗ R1, R 2), R1 = 1
+
+> n
+
+Pnj=1 Rj , R2 = Rn+1 , and Rj507 
+
+is the j-th 2 × 2 diagonal block of R. The 4th equality uses the fact that tr[( I − M )A(I − M )] is ex-508 
+
+tracting the right-bottom element of A, so it should be equal to tr (I − M )U ⊤◦ U ⊤± AU ±U◦(I − M )
+
+> 509
+
+for any matrix A. This concludes that eq. (15) holds for Di.510 
+
+Till now, we have proved that eq. (15) holds for each one of Ai, B i, C i, D i. The proof of the whole 511 
+
+theorem is then completed by applying Lemma 8. 512 
+
+19 B.3 Proof of Theorem 2 513 
+
+Proof. In this proof, we follow the same notations as the proof of Theorem 1, where the constant 1
+
+> n514
+
+factor is dropped and eZ0, eX0, eY0 are simplified as Z0, X0, Y0 respectively. 515 
+
+Z0 =
+
+x1 0 0 · · · xn 0 0 xtest 0 00 0 y1 · · · 0 0 yn 0 0 ytest 
+
+
+
+∈ R(2 d)×(3 n+3) . (28) Let Zl ∈ R2d×(3 n+3) be the l-th layer’s output and let Xl, Y l ∈ Rd×(3 n+3) be its first and last d516 
+
+rows. Our goal is to prove that, for any E ∈ A ∪ B ∪ C ∪ D and an arbitrary matrix R ∈ Rd×d
+
+> 517
+
+(Rdp×dp f orD ), there exists eR ∈ S I (SΣ for C, SP for D) such that 518 
+
+ddt L(E +
+
+←− t eR)
+
+> t=0
+
+≤ ddt L(E +
+
+←− tR )
+
+> t=0
+
+. (29) The proofs of eq. (29) for Ai, Bi and Ci are identical with the proof of Theorem 1 so we omit them. 519 
+
+We will be focusing on Di for the rest of the proof. 520 
+
+Let U sp ∈ Rn×n and U tp ∈ R(n+1) ×(n+1) be uniformly sampled permutation matrices. Let U s 
+
+> ◦
+
+=521 
+
+diag( U sp , 1) ⊗ diag(1 , 0, 1) and U t 
+
+> ◦
+
+= U tp ⊗ diag(0 , 1, 0) . Therefore, X0U s 
+
+> ◦
+
+is shuffling the 1-st 522 
+
+and 3-rd columns among each 3-column sub-block of X0 (except for the last 3-column sub-block), 523 
+
+and X0U s 
+
+> ◦
+
+is shuffling the 2-nd column among each 3-column sub-block. Next, let U sξ , U tξ ∈524 
+
+R(n+1) ×(n+1) be diagonal matrices with uniformly sampled ±1 entries. Define U s 
+
+> ±
+
+= U sξ ⊗525 
+
+diag(1 , 0, 1) and U t 
+
+> ±
+
+= U tξ ⊗ diag(0 , 1, 0) . It can then be verified that X0U s
+
+> ±
+
+U t
+
+> ±
+> d
+
+= X0.526 
+
+To simplify the notations, let U≡ denote U s
+
+> ±
+
+U t
+
+> ±
+
+U s 
+
+> ◦
+
+U t
+
+> ◦
+
+. We will focus on a subset of SP :527 
+
+S′ 
+
+> P
+
+=
+
+n
+
+diag( In ⊗ Λ1, Λ2) + In+1 ⊗ Λ3 Λ1, Λ2 ∈ M 
+
+ 1 0 1 0 0 0 1 0 1 
+
+
+
+, Λ3 ∈ M 
+
+ 0 0 0 0 1 0 0 0 0 
+
+o 
+
+.
+
+Assume Dk = diag( In ⊗ Λ1, Λ2) + In+1 ⊗ Λ3 ∈ S ′ 
+
+> P
+
+as defined above, one can verify that it is 528 
+
+a block-diagonal matrix constructed from the same 3 × 3 sub-blocks, and thus is invariant under 529 
+
+U≡DkU ⊤≡ . We will then prove that for any l ∈ [1 , L ],530 
+
+Xl(X0
+
+> ⋄
+
+←− U≡) = XlU≡, (30) 
+
+Gl(X0
+
+> ⋄
+
+←− U≡) = GlU≡, (31) 
+
+ddt Xl(X0
+
+> ⋄
+
+←− U≡, D i
+
+> +
+
+←− tR )
+
+> t=0
+
+= ddt Xl(Di
+
+> +
+
+←− tU ≡RU ⊤≡ )
+
+> t=0
+
+U≡, (32) 
+
+ddt Gl(X0
+
+> ⋄
+
+←− U≡, D i
+
+> +
+
+←− tR ) t=0 
+
+= ddt Gl(Di
+
+> +
+
+←− tU ≡RU ⊤≡ ) t=0 
+
+U≡. (33) These results can be acquired by similar proofs as eqs. (24) to (27). We then consider the in-context 531 
+
+risk under the permutations of U≡. Similarly, we have X0
+
+> d
+
+= X0U≡ and 532 
+
+ddt L(Di
+
+> +
+
+←− tR )
+
+> t=0
+
+= 2 EX0,W 
+
+
+
+tr 
+
+
+
+(I − M )Y ⊤
+
+> L
+
+ddt YL(Di
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 d EX0,U ≡
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+(X0
+
+> ⋄
+
+←− U≡)Σ −1 ddt GL(X0
+
+> ⋄
+
+←− U≡, D i
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 d EX0,U ≡
+
+
+
+tr 
+
+
+
+(I − M )U ⊤≡ G⊤ 
+
+> L
+
+Σ−1 ddt GL(Di
+
+> +
+
+←− tU ≡RU ⊤≡ )
+
+> t=0
+
+U≡(I − M )
+
+ 
+
+= 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt GL(Di
+
+> +
+
+←− t EU≡
+
+U≡RU ⊤≡
+
+) t=0 
+
+(I − M )
+
+ 
+
+= ddt L(Di
+
+> +
+
+←− t eR)
+
+> t=0
+
+.
+
+20 Let Rj be the j-th 3×3 diagonal block of R, then R1 = 1
+
+> n
+
+Pnj=1 Rj ◦
+
+ 1 0 1 0 0 0 1 0 1 
+
+
+
+, R2 = Rn+1 ◦
+
+ 1 0 1 0 0 0 1 0 1 
+
+
+
+,533 
+
+R3 = 1
+
+> n+1
+
+Pn+1  
+
+> j=1
+
+Rj ◦
+
+ 0 0 0 0 1 0 0 0 0 
+
+
+
+and eR = EU≡
+
+U≡RU ⊤≡
+
+ = diag( In ⊗ R1, R 2) + In+1 ⊗ R3. This 534 
+
+indicates that eq. (29) holds for each Di ∈ S ′ 
+
+> P
+
+, and thus the proof of the whole theorem completes by 535 
+
+applying Lemma 8 and noticing that S′ 
+
+> P
+
+⊂ S P .536 
+
+B.4 Proof of Theorem 5 537 
+
+Proof. We keep the same notations as the proof of Theorem 1, dropping the 1 
+
+> n
+
+factor and simplifying 538 
+
+eX0, eY0, eZ0 as X0, Y0, Z0, as follows: 539 
+
+Z0 =
+
+ 0 0 · · · 0 0 0 0
+
+x1 y1 · · · xn yn xtest ytest 
+
+
+
+∈ R(2 d)×(2 n+2) . (34) Note that we now have X0 and Y0 containing both xi and yi. Define 540 
+
+X = [ x1 0 · · · xn 0 xtest 0] ,X = [0 x1 · · · 0 xn 0 xtest ] ,Y = [0 y1 · · · 0 yn 0 ytest ] .
+
+we then have Y0 = X + Y = X + W X . From the parameter configuration in eq. (12), the update 541 
+
+rule of the first attention layer is 542 
+
+X1 = A1Y0M D 1 = A1XM D 1, Y1 = Y0 = X + W X. (35) The update rule for the following layers is the same as eq. (14). We are going to prove that, for any 543 
+
+E ∈ A ∪ B ∪ C ∪ D and an arbitrary matrix R ∈ Rd×d (Rdp×dp for D), there exists eR ∈ S I (SΣ544 
+
+for C, SP for D) such that 545 
+
+ddt L(E +
+
+←− t eR)
+
+> t=0
+
+≤ ddt L(E +
+
+←− tR )
+
+> t=0
+
+. (36) Similarly to Theorem 1, we uniformly sample U⊥ ∈ Rd×d as an orthonormal random matrix, and let 546 
+
+UΣ = Σ 1/2U⊥Σ−1/2. Under the condition that Bl = blId for some bl ∈ R, we have 547 
+
+Yl = Y1
+
+> l
+
+Y
+
+> j=2
+
+ I + bj M  X⊤
+
+> j−1
+
+Cj Xj−1 + Dj
+
+ .
+
+Let Fl = X Qlj=2 
+
+ I +bj M  X⊤
+
+> j−1
+
+Cj Xj−1 +Dj
+
+ , Gl = X Qlj=2 
+
+ I +bj M  X⊤
+
+> j−1
+
+Cj Xj−1 +Dj
+
+ ,548 
+
+we then have Yl = Fl + W G l. According to Lemma 9, 549 
+
+ddt L(E +
+
+←− tR )
+
+> t=0
+
+= ddt EX0,W 
+
+h
+
+tr 
+
+
+
+(I − M )Y ⊤ 
+
+> L
+
+(E +
+
+←− tR )YL(E +
+
+←− tR )( I − M )
+
+i 
+
+> t=0
+
+= ddt EX0,W 
+
+h
+
+tr 
+
+
+
+(I − M )F ⊤ 
+
+> L
+
+(E +
+
+←− tR )FL(E +
+
+←− tR )( I − M )
+
+i 
+
+> t=0
+
++ ddt EX0,W 
+
+h
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+(E +
+
+←− tR )W ⊤W G L(E +
+
+←− tR )( I − M )
+
+i 
+
+> t=0
+
+= 2 EX0
+
+
+
+tr 
+
+
+
+(I − M )F ⊤
+
+> L
+
+ddt FL(E +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
++ 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt GL(E +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+.
+
+Next, we will show that eq. (36) holds for each one of Ai, B i, C i, D i for any i ∈ [1 , L ].550 
+
+1. Equation (36) holds for Ai.551 
+
+21 One can easily verify that eqs. (16) and (17) still hold. Furthermore, eqs. (18) and (19) hold for both 552 
+
+Fl and Gl. With these observations, we can then verify 553 
+
+ddt L(Ai
+
+> +
+
+←− tR ) t=0 
+
+= 2 EX0,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )F ⊤ 
+
+> L
+
+(X ×
+
+←− UΣ) ddt FL(X ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
++ 2 d EX0,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+(X ×
+
+←− UΣ)Σ −1 ddt GL(X ×
+
+←− UΣ, A i
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 EX0,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )F ⊤ 
+
+> L
+
+U ⊤ 
+
+> Σ
+
+UΣ
+
+ddt FL(Ai
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+(I − M )
+
+ 
+
++ 2 d EX0,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+U ⊤ 
+
+> Σ
+
+Σ−1UΣ
+
+ddt GL(Ai
+
+> +
+
+←− tU −1Σ RU Σ) t=0 
+
+(I − M )
+
+ 
+
+= 2 EX0
+
+
+
+tr 
+
+
+
+(I − M )F ⊤
+
+> L
+
+ddt FL(Ai
+
+> +
+
+←− trI d)
+
+> t=0
+
+(I − M )
+
+ 
+
++ 2 d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> L
+
+Σ−1 ddt GL(Ai
+
+> +
+
+←− trI d)
+
+> t=0
+
+(I − M )
+
+ 
+
+= ddt L(Ai
+
+> +
+
+←− trI d)
+
+> t=0
+
+,
+
+where r = EU⊥ [U −1Σ RU Σ] = 1 
+
+> d
+
+tr  Σ−1/2RΣ1/2.554 
+
+2. Equation (36) holds for Bi.555 
+
+From the definition of Fl and Gl, we can verify that 556 
+
+ddt Yl(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+= R(Fi−1 + W G i−1)M (X⊤
+
+> i−1
+
+CiXi−1 + Di)
+
+> l
+
+Y
+
+> j=i+1
+
+ I + bj M (X⊤
+
+> j−1
+
+Cj Xj−1 + Dj ).
+
+Define 557 
+
+F il =  Fi−1 + BiFi−1M (X⊤
+
+> i−1
+
+CiXi−1 + Di) lY
+
+> j=i+1
+
+ I + bj M (X⊤
+
+> j−1
+
+Cj Xj−1 + Dj ),Gil =  W G i−1 + BiW G i−1M (X⊤
+
+> i−1
+
+CiXi−1 + Di) lY
+
+> j=i+1
+
+ I + bj M (X⊤
+
+> j−1
+
+Cj Xj−1 + Dj ),
+
+We then have 558 
+
+ddt Yl(Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+= ddt F il (Bi
+
+> +
+
+←− tR )
+
+> t=0
+
++ ddt Gil (Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+.
+
+Similar to eqs. (19) and (21), we can prove that 559 
+
+ddt F il (X0
+
+> ×
+
+←− UΣ, B i
+
+> +
+
+←− tR )
+
+> t=0
+
+= UΣ
+
+ddt F il (Bi
+
+> +
+
+←− tU −1Σ RU Σ)
+
+> t=0
+
+,
+
+EW
+
+
+
+W ⊤ ddt Gil (Bi
+
+> +
+
+←− tR )
+
+> t=0
+
+
+
+= Σ −1 ddt Gil (Bi
+
+> +
+
+←− t tr( R)Id)
+
+> t=0
+
+.
+
+Without loss of generality, we assume that r = 1 
+
+> d
+
+tr  Σ−1/2RΣ1/2 ≤ 1 
+
+> d
+
+tr( R), and let γ =560 
+
+rd/ tr( R) ≤ 1. Then, one can verify that 561 
+
+ddt L(Bi
+
+> +
+
+←− tR ) t=0 
+
+22 = 2 EX0,U ⊥
+
+
+
+tr 
+
+
+
+(I − M )F ⊤ 
+
+> l
+
+(X ×
+
+←− UΣ) ddt F il (X ×
+
+←− UΣ, B i
+
+> +
+
+←− tR )
+
+> t=0
+
+(I − M )
+
+ 
+
++ 2 EX0,W 
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> l
+
+W ⊤ ddt Gil (Bi
+
+> +
+
+←− tR ) t=0 
+
+(I − M )
+
+ 
+
+= 2 EX0
+
+
+
+tr 
+
+
+
+(I − M )F ⊤
+
+> l
+
+ddt F il (Bi
+
+> +
+
+←− trI d)
+
+> t=0
+
+(I − M )
+
+ 
+
++ 2 EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> l
+
+Σ−1 ddt Gil (Bi
+
+> +
+
+←− t tr( R)Id)
+
+> t=0
+
+(I − M )
+
+ 
+
+= 2 EX0
+
+
+
+tr 
+
+
+
+(I − M )F ⊤
+
+> l
+
+ddt Fl(Bi
+
+> +
+
+←− trI d)
+
+> t=0
+
+(I − M )
+
+ 
+
++ 1
+
+γ 2d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> l
+
+Σ−1 ddt Gl(Bi
+
+> +
+
+←− trI d) t=0 
+
+(I − M )
+
+ 
+
+=
+
+ 1
+
+γ − 1
+
+
+
+2d EX0
+
+
+
+tr 
+
+
+
+(I − M )G⊤ 
+
+> l
+
+Σ−1 ddt Gl(Bi
+
+> +
+
+←− trI d)
+
+> t=0
+
+(I − M )
+
+ 
+
++ ddt L(Bi
+
+> +
+
+←− trI d)
+
+> t=0
+
+≥ ddt L(Bi
+
+> +
+
+←− trI d)
+
+> t=0
+
+.
+
+The last inequality assumes the positivity of the term involving Gl. Otherwise, one can simply flip 562 
+
+the numerator and denominator of γ and scale the derivative of Fl instead of Gl to yield an additional 563 
+
+positive term besides the risk term to finish the proof. 564 
+
+3. Equation (36) holds for Ci, Di.565 
+
+Similarly, one can verify that eqs. (22) and (23) still hold (also eqs. (24) to (27)), and finish the proof 566 
+
+by following the same reductions as Theorem 1 with Fl and Gl.567 
+
+B.5 Proof of Proposition 3 568 
+
+Proof. Let Al = alId, Bl = blId, Cl = clId and Dl = diag( In⊗D1 
+
+> l
+
+, D 2 
+
+> l
+
+)+ In+1 ⊗D3 
+
+> l
+
++D4 
+
+> l
+
+⊗D5 
+
+> l
+
+for 569 
+
+l ∈ [1 , 2] . Let Zl ∈ R2d×(3 n+3) be the output of the l-th attention layer, and let Xl, Y l ∈ Rd×(3 n+3) 
+
+> 570
+
+be its first and last d rows respectively. Note that Yl in this proof does not contain ytest .571 
+
+Let D11 =
+
+ dxx 0 dyx    
+
+> 000
+> dxy0dyy
+
+
+
+, D21 =
+
+ sx 0 sy    
+
+> 000000
+
+
+
+(note that the last row of D21 is masked out by M , so we 572 
+
+simply set it to 0), and D51 =
+
+ 0 tx 00 0 00 ty 0
+
+
+
+. We use D as an abbreviation for D41 , and use di,j to denote 573 
+
+the elements in D. One can verify that 574 
+
+X1 = X0 + a1X0M  diag( In ⊗ D11 , D 21 ) + In+1 ⊗ D31 + D41 ⊗ D51
+
+
+
+=[ (1 + a1dxx)x1 a1tx
+
+Pn+1  
+
+> i=1
+
+di, 1xi a1dyxx1
+
+· · · 
+
+(1 + a1dxx)xn a1tx
+
+Pn+1  
+
+> i=1
+
+di,n xi a1dyxxn
+
+(1 + a1dxx)xtest a1tx
+
+Pn+1  
+
+> i=1
+
+di,n +1 xi a1dyxxtest ]
+
+.
+
+Similarly, we have 575 
+
+Y1 = Y0 + b1Y0M  diag( In ⊗ D11 , D 21 ) + In+1 ⊗ D31 + D41 ⊗ D51
+
+
+
+=[ b1dxy y1 b1ty
+
+Pni=1 di, 1yi (1 + b1dyy )y1
+
+· · · 
+
+b1dxy yn b1ty
+
+Pni=1 di,n yi (1 + b1dyy )yn
+
+0 b1ty
+
+Pni=1 di,n +1 yi 0 ]
+
+.
+
+By the definition of linear attention, we can show that 576 
+
+TF (Z0; {Vl, Q l}2
+
+> l=1
+
+) = ( Y2)3n+3 = b2Y1M  c2X⊤ 
+
+> 1
+
+(X1)3n+3 + ( D2)3n+3 
+
+
+
+= b2c2a1dyx
+
+> 3n+2
+
+X
+
+> i=1
+
+(Y1)i(X1)⊤
+
+> i
+
+!
+
+xtest .
+
+23 Define ∆X1 = [0 a1txdn+1 ,1xtest 0 · · · 0 a1txdn+1 ,n +1 xtest 0] , and let X1 = X1 −577 
+
+∆X1, then TF (Z0; {Vl, Q l}2
+
+> l=1
+
+) = TF (Z0; {Vl, Q l}2
+
+> l=1
+
+, X 1 ← X1) + TF (Z0; {Vl, Q l}2
+
+> l=1
+
+, X 1 ←578 
+
+∆X1). Let b1dxy (1 + a1dxx) + (1 + b1dxy )a1dxx = a, b1ty a1tx = b, b2c2a1dyx = c, we then have 579 
+
+TF (Z0; {Vl, Q l}2
+
+> l=1
+
+, X 1 ← X1) = c
+
+a
+
+> n
+
+X
+
+> i=1
+
+yix⊤ 
+
+> i
+
++ b
+
+> n+1
+
+X
+
+> i=1
+
+
+
+> n
+
+X
+
+> j=1
+
+dj,i yj
+
+
+
+> n
+
+X
+
+> j=1
+
+dj,i x⊤
+
+> j
+
+xtest 
+
+= c
+
+a
+
+> n
+
+X
+
+> i=1
+
+yix⊤ 
+
+> i
+
++ b
+
+> n
+
+X
+
+> j=1
+> n
+
+X
+
+> k=1
+> n+1
+
+X
+
+> i=1
+
+dj,i dk,i 
+
+!
+
+yj x⊤
+
+> k
+
+xtest , (37) 
+
+TF (Z0; {Vl, Q l}2
+
+> l=1
+
+, X 1 ← ∆X1) = bc 
+
+> n+1
+
+X
+
+> i=1
+> n
+
+X
+
+> j=1
+
+dj,i yj dn+1 ,i x⊤
+
+> test
+
+xtest 
+
+= bc 
+
+> n
+
+X
+
+> j=1
+> n+1
+
+X
+
+> i=1
+
+dj,i dn+1 ,i 
+
+!
+
+yj x⊤
+
+> test
+
+xtest . (38) Now consider the in-context risk, 580 
+
+L(V, Q ) = EZ0,W ∥TF (Z0; {V, Q }) + W x test ∥22
+
+= EZ0,W 
+
+h
+
+(TF (Z0; {V, Q }) + W x test )⊤(TF (Z0; {V, Q }) + W x test )
+
+i
+
+= EZ0,W 
+
+h TF (Z0; {V, Q }, X 1 ← X1) + W x test 
+
+⊤ TF (Z0; {V, Q }, X 1 ← X1) + W x test 
+
+i
+
++ 2 EZ0,W 
+
+TF (Z0; {V, Q }, X 1 ← ∆X1)⊤ TF (Z0; {V, Q }, X 1 ← X1) + W x test 
+
+ 
+
++ EZ0,W 
+
+TF (Z0; {V, Q }, X 1 ← ∆X1)⊤ TF (Z0; {V, Q }, X 1 ← ∆X1).
+
+In the equation above, the 3-rd part is always positive. We then examine the second part: 581 
+
+EZ0,W 
+
+TF (Z0; {V, Q }, X 1 ← ∆X1)⊤ TF (Z0; {V, Q }, X 1 ← X1) + W x test 
+
+ 
+
+= EZ0,W 
+
+x⊤
+
+> test
+
+xtest v1xtest + x⊤
+
+> test
+
+xtest v2xtest 
+
+ = 0 ,
+
+where v1 = bc Pnj=1 
+
+Pn+1  
+
+> i=1
+
+dj,i dn+1 ,i 
+
+
+
+y⊤ 
+
+> j
+
+c
+
+
+
+a Pni=1 yix⊤ 
+
+> i
+
++b Pnj=1 
+
+Pnk=1 
+
+Pn+1  
+
+> i=1
+
+dj,i dk,i 
+
+
+
+yj x⊤
+
+> k
+
+
+
+> 582
+
+and v2 = bc Pnj=1 
+
+Pn+1  
+
+> i=1
+
+dj,i dn+1 ,i 
+
+
+
+y⊤ 
+
+> j
+
+W are independent of xtest . Therefore, L(V, Q ) attains its 583 
+
+minimum only if TF (Z0; {V, Q }, X 1 ← ∆X1) = 0 , implying dn+1 ,i = 0 for i ∈ [1 , n + 1] .584 
+
+In the following analysis, we will assume that the last row of D is 0, and let M ∈ Rn×(n+1) be 585 
+
+the first n rows of D. Additionally, we will drop the c factor in eq. (37), since its position could be 586 
+
+substituted by a and b. We then define fW = a Pni=1 yix⊤ 
+
+> i
+
++ b Pnj=1 
+
+Pnk=1 
+
+Pn+1  
+
+> i=1
+
+dj,i dk,i 
+
+
+
+yj x⊤ 
+
+> k
+
+,587 
+
+X = [ x1 · · · xn] and Y = [ y1 · · · yn]. One can verify that 588 
+
+fW = aY X ⊤ + bY M M ⊤X⊤ = aW XX ⊤ + bW XM M ⊤X⊤. (39) Furthermore, the in-context risk could be expanded as 589 
+
+L(V, Q ) = EZ0,W fW x test + W x test 
+
+> 22
+
+= EZ0,W 
+
+h
+
+x⊤
+
+> test
+
+(fW + W )⊤(fW + W )xtest 
+
+i
+
+= EZ0,W 
+
+h
+
+tr 
+
+
+
+(fW + W )⊤(fW + W )
+
+i 
+
+= EZ0,W 
+
+h
+
+tr 
+
+fW ⊤ fW
+
+
+
++ 2 tr 
+
+
+
+W ⊤ fW
+
+
+
++ tr  W ⊤W i
+
+.
+
+We will use the identity EX [XAX ⊤XBX ⊤] =  tr( A) tr( B) + tr  AB ⊤ + d tr( AB )Id for any 590 
+
+A, B ∈ Rn×n, which can be acquired by expanding each element and applying Isserlis’ theorem. Let 591 
+
+T1 = tr  M M ⊤ and T2 = tr  M M ⊤M M ⊤, then 592 
+
+EZ0,W 
+
+tr  (aW XX ⊤ + bW XM M ⊤X⊤)⊤(aW XX ⊤ + bW XM M ⊤X⊤) 
+
+24 = EZ0,W 
+
+a2 tr  XX ⊤W ⊤W XX ⊤ + 2 ab tr  XX ⊤W ⊤W XM M ⊤X⊤ 
+
++ EZ0,W 
+
+b2 tr  XM M ⊤X⊤W ⊤W XM M ⊤X⊤ 
+
+= d EZ0
+
+a2 tr  XX ⊤XX ⊤ + 2 ab tr  XX ⊤XM M ⊤X⊤ + b2 tr  XM M ⊤X⊤XM M ⊤X⊤ 
+
+= a2d2n(n + 1 + d) + 2 abd 2(n + 1 + d)T1 + b2d2(T 21 + (1 + d)T2).
+
+Simultaneously, we can verify that EZ0,W [tr  W ⊤W ] = d2 and 593 
+
+EZ0,W 
+
+h
+
+tr 
+
+
+
+W ⊤ fW
+
+i 
+
+= EZ0,W 
+
+aW ⊤W XX ⊤ + bW ⊤W XM M ⊤X⊤ = ad 2n + bd 2T1.
+
+Combining the results above, we aim to find the optimal a, b, M that minimize 594 
+
+1
+
+d2 L(V, Q ) = c0 + c1T1 + c2T 21 + c3T2,
+
+where 595 
+
+c0 = a2n(n + 1 + d) + 1 + 2 an, c1 = 2 ab (n + 1 + d) + 2 b, c2 = b2, c3 = b2(1 + d).
+
+Since c3 ≥ 0, to minimize L(V, Q ) we need to minimize T2. Given that M M ⊤ is symmetric, we 596 
+
+denote its n eigenvalues as λi, i ∈ [1 , n ]. Then by Cauchy–Schwarz inequality, 597 
+
+tr  M M ⊤M M ⊤ =
+
+> n
+
+X
+
+> i=1
+
+λ2 
+
+> i
+
+≥ 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+λi
+
+!2
+
+= 1
+
+n tr 2(M M ⊤).
+
+Therefore, L(V, Q ) is minimized only if the inequality above holds with equality, which implies 598 
+
+that λi = λj for any i̸ = j. This concludes the proof by showing that there exists λ ∈ R such that 599 
+
+M M ⊤ = λI d, and thus DD ⊤ = diag( λI d, 0) .600 
+
+B.6 Proof of Proposition 6 601 
+
+Proof. We will continue from eqs. (37) and (38). After applying token-wise dropout, we have 602 
+
+TF (Z0; {Vl, Q l}2
+
+> l=1
+
+, X 1 ← X1) = 
+
+> n
+
+X
+
+> i=1
+
+(ao 3i−22 + bo 3i 
+
+> 2
+
+)o3i−21 o3i 
+
+> 1
+
+yix⊤ 
+
+> i
+
+o3n+1 1 o3n+3 2 xtest 
+
++ c
+
+> n
+
+X
+
+> j=1
+> n
+
+X
+
+> k=1
+> n+1
+
+X
+
+> i=1
+
+o3i−12 dj,i dk,i 
+
+!
+
+o3j 
+
+> 1
+
+o3k−21 yj x⊤ 
+
+> k
+
+o3n+1 1 o3n+3 2 xtest , (40) 
+
+TF (Z0; {Vl, Q l}2
+
+> l=1
+
+, X 1 ← ∆X1) = co 3n+3 2
+
+> n
+
+X
+
+> j=1
+> n+1
+
+X
+
+> i=1
+
+dj,i dn+1 ,i 
+
+!
+
+o3j 
+
+> 1
+
+o3n+1 1 yj x⊤
+
+> test
+
+xtest ,
+
+where a = b2c2a1dyxb1dxy (1 + a1dxx), b = b2c2a1dyx(1 + b1dxy )a1dxx and c = b2c2a1dyxb1ty a1tx. One 603 
+
+can verify that our previous analysis about TF (Z0; {Vl, Q l}2
+
+> l=1
+
+, X 1 ← ∆X1) still holds and we thus 604 
+
+have dn+1 ,: = 0 . We then define: 605 
+
+O1 
+
+> l
+
+= diag( o1 
+
+> l
+
+, · · · , o 3n−2 
+
+> l
+
+) ∈ Rn×n, O2 
+
+> l
+
+= diag( o3 
+
+> l
+
+, · · · , o 3nl ) ∈ Rn×n, for l ∈ [2] ,O32 = diag( o22, · · · , o 3n+2 2 ) ∈ R(n+1) ×(n+1) .
+
+By defining 606 
+
+fW =
+
+> n
+
+X
+
+> i=1
+
+(ao 3i−22 + bo 3i 
+
+> 2
+
+)o3i−21 o3i 
+
+> 1
+
+yix⊤ 
+
+> i
+
++ c
+
+> n
+
+X
+
+> j=1
+> n
+
+X
+
+> k=1
+> n+1
+
+X
+
+> i=1
+
+o3i−12 dj,i dk,i 
+
+!
+
+o3j 
+
+> 1
+
+o3k−21 yj x⊤ 
+
+> k
+
+,
+
+One can verify that 607 
+
+fW = A + B + C ≜ aY O 21 O12 O11 X⊤ + bY O 21 O22 O11 X⊤ + cY O 21 M O 32 M ⊤O11 X⊤.
+
+25 Then, we will compute the expectation of each term in the following decomposition: 608 
+
+L(V, Q ) = EZ0,W 
+
+h
+
+tr 
+
+fW ⊤ fW
+
+
+
++ 2 tr 
+
+
+
+W ⊤ fW
+
+
+
++ tr  W ⊤W i
+
+,
+
+Specifically, let T1 = tr  M M ⊤, T2 = tr  M M ⊤M M ⊤, T3 = ∥M ∥44, T4 = Pni=1 ∥Mi, :∥42,609 
+
+T5 = Pn+1  
+
+> j=1
+
+∥M:,j ∥42, we then have 610 
+
+E[tr  A⊤A] = a2d2(np 3 + n(n − 1) p6 + (1 + d)np 3),
+
+E[tr  B⊤B] = b2d2(np 3 + n(n − 1) p6 + (1 + d)np 3),
+
+E[tr  C⊤C] = c2d2(p6T 21 + (1 + d)( p4 − p6)T4 + (1 + d)( p5 − p6)T5
+
++ (1 + d)( p3 − p4 − p5 + p6)T3 + ( p3 − p4)T4 + p4T2 + dp 6T2),
+
+E[tr  A⊤B] = abd 2(np 4 + n(n − 1) p6 + (1 + d)np 4),
+
+E[tr  A⊤C] = acd 2(( p4 + ( n − 1) p6)T1 + (1 + d)p4T1),
+
+E[tr  B⊤C] = bcd 2(( p4 + ( n − 1) p6)T1 + (1 + d)p4T1),
+
+E[tr  W ⊤A] = ad 2np 3, E[tr  W ⊤B] = bd 2np 3, E[tr  W ⊤C] = cd 2p3T1.
+
+Summarizing our analysis above, min M L(V, Q ) is equivalent to: 611 
+
+min 
+
+> M
+
+c0 + c1T1 + c2T2 + c3T3 + c4T4 + c5T5 + c6T 21 ,
+
+where 612 
+
+c0 = 1 + n(2 + d)p3(a2 + b2) + 2 np 3(a + b) + 2 n(2 + d)p4ab + n(n − 1) p6(a + b)2,c1 = 2( a + b)c(p4 + ( n − 1) p6 + (1 + d)p4) + 2 cp 3,c2 = c2(p4 + dp 6),c3 = c2(1 + d)( p3 − p4 − p5 + p6),c4 = c2((1 + d)( p4 − p6) + ( p3 − p4)) ,c5 = c2(1 + d)( p5 − p6),c6 = c2p6.
+
+It is easy to verify that c2, c 3, c 4, c 5, c 6 ≥ 0.613 
+
+B.7 Proof of Proposition 7 614 
+
+Proposition 7 (Restate) . Let dp denote the number of non-EOS tokens. Given any L-layer, single-615 
+
+head, d-dimensional linear-attention transformer with EOS tokens: 616 
+
+TF  Z0; {Vl, Q l, P l}l∈[L]
+
+ = ( ZL):,d p+1 , (Z0):,d p+1 = 0 ,
+
+where 617 
+
+Zl ∈ Rd×(dp+1) , V l, Q l ∈ Rd×d, P l ∈ R(dp+1) ×(dp+1) ,Zl = Zl−1 + VlZl−1M (Z⊤
+
+> l−1
+
+QlZ⊤ 
+
+> l−1
+
++ Pl), M = diag( Idp , 0) .
+
+There exists an L-layer, two-head, 2d-dimensional linear-attention transformer operating without 618 
+
+EOS tokens: 619 
+
+TF  Z0; {V hl , Q hl , P hl }l∈[L],h ∈[2] 
+
+ = ( ZL)d:2 d,d p ,
+
+where 620 
+
+Zl ∈ R2d×dp , V hl , Q hl ∈ R2d×2d, P hl ∈ Rdp×dp ,Zl = Zl−1 +
+
+> 2
+
+X
+
+> h=1
+
+V hl Zl−1(Z⊤
+
+> l−1
+
+Qhl Z⊤ 
+
+> l−1
+
++ P hl ).
+
+Such that for any Z ∈ Rd×dp , by letting Z0 = [ Z 0] and Z0 =
+
+Z
+
+0
+
+
+
+, we have 621 
+
+TF  Z0; {Vl, Q l, P l}l∈[L]
+
+ = TF  Z0; {V hl , Q hl , P hl }l∈[L],h ∈[2] 
+
+.
+
+26 Proof. We construct V hl , Qhl , and P hl as follows: 622 
+
+V 1 
+
+> l
+
+=
+
+Vl 00 0
+
+
+
+, Q1 
+
+> l
+
+=
+
+Ql 00 0
+
+
+
+, P 1 
+
+> l
+
+= ( Pl)1: dp,1: dp ,V 2 
+
+> l
+
+=
+
+ 0 0
+
+Vl 0
+
+
+
+, Q2 
+
+> l
+
+=
+
+0 Ql
+
+0 0
+
+
+
+, P 2 
+
+> l
+
+= 0 (Pl):,d p+1 
+
+ .
+
+We will show that for any l ∈ [L], it satisfies Zl =
+
+(Zl):,(1: dp−1) (Zl):,d p
+
+0 (Zl):,d p+1 
+
+
+
+. One can verify that 623 
+
+it holds trivially for l = 0 . Then, suppose it holds for some l = k − 1, we have 624 
+
+Zk = Zk−1 + V 1
+
+> k
+
+Zk−1(Z⊤
+
+> k−1
+
+Q1
+
+> k
+
+Z⊤ 
+
+> k−1
+
++ P 1
+
+> k
+
+) + V 2
+
+> k
+
+Zk−1(Z⊤
+
+> k−1
+
+Q2
+
+> k
+
+Z⊤ 
+
+> k−1
+
++ P 2
+
+> k
+
+)= Zk−1 +
+
+"
+
+Vk(Zk−1):,1: dp
+
+
+
+(Zk−1)⊤ 
+
+> :,1: dp
+
+Qk(Zk−1):,1: dp + ( Pk)1: dp,1: dp
+
+
+
+0
+
+#
+
++
+
+ 0
+
+Vk(Zk−1):,1: dp
+
+   0 (Zk−1)⊤ 
+
+> :,1: dp
+
+Qk(Zk−1):,d p+1 
+
+ + 0 (Pk):,d p+1 
+
+ 
+
+= Zk−1 +
+
+VkZk−1M  Z⊤
+
+> k−1
+
+Qk(Zk−1):,1: dp + ( Pk):,1: dp
+
+
+
+0
+
+
+
++
+
+0 00 VkZk−1M  Z⊤
+
+> k−1
+
+Qk(Zk−1):,d p+1 + ( Pk):,d p+1 
+
+
+
+=
+
+(Zk):,1: dp
+
+0
+
+
+
++
+
+0 00 (Zk):,d p+1 
+
+
+
+.
+
+The proof is complete. 625 
+
+## C Experiment Details and Additional Results 626 
+
+In this section, we present experiment details and additional results not included in the main text due 627 
+
+to space limitations. Our experiments are conducted on an A100 40G GPU. It takes around 30 GPU 628 
+
+hours to fully reproduce our results 1.629 
+
+C.1 Synthetic Experiments on Linear Transformers 630 
+
+We consider training linear-attention transformers on random linear regression instances. We take 631 
+
+embedding dimension d = 4 , and the distributions for generating xi and wi are both Px = Pw =632 
+
+N (0 , I d). We optimize the ICL risk for L-layer linear transformers with n in-context demonstrations 633 
+
+using AdamW, where L ∈ [3] and n ∈ [5 , 30] . Each gradient step is computed from a batch size of 634 
+
+1000 . We additionally apply ℓ1 regularization to simplify the found solutions. For training efficiency 635 
+
+and stability, we restrict the Al, Bl, and Cl matrices to SI during training, and initialize Dl ∈ Rdp×dp
+
+> 636
+
+with i.i.d. Gaussian matrices. For each case, we train 40 models with different random seeds, and 637 
+
+report the minimum achieved ICL risk to approximate the global minimum. 638 
+
+To reproduce the task vector mechanism, we focus on transformers trained with triplet-formatted 639 
+
+prompts. The training procedure is identical to the above. For inference, we restrict Pw to rank-one 640 
+
+coefficient matrices, by letting W = w1w⊤ 
+
+> 2
+
+, where w1, w 2 ∼ N (0 , I d). We first generate normal ICL 641 
+
+prompts to generate task vectors as the hidden states of the last arrow token after the first attention 642 
+
+layer, and then inject them into zero-shot prompts after normalization. The final outputs ˆytest are taken 643 
+
+as the output of these injected zero-shot prompts after being processed with the same transformer 644 
+
+model. We compute the final risk as E ˆytest  
+
+> ∥ˆytest ∥
+
++ ytest  
+
+> ∥ytest ∥
+
+to simulate the layer normalization blocks 645 
+
+in practical LLMs. The reported scores are averaged for n ∈ [5 , 30] .646 
+
+C.2 Experiments on Practical LLMs 647 
+
+Datasets. Following the settings of the original task vector method [ 7], our study covers 33 tasks in 5648 
+
+categories. The detailed description for each task is provided in Table 3. 649 
+
+> 1
+
+The source code is available in supplementary materials. 
+
+27 Table 3: Descriptions of the tasks used in our empirical studies. 
+
+Category Task Example Description 
+
+Knowledge Contry to Capital France → Paris Output the capital city of the given country. Person to Language Macron → French Output the native language of the given person. Location to Continent Paris → Europe Output the corresponding continent of the given location. Religion Saladin → Muslim Output the associated religion of the given loca-tion or person. Algorithmic List First [a,b,c] → a Output the first item in the given list. List Last [a,b,c] → c Output the last item in the given list. Next Letter a → b Output the next letter of the given letter in the alphabet. Prev Letter b → a Output the previous letter of the given letter in the alphabet. To Upper a → A Output the corresponding uppercase letter of the given lowercase letter. To Lower A → a Output the corresponding lowercase letter of the given uppercase letter. Translation English to French hello → bonjour Translate the given word in English to French. English to Italian hello → ciao Translate the given word in English to Italian. English to Spanish hello → hola Translate the given word in English to Spanish. French to English bonjour → hello Translate the given word in French to English. Italian to English ciao → hello Translate the given word in Italian to English. Spanish to English hola → hello Translate the given word in Spanish to English. Linguistic Present to Gerund go → going Output the corresponding gerund form of the given verb in present simple tense. Present to Past go → went Output the corresponding past simple form of the given verb in present simple tense. Present to Past Perfect go → gone Output the corresponding past perfect form of the given verb in present simple tense. Gerund to Present going → go Output the corresponding present simple form of the given verb in gerund form. Past to Present went → go Output the corresponding present simple form of the given verb in past simple tense. Past Perfect to Present gone → go Output the corresponding present simple form of the given verb in past perfect tense. Singular to Plural dog → dogs Output the corresponding plural form of the given noun in singular form. Plural to Singular dogs → dog Output the corresponding singular form of the given noun in plural form. Antonym happy → sad Output the antonym of the given adjective. Bijection To Upper & Lower a ↔ A Output the given letter in uppercase if it is in lowercase, and vice versa. English & French hello ↔ bonjour Translate the given word to French if it is in English, and vice versa. English & Italian hello ↔ ciao Translate the given word to Italian if it is in English, and vice versa. English & Spanish hello ↔ hola Translate the given word to Spanish if it is in English, and vice versa. Present & Gerund go ↔ going Output the given verb in gerund form if it is in present simple tense, and vice versa. Present & Past go ↔ went Output the given verb in past simple form if it is in present simple tense, and vice versa. Present & Past Perfect go ↔ gone Output the given verb in past perfect form if it is in present simple tense, and vice versa. Singular & Plural dog ↔ dogs Output the given noun in plural form if it is in singular form, and vice versa. 
+
+28 Table 4: Accuracy comparison between standard ICL (Baseline), the task vector method (TaskV), and our strategy (TaskV-M). The experiment is conducted on Pythia-12B with n = 10 .
+
+Method Knowledge Algorithmic Translation Linguistic Bijection Average 
+
+0-shot Baseline 6.60 ± 1.59 14.07 ± 1.45 8.60 ± 0.68 12.53 ± 1.57 10.31 ± 0.70 10.82 ± 0.48 
+
+TaskV 63.30 ± 2.62 84.73 ± 1.22 62.07 ± 0.98 82.58 ± 1.22 42.27 ± 0.92 66.40 ± 0.96 
+
+1-shot Baseline 61.80 ± 5.45 72.80 ± 1.15 43.27 ± 2.92 57.07 ± 1.15 41.91 ± 2.83 53.95 ± 1.02 
+
+TaskV 76.40 ± 2.40 84.20 ± 1.05 71.47 ± 1.41 87.16 ± 2.04 53.11 ± 2.37 73.59 ± 0.79 
+
+TaskV-M 77.70 ± 2.52 83.73 ± 1.37 71.00 ± 1.48 86.80 ± 1.59 53.87 ± 2.90 73.68 ± 0.90 
+
+2-shot Baseline 70.30 ± 3.71 82.13 ± 0.54 60.80 ± 1.81 81.16 ± 1.57 50.76 ± 2.17 68.41 ± 0.64 
+
+TaskV 80.30 ± 2.46 87.00 ± 1.63 76.13 ± 3.77 89.33 ± 0.70 58.67 ± 2.44 77.41 ± 0.50 
+
+TaskV-M 81.60 ± 1.56 86.47 ± 0.40 77.27 ± 2.53 89.51 ± 0.88 59.24 ± 2.48 77.87 ± 0.76 
+
+3-shot Baseline 77.60 ± 2.40 81.87 ± 0.81 68.13 ± 2.02 86.31 ± 1.93 55.73 ± 1.60 73.20 ± 0.31 
+
+TaskV 84.00 ± 2.76 86.33 ± 1.17 79.53 ± 2.27 92.00 ± 0.67 58.76 ± 1.53 79.06 ± 0.67 
+
+TaskV-M 85.40 ± 2.31 87.07 ± 1.18 78.13 ± 1.86 92.84 ± 0.68 59.56 ± 1.27 79.54 ± 0.35 
+
+4-shot Baseline 78.40 ± 1.83 82.73 ± 0.44 72.40 ± 1.24 88.89 ± 1.25 57.91 ± 1.46 75.46 ± 0.64 
+
+TaskV 83.80 ± 1.12 87.60 ± 1.81 80.20 ± 2.39 92.18 ± 0.96 59.38 ± 0.47 79.59 ± 0.62 
+
+TaskV-M 84.30 ± 1.50 88.13 ± 0.81 80.00 ± 2.67 91.87 ± 1.25 60.31 ± 0.86 79.87 ± 0.51 
+
+Prompt Template. The template used to construct ICL demonstrations is “Example: {xi} → { yi},650 
+
+where xi and yi are subsequently replaced by the input and output of the semantic mapping. For 651 
+
+the query part, yi is omitted from the prompt. After concatenating each demonstration with “\n”, an 652 
+
+example of the full input prompt is: 653 
+
+Example: {x1} → { y1}\n · · · Example: {xn} → { yn}\nExample: {xtest } → 
+
+Evaluation. To evaluate the N -shot performance, we generate 50 × (N + 1) i.i.d. prompts for each 654 
+
+task with number of demonstrations n = 10 for task vector extraction. The hidden states of the 655 
+
+last → token, which is also literally the last token in the prompt, are recorded for every layer in the 656 
+
+transformer. Thereafter, we generate another 50 i.i.d. prompts with N demonstrations, where xtest is 657 
+
+selected to be distinct from the previous chosen ones. The final accuracy is measured by whether 658 
+
+the next word predicted matches the expected answer. The performance of the standard ICL method 659 
+
+(Baseline) is acquired by inferring without interference. For the task vector method (TaskV) and our 660 
+
+multi-vector variant (TaskV-M), the extracted task vectors are injected to replace the hidden states of 661 
+
+the arrow → tokens at a specified layer l. For TaskV, only the last arrow token is injected, while for 662 
+
+TaskV-M, each of the N + 1 arrow tokens is injected with the N + 1 extracted task vectors for the 663 
+
+same task. The performance is reported for the one layer l ∈ L achieving the highest accuracy. For 664 
+
+each case, the mean and standard deviation are evaluated through 5 independent trials. 665 
+
+Additional Results. Besides Llama-13B, we also observe consistent accuracy improvement of our 666 
+
+TaskV-M method on the Pythia-12B model, as reported in Table 4. 667 
+
+## D Additional Discussions 668 
+
+D.1 Last Task Vector Weights the Most 669 
+
+While our analysis of linear-attention models suggests that each formed task vector (i.e., the hidden 670 
+
+state at each arrow token) contributes equally to the final prediction, this assumption does not fully 671 
+
+hold in practical LLMs. As demonstrated by the conflicting tasks experiment in [ 7], injecting a 672 
+
+task vector from task B into an ICL prompt designed for task A causes the model to predominantly 673 
+
+perform task B. This behavior indicates that LLMs largely rely on the last arrow token to determine 674 
+
+the task identity. We attribute this to the causal attention mechanism used in practical LLMs, which 675 
+
+is not captured by our current theoretical analysis. In causal attention, only the final arrow token 676 
+
+can aggregate information from the entire preceding context, making it the most informative and 677 
+
+influential for prediction. This explains why our multi-vector strategy offers modest, though consistent, 678 
+
+performance gains. The improvement suggests that intermediate arrow tokens do participate in the 679 
+
+inference process, albeit less effectively. Enhancing how LLMs utilize information from all arrow 680 
+
+tokens remains a promising direction for improving task vector accuracy and robustness. 681 
+
+29 D.2 Decoding the Vocabulary of Task Vectors 682 
+
+Multiple prior works [ 7, 16 ] have observed an interesting phenomenon: when task vectors are 683 
+
+extracted and passed through the final classification layer, the top predicted tokens often belong to 684 
+
+the output space of the corresponding task. This effect is particularly prominent in the GPT-J model. 685 
+
+Interestingly, we find that this behavior can be naturally explained by our analysis of linear models. 686 
+
+Specifically, we assume that the hidden state space has dimensionality at least 2d, where the first d687 
+
+dimensions represent the input ( xi) and the last d dimensions represent the output ( yi). Task vectors 688 
+
+constructed under this architecture preserve this layout: the first half encodes a linear combination 689 
+
+of xi, and the second half encodes a linear combination of yi. In the final layer, the model predicts 690 
+
+ytest by extracting the last d dimensions of the final token. When this same mechanism is applied to 691 
+
+a task vector, it naturally produces a linear combination of the yi values, thereby generating outputs 692 
+
+aligned with the task’s output space. This indicates that practical LLMs adopt a similar partition in 693 
+
+the hidden state space, justifying our prompt structure for linear model analysis. 694 
+
+D.3 Limitations 695 
+
+While our analysis provides new insights into the emergence and functionality of task vectors, it is 696 
+
+primarily conducted on simplified linear-attention transformers and synthetic tasks, which may not 697 
+
+fully capture the complexity of real-world LLMs. Moreover, our theoretical framework focuses on 698 
+
+middle-layer representations and does not fully account for deeper interactions across layers or the 699 
+
+role of fine-tuned components such as layer normalization and multi-head attention. 700 
+
+D.4 Broader Impacts 701 
+
+This work advances the theoretical understanding of in-context learning and task vector mechanisms, 702 
+
+which can lead to more efficient and interpretable language models. By enabling faster inference 703 
+
+through task vectors, it may reduce the computational cost and energy consumption of large-scale 704 
+
+deployment, thereby making AI systems more accessible and environmentally sustainable. Im-705 
+
+proved interpretability could also enhance trust and transparency in AI applications across education, 706 
+
+healthcare, and other socially beneficial domains. 707 
+
+As task vector methods improve efficiency and transferability, they may also be misused to replicate 708 
+
+or extract functionality from proprietary models without authorization, raising concerns around model 709 
+
+intellectual property. Additionally, while interpretability is often framed as a benefit, deeper insights 710 
+
+into model internals could be exploited to engineer adversarial inputs or extract sensitive training 711 
+
+data. Careful consideration and mitigation strategies are essential to ensure that such work aligns 712 
+
+with the broader goals of safe and beneficial AI. 713 
+
+30 NeurIPS Paper Checklist 714 
+
+1. Claims 715 
+
+Question: Do the main claims made in the abstract and introduction accurately reflect the 716 
+
+paper’s contributions and scope? 717 
+
+Answer: [Yes] 718 
+
+Guidelines: 719 
+
+• The answer NA means that the abstract and introduction do not include the claims 720 
+
+made in the paper. 721 
+
+• The abstract and/or introduction should clearly state the claims made, including the 722 
+
+contributions made in the paper and important assumptions and limitations. A No or 723 
+
+NA answer to this question will not be perceived well by the reviewers. 724 
+
+• The claims made should match theoretical and experimental results, and reflect how 725 
+
+much the results can be expected to generalize to other settings. 726 
+
+• It is fine to include aspirational goals as motivation as long as it is clear that these goals 727 
+
+are not attained by the paper. 728 
+
+2. Limitations 729 
+
+Question: Does the paper discuss the limitations of the work performed by the authors? 730 
+
+Answer: [Yes] 731 
+
+Guidelines: 732 
+
+• The answer NA means that the paper has no limitation while the answer No means that 733 
+
+the paper has limitations, but those are not discussed in the paper. 734 
+
+• The authors are encouraged to create a separate "Limitations" section in their paper. 735 
+
+• The paper should point out any strong assumptions and how robust the results are to 736 
+
+violations of these assumptions (e.g., independence assumptions, noiseless settings, 737 
+
+model well-specification, asymptotic approximations only holding locally). The authors 738 
+
+should reflect on how these assumptions might be violated in practice and what the 739 
+
+implications would be. 740 
+
+• The authors should reflect on the scope of the claims made, e.g., if the approach was 741 
+
+only tested on a few datasets or with a few runs. In general, empirical results often 742 
+
+depend on implicit assumptions, which should be articulated. 743 
+
+• The authors should reflect on the factors that influence the performance of the approach. 744 
+
+For example, a facial recognition algorithm may perform poorly when image resolution 745 
+
+is low or images are taken in low lighting. Or a speech-to-text system might not be 746 
+
+used reliably to provide closed captions for online lectures because it fails to handle 747 
+
+technical jargon. 748 
+
+• The authors should discuss the computational efficiency of the proposed algorithms 749 
+
+and how they scale with dataset size. 750 
+
+• If applicable, the authors should discuss possible limitations of their approach to 751 
+
+address problems of privacy and fairness. 752 
+
+• While the authors might fear that complete honesty about limitations might be used by 753 
+
+reviewers as grounds for rejection, a worse outcome might be that reviewers discover 754 
+
+limitations that aren’t acknowledged in the paper. The authors should use their best 755 
+
+judgment and recognize that individual actions in favor of transparency play an impor-756 
+
+tant role in developing norms that preserve the integrity of the community. Reviewers 757 
+
+will be specifically instructed to not penalize honesty concerning limitations. 758 
+
+3. Theory assumptions and proofs 759 
+
+Question: For each theoretical result, does the paper provide the full set of assumptions and 760 
+
+a complete (and correct) proof? 761 
+
+Answer: [Yes] 762 
+
+Guidelines: 763 
+
+• The answer NA means that the paper does not include theoretical results. 764 
+
+31 • All the theorems, formulas, and proofs in the paper should be numbered and cross-765 
+
+referenced. 766 
+
+• All assumptions should be clearly stated or referenced in the statement of any theorems. 767 
+
+• The proofs can either appear in the main paper or the supplemental material, but if 768 
+
+they appear in the supplemental material, the authors are encouraged to provide a short 769 
+
+proof sketch to provide intuition. 770 
+
+• Inversely, any informal proof provided in the core of the paper should be complemented 771 
+
+by formal proofs provided in appendix or supplemental material. 772 
+
+• Theorems and Lemmas that the proof relies upon should be properly referenced. 773 
+
+4. Experimental result reproducibility 774 
+
+Question: Does the paper fully disclose all the information needed to reproduce the main ex-775 
+
+perimental results of the paper to the extent that it affects the main claims and/or conclusions 776 
+
+of the paper (regardless of whether the code and data are provided or not)? 777 
+
+Answer: [Yes] 778 
+
+Guidelines: 779 
+
+• The answer NA means that the paper does not include experiments. 780 
+
+• If the paper includes experiments, a No answer to this question will not be perceived 781 
+
+well by the reviewers: Making the paper reproducible is important, regardless of 782 
+
+whether the code and data are provided or not. 783 
+
+• If the contribution is a dataset and/or model, the authors should describe the steps taken 784 
+
+to make their results reproducible or verifiable. 785 
+
+• Depending on the contribution, reproducibility can be accomplished in various ways. 786 
+
+For example, if the contribution is a novel architecture, describing the architecture fully 787 
+
+might suffice, or if the contribution is a specific model and empirical evaluation, it may 788 
+
+be necessary to either make it possible for others to replicate the model with the same 789 
+
+dataset, or provide access to the model. In general. releasing code and data is often 790 
+
+one good way to accomplish this, but reproducibility can also be provided via detailed 791 
+
+instructions for how to replicate the results, access to a hosted model (e.g., in the case 792 
+
+of a large language model), releasing of a model checkpoint, or other means that are 793 
+
+appropriate to the research performed. 794 
+
+• While NeurIPS does not require releasing code, the conference does require all submis-795 
+
+sions to provide some reasonable avenue for reproducibility, which may depend on the 796 
+
+nature of the contribution. For example 797 
+
+(a) If the contribution is primarily a new algorithm, the paper should make it clear how 798 
+
+to reproduce that algorithm. 799 
+
+(b) If the contribution is primarily a new model architecture, the paper should describe 800 
+
+the architecture clearly and fully. 801 
+
+(c) If the contribution is a new model (e.g., a large language model), then there should 802 
+
+either be a way to access this model for reproducing the results or a way to reproduce 803 
+
+the model (e.g., with an open-source dataset or instructions for how to construct 804 
+
+the dataset). 805 
+
+(d) We recognize that reproducibility may be tricky in some cases, in which case 806 
+
+authors are welcome to describe the particular way they provide for reproducibility. 807 
+
+In the case of closed-source models, it may be that access to the model is limited in 808 
+
+some way (e.g., to registered users), but it should be possible for other researchers 809 
+
+to have some path to reproducing or verifying the results. 810 
+
+5. Open access to data and code 811 
+
+Question: Does the paper provide open access to the data and code, with sufficient instruc-812 
+
+tions to faithfully reproduce the main experimental results, as described in supplemental 813 
+
+material? 814 
+
+Answer: [Yes] 815 
+
+Guidelines: 816 
+
+• The answer NA means that paper does not include experiments requiring code. 817 
+
+32 • Please see the NeurIPS code and data submission guidelines ( https://nips.cc/ 818 
+
+public/guides/CodeSubmissionPolicy ) for more details. 819 
+
+• While we encourage the release of code and data, we understand that this might not be 820 
+
+possible, so “No” is an acceptable answer. Papers cannot be rejected simply for not 821 
+
+including code, unless this is central to the contribution (e.g., for a new open-source 822 
+
+benchmark). 823 
+
+• The instructions should contain the exact command and environment needed to run to 824 
+
+reproduce the results. See the NeurIPS code and data submission guidelines ( https: 825 
+
+//nips.cc/public/guides/CodeSubmissionPolicy ) for more details. 826 
+
+• The authors should provide instructions on data access and preparation, including how 827 
+
+to access the raw data, preprocessed data, intermediate data, and generated data, etc. 828 
+
+• The authors should provide scripts to reproduce all experimental results for the new 829 
+
+proposed method and baselines. If only a subset of experiments are reproducible, they 830 
+
+should state which ones are omitted from the script and why. 831 
+
+• At submission time, to preserve anonymity, the authors should release anonymized 832 
+
+versions (if applicable). 833 
+
+• Providing as much information as possible in supplemental material (appended to the 834 
+
+paper) is recommended, but including URLs to data and code is permitted. 835 
+
+6. Experimental setting/details 836 
+
+Question: Does the paper specify all the training and test details (e.g., data splits, hyper-837 
+
+parameters, how they were chosen, type of optimizer, etc.) necessary to understand the 838 
+
+results? 839 
+
+Answer: [Yes] 840 
+
+Guidelines: 841 
+
+• The answer NA means that the paper does not include experiments. 842 
+
+• The experimental setting should be presented in the core of the paper to a level of detail 843 
+
+that is necessary to appreciate the results and make sense of them. 844 
+
+• The full details can be provided either with the code, in appendix, or as supplemental 845 
+
+material. 846 
+
+7. Experiment statistical significance 847 
+
+Question: Does the paper report error bars suitably and correctly defined or other appropriate 848 
+
+information about the statistical significance of the experiments? 849 
+
+Answer: [Yes] 850 
+
+Guidelines: 851 
+
+• The answer NA means that the paper does not include experiments. 852 
+
+• The authors should answer "Yes" if the results are accompanied by error bars, confi-853 
+
+dence intervals, or statistical significance tests, at least for the experiments that support 854 
+
+the main claims of the paper. 855 
+
+• The factors of variability that the error bars are capturing should be clearly stated (for 856 
+
+example, train/test split, initialization, random drawing of some parameter, or overall 857 
+
+run with given experimental conditions). 858 
+
+• The method for calculating the error bars should be explained (closed form formula, 859 
+
+call to a library function, bootstrap, etc.) 860 
+
+• The assumptions made should be given (e.g., Normally distributed errors). 861 
+
+• It should be clear whether the error bar is the standard deviation or the standard error 862 
+
+of the mean. 863 
+
+• It is OK to report 1-sigma error bars, but one should state it. The authors should 864 
+
+preferably report a 2-sigma error bar than state that they have a 96% CI, if the hypothesis 865 
+
+of Normality of errors is not verified. 866 
+
+• For asymmetric distributions, the authors should be careful not to show in tables or 867 
+
+figures symmetric error bars that would yield results that are out of range (e.g. negative 868 
+
+error rates). 869 
+
+33 • If error bars are reported in tables or plots, The authors should explain in the text how 870 
+
+they were calculated and reference the corresponding figures or tables in the text. 871 
+
+8. Experiments compute resources 872 
+
+Question: For each experiment, does the paper provide sufficient information on the com-873 
+
+puter resources (type of compute workers, memory, time of execution) needed to reproduce 874 
+
+the experiments? 875 
+
+Answer: [Yes] 876 
+
+Guidelines: 877 
+
+• The answer NA means that the paper does not include experiments. 878 
+
+• The paper should indicate the type of compute workers CPU or GPU, internal cluster, 879 
+
+or cloud provider, including relevant memory and storage. 880 
+
+• The paper should provide the amount of compute required for each of the individual 881 
+
+experimental runs as well as estimate the total compute. 882 
+
+• The paper should disclose whether the full research project required more compute 883 
+
+than the experiments reported in the paper (e.g., preliminary or failed experiments that 884 
+
+didn’t make it into the paper). 885 
+
+9. Code of ethics 886 
+
+Question: Does the research conducted in the paper conform, in every respect, with the 887 
+
+NeurIPS Code of Ethics https://neurips.cc/public/EthicsGuidelines ?888 
+
+Answer: [Yes] 889 
+
+Guidelines: 890 
+
+• The answer NA means that the authors have not reviewed the NeurIPS Code of Ethics. 891 
+
+• If the authors answer No, they should explain the special circumstances that require a 892 
+
+deviation from the Code of Ethics. 893 
+
+• The authors should make sure to preserve anonymity (e.g., if there is a special consid-894 
+
+eration due to laws or regulations in their jurisdiction). 895 
+
+10. Broader impacts 896 
+
+Question: Does the paper discuss both potential positive societal impacts and negative 897 
+
+societal impacts of the work performed? 898 
+
+Answer: [Yes] 899 
+
+Guidelines: 900 
+
+• The answer NA means that there is no societal impact of the work performed. 901 
+
+• If the authors answer NA or No, they should explain why their work has no societal 902 
+
+impact or why the paper does not address societal impact. 903 
+
+• Examples of negative societal impacts include potential malicious or unintended uses 904 
+
+(e.g., disinformation, generating fake profiles, surveillance), fairness considerations 905 
+
+(e.g., deployment of technologies that could make decisions that unfairly impact specific 906 
+
+groups), privacy considerations, and security considerations. 907 
+
+• The conference expects that many papers will be foundational research and not tied 908 
+
+to particular applications, let alone deployments. However, if there is a direct path to 909 
+
+any negative applications, the authors should point it out. For example, it is legitimate 910 
+
+to point out that an improvement in the quality of generative models could be used to 911 
+
+generate deepfakes for disinformation. On the other hand, it is not needed to point out 912 
+
+that a generic algorithm for optimizing neural networks could enable people to train 913 
+
+models that generate Deepfakes faster. 914 
+
+• The authors should consider possible harms that could arise when the technology is 915 
+
+being used as intended and functioning correctly, harms that could arise when the 916 
+
+technology is being used as intended but gives incorrect results, and harms following 917 
+
+from (intentional or unintentional) misuse of the technology. 918 
+
+• If there are negative societal impacts, the authors could also discuss possible mitigation 919 
+
+strategies (e.g., gated release of models, providing defenses in addition to attacks, 920 
+
+mechanisms for monitoring misuse, mechanisms to monitor how a system learns from 921 
+
+feedback over time, improving the efficiency and accessibility of ML). 922 
+
+34 11. Safeguards 923 
+
+Question: Does the paper describe safeguards that have been put in place for responsible 924 
+
+release of data or models that have a high risk for misuse (e.g., pretrained language models, 925 
+
+image generators, or scraped datasets)? 926 
+
+Answer: [NA] 927 
+
+Guidelines: 928 
+
+• The answer NA means that the paper poses no such risks. 929 
+
+• Released models that have a high risk for misuse or dual-use should be released with 930 
+
+necessary safeguards to allow for controlled use of the model, for example by requiring 931 
+
+that users adhere to usage guidelines or restrictions to access the model or implementing 932 
+
+safety filters. 933 
+
+• Datasets that have been scraped from the Internet could pose safety risks. The authors 934 
+
+should describe how they avoided releasing unsafe images. 935 
+
+• We recognize that providing effective safeguards is challenging, and many papers do 936 
+
+not require this, but we encourage authors to take this into account and make a best 937 
+
+faith effort. 938 
+
+12. Licenses for existing assets 939 
+
+Question: Are the creators or original owners of assets (e.g., code, data, models), used in 940 
+
+the paper, properly credited and are the license and terms of use explicitly mentioned and 941 
+
+properly respected? 942 
+
+Answer: [Yes] 943 
+
+Guidelines: 944 
+
+• The answer NA means that the paper does not use existing assets. 945 
+
+• The authors should cite the original paper that produced the code package or dataset. 946 
+
+• The authors should state which version of the asset is used and, if possible, include a 947 
+
+URL. 948 
+
+• The name of the license (e.g., CC-BY 4.0) should be included for each asset. 949 
+
+• For scraped data from a particular source (e.g., website), the copyright and terms of 950 
+
+service of that source should be provided. 951 
+
+• If assets are released, the license, copyright information, and terms of use in the 952 
+
+package should be provided. For popular datasets, paperswithcode.com/datasets 953 
+
+has curated licenses for some datasets. Their licensing guide can help determine the 954 
+
+license of a dataset. 955 
+
+• For existing datasets that are re-packaged, both the original license and the license of 956 
+
+the derived asset (if it has changed) should be provided. 957 
+
+• If this information is not available online, the authors are encouraged to reach out to 958 
+
+the asset’s creators. 959 
+
+13. New assets 960 
+
+Question: Are new assets introduced in the paper well documented and is the documentation 961 
+
+provided alongside the assets? 962 
+
+Answer: [NA] 963 
+
+Guidelines: 964 
+
+• The answer NA means that the paper does not release new assets. 965 
+
+• Researchers should communicate the details of the dataset/code/model as part of their 966 
+
+submissions via structured templates. This includes details about training, license, 967 
+
+limitations, etc. 968 
+
+• The paper should discuss whether and how consent was obtained from people whose 969 
+
+asset is used. 970 
+
+• At submission time, remember to anonymize your assets (if applicable). You can either 971 
+
+create an anonymized URL or include an anonymized zip file. 972 
+
+14. Crowdsourcing and research with human subjects 973 
+
+35 Question: For crowdsourcing experiments and research with human subjects, does the paper 974 
+
+include the full text of instructions given to participants and screenshots, if applicable, as 975 
+
+well as details about compensation (if any)? 976 
+
+Answer: [NA] 977 
+
+Guidelines: 978 
+
+• The answer NA means that the paper does not involve crowdsourcing nor research with 979 
+
+human subjects. 980 
+
+• Including this information in the supplemental material is fine, but if the main contribu-981 
+
+tion of the paper involves human subjects, then as much detail as possible should be 982 
+
+included in the main paper. 983 
+
+• According to the NeurIPS Code of Ethics, workers involved in data collection, curation, 984 
+
+or other labor should be paid at least the minimum wage in the country of the data 985 
+
+collector. 986 
+
+15. Institutional review board (IRB) approvals or equivalent for research with human 987 
+
+subjects 988 
+
+Question: Does the paper describe potential risks incurred by study participants, whether 989 
+
+such risks were disclosed to the subjects, and whether Institutional Review Board (IRB) 990 
+
+approvals (or an equivalent approval/review based on the requirements of your country or 991 
+
+institution) were obtained? 992 
+
+Answer: [NA] 993 
+
+Guidelines: 994 
+
+• The answer NA means that the paper does not involve crowdsourcing nor research with 995 
+
+human subjects. 996 
+
+• Depending on the country in which research is conducted, IRB approval (or equivalent) 997 
+
+may be required for any human subjects research. If you obtained IRB approval, you 998 
+
+should clearly state this in the paper. 999 
+
+• We recognize that the procedures for this may vary significantly between institutions 1000 
+
+and locations, and we expect authors to adhere to the NeurIPS Code of Ethics and the 1001 
+
+guidelines for their institution. 1002 
+
+• For initial submissions, do not include any information that would break anonymity (if 1003 
+
+applicable), such as the institution conducting the review. 1004 
+
+16. Declaration of LLM usage 1005 
+
+Question: Does the paper describe the usage of LLMs if it is an important, original, or 1006 
+
+non-standard component of the core methods in this research? Note that if the LLM is used 1007 
+
+only for writing, editing, or formatting purposes and does not impact the core methodology, 1008 
+
+scientific rigorousness, or originality of the research, declaration is not required. 1009 
+
+Answer: [Yes] 1010 
+
+Guidelines: 1011 
+
+• The answer NA means that the core method development in this research does not 1012 
+
+involve LLMs as any important, original, or non-standard components. 1013 
+
+• Please refer to our LLM policy ( https://neurips.cc/Conferences/2025/LLM )1014 
+
+for what should or should not be described. 1015 
+
+36

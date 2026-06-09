@@ -1,0 +1,2292 @@
+{
+  "top_k": 200,
+  "generated_at": "2026-06-09T12:24:33.790613+00:00",
+  "papers": [
+    {
+      "id": "openreview-neurips-2025-jeqla8n88d",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "No Loss, No Gain: Gated Refinement and Adaptive Compression for Prompt Optimization",
+      "abstract": "Prompt engineering is crucial for leveraging the full potential of large language models (LLMs). While automatic prompt optimization offers a scalable alternative to costly manual design, generating effective prompts remains challenging. Existing methods often struggle to stably generate improved prompts, leading to low efficiency, and overlook that prompt optimization easily gets trapped in local optima. Addressing this, we propose GRACE, a framework that integrates two synergistic strategies: Gated Refinement and Adaptive Compression, achieving Efficient prompt optimization. The gated refinement strategy introduces a feedback regulation gate and an update rejection gate, which refine update signals to produce stable and effective prompt improvements. When optimization stagnates, the adaptive compression strategy distills the prompt’s core concepts, restructuring the optimization trace and opening new paths. By strategically introducing information loss through refinement and compression, GRACE delivers substantial gains in performance and efficiency. In extensive experiments on 11 tasks across three practical domains, including BIG-Bench Hard (BBH), domain-specific, and general NLP tasks, GRACE achieves significant average relative performance improvements of 4.7\\%, 4.4\\% and 2.7\\% over state-of-the-art methods, respectively. Further analysis shows that GRACE achieves these gains using only 25\\% of the prompt generation budget required by prior methods, highlighting its high optimization efficiency and low computational overhead. Our code is available at https://github.com/Eric8932/GRACE.",
+      "authors": [
+        "Wenhang Shi",
+        "Yiren Chen",
+        "Shuqing Bian",
+        "Xinyi Zhang",
+        "Kai Tang",
+        "Pengfei Hu",
+        "Zhe Zhao",
+        "WEI LU",
+        "Xiaoyong Du"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "Automatic Prompt Optimization"
+      ],
+      "published": "2025-09-18T17:34:47.79+00:00",
+      "link": "https://openreview.net/forum?id=JEqlA8N88d",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-mn3cmpfwr6",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "SolverLLM: Leveraging Test-Time Scaling for Optimization Problem via LLM-Guided Search",
+      "abstract": "Large Language Models (LLMs) offer promising capabilities for tackling complex reasoning tasks, including optimization problems. However, existing methods either rely on prompt engineering, which leads to poor generalization across problem types, or require costly supervised training. We introduce SolverLLM, a training-free framework that leverages test-time scaling to solve diverse optimization problems. Rather than solving directly, SolverLLM generates mathematical formulations and translates them into solver-ready code, guided by a novel Monte Carlo Tree Search (MCTS) strategy. To enhance the search process, we modify classical MCTS with (1) dynamic expansion for adaptive formulation generation, (2) prompt backpropagation to guide exploration via outcome-driven feedback, and (3) uncertainty backpropagation to incorporate reward reliability into decision-making. Experiments on six standard benchmark datasets demonstrate that SolverLLM outperforms both prompt-based and learning-based baselines, achieving strong generalization without additional training.",
+      "authors": [
+        "Dong Li",
+        "Xujiang Zhao",
+        "Linlin Yu",
+        "Yanchi Liu",
+        "Wei Cheng",
+        "Zhengzhang Chen",
+        "Zhong Chen",
+        "Feng Chen",
+        "Chen Zhao",
+        "Haifeng Chen"
+      ],
+      "primary_category": "MCTS",
+      "categories": [
+        "MCTS",
+        "LLM",
+        "Optimization Problem"
+      ],
+      "published": "2025-09-18T17:39:59.74+00:00",
+      "link": "https://openreview.net/forum?id=mN3CMpfWR6",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-o2y6bs6mm0",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Don’t Forget the Enjoin: FocalLoRA for Instruction Hierarchical Alignment in Large Language Models",
+      "abstract": "Recent studies reveal that large language models (LLMs) often struggle to resolve conflicting instructions embedded within hierarchical prompts, resulting in decreased compliance with system-level directives and compromising the reliability of safety-critical applications. While earlier approaches attempt to improve instruction hierarchy awareness through prompt engineering or embedding-level modifications, they typically lack structural modeling and either offer limited gains or require extensive fine-tuning. In this work, we introduce $\\textbf{FocalLoRA}$, a parameter-efficient and structure-aware framework that strengthens hierarchical instruction adherence by selectively optimizing structurally critical attention heads, referred to as $\\textit{focal heads}$, which exhibit heightened sensitivity to instruction conflicts. Experiments across multiple models and a dedicated benchmark demonstrate that FocalLoRA markedly enhances system instruction compliance with minimal tuning cost. For instance, on Llama-8B, fine-tuning only 0.0188\\% of parameters yields a 35.52\\% $\\uparrow$ in system instruction compliance.",
+      "authors": [
+        "Zitong Shi",
+        "Guancheng Wan",
+        "Haixin Wang",
+        "Ruoyan Li",
+        "Zijie Huang",
+        "Wanjia Zhao",
+        "Yijia Xiao",
+        "Xiao Luo",
+        "Carl Yang",
+        "Yizhou Sun",
+        "Wei Wang"
+      ],
+      "primary_category": "Instruction Hierarchy",
+      "categories": [
+        "Instruction Hierarchy",
+        "Large Language Models"
+      ],
+      "published": "2025-09-18T17:37:55.846+00:00",
+      "link": "https://openreview.net/forum?id=o2y6BS6mm0",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-wdl3o58gde",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Self-Generated In-Context Examples Improve LLM Agents for Sequential Decision-Making Tasks",
+      "abstract": "Improving Large Language Model (LLM) agents for sequential decision-making tasks typically requires extensive task-specific knowledge engineering—custom prompts, curated examples, and specialized observation/action spaces. We investigate a different approach where agents automatically improve by learning from their own successful experiences without human intervention. Our method constructs and refines a database of self-generated trajectories that serve as in-context examples for future tasks. Even naive accumulation of successful trajectories yields substantial performance gains across three diverse benchmarks: ALFWorld (73\\% to 89\\%), Wordcraft (55\\% to 64\\%), and InterCode-SQL (75\\% to 79\\%). These improvements exceed those achieved by upgrading from gpt-4o-mini to gpt-4o and match the performance of allowing multiple attempts per task. We further enhance this approach with two innovations: database-level curation using population-based training to propagate high-performing example collections, and exemplar-level curation that selectively retains trajectories based on their empirical utility as in-context examples. With these enhancements, our method achieves 93\\% success on ALFWorld—surpassing approaches that use more powerful LLMs and hand-crafted components. Our trajectory bootstrapping technique demonstrates that agents can autonomously improve through experience, offering a scalable alternative to labor-intensive knowledge engineering.",
+      "authors": [
+        "Vishnu Sarukkai",
+        "Zhiqiang Xie",
+        "Kayvon Fatahalian"
+      ],
+      "primary_category": "language models",
+      "categories": [
+        "language models",
+        "agents",
+        "self-improvement",
+        "in-context learning",
+        "sequential decision-making"
+      ],
+      "published": "2025-09-18T17:36:35.02+00:00",
+      "link": "https://openreview.net/forum?id=WdL3O58gde",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-b7bowd3kul",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Scaling Code-Assisted Chain-of-Thoughts and Instructions for Model Reasoning",
+      "abstract": "Reasoning capability is pivotal for Large Language Models (LLMs) to solve complex tasks, yet achieving reliable and scalable reasoning remains challenging. While Chain-of-Thought (CoT) prompting has become a mainstream approach, existing methods often suffer from uncontrolled generation, insufficient quality, and limited diversity in reasoning paths. \nRecent efforts leverage code to enhance CoT by grounding reasoning in executable steps, but such methods are typically constrained to predefined mathematical problems, hindering scalability and generalizability. \nIn this work, we propose \\texttt{Caco} (Code-Assisted Chain-of-ThOught), a novel framework that automates the synthesis of high-quality, verifiable, and diverse instruction-CoT reasoning data through code-driven augmentation. Unlike prior work, \\texttt{Caco} first fine-tunes a code-based CoT generator on existing math and programming solutions in a unified code format, then scales the data generation to a large amount of diverse reasoning traces. Crucially, we introduce automated validation via code execution and rule-based filtering to ensure logical correctness and structural diversity, followed by reverse-engineering filtered outputs into natural language instructions and language CoTs to enrich task adaptability. This closed-loop process enables fully automated, scalable synthesis of reasoning data with guaranteed executability. \nExperiments on our created \\texttt{Caco}-1.3M dataset demonstrate that \\texttt{Caco}-trained models achieve strong competitive performance on mathematical reasoning benchmarks, outperforming existing strong baselines. Further analysis reveals that \\texttt{Caco}’s code-anchored verification and instruction diversity contribute to superior generalization across unseen tasks. Our work establishes a paradigm for building self-sustaining, trustworthy reasoning systems without human intervention.",
+      "authors": [
+        "Honglin Lin",
+        "Qizhi Pei",
+        "Zhuoshi Pan",
+        "Yu Li",
+        "Xin Gao",
+        "Juntao Li",
+        "Conghui He",
+        "Lijun Wu"
+      ],
+      "primary_category": "Data Synthesis",
+      "categories": [
+        "Data Synthesis",
+        "Reasoning"
+      ],
+      "published": "2025-09-18T17:46:16.517+00:00",
+      "link": "https://openreview.net/forum?id=b7bOWd3kUL",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-gsakl9tc7l",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "FoGE: Fock Space inspired encoding for graph prompting",
+      "abstract": "Recent results show that modern Large Language Models (LLM) are indeed capable of understanding and answering questions about structured data such as graphs. This new paradigm can lead to solutions that require less supervision while, at the same time, providing a model that can generalize and answer questions beyond the training labels. Existing proposals often use some description of the graph to create an ``augmented'' prompt fed to the LLM. For a chosen class of graphs, if a well-tailored graph encoder is deployed to play together with a pre-trained LLM, the model can answer graph-related questions well. Existing solutions to graph-based prompts range from graph serialization to graph transformers. In this work, we show that the use of a parameter-free graph encoder based on Fock space representations, a concept  borrowed from mathematical physics, is remarkably versatile in this problem setting. The simple construction, inherited directly from the theory with a few small adjustments, can provide rich and informative graph encodings, for a wide range of different graphs. We investigate the use of this idea for prefix-tuned prompts leveraging the capabilities of a pre-trained, frozen LLM. The modifications lead to a model that can answer graph-related questions -- from simple graphs to proteins to hypergraphs -- effectively and  with minimal, if any, adjustments to the architecture. Our work significantly simplifies existing solutions and generalizes well to multiple different graph-based structures effortlessly.",
+      "authors": [
+        "Sotirios Panagiotis Chytas",
+        "Rudrasis Chakraborty",
+        "Vikas Singh"
+      ],
+      "primary_category": "Graphs",
+      "categories": [
+        "Graphs",
+        "Fock Space",
+        "Geometric Algebra",
+        "Vector Symbolic Architectures"
+      ],
+      "published": "2025-09-18T17:36:08.05+00:00",
+      "link": "https://openreview.net/forum?id=GSAKL9tc7L",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-xdcglv7um7",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Unlabeled Data Can Provably Enhance In-Context Learning of Transformers",
+      "abstract": "Large language models (LLMs) exhibit impressive in‑context learning (ICL) capabilities, yet the quality of their predictions is fundamentally limited by the few costly labeled demonstrations that can fit into a prompt. Meanwhile, there exist vast and continuously growing amounts of unlabeled data that may be closely related to the ICL task. How to utilize such unlabeled data to provably enhance the performance of ICL thus becomes an emerging fundamental question. In this work, we propose a novel augmented ICL framework, in which the prompt includes a small set of labeled examples alongside a block of unlabeled inputs. We focus on the multi-class linear classification setting and demonstrate that, with chain-of-thought (CoT) prompting, a multi-layer transformer can effectively emulate an expectation–maximization (EM) algorithm. This enables the transformer to implicitly extract useful information from both labeled and unlabeled data, leading to provable improvements in ICL accuracy. Moreover, we show that such a transformer can be trained via teacher forcing, with its parameters converging to the desired solution at a linear rate. Experiments demonstrate that the augmented ICL framework consistently outperforms conventional few-shot ICL, providing empirical support for our theoretical findings. To the best of our knowledge, this is the first theoretical study on the impact of unlabeled data on the ICL performance of transformers.",
+      "authors": [
+        "Renpu Liu",
+        "Jing Yang"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "In‑Context Learning",
+        "Chain‑of‑Thought Reasoning"
+      ],
+      "published": "2025-09-18T17:44:33.517+00:00",
+      "link": "https://openreview.net/forum?id=XdCglv7Um7",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-iyvknfxsjb",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "System Prompt Optimization with Meta-Learning",
+      "abstract": "Large Language Models (LLMs) have shown remarkable capabilities, with optimizing their input prompts playing a pivotal role in maximizing their performance. However, while LLM prompts consist of both the task-agnostic system prompts and task-specific user prompts, existing work on prompt optimization has focused on user prompts specific to individual queries or tasks, and largely overlooked the system prompt that is, once optimized, applicable across different tasks and domains. Motivated by this, we introduce the novel problem of bilevel system prompt optimization, whose objective is to design system prompts that are robust to diverse user prompts and transferable to unseen tasks. To tackle this problem, we then propose a meta-learning framework, which meta-learns the system prompt by optimizing it over various user prompts across multiple datasets, while simultaneously updating the user prompts in an iterative manner to ensure synergy between them. We conduct experiments on 14 unseen datasets spanning 5 different domains, on which we show that our approach produces system prompts that generalize effectively to diverse user prompts. Also, our findings reveal that the optimized system prompt enables rapid adaptation even to unseen tasks, requiring fewer optimization steps for test-time user prompts while achieving improved performance.",
+      "authors": [
+        "Yumin Choi",
+        "Jinheon Baek",
+        "Sung Ju Hwang"
+      ],
+      "primary_category": "Prompt Optimization",
+      "categories": [
+        "Prompt Optimization",
+        "Meta-Learning",
+        "System Prompt Optimization"
+      ],
+      "published": "2025-09-18T17:34:28.973+00:00",
+      "link": "https://openreview.net/forum?id=IYVknFxsJb",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-avrktrfq8c",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Understanding Prompt Tuning and In-Context Learning via Meta-Learning",
+      "abstract": "Prompting is one of the main ways to adapt a pretrained model to target tasks. Besides manually constructing prompts, many prompt optimization methods have been proposed in the literature. Method development is mainly empirically driven, with less emphasis on a conceptual understanding of prompting. In this paper we discuss how optimal prompting can be understood through a Bayesian view, which also implies some fundamental limitations of prompting that can only be overcome by tuning weights. The paper explains in detail how meta-trained neural networks behave as Bayesian predictors over the pretraining distribution, whose hallmark feature is rapid in-context adaptation. Optimal prompting can be studied formally as conditioning these Bayesian predictors, yielding criteria for target tasks where optimal prompting is and is not possible. We support the theory with educational experiments on LSTMs and Transformers, where we compare different versions of prefix-tuning and different weight-tuning methods. We also confirm that soft prefixes, which are sequences of real-valued vectors outside the token alphabet, can lead to very effective prompts for trained and even untrained networks by manipulating activations in ways that are not achievable by hard tokens. This adds an important mechanistic aspect beyond the conceptual Bayesian theory.",
+      "authors": [
+        "Tim Genewein",
+        "Li Kevin Wenliang",
+        "Jordi Grau-Moya",
+        "Anian Ruoss",
+        "Laurent Orseau",
+        "Marcus Hutter"
+      ],
+      "primary_category": "prompting",
+      "categories": [
+        "prompting",
+        "prefix tuning",
+        "in-context learning",
+        "meta-learning",
+        "Bayes",
+        "frontier model"
+      ],
+      "published": "2025-09-18T17:42:04.024+00:00",
+      "link": "https://openreview.net/forum?id=avRktRfQ8c",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-59n2g6rqjt",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "How to Auto-optimize Prompts for Domain Tasks? Adaptive Prompting and Reasoning through Evolutionary Domain Knowledge Adaptation",
+      "abstract": "Designing optimal prompts and reasoning processes for large language models (LLMs) on domain-specific tasks is both necessary and challenging in real-world applications. Determining how to integrate domain knowledge, enhance reasoning efficiency, and even provide domain experts with refined knowledge integration hints are particularly crucial yet unresolved tasks. In this research, we propose Evolutionary Graph Optimization for Prompting (EGO-Prompt), an automated framework to designing better prompts, efficient reasoning processes and providing enhanced causal-informed process. EGO-Prompt begins with a general prompt and fault-tolerant initial Semantic Causal Graph (SCG) descriptions, constructed by human experts, which is then automatically refined and optimized to guide LLM reasoning. Recognizing that expert-defined SCGs may be partial or imperfect and that their optimal integration varies across LLMs, EGO-Prompt integrates a novel causal-guided textual gradient process in two steps: first, generating nearly deterministic reasoning guidance from the SCG for each instance, and second, adapting the LLM to effectively utilize the guidance alongside the original input. The iterative optimization algorithm further refines both the SCG and the reasoning mechanism using textual gradients with ground-truth. We tested the framework on real-world public health, transportation and human behavior tasks. EGO-Prompt achieves 7.32\\%–12.61\\% higher F1 than cutting-edge methods, and allows small models to reach the performence of larger models at under 20\\% of the original cost. It also outputs a refined, domain-specific SCG that improves interpretability.",
+      "authors": [
+        "Yang Zhao",
+        "Pu Wang",
+        "Hao Frank Yang"
+      ],
+      "primary_category": "LLMs",
+      "categories": [
+        "LLMs",
+        "Prompt Optimization",
+        "Expert Knowledge Integration",
+        "Task-adaptive Prompting"
+      ],
+      "published": "2025-09-18T17:32:38.179+00:00",
+      "link": "https://openreview.net/forum?id=59n2g6RqjT",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-dbq6nzfi3c",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "EVOREFUSE: Evolutionary Prompt Optimization for Evaluation and Mitigation of LLM Over-Refusal to Pseudo-Malicious Instructions",
+      "abstract": "Large language models (LLMs) frequently refuse to respond to pseudo-malicious instructions: semantically harmless input queries triggering unnecessary LLM refusals due to conservative safety alignment, significantly impairing user experience. Collecting such instructions is crucial for evaluating and mitigating over-refusals, but existing instruction curation methods, like manual creation or instruction rewriting, either lack scalability or fail to produce sufficiently diverse and effective refusal-inducing prompts. To address these limitations, we introduce EVOREFUSE, a prompt optimization approach that generates diverse pseudo-malicious instructions consistently eliciting confident refusals across LLMs. EVOREFUSE employs an evolutionary algorithm exploring the instruction space in more diverse directions than existing methods via mutation strategies and recombination, and iteratively evolves seed instructions to maximize evidence lower bound on LLM refusal probability. Using EVOREFUSE, we create two novel datasets: EVOREFUSE-TEST, a benchmark of 582 pseudo-malicious instructions that outperforms the next-best benchmark with 85.34% higher average refusal triggering rate across 9 LLMs without a safety-prior system prompt, 34.86% greater lexical diversity, and 40.03% improved LLM response confidence scores; and EVOREFUSE-ALIGN, which provides 3,000 pseudo-malicious instructions with responses for supervised and preference-based alignment training. With supervised fine-tuning on EVOREFUSE-ALIGN, LLAMA3.1-8B-INSTRUCT achieves up to 29.85% fewer over-refusals than models trained on the second-best alignment dataset, without compromising safety. Our analysis with EVOREFUSE-TEST reveals models trigger over-refusals by overly focusing on sensitive keywords while ignoring broader context. Our code and datasets are available at https://github.com/FishT0ucher/EVOREFUSE .",
+      "authors": [
+        "Xiaorui Wu",
+        "Fei Li",
+        "Xiaofeng Mao",
+        "Xin Zhang",
+        "Li Zheng",
+        "Yuxiang Peng",
+        "Chong Teng",
+        "Donghong Ji",
+        "Zhuang Li"
+      ],
+      "primary_category": "Prompt Optimization",
+      "categories": [
+        "Prompt Optimization",
+        "LLM Over-Refusal",
+        "Data Synthesis"
+      ],
+      "published": "2025-09-18T17:46:17.502+00:00",
+      "link": "https://openreview.net/forum?id=dbq6NZfi3c",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-10s01yrlkp",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "metaTextGrad: Automatically optimizing language model optimizers",
+      "abstract": "Large language models (LLMs) are increasingly used in learning algorithms, evaluations, and optimization tasks. Recent studies have shown that using LLM-based optimizers to automatically optimize model prompts, demonstrations, predictions themselves, or other components can significantly enhance the performance of AI systems, as demonstrated by frameworks such as DSPy and TextGrad. However, optimizers built on language models themselves are usually designed by humans with manual design choices; optimizers themselves are not optimized. Moreover, these optimizers are general purpose by design, to be useful to a broad audience, and are not tailored for specific tasks. To address these challenges, we propose metaTextGrad, which focuses on designing a meta-optimizer to further enhance existing optimizers and align them to be good optimizers for a given task. Our approach consists of two key components: a meta prompt optimizer and a meta structure optimizer. The combination of these two significantly improves performance across multiple benchmarks, achieving an average absolute performance improvement of up to 6% compared to the best baseline.",
+      "authors": [
+        "Guowei Xu",
+        "Mert Yuksekgonul",
+        "Carlos Guestrin",
+        "James Zou"
+      ],
+      "primary_category": "programming models",
+      "categories": [
+        "programming models",
+        "prompting techniques",
+        "meta-learning",
+        "LLM optimizer"
+      ],
+      "published": "2025-09-18T17:31:18.084+00:00",
+      "link": "https://openreview.net/forum?id=10s01YrlKp",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-wzs7sjisum",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "All You Need is One: Capsule Prompt Tuning with a Single Vector",
+      "abstract": "Prompt-based learning has emerged as a parameter-efficient finetuning (PEFT) approach to facilitate Large Language Model (LLM) adaptation to downstream tasks by conditioning generation with task-aware guidance. Despite its successes, current prompt-based learning methods heavily rely on laborious grid searching for optimal prompt length and typically require considerable number of prompts, introducing additional computational burden. Worse yet, our pioneer findings indicate that the task-aware prompt design is inherently limited by its absence of instance-aware information, leading to a subtle attention interplay with the input sequence. In contrast, simply incorporating instance-aware information as a part of the guidance can enhance the prompt-tuned model performance without additional fine-tuning. Moreover, we find an interesting phenomenon, namely \"attention anchor\", that incorporating instance-aware tokens at the earliest position of the sequence can successfully preserve strong attention to critical structural information and exhibit more active attention interaction with all input tokens. In light of our observation, we introduce Capsule Prompt-Tuning (CaPT), an efficient and effective solution that leverages off-the-shelf, informative instance semantics into prompt-based learning. Our approach innovatively integrates both instance-aware and task-aware information in a nearly parameter-free manner (i.e., one single capsule prompt).\nEmpirical results demonstrate that our method can exhibit superior performance across various language tasks (e.g., 84.03\\% average accuracy on T5-Large), serving as an \"attention anchor,\" while enjoying high parameter efficiency (e.g., 0.003\\% of model parameters on Llama3.2-1B).",
+      "authors": [
+        "Yiyang Liu",
+        "James Chenhao Liang",
+        "Heng Fan",
+        "Wenhao Yang",
+        "Yiming Cui",
+        "Xiaotian Han",
+        "Lifu Huang",
+        "Dongfang Liu",
+        "Qifan Wang",
+        "Cheng Han"
+      ],
+      "primary_category": "Prompt Tuning",
+      "categories": [
+        "Prompt Tuning",
+        "Large Language Models",
+        "Parameter-Efficient Fine-Tuning"
+      ],
+      "published": "2025-09-18T17:28:47.716+00:00",
+      "link": "https://openreview.net/forum?id=WZS7sJiSUm",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-i9vnwq15ni",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "PRESTO: Preimage-Informed Instruction Optimization for Prompting Black-Box LLMs",
+      "abstract": "Large language models (LLMs) have achieved remarkable success across diverse domains, due to their strong instruction-following capabilities. This raised interest in optimizing instructions for black-box LLMs, whose internal parameters are inaccessible but popular for their strong performance and ease of use. Recent approaches leverage white-box LLMs to assist instruction optimization for black-box LLMs by generating instructions from soft prompts. However, white-box LLMs often map different soft prompts to the same instruction, leading to redundant queries to the black-box model. While previous studies regarded this many-to-one mapping as a redundancy to be avoided, we reinterpret it as useful prior knowledge that can enhance the optimization performance. To this end, we introduce PREimage-informed inSTruction Optimization (PRESTO), a novel framework that leverages the preimage structure of soft prompts to improve query efficiency. PRESTO consists of three key components: (1) score sharing, which shares the evaluation score with all soft prompts in a preimage; (2) preimage-based initialization, which select initial data points that maximize search space coverage using preimage information; and (3) score consistency regularization, which enforces prediction consistency within each preimage. By leveraging preimages, PRESTO observes 14 times more scored data under the same query budget, resulting in more efficient optimization. Experimental results on 33 instruction optimization tasks demonstrate the superior performance of PRESTO.",
+      "authors": [
+        "Jaewon Chu",
+        "Seunghun Lee",
+        "Hyunwoo J. Kim"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "Instruction Optimization"
+      ],
+      "published": "2025-09-18T17:35:12.271+00:00",
+      "link": "https://openreview.net/forum?id=I9VNWQ15Ni",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-yos12gdsal",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Efficient Prompt Compression with Evaluator Heads for Long-Context Transformer Inference",
+      "abstract": "Although applications involving long-context inputs are crucial for the effective utilization of large language models (LLMs), they also result in increased computational costs and reduced performance. To address this challenge, we propose an efficient, training-free prompt compression method that retains key information within compressed prompts. We identify specific attention heads in transformer-based LLMs, which we designate as evaluator heads, that are capable of selecting tokens in long inputs that are most significant for inference. Building on this discovery, we develop EHPC, an Evaluator Head-based Prompt Compression method, which enables LLMs to rapidly \"skim through'' input prompts by leveraging only the first few layers with evaluator heads during the pre-filling stage, subsequently passing only the important tokens to the model for inference. EHPC achieves state-of-the-art results across two mainstream benchmarks: prompt compression and long-context inference acceleration. Consequently, it effectively improves performance with the reduced costs associated with commercial API calls compared to prompt compressing methods. We further demonstrate that EHPC attains competitive results compared to key-value cache-based acceleration methods, thereby highlighting its potential to enhance the efficiency of LLMs for long-context tasks.",
+      "authors": [
+        "Weizhi Fei",
+        "Xueyan Niu",
+        "XIE GUOQING",
+        "Yingqing Liu",
+        "Bo Bai",
+        "Wei Han"
+      ],
+      "primary_category": "large language model",
+      "categories": [
+        "large language model",
+        "attention mechanism",
+        "long context inference",
+        "prompt compression"
+      ],
+      "published": "2025-09-18T17:32:40.11+00:00",
+      "link": "https://openreview.net/forum?id=yOs12gdsaL",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-5l8gydisby",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "RESAnything: Attribute Prompting for Arbitrary Referring Segmentation",
+      "abstract": "We present an open-vocabulary and zero-shot method for arbitrary referring expression segmentation (RES), targeting input expressions that are more general than what prior works were designed to handle. Specifically, our inputs encompass both object- and part-level labels as well as implicit references pointing to properties or qualities of object/part function, design, style, material, etc. Our model, coined RESAnything, leverages Chain-of-Thoughts (CoT) reasoning, where the key idea is attribute prompting. We generate detailed descriptions of object/part attributes including shape, color, and location for potential segment proposals through systematic prompting of a large language model (LLM), where the proposals are produced by a foundational image segmentation model. Our approach encourages deep reasoning about object or part attributes related to function, style, design, etc., enabling the system to handle implicit queries without any part annotations for training or fine-tuning. As the first zero-shot and LLM-based RES method, RESAnything achieves clearly superior performance among zero-shot methods on traditional RES benchmarks and significantly outperforms existing methods on challenging scenarios involving implicit queries and complex part-level relations. Finally, we contribute a new benchmark dataset to offer ~3K carefully curated RES instances to assess part-level, arbitrary RES solutions.",
+      "authors": [
+        "Ruiqi Wang",
+        "Hao Zhang"
+      ],
+      "primary_category": "Referring Expression Segmentation",
+      "categories": [
+        "Referring Expression Segmentation",
+        "Prompting"
+      ],
+      "published": "2025-09-18T17:36:34.709+00:00",
+      "link": "https://openreview.net/forum?id=5l8GydIsby",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-obxgsmmg70",
+      "source": "NeurIPS-2025-Rejected-Public",
+      "title": "AdaCoT: Pareto-Optimal Adaptive Chain-of-Thought Triggering via Reinforcement Learning",
+      "abstract": "Large Language Models (LLMs) have demonstrated remarkable capabilities but often face challenges with tasks requiring sophisticated reasoning. While Chain-of-Thought (CoT) prompting significantly enhances reasoning, it indiscriminately generates lengthy reasoning steps for all queries, leading to substantial computational costs and inefficiency, especially for simpler inputs. To address this critical issue, we introduce AdaCoT (Adaptive Chain-of-Thought), a novel framework enabling LLMs to adaptively decide when to invoke CoT. AdaCoT framed adaptive reasoning as a Pareto optimization problem that seeks to balance model performance with the costs associated with CoT invocation (both frequency and computational overhead). We propose a reinforcement learning (RL) based method, specifically utilizing Proximal Policy Optimization (PPO), to dynamically control the CoT triggering decision boundary by adjusting penalty coefficients, thereby allowing the model to determine CoT necessity based on implicit query complexity. A key technical contribution is Selective Loss Masking (SLM), designed to counteract decision boundary collapse during multi-stage RL training, ensuring robust and stable adaptive triggering. Experimental results demonstrate that AdaCoT successfully navigates the Pareto frontier, achieving substantial reductions in CoT usage for queries not requiring elaborate reasoning. For instance, on our production traffic testset, AdaCoT reduced CoT triggering rates to as low as 3.18% and decreased average response tokens by 69.06% on APP, while maintaining high performance on complex tasks. This substantial token decrease directly translates to a significant reduction in inference computational load. AdaCoT pioneers adaptive CoT triggering, offering a practical and principled solution for developing more efficient, responsive, and cost-effective LLMs, particularly crucial for interactive and resource-sensitive applications.",
+      "authors": [
+        "Chenwei Lou",
+        "Zewei Sun",
+        "Xinnian Liang",
+        "Meng Qu",
+        "Wei Shen",
+        "Yuntao Li",
+        "Wenqi Wang",
+        "Qingping Yang",
+        "Shuangzhi Wu"
+      ],
+      "primary_category": "Adaptive Reasoning",
+      "categories": [
+        "Adaptive Reasoning",
+        "Chain-of-Thought",
+        "Large Language Models"
+      ],
+      "published": "2025-05-11T13:35:57.682+00:00",
+      "link": "https://openreview.net/forum?id=obXGSmmG70",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-exckzbayma",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "SCOUT: Teaching Pre-trained Language Models to Enhance Reasoning via Flow Chain-of-Thought",
+      "abstract": "Chain-of-Thought (CoT) prompting improves the reasoning performance of large language models (LLMs) by encouraging step-by-step thinking. However, CoT-based methods depend on  intermediate reasoning steps, which limits scalability and generalization. Recent work explores recursive reasoning, where LLMs reuse internal layers across iterations to refine latent representations without explicit CoT supervision. While promising, these approaches often require costly pretraining and lack a principled framework for how reasoning should evolve across iterations.\nWe address this gap by introducing **Flow Chain-of-Thought (Flow CoT)**, a reasoning paradigm that models recursive inference as a progressive trajectory of latent cognitive states. Flow CoT frames each iteration as a distinct cognitive stage—deepening reasoning across iterations without relying on manual supervision. To realize  this, we propose **SCOUT** (*Stepwise Cognitive Optimization Using Teachers*), a lightweight fine-tuning framework that enables Flow CoT-style reasoning without the need for pretraining. SCOUT uses progressive distillation to align each iteration with a teacher of appropriate capacity, and a cross-attention-based retrospective module that integrates outputs from previous iterations while preserving the model’s original computation flow.\nExperiments across eight reasoning benchmarks show that SCOUT consistently improves both accuracy and explanation quality, achieving up to 1.8\\% gains under fine-tuning. Qualitative analyses further reveal that SCOUT enables progressively deeper reasoning across iterations—refining both belief formation and explanation granularity. These results not only validate the effectiveness of SCOUT, but also demonstrate the practical viability of Flow CoT as a scalable framework for enhancing reasoning in LLMs.",
+      "authors": [
+        "Guanghao Li",
+        "Wenhao Jiang",
+        "Mingfeng Chen",
+        "Yan Li",
+        "Hao Yu",
+        "Shuting Dong",
+        "Tao Ren",
+        "Ming Tang",
+        "Chun Yuan"
+      ],
+      "primary_category": "Recursive reasoning",
+      "categories": [
+        "Recursive reasoning",
+        "Flow Chain-of-Thought"
+      ],
+      "published": "2025-09-18T17:37:37.593+00:00",
+      "link": "https://openreview.net/forum?id=eXckZbaYma",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-6tokqqiywe",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Causal Sufficiency and Necessity Improves Chain-of-Thought Reasoning",
+      "abstract": "Chain-of-Thought (CoT) prompting plays an indispensable role in endowing large language models (LLMs) with complex reasoning capabilities. However, CoT currently faces two fundamental challenges: (1) Sufficiency, which ensures that the generated intermediate inference steps comprehensively cover and substantiate the final conclusion; and (2) Necessity, which identifies the inference steps that are truly indispensable for the soundness of the resulting answer. We propose a causal framework that characterizes CoT reasoning through the dual lenses of sufficiency and necessity. Incorporating causal Probability of Sufficiency and Necessity allows us not only to determine which steps are logically sufficient or necessary to the prediction outcome, but also to quantify their actual influence on the final reasoning outcome under different intervention scenarios, thereby enabling the automated addition of missing steps and the pruning of redundant ones. Extensive experimental results on various mathematical and commonsense reasoning benchmarks confirm substantial improvements in reasoning efficiency and reduced token usage without sacrificing accuracy. Our work provides a promising direction for improving LLM reasoning performance and cost-effectiveness. The code will be publicly available upon acceptance at: https://anonymous.4open.science/r/causalmath-1CEF.",
+      "authors": [
+        "Xiangning Yu",
+        "Zhuohan Wang",
+        "Linyi Yang",
+        "Haoxuan Li",
+        "Anjie Liu",
+        "Xiao Xue",
+        "Jun Wang",
+        "Mengyue Yang"
+      ],
+      "primary_category": "PNS",
+      "categories": [
+        "PNS",
+        "Chain-of-Thought(CoT)",
+        "Causal Suffciency Necessity"
+      ],
+      "published": "2025-09-18T17:29:18.22+00:00",
+      "link": "https://openreview.net/forum?id=6tOKqqiyWE",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-fy5ineg0ol",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Do different prompting methods yield a common task representation in language models?",
+      "abstract": "Demonstrations and instructions are two primary approaches for prompting language models to perform in-context learning (ICL) tasks.\nDo identical tasks elicited in different ways result in similar representations of the task? An improved understanding of task representation mechanisms would offer interpretability insights and may aid in steering models. We study this through function vectors (FVs), recently proposed as a mechanism to extract few-shot ICL task representations. We generalize FVs to alternative task presentations, focusing on short textual instruction prompts, and successfully extract instruction function vectors that promote zero-shot task accuracy. We find evidence that demonstration- and instruction-based function vectors leverage different model components, and offer several controls to dissociate their contributions to task performance. Our results suggest that different task prompting forms do not induce a common task representation through FVs but elicit different, partly overlapping mechanisms. Our findings offer principled support to the practice of combining instructions and task demonstrations, imply challenges in universally monitoring task inference across presentation forms, and encourage further examinations of LLM task inference mechanisms.",
+      "authors": [
+        "Guy Davidson",
+        "Todd M. Gureckis",
+        "Brenden Lake",
+        "Adina Williams"
+      ],
+      "primary_category": "task representations; function vectors; in-context learning; instructions; mechanistic interpretability",
+      "categories": [
+        "task representations; function vectors; in-context learning; instructions; mechanistic interpretability"
+      ],
+      "published": "2025-09-18T17:30:33.878+00:00",
+      "link": "https://openreview.net/forum?id=fy5InEg0OL",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-r2ykunzugt",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "ReCAP: Recursive Context-Aware Reasoning and Planning for Large Language Model Agents",
+      "abstract": "Long-horizon tasks requiring multi-step reasoning and dynamic re-planning remain challenging for large language models (LLMs). Sequential prompting methods are prone to context drift, loss of goal information, and recurrent failure cycles, while hierarchical prompting methods often weaken cross-level continuity or incur substantial runtime overhead. We introduce ReCAP (Recursive Context-Aware Reasoning and Planning), a hierarchical framework with shared context for reasoning and planning in LLMs. ReCAP combines three key mechanisms: (i) plan-ahead decomposition, in which the model generates a full subtask list, executes the first item, and refines the remainder; (ii) structured re-injection of parent plans, maintaining consistent multi-level context during recursive return; and (iii) memory-efficient execution, bounding the active prompt so costs scale linearly with task depth. Together these mechanisms align high-level goals with low-level actions, reduce redundant prompting, and preserve coherent context updates across recursion. Experiments demonstrate that ReCAP substantially improves subgoal alignment and success rates on various long-horizon reasoning benchmarks, achieving a 32\\% gain on synchronous Robotouille and a 29\\% improvement on asynchronous Robotouille under the strict pass@1 protocol.",
+      "authors": [
+        "Zhenyu Zhang",
+        "Tianyi Chen",
+        "Weiran Xu",
+        "Alex Pentland",
+        "Jiaxin Pei"
+      ],
+      "primary_category": "Large Language Model",
+      "categories": [
+        "Large Language Model",
+        "Long-Horizon Reasoning",
+        "LLM Agent",
+        "LLM Reasoning"
+      ],
+      "published": "2025-09-18T17:40:42.262+00:00",
+      "link": "https://openreview.net/forum?id=r2ykUnzuGt",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-vjjjlj5qik",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "AdaReasoner: Adaptive Reasoning Enables More Flexible Thinking",
+      "abstract": "LLMs often need effective configurations, like temperature and reasoning steps, to handle tasks requiring sophisticated reasoning and problem-solving, ranging from joke generation to mathematical reasoning. Existing prompting approaches usually adopt general-purpose, fixed configurations that work “well enough” across tasks but seldom achieve task-specific optimality.\nTo address this gap, we introduce AdaReasoner, an LLM-agnostic plugin designed for any LLM to automate adaptive reasoning configurations for tasks requiring different types of thinking. AdaReasoner is trained using a reinforcement learning (RL) framework, combining a factorized action space with a targeted exploration strategy, along with  a pretrained reward model to optimize the policy model for reasoning configurations with only a few-shot guide.\nAdaReasoner is backed by theoretical guarantees and experiments of fast convergence and a sublinear policy gap. Across six different LLMs and a variety of reasoning tasks, it consistently outperforms standard baselines, preserves out-of-distribution robustness, \nand yield gains on knowledge-intensive tasks through tailored prompts.",
+      "authors": [
+        "Xiangqi Wang",
+        "Yue Huang",
+        "Yanbo Wang",
+        "Xiaonan Luo",
+        "Kehan Guo",
+        "Yujun Zhou",
+        "Xiangliang Zhang"
+      ],
+      "primary_category": "Adaptive reasoning",
+      "categories": [
+        "Adaptive reasoning",
+        "LLM reasoning",
+        "Reinforcement learning",
+        "large language models"
+      ],
+      "published": "2025-09-18T17:34:05.876+00:00",
+      "link": "https://openreview.net/forum?id=VjjJlJ5qik",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-qfjssnkdbi",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Reasoning Planning for Language Models",
+      "abstract": "Selecting an appropriate reasoning method for a given query remains a key challenge in language model generation. Existing approaches typically generate multiple candidate responses and use an aggregation strategy to select the output answer, often assuming that more candidate answers yield higher accuracy. We revisit this assumption through a rigorous theoretical analysis, deriving accuracy bounds for standard aggregation methods under fixed generation distributions and candidate sizes. Building on these insights, we introduce EPIC, an Ensemble Planning with Contrastive learning framework to learn a shared representation space that captures both model reasoning abilities and query-method compatibility. EPIC incorporates our probability bounds as a regularizer in a utility-driven optimization that balances accuracy and computational cost. Experiments on diverse mathematical reasoning tasks show that EPIC consistently selects optimal reasoning methods, improving accuracy while reducing computational overhead. Our code can be found at https://github.com/nguyenngocbaocmt02/EPIC.",
+      "authors": [
+        "Bao Nguyen",
+        "Hieu Trung Nguyen",
+        "Ruifeng She",
+        "Xiaojin Fu",
+        "Viet Anh Nguyen"
+      ],
+      "primary_category": "reasoning method selection",
+      "categories": [
+        "reasoning method selection",
+        "two-tower framework",
+        "accuracy-cost trade-off",
+        "inference time scaling"
+      ],
+      "published": "2025-09-18T17:42:12.302+00:00",
+      "link": "https://openreview.net/forum?id=QFjssnKdBI",
+      "pdf_url": null,
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-zcvkvxtrkj",
+      "source": "NeurIPS-2025-Rejected-Public",
+      "title": "Understanding Task Vectors in In-Context Learning: Emergence, Functionality, and Limitations",
+      "abstract": "Task vectors offer a compelling mechanism for accelerating inference in in-context learning (ICL) by distilling task-specific information into a single, reusable representation. Despite their empirical success, the underlying principles governing their emergence and functionality remain unclear. This work proposes the *Linear Combination Conjecture*, positing that task vectors act as single in-context demonstrations formed through linear combinations of the original ones. We provide both theoretical and empirical support for this conjecture. First, we show that task vectors naturally emerge in linear transformers trained on triplet-formatted prompts through loss landscape analysis. Next, we predict the failure of task vectors on representing high-rank mappings and confirm this on practical LLMs. Our findings are further validated through saliency analyses and parameter visualization, suggesting an enhancement of task vectors by injecting multiple ones into few-shot prompts. Together, our results advance the understanding of task vectors and shed light on the mechanisms underlying ICL in transformer-based models.",
+      "authors": [
+        "Yuxin Dong",
+        "Jiachen Jiang",
+        "Zhihui Zhu",
+        "Xia Ning"
+      ],
+      "primary_category": "transformer",
+      "categories": [
+        "transformer",
+        "in-context learning",
+        "task vector"
+      ],
+      "published": "2025-05-09T20:45:00.726+00:00",
+      "link": "https://openreview.net/forum?id=zcVKvXtrkJ",
+      "pdf_url": null,
+      "tags": [
+        "query:pe"
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "type": "intent_query",
+      "tag": "pe",
+      "paper_tag": "query:pe",
+      "query_text": "How to enhance language model performance through prompt design?",
+      "sim_scores": {
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.03149801587301587,
+          "rank": 1
+        },
+        "openreview-neurips-2025-10s01yrlkp": {
+          "score": 0.029726775956284153,
+          "rank": 2
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.02454080096356519,
+          "rank": 3
+        },
+        "openreview-neurips-2025-yos12gdsal": {
+          "score": 0.02452153110047847,
+          "rank": 4
+        },
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.01639344262295082,
+          "rank": 5
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.015625,
+          "rank": 9
+        },
+        "openreview-neurips-2025-i9vnwq15ni": {
+          "score": 0.014705882352941176,
+          "rank": 17
+        },
+        "openreview-neurips-2025-obxgsmmg70": {
+          "score": 0.013513513513513514,
+          "rank": 28
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.013513513513513514,
+          "rank": 29
+        },
+        "openreview-neurips-2025-fy5ineg0ol": {
+          "score": 0.012987012987012988,
+          "rank": 33
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.01282051282051282,
+          "rank": 35
+        },
+        "openreview-neurips-2025-o2y6bs6mm0": {
+          "score": 0.0125,
+          "rank": 39
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-neurips-2025-iyvknfxsjb",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-jeqla8n88d",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-xdcglv7um7",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-59n2g6rqjt",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wdl3o58gde",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wzs7sjisum",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-fy5ineg0ol",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-avrktrfq8c",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-i9vnwq15ni",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-10s01yrlkp",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-exckzbayma",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-o2y6bs6mm0",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-gsakl9tc7l",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-dbq6nzfi3c",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-obxgsmmg70",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-yos12gdsal",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-mn3cmpfwr6",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-5l8gydisby",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-6tokqqiywe",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-qfjssnkdbi",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-vjjjlj5qik",
+          "score": 0.29792429792429775,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-b7bowd3kul",
+          "score": 0.11772814998621459,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-r2ykunzugt",
+          "score": 0.06517094017094004,
+          "star_rating": 2
+        }
+      ]
+    },
+    {
+      "type": "intent_query",
+      "tag": "pe",
+      "paper_tag": "query:pe",
+      "query_text": "Methods for automatic prompt evolution in large language models",
+      "sim_scores": {
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.016129032258064516,
+          "rank": 3
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.015625,
+          "rank": 5
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.015151515151515152,
+          "rank": 7
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.014285714285714285,
+          "rank": 11
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.0125,
+          "rank": 21
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.011764705882352941,
+          "rank": 25
+        },
+        "openreview-neurips-2025-dbq6nzfi3c": {
+          "score": 0.009900990099009901,
+          "rank": 41
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-neurips-2025-59n2g6rqjt",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-dbq6nzfi3c",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-jeqla8n88d",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wdl3o58gde",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-10s01yrlkp",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-iyvknfxsjb",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-yos12gdsal",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-exckzbayma",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wzs7sjisum",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-avrktrfq8c",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-i9vnwq15ni",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-b7bowd3kul",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-fy5ineg0ol",
+          "score": 0.41577409931840303,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-obxgsmmg70",
+          "score": 0.3668882557771445,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-vjjjlj5qik",
+          "score": 0.32035835650293487,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-xdcglv7um7",
+          "score": 0.32035835650293487,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-mn3cmpfwr6",
+          "score": 0.29792429792429775,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-gsakl9tc7l",
+          "score": 0.2760180995475112,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-r2ykunzugt",
+          "score": 0.25462134764460337,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-6tokqqiywe",
+          "score": 0.21328671328671328,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-qfjssnkdbi",
+          "score": 0.1360089186176142,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-o2y6bs6mm0",
+          "score": 0.11772814998621459,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-5l8gydisby",
+          "score": 0.0823211875843454,
+          "star_rating": 2
+        }
+      ]
+    },
+    {
+      "type": "intent_query",
+      "tag": "pe",
+      "paper_tag": "query:pe",
+      "query_text": "Research on prompt engineering for better model reasoning",
+      "sim_scores": {
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-fy5ineg0ol": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-qfjssnkdbi": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-neurips-2025-b7bowd3kul": {
+          "score": 0.014285714285714285,
+          "rank": 10
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.013333333333333334,
+          "rank": 15
+        },
+        "openreview-neurips-2025-vjjjlj5qik": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        },
+        "openreview-neurips-2025-avrktrfq8c": {
+          "score": 0.011235955056179775,
+          "rank": 29
+        },
+        "openreview-neurips-2025-exckzbayma": {
+          "score": 0.010752688172043012,
+          "rank": 33
+        },
+        "openreview-neurips-2025-zcvkvxtrkj": {
+          "score": 0.010416666666666666,
+          "rank": 36
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-neurips-2025-jeqla8n88d",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-59n2g6rqjt",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-exckzbayma",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-b7bowd3kul",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-vjjjlj5qik",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-avrktrfq8c",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-obxgsmmg70",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-o2y6bs6mm0",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-6tokqqiywe",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-mn3cmpfwr6",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wzs7sjisum",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wdl3o58gde",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-qfjssnkdbi",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-5l8gydisby",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-dbq6nzfi3c",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-i9vnwq15ni",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-fy5ineg0ol",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-r2ykunzugt",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-xdcglv7um7",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-iyvknfxsjb",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-gsakl9tc7l",
+          "score": 0.32035835650293487,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-yos12gdsal",
+          "score": 0.29792429792429775,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-10s01yrlkp",
+          "score": 0.1737891737891738,
+          "star_rating": 3
+        }
+      ]
+    },
+    {
+      "type": "intent_query",
+      "tag": "pe",
+      "paper_tag": "query:pe",
+      "query_text": "Techniques for improving in context learning via better prompts",
+      "sim_scores": {
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-fy5ineg0ol": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-zcvkvxtrkj": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-neurips-2025-avrktrfq8c": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.0125,
+          "rank": 20
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.011764705882352941,
+          "rank": 25
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.011494252873563218,
+          "rank": 27
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-neurips-2025-wdl3o58gde",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-avrktrfq8c",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-fy5ineg0ol",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-xdcglv7um7",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-59n2g6rqjt",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wzs7sjisum",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-jeqla8n88d",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-iyvknfxsjb",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-zcvkvxtrkj",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-yos12gdsal",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-i9vnwq15ni",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-r2ykunzugt",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-o2y6bs6mm0",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-dbq6nzfi3c",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-10s01yrlkp",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-vjjjlj5qik",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-obxgsmmg70",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-exckzbayma",
+          "score": 0.41577409931840303,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-5l8gydisby",
+          "score": 0.3910256410256411,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-6tokqqiywe",
+          "score": 0.32035835650293487,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-gsakl9tc7l",
+          "score": 0.29792429792429775,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-mn3cmpfwr6",
+          "score": 0.29792429792429775,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-b7bowd3kul",
+          "score": 0.2760180995475112,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-qfjssnkdbi",
+          "score": 0.06517094017094004,
+          "star_rating": 2
+        }
+      ]
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "chain-of-thought prompting",
+      "sim_scores": {
+        "openreview-neurips-2025-obxgsmmg70": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-b7bowd3kul": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-exckzbayma": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-xdcglv7um7": {
+          "score": 0.015151515151515152,
+          "rank": 6
+        },
+        "openreview-neurips-2025-6tokqqiywe": {
+          "score": 0.014705882352941176,
+          "rank": 8
+        },
+        "openreview-neurips-2025-5l8gydisby": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "evolutionary algorithms for automatic prompt improvement",
+      "sim_scores": {
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        },
+        "openreview-neurips-2025-dbq6nzfi3c": {
+          "score": 0.013513513513513514,
+          "rank": 14
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.012987012987012988,
+          "rank": 17
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.010869565217391304,
+          "rank": 32
+        },
+        "openreview-neurips-2025-avrktrfq8c": {
+          "score": 0.010638297872340425,
+          "rank": 34
+        },
+        "openreview-neurips-2025-i9vnwq15ni": {
+          "score": 0.009900990099009901,
+          "rank": 41
+        },
+        "openreview-neurips-2025-vjjjlj5qik": {
+          "score": 0.009708737864077669,
+          "rank": 43
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "methods for crafting effective prompts to improve language model performance",
+      "sim_scores": {
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-fy5ineg0ol": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.013333333333333334,
+          "rank": 15
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.012048192771084338,
+          "rank": 23
+        },
+        "openreview-neurips-2025-yos12gdsal": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        },
+        "openreview-neurips-2025-i9vnwq15ni": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        },
+        "openreview-neurips-2025-o2y6bs6mm0": {
+          "score": 0.010869565217391304,
+          "rank": 32
+        },
+        "openreview-neurips-2025-10s01yrlkp": {
+          "score": 0.00909090909090909,
+          "rank": 50
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "optimizing prompt content to maximize model output quality",
+      "sim_scores": {
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.014285714285714285,
+          "rank": 10
+        },
+        "openreview-neurips-2025-yos12gdsal": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-neurips-2025-i9vnwq15ni": {
+          "score": 0.013513513513513514,
+          "rank": 14
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "principles and strategies for designing prompts",
+      "sim_scores": {
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.014705882352941176,
+          "rank": 8
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-neurips-2025-fy5ineg0ol": {
+          "score": 0.014285714285714285,
+          "rank": 10
+        },
+        "openreview-neurips-2025-i9vnwq15ni": {
+          "score": 0.013513513513513514,
+          "rank": 14
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.012048192771084338,
+          "rank": 23
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        },
+        "openreview-neurips-2025-avrktrfq8c": {
+          "score": 0.011494252873563218,
+          "rank": 27
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt augmentation",
+      "sim_scores": {
+        "openreview-neurips-2025-gsakl9tc7l": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-xdcglv7um7": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-b7bowd3kul": {
+          "score": 0.010638297872340425,
+          "rank": 34
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt design",
+      "sim_scores": {
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.013157894736842105,
+          "rank": 16
+        },
+        "openreview-neurips-2025-yos12gdsal": {
+          "score": 0.010101010101010102,
+          "rank": 39
+        },
+        "openreview-neurips-2025-5l8gydisby": {
+          "score": 0.009900990099009901,
+          "rank": 41
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt engineering",
+      "sim_scores": {
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-mn3cmpfwr6": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-o2y6bs6mm0": {
+          "score": 0.014285714285714285,
+          "rank": 10
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-neurips-2025-b7bowd3kul": {
+          "score": 0.011764705882352941,
+          "rank": 25
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt evolution",
+      "sim_scores": {}
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompt optimization",
+      "sim_scores": {
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-avrktrfq8c": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-dbq6nzfi3c": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-10s01yrlkp": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.014285714285714285,
+          "rank": 10
+        },
+        "openreview-neurips-2025-i9vnwq15ni": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        },
+        "openreview-neurips-2025-mn3cmpfwr6": {
+          "score": 0.01098901098901099,
+          "rank": 31
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "prompting models to reason step by step",
+      "sim_scores": {
+        "openreview-neurips-2025-qfjssnkdbi": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-vjjjlj5qik": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-neurips-2025-b7bowd3kul": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.012658227848101266,
+          "rank": 19
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.0125,
+          "rank": 20
+        },
+        "openreview-neurips-2025-6tokqqiywe": {
+          "score": 0.011111111111111112,
+          "rank": 30
+        },
+        "openreview-neurips-2025-exckzbayma": {
+          "score": 0.010526315789473684,
+          "rank": 35
+        },
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.009433962264150943,
+          "rank": 46
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "pe",
+      "paper_tag": "keyword:pe",
+      "query_text": "techniques to augment prompts with additional context or examples",
+      "sim_scores": {
+        "openreview-neurips-2025-iyvknfxsjb": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-fy5ineg0ol": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-wzs7sjisum": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-59n2g6rqjt": {
+          "score": 0.014705882352941176,
+          "rank": 8
+        },
+        "openreview-neurips-2025-avrktrfq8c": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-neurips-2025-r2ykunzugt": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-neurips-2025-wdl3o58gde": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        },
+        "openreview-neurips-2025-jeqla8n88d": {
+          "score": 0.012195121951219513,
+          "rank": 22
+        },
+        "openreview-neurips-2025-i9vnwq15ni": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        },
+        "openreview-neurips-2025-5l8gydisby": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        },
+        "openreview-neurips-2025-yos12gdsal": {
+          "score": 0.010416666666666666,
+          "rank": 36
+        }
+      }
+    }
+  ],
+  "global_candidate_ids": [
+    "openreview-neurips-2025-wzs7sjisum",
+    "openreview-neurips-2025-10s01yrlkp",
+    "openreview-neurips-2025-jr1lvwexlt",
+    "openreview-neurips-2025-mhgviojz27",
+    "openreview-neurips-2025-59n2g6rqjt",
+    "openreview-neurips-2025-r2ykunzugt",
+    "openreview-neurips-2025-5h9ms87pyt",
+    "openreview-neurips-2025-qjmrigtcu8",
+    "openreview-neurips-2025-t52hzet7rn",
+    "openreview-neurips-2025-eg5oh8l1wz",
+    "openreview-neurips-2025-iyvknfxsjb",
+    "openreview-neurips-2025-91l4ztmpo4",
+    "openreview-neurips-2025-gsakl9tc7l",
+    "openreview-neurips-2025-gmkpnumufc",
+    "openreview-neurips-2025-gsj3on2ipy",
+    "openreview-neurips-2025-jeqla8n88d",
+    "openreview-neurips-2025-fifjdqjv0b",
+    "openreview-neurips-2025-ougawwat8g",
+    "openreview-neurips-2025-qfjssnkdbi",
+    "openreview-neurips-2025-wdl3o58gde",
+    "openreview-neurips-2025-nuctkoflsv",
+    "openreview-neurips-2025-1v3toke6xp",
+    "openreview-neurips-2025-i9vnwq15ni",
+    "openreview-neurips-2025-fy5ineg0ol",
+    "openreview-neurips-2025-oouvejsbxl",
+    "openreview-neurips-2025-rblwkiuqey",
+    "openreview-neurips-2025-ftkbzlxbzv",
+    "openreview-neurips-2025-eyis2h3tba",
+    "openreview-neurips-2025-avrktrfq8c",
+    "openreview-neurips-2025-tua2r6gzea",
+    "openreview-neurips-2025-naauseyoz7",
+    "openreview-neurips-2025-t94talzvze",
+    "openreview-neurips-2025-zqwyrpxbv9",
+    "openreview-neurips-2025-b7bowd3kul",
+    "openreview-neurips-2025-0cckauhkit",
+    "openreview-neurips-2025-vhb883gs1u",
+    "openreview-neurips-2025-yos12gdsal",
+    "openreview-neurips-2025-fnuul0hlin",
+    "openreview-neurips-2025-m5glj4fgvp",
+    "openreview-neurips-2025-qykhcah8oz",
+    "openreview-neurips-2025-oeawm2cont",
+    "openreview-neurips-2025-5gadcrvgbw",
+    "openreview-neurips-2025-e6zdfjtoix",
+    "openreview-neurips-2025-3rrzyrpo70",
+    "openreview-neurips-2025-o0aasfievc",
+    "openreview-neurips-2025-idsttdw4cs",
+    "openreview-neurips-2025-azooxbw63m",
+    "openreview-neurips-2025-r7hjj1yvjh",
+    "openreview-neurips-2025-6mugqxkxic",
+    "openreview-neurips-2025-hdjxzkzjy9",
+    "openreview-neurips-2025-h0lzgqq6uo",
+    "openreview-neurips-2025-swibjwieua",
+    "openreview-neurips-2025-yi55mj6anu",
+    "openreview-neurips-2025-dbq6nzfi3c",
+    "openreview-neurips-2025-stpe7ueetz",
+    "openreview-neurips-2025-vkictqszon",
+    "openreview-neurips-2025-8fn25plkts",
+    "openreview-neurips-2025-2qn6skg175",
+    "openreview-neurips-2025-ugaepulzya",
+    "openreview-neurips-2025-va5p0ruzpx",
+    "openreview-neurips-2025-tvrtdiwdmq",
+    "openreview-neurips-2025-exckzbayma",
+    "openreview-neurips-2025-8an1xvykxs",
+    "openreview-neurips-2025-v4at18kysa",
+    "openreview-neurips-2025-7odu0lyxlr",
+    "openreview-neurips-2025-vjjjlj5qik",
+    "openreview-neurips-2025-l3qq5mu5vx",
+    "openreview-neurips-2025-g1nzvhzbqj",
+    "openreview-neurips-2025-o2y6bs6mm0",
+    "openreview-neurips-2025-5l8gydisby",
+    "openreview-neurips-2025-jgtcg08azk",
+    "openreview-neurips-2025-t77ezljvd5",
+    "openreview-neurips-2025-nfhmjdzubq",
+    "openreview-neurips-2025-2g65iayl69",
+    "openreview-neurips-2025-kdhz4y1adc",
+    "openreview-neurips-2025-ppkdxf55ly",
+    "openreview-neurips-2025-yv7zkaptjo",
+    "openreview-neurips-2025-eziqkdf8m2",
+    "openreview-neurips-2025-ibfneaarnz",
+    "openreview-neurips-2025-ca1xvsvn72",
+    "openreview-neurips-2025-9t7gfyup0u",
+    "openreview-neurips-2025-qjv3yhw3pd",
+    "openreview-neurips-2025-xdcglv7um7",
+    "openreview-neurips-2025-arjpqtlxfe",
+    "openreview-neurips-2025-ectxvrfhua",
+    "openreview-neurips-2025-xsqnqrdcdh",
+    "openreview-neurips-2025-yeq201u9am",
+    "openreview-neurips-2025-y68q09vc4k",
+    "openreview-neurips-2025-x5b2ytt97a",
+    "openreview-neurips-2025-dlkm0q4cvk",
+    "openreview-neurips-2025-4qvwy12kqt",
+    "openreview-neurips-2025-obxgsmmg70",
+    "openreview-neurips-2025-4t8dymu5vg",
+    "openreview-neurips-2025-3joqtghuzz",
+    "openreview-neurips-2025-mn3cmpfwr6",
+    "openreview-neurips-2025-xfp5jntodx",
+    "openreview-neurips-2025-jsnue84hxi",
+    "openreview-neurips-2025-r24zqnwodz",
+    "openreview-neurips-2025-on6hf0kp20",
+    "openreview-neurips-2025-egk487iyaw",
+    "openreview-neurips-2025-6tokqqiywe",
+    "openreview-neurips-2025-vgb2tv0que",
+    "openreview-neurips-2025-wf3ebtqgdw",
+    "openreview-neurips-2025-d2xdjf1txw",
+    "openreview-neurips-2025-tuchmvzxin",
+    "openreview-neurips-2025-mdut8t5b34",
+    "openreview-neurips-2025-ll29pmm3uh",
+    "openreview-neurips-2025-o6keqobp13",
+    "openreview-neurips-2025-zcvkvxtrkj",
+    "openreview-neurips-2025-pdc0yeooj6",
+    "openreview-neurips-2025-qo5n2wxry7",
+    "openreview-neurips-2025-taq9gxdhr0",
+    "openreview-neurips-2025-1scmfcglim",
+    "openreview-neurips-2025-w2874arl4g",
+    "openreview-neurips-2025-i8s4asqo5h",
+    "openreview-neurips-2025-ta0l08qs5n",
+    "openreview-neurips-2025-qe3knkf1rz",
+    "openreview-neurips-2025-0fbqackqk3",
+    "openreview-neurips-2025-wh3f1zok70",
+    "openreview-neurips-2025-qel8fi8gs7",
+    "openreview-neurips-2025-9ia0kivaut",
+    "openreview-neurips-2025-u4j0ltcyid",
+    "openreview-neurips-2025-vntj7pglrz"
+  ],
+  "global_pool_lane_top_k": 30,
+  "global_pool_limit": 120,
+  "global_pool_guaranteed_per_lane": 2,
+  "global_pool_effective_size": 123,
+  "reranked_at": "2026-06-09T12:25:45.848548+00:00",
+  "llm_ranked": [
+    {
+      "paper_id": "openreview-neurips-2025-i9vnwq15ni",
+      "score": 10.0,
+      "evidence_en": "optimizes instructions for black-box LLMs using preimage information",
+      "evidence_cn": "利用原像信息优化黑盒LLM指令",
+      "canonical_evidence": "利用原像信息优化黑盒LLM指令",
+      "tldr_en": "PRESTO reinterprets many-to-one mapping from soft prompts to instructions as prior knowledge to accelerate black-box instruction optimization, reducing queries and improving prompt quality.",
+      "tldr_cn": "针对黑盒大语言模型指令优化中冗余查询问题，PRESTO将软提示到指令的多对一映射视为有用先验，通过白盒模型辅助搜索更优指令。实验表明该方法显著减少了查询次数并提升了找到高质量提示的效率，为自动提示进化提供了新思路。",
+      "title_zh": "PRESTO：面向黑盒LLM的原像信息指导指令优化",
+      "motivation_cn": "现有方法生成指令时存在大量冗余查询，效率低下。",
+      "method_cn": "利用白盒模型的多对一映射先验知识指导黑盒指令优化。",
+      "result_cn": "在多个基准上，PRESTO以更少查询找到更优的提示指令。",
+      "conclusion_cn": "原像信息可作为有效先验，推动黑盒提示自动进化。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Methods for automatic prompt evolution in large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-59n2g6rqjt",
+      "score": 10.0,
+      "evidence_en": "Evolutionary graph optimization automatically designs optimal prompts and reasoning processes for domain tasks",
+      "evidence_cn": "进化图优化自动设计领域任务的最优提示与推理过程",
+      "canonical_evidence": "进化图优化自动设计领域任务的最优提示与推理过程",
+      "tldr_en": "EGO-Prompt uses evolutionary graph optimization to automatically design optimal prompts and reasoning processes for domain-specific tasks, integrating domain knowledge and improving reasoning efficiency.",
+      "tldr_cn": "针对领域任务中设计最优提示和推理过程的挑战，本文提出EGO-Prompt框架，通过进化图优化自动构建提示和语义因果图，整合领域知识并提升推理效率。实验验证了该方法能有效提升提示质量和模型性能，为自动化提示工程提供了新途径。",
+      "title_zh": "如何自动优化领域任务的提示词？通过进化领域知识适应实现自适应提示与推理",
+      "motivation_cn": "领域任务中设计最优提示和推理过程极具挑战，需要整合领域知识并提升推理效率。",
+      "method_cn": "提出EGO-Prompt框架，利用进化图优化自动设计提示和语义因果图，集成域知识。",
+      "result_cn": "实验表明，该方法能有效提升领域任务的提示质量和推理性能。",
+      "conclusion_cn": "EGO-Prompt为自动化提示工程提供了新颖的进化优化方案，可适应不同领域需求。",
+      "matched_requirement_id": "req-3",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "evolutionary algorithms for automatic prompt improvement"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-jeqla8n88d",
+      "score": 10.0,
+      "evidence_en": "Proposes GRACE, an automatic prompt optimization framework with gated refinement and adaptive compression, enabling stable and efficient prompt evolution.",
+      "evidence_cn": "提出GRACE框架，通过门控优化和自适应压缩自动进化提示词，稳定高效地提升提示效果。",
+      "canonical_evidence": "提出GRACE框架，通过门控优化和自适应压缩自动进化提示词，稳定高效地提升提示效果。",
+      "tldr_en": "GRACE addresses unstable and trapped prompt optimization by integrating gated refinement and adaptive compression strategies, achieving stable, efficient, and high-quality prompt generation for LLMs.",
+      "tldr_cn": "自动提示优化常因生成不稳定和陷入局部最优而效果受限。本文提出GRACE框架，结合门控精炼策略（引入反馈调节门和更新拒绝门）与自适应压缩，实现稳定高效的提示优化。实验表明GRACE在多个任务上显著超越现有自动提示方法，生成的高质量提示有效提升了大语言模型的输出质量。",
+      "title_zh": "不损失则无收获：门控精炼与自适应压缩实现高效提示优化",
+      "motivation_cn": "现有自动提示优化方法生成不稳定且易陷入局部最优，导致低效和次优结果。",
+      "method_cn": "提出GRACE，集成门控精炼（反馈调节与更新拒绝）和自适应压缩，提升提示优化的稳定性与效率。",
+      "result_cn": "在多个基准上，GRACE生成的提示词质量显著优于现有方法，使LLM性能得到稳定提升。",
+      "conclusion_cn": "GRACE为自动提示进化提供了稳健高效的框架，有效推动提示工程自动化的发展。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Methods for automatic prompt evolution in large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-xdcglv7um7",
+      "score": 9.0,
+      "evidence_en": "augments prompts with unlabeled data to enhance in-context learning",
+      "evidence_cn": "通过添加无标签数据增强上下文学习提示",
+      "canonical_evidence": "通过添加无标签数据增强上下文学习提示",
+      "tldr_en": "Proposes an augmented ICL framework that includes unlabeled inputs in the prompt, proving with chain-of-thought prompting that transformers can achieve near-Bayes optimal accuracy, thus leveraging freely available unlabeled data to improve ICL.",
+      "tldr_cn": "本文针对上下文学习中标注样本稀少且昂贵的问题，提出一种增强型上下文学习框架，将无标签数据块与少量标注示例共同纳入提示。通过链式思维提示，在多层Transformer上理论证明和实验验证了该方法在多类线性分类任务上可接近贝叶斯最优精度。这一框架有效利用了丰富无标签数据，显著提升了上下文学习的性能上限。",
+      "title_zh": "无标签数据可证明增强Transformer的上下文学习",
+      "motivation_cn": "标注示例受限于提示长度且获取成本高，而无标签数据大量存在却未被利用于上下文学习。",
+      "method_cn": "提出一种提示增强框架，在提示中同时包含少量标注示例和一块无标签输入，并采用链式思维提示。",
+      "result_cn": "理论证明和实验显示，该方法能使Transformer在多类线性分类上达到接近贝叶斯最优精度。",
+      "conclusion_cn": "无标签数据可有效增强上下文学习，为提示设计提供了新方向。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "techniques to augment prompts with additional context or examples"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-exckzbayma",
+      "score": 9.0,
+      "evidence_en": "proposes Flow Chain-of-Thought, a novel step-by-step reasoning prompting paradigm",
+      "evidence_cn": "提出流式思维链，一种新颖的分步推理提示范式",
+      "canonical_evidence": "提出流式思维链，一种新颖的分步推理提示范式",
+      "tldr_en": "Introduces Flow CoT, which models recursive inference as a progressive trajectory of latent cognitive states, enhancing reasoning without explicit CoT supervision and outperforming standard CoT.",
+      "tldr_cn": "针对传统思维链依赖中间推理步骤、可扩展性差的问题，提出流式思维链（Flow CoT）范式，将递归推理建模为潜在认知状态的渐进轨迹。无需显式监督即可提升推理性能，实验表明在多个推理任务上优于标准CoT，为提示设计提供了新思路。",
+      "title_zh": "SCOUT：通过流式思维链让预训练语言模型增强推理",
+      "motivation_cn": "传统CoT方法依赖显式中间步骤，限制扩展性和泛化能力。",
+      "method_cn": "提出Flow CoT，将递归推理过程定义为潜在认知状态的连续流动。",
+      "result_cn": "在多个推理基准上，Flow CoT优于标准CoT，提升推理性能。",
+      "conclusion_cn": "流式思维链有效提升了模型内在推理能力，改进了提示推理方法。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-10s01yrlkp",
+      "score": 9.0,
+      "evidence_en": "meta-optimization of prompt optimizers for automatic prompt evolution",
+      "evidence_cn": "对提示优化器进行元优化以实现自动提示进化",
+      "canonical_evidence": "对提示优化器进行元优化以实现自动提示进化",
+      "tldr_en": "metaTextGrad designs a meta-optimizer that automatically improves LLM-based prompt optimizers, enhancing automatic prompt evolution and task-specific customization.",
+      "tldr_cn": "现有LLM优化器由人工设计且通用，无法针对特定任务优化。本文提出metaTextGrad，一个元优化器，自动改进基于LLM的提示优化器，提升自动提示进化的效果和任务特定性。实验表明，该方法能进一步提升优化性能，推动自动提示工程发展。",
+      "title_zh": "metaTextGrad：自动优化语言模型优化器",
+      "motivation_cn": "手工设计的LLM优化器缺乏任务针对性和自动优化能力。",
+      "method_cn": "设计元优化器metaTextGrad，自动优化基于LLM的提示优化器。",
+      "result_cn": "提升了提示优化的效果和任务适应性。",
+      "conclusion_cn": "该方法为自动提示进化提供了更高效、更专业的优化途径。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Methods for automatic prompt evolution in large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-obxgsmmg70",
+      "score": 9.0,
+      "evidence_en": "AdaCoT adaptively decides when to use chain-of-thought prompting, formulated as Pareto optimization balancing performance and cost",
+      "evidence_cn": "AdaCoT自适应决定何时使用思维链提示，通过帕累托优化平衡性能与成本",
+      "canonical_evidence": "AdaCoT自适应决定何时使用思维链提示，通过帕累托优化平衡性能与成本",
+      "tldr_en": "AdaCoT uses reinforcement learning to adaptively decide when to invoke chain-of-thought prompting for each query, balancing performance and computational cost via Pareto optimization.",
+      "tldr_cn": "针对思维链提示计算成本高且对简单查询冗余的问题，本文提出AdaCoT，将自适应触发思维链建模为帕累托优化问题，通过强化学习动态决定何时使用思维链。实验表明该方法能在保持推理性能的同时大幅减少计算开销，实现了效率与效果的自适应平衡。",
+      "title_zh": "AdaCoT：基于强化学习的帕累托最优自适应思维链触发",
+      "motivation_cn": "CoT提示普遍应用但计算成本高，简单查询也生成长推理链。",
+      "method_cn": "提出AdaCoT，将自适应推理建模为帕累托优化，利用强化学习决定何时触发CoT。",
+      "result_cn": "实验显示该方法在保持性能的同时显著降低计算开销。",
+      "conclusion_cn": "AdaCoT实现了推理效率与性能的自动平衡，为按需使用CoT提供了可行方案。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-b7bowd3kul",
+      "score": 9.0,
+      "evidence_en": "automatic synthesis of diverse, verifiable chain-of-thought reasoning data with code assistance",
+      "evidence_cn": "代码辅助自动合成多样且可验证的思维链推理数据",
+      "canonical_evidence": "代码辅助自动合成多样且可验证的思维链推理数据",
+      "tldr_en": "Caco automates generation of high-quality, code-verified CoT reasoning paths, overcoming limits of uncontrolled generation and enabling scalable reasoning across tasks.",
+      "tldr_cn": "现有CoT方法存在生成不可控、质量不足和多样性有限等问题，基于代码的方法通常局限于数学问题。提出Caco框架，利用代码辅助自动合成高质量、可验证的多样化指令-思维链数据，将推理步骤转化为可执行代码，显著提升了推理路径的可靠性和任务通用性，实现了可扩展的推理能力提升。",
+      "title_zh": "为模型推理扩展代码辅助的思维链和指令",
+      "motivation_cn": "现有思维链方法生成质量参差、多样性不足，且基于代码的方法难以扩展。",
+      "method_cn": "提出Caco框架，通过代码辅助自动合成可验证、多样化的指令-思维链数据。",
+      "result_cn": "在多个任务上生成高质量推理路径，提升模型推理性能与通用性。",
+      "conclusion_cn": "代码辅助的自动化CoT合成突破现有局限，为可扩展推理提供新范式。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-wzs7sjisum",
+      "score": 9.0,
+      "evidence_en": "Proposes a single-vector prompt tuning method with instance-aware information to improve prompt-tuned model performance.",
+      "evidence_cn": "提出了一种结合实例感知信息的单向量提示微调方法，以提升提示微调模型的性能。",
+      "canonical_evidence": "提出了一种结合实例感知信息的单向量提示微调方法，以提升提示微调模型的性能。",
+      "tldr_en": "Current prompt tuning methods require many prompts and laborious search. This paper introduces Capsule Prompt Tuning with a single vector using instance-aware information, improving adaptation efficiency and performance.",
+      "tldr_cn": "当前提示微调方法依赖大量提示向量并需网格搜索最佳长度，计算负担大，且设计缺乏实例感知。本文提出胶囊提示微调，仅用一个向量并融入实例信息，显著降低计算开销且提升性能。实验显示，该方法参数更少但性能超越多提示基线，证明了实例信息在提示学习中的价值。该工作为高效、实例自适应的提示微调提供了新方案。",
+      "title_zh": "一个足矣：基于单向量的胶囊提示微调",
+      "motivation_cn": "现有提示微调需要大量提示和网格搜索最优长度，计算负担大；且任务级提示设计忽视实例信息，制约性能。",
+      "method_cn": "提出胶囊提示微调，用单个向量表示提示，并注入实例感知信息，实现高效且自适应的提示学习。",
+      "result_cn": "实验显示，该方法在使用更少参数的情况下，性能超越现有需要多个提示向量的方法，提升了模型适应性。",
+      "conclusion_cn": "本工作表明，融入实例感知信息的单向量提示微调是一种高效且实用的方法，为提示设计提供了新方向。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-iyvknfxsjb",
+      "score": 9.0,
+      "evidence_en": "Meta-learning framework optimizes system prompts to be robust and transferable, maximizing LLM performance across tasks.",
+      "evidence_cn": "基于元学习的框架优化系统提示，使其鲁棒且可迁移，最大化语言模型跨任务性能。",
+      "canonical_evidence": "基于元学习的框架优化系统提示，使其鲁棒且可迁移，最大化语言模型跨任务性能。",
+      "tldr_en": "Current prompt optimization focuses on user prompts, ignoring system prompts. This paper proposes meta-learning for bilevel system prompt optimization to design robust, transferable system prompts that enhance LLM performance across diverse tasks.",
+      "tldr_cn": "现有提示优化工作忽略了对系统提示的优化。本文将系统提示优化形式化为双层问题，并提出元学习框架，学习对多样化用户提示鲁棒、对未见任务可迁移的系统提示。实验表明，该方法能跨任务提升模型输出质量，填补了系统提示自动优化的研究空白。该研究为通用提示设计提供了自动化途径，有望提升大语言模型的通用性。",
+      "title_zh": "基于元学习的系统提示优化",
+      "motivation_cn": "现有提示优化集中于用户提示，忽略了系统提示的通用优化潜力，限制模型在多任务场景下的性能。",
+      "method_cn": "引入双层系统提示优化问题，提出元学习框架，学习对用户提示鲁棒且跨任务可迁移的系统提示。",
+      "result_cn": "实验表明，元学习优化的系统提示在多种任务和未见任务上均能提升模型性能，优于基线方法。",
+      "conclusion_cn": "本工作验证了系统提示元优化的有效性，为通用提示设计提供了自动化方案，有望提升LLM的普适性。",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "optimizing prompt content to maximize model output quality"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-r2ykunzugt",
+      "score": 9.0,
+      "evidence_en": "Proposes a hierarchical prompting framework that enables recursive step-by-step reasoning and planning for long-horizon tasks.",
+      "evidence_cn": "提出层次化提示框架，实现递归分步推理与规划，应对长程任务。",
+      "canonical_evidence": "提出层次化提示框架，实现递归分步推理与规划，应对长程任务。",
+      "tldr_en": "ReCAP addresses long-horizon reasoning by combining plan-ahead decomposition, context re-injection, and recursive refinement, outperforming sequential and hierarchical prompting methods on complex tasks.",
+      "tldr_cn": "长程任务中，顺序提示易致上下文漂移，层次化提示则连续性弱。本文提出ReCAP框架，结合计划前分解、父计划再注入和递归优化，实现上下文一致的逐步推理。实验表明，ReCAP在多个复杂任务上优于现有提示方法，显著提升LLM智能体的多步推理与规划能力。",
+      "title_zh": "ReCAP：面向大语言模型智能体的递归上下文感知推理与规划",
+      "motivation_cn": "长程任务中顺序提示易上下文漂移，层次化提示则连续性弱，亟需更好的推理规划方法。",
+      "method_cn": "提出ReCAP框架，融合计划前分解、父计划再注入和递归优化，实现上下文一致的逐步推理。",
+      "result_cn": "实验表明，ReCAP在多步骤任务中显著优于顺序和层次提示基线，提升了智能体的规划与推理表现。",
+      "conclusion_cn": "ReCAP为LLM智能体提供了一种强大的推理与规划提示范式，推动了复杂任务解决能力。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-wdl3o58gde",
+      "score": 9.0,
+      "evidence_en": "Automatically augments prompts with self-generated successful trajectories as in-context examples, improving LLM agent performance.",
+      "evidence_cn": "自动用自生成的成功轨迹作为上下文示例增强提示，提升语言模型智能体性能。",
+      "canonical_evidence": "自动用自生成的成功轨迹作为上下文示例增强提示，提升语言模型智能体性能。",
+      "tldr_en": "LLM agents often require manual example engineering. This paper proposes automatic self-generation of in-context examples from successful trajectories, achieving significant performance improvements across benchmarks, surpassing human-crafted examples.",
+      "tldr_cn": "提升LLM智能体通常需大量手工构建提示和示例。本文探索自动改进方法：智能体从自身成功经验中学习，构建自生成轨迹数据库用作上下文示例。实验表明，在多个序贯决策基准上，自生成示例带来显著提升，甚至超过人工精心设计的示例。该方法降低了提示工程的人力成本，为自适应智能体提供了新路径。",
+      "title_zh": "自生成上下文示例提升大语言模型智能体的序贯决策能力",
+      "motivation_cn": "现有LLM智能体需人工设计任务特定提示和示例，成本高且泛化性差，亟需自动提升方法。",
+      "method_cn": "通过记录智能体成功轨迹，构建自生成示例数据库，并以此增强后续任务的上下文提示。",
+      "result_cn": "该方法在多个序贯决策基准上显著提升成功率，超越人工示例，证明了自生成示例的有效性。",
+      "conclusion_cn": "自生成上下文示例是一种低成本、高效的自动提示增强技术，推动了LLM智能体的自适应发展。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "techniques to augment prompts with additional context or examples"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-gsakl9tc7l",
+      "score": 9.0,
+      "evidence_en": "Proposes parameter-free graph encoding to augment prompts with structural context for improved graph reasoning.",
+      "evidence_cn": "提出无参图编码方法，为提示词增加图结构上下文以提升图推理。",
+      "canonical_evidence": "提出无参图编码方法，为提示词增加图结构上下文以提升图推理。",
+      "tldr_en": "FoGE introduces a parameter-free Fock-space-inspired graph encoding to augment prompts, enabling LLMs to better answer graph-related questions without training.",
+      "tldr_cn": "现有图提示方法依赖序列化或可训练编码器，难以高效表示图结构。本文提出FoGE，一种受Fock空间启发的无参数图编码，可直接作为提示词注入大语言模型，提升对图问题的回答能力。实验表明该方法在多个图推理任务上达到或超越专用基线，为图提示提供了简单高效的新途径。",
+      "title_zh": "FoGE：受Fock空间启发的图提示编码",
+      "motivation_cn": "现有图提示方法在编码效率和泛化性上存在局限，需训练参数或复杂序列化。",
+      "method_cn": "提出FoGE，一种基于Fock空间的无参数图编码方法，将图结构直接转化为提示词中的张量表示。",
+      "result_cn": "在多个图问答数据集上，FoGE与预训练LLM结合取得与专用模型相当甚至更好的性能。",
+      "conclusion_cn": "无参数图编码为图提示提供了简洁有效的方案，无需额外训练即可增强LLM的图推理能力。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "techniques to augment prompts with additional context or examples"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-5l8gydisby",
+      "score": 9.0,
+      "evidence_en": "Employs Chain-of-Thought reasoning and attribute prompting to decompose referring expressions, enabling step-by-step segmentation.",
+      "evidence_cn": "通过思维链提示与属性提示逐步推理，实现任意指代分割。",
+      "canonical_evidence": "通过思维链提示与属性提示逐步推理，实现任意指代分割。",
+      "tldr_en": "RESAnything leverages systematic LLM prompting to generate detailed attribute descriptions, using Chain-of-Thought to reason about object parts and properties for zero-shot referring segmentation.",
+      "tldr_cn": "现有指代分割难以处理隐含属性引用。本文提出RESAnything，利用大语言模型的思维链推理，通过属性提示系统生成物体属性详细描述，引导基础分割模型逐步定位目标区域。该方法在零样本设定下实现了对任意指代表达式（含物体、部件及隐含属性）的精准分割，展现了提示工程在视觉推理中的强大能力。",
+      "title_zh": "RESAnything：面向任意指代分割的属性提示",
+      "motivation_cn": "传统指代分割难以处理超越物体标签的隐含属性引用，如设计、材质等。",
+      "method_cn": "采用思维链推理，通过属性提示让LLM生成物体形状、颜色等详细描述，并引导分割模型。",
+      "result_cn": "在开放词汇和零样本条件下，RESAnything对任意指代表达式实现了高精度分割。",
+      "conclusion_cn": "属性提示结合思维链有效扩展了指代分割的边界，体现了提示策略在视觉推理中的价值。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-6tokqqiywe",
+      "score": 9.0,
+      "evidence_en": "Introduces causal sufficiency and necessity analysis for CoT reasoning steps, improving step-by-step prompt design.",
+      "evidence_cn": "引入因果充分性与必要性分析，改进思维链推理步骤，增强逐步推理质量。",
+      "canonical_evidence": "引入因果充分性与必要性分析，改进思维链推理步骤，增强逐步推理质量。",
+      "tldr_en": "This paper addresses the sufficiency and necessity of intermediate steps in Chain-of-Thought reasoning, proposing a causal framework to identify and optimize crucial reasoning steps, leading to more reliable LLM reasoning.",
+      "tldr_cn": "思维链推理面临中间步骤不充分或不必要的挑战。本文从因果视角出发，定义推理步骤的充分性与必要性，提出基于因果概率的评估与优化方法。实验表明，该方法能识别并增强关键推理步骤，从而稳定提升大语言模型的复杂推理性能，为设计更可靠的思维链提示提供了理论工具。",
+      "title_zh": "因果充分性与必要性提升思维链推理",
+      "motivation_cn": "思维链提示的中间步骤常缺乏充分支撑或包含冗余，影响推理可靠性。",
+      "method_cn": "构建因果框架，定义并量化推理步骤的充分性与必要性，用于评估和优化思维链。",
+      "result_cn": "方法能有效筛选关键步骤，改善思维链质量，在多个推理任务上提升LLM准确率。",
+      "conclusion_cn": "因果分析为思维链优化提供了新视角，有助于构建更严谨的逐步推理提示。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-qfjssnkdbi",
+      "score": 8.0,
+      "evidence_en": "EPIC learns to select the best reasoning method for a query using contrastive learning and probability bounds",
+      "evidence_cn": "EPIC通过对比学习学习选择最佳推理方法，并利用概率界进行优化",
+      "canonical_evidence": "EPIC通过对比学习学习选择最佳推理方法，并利用概率界进行优化",
+      "tldr_en": "EPIC learns a shared representation space to capture both model reasoning abilities and query-method compatibility, using contrastive learning with probability bounds to select the best reasoning method for each query.",
+      "tldr_cn": "针对语言模型推理中盲目使用多个候选答案的问题，本文提出EPIC框架，通过对比学习构建查询与推理方法兼容性的表示空间，并利用概率界正则化优化选择。实验证明该方法能更智能地选择推理策略，提升生成质量，为自适应推理规划提供了有效途径。",
+      "title_zh": "面向语言模型的推理规划",
+      "motivation_cn": "现有方法盲目生成多个候选答案，忽视最优推理方法选择。",
+      "method_cn": "提出EPIC框架，基于对比学习学习查询与推理方法的兼容性表示，融入概率界正则化。",
+      "result_cn": "实验表明该方法能有效提升推理准确率，超越固定聚合策略。",
+      "conclusion_cn": "EPIC为语言模型推理规划提供了新范式，增强了推理方法选择的智能化。",
+      "matched_requirement_id": "req-10",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Research on prompt engineering for better model reasoning"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-dbq6nzfi3c",
+      "score": 8.0,
+      "evidence_en": "EVOREFUSE applies evolutionary prompt optimization to generate diverse pseudo-malicious instructions",
+      "evidence_cn": "EVOREFUSE应用演化式提示优化生成多样化的伪恶意指令",
+      "canonical_evidence": "EVOREFUSE应用演化式提示优化生成多样化的伪恶意指令",
+      "tldr_en": "EVOREFUSE uses evolutionary prompt optimization to automatically generate diverse pseudo-malicious instructions that consistently trigger LLM refusals, aiding evaluation and mitigation of over-refusal.",
+      "tldr_cn": "针对大语言模型对伪恶意指令过度拒绝的问题，本文提出EVOREFUSE，利用演化式提示优化自动生成多样化的伪恶意指令，用于评估和缓解过度拒绝现象。实验表明该方法生成的指令能有效且一致地触发模型拒绝，为安全评估提供了自动化工具。",
+      "title_zh": "EVOREFUSE：演化式提示优化用于评估和缓解大语言模型对伪恶意指令的过度拒绝",
+      "motivation_cn": "大语言模型常过度拒绝对伪恶意指令的响应，影响用户体验，需有效收集此类指令。",
+      "method_cn": "提出EVOREFUSE，采用演化式提示优化生成多样化的伪恶意指令。",
+      "result_cn": "实验表明该方法能生成高效引发拒绝的指令，优于手工和改写方法。",
+      "conclusion_cn": "EVOREFUSE为安全评估提供了自动化的提示生成方案，可辅助缓解过度拒绝问题。",
+      "matched_requirement_id": "req-3",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "evolutionary algorithms for automatic prompt improvement"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-avrktrfq8c",
+      "score": 8.0,
+      "evidence_en": "Provides a Bayesian framework for optimal prompting, establishing principles for prompt design and in-context learning.",
+      "evidence_cn": "提出贝叶斯最优提示框架，为提示设计和上下文学习提供原则性指导。",
+      "canonical_evidence": "提出贝叶斯最优提示框架，为提示设计和上下文学习提供原则性指导。",
+      "tldr_en": "A Bayesian perspective on prompting reveals optimal prompting as conditioning meta-learned predictors, providing design principles and highlighting limitations that weight tuning can overcome.",
+      "tldr_cn": "本文从贝叶斯元学习视角阐释提示微调与上下文学习，指出最优提示等价于对贝叶斯预测器的条件化。该框架揭示了提示设计的根本原则，同时也指出了仅靠提示的性能局限，需结合权重调整来克服。该工作为理解提示有效性提供了理论支撑，有助于指导更有效的提示方法设计。",
+      "title_zh": "通过元学习理解提示微调与上下文学习",
+      "motivation_cn": "提示优化方法多由经验驱动，缺乏理论基础，难以深入理解提示的原理与局限。",
+      "method_cn": "利用贝叶斯元学习框架，将提示形式化为对贝叶斯预测器的条件化，分析最优提示的性质。",
+      "result_cn": "理论分析揭示了提示设计的核心原则及其固有限制，指明权重调整可克服这些限制。",
+      "conclusion_cn": "该工作为提示工程提供了理论根基，帮助设计更有效的提示策略，并明确了提示与微调的组合必要。",
+      "matched_requirement_id": "req-5",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "principles and strategies for designing prompts"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-o2y6bs6mm0",
+      "score": 7.0,
+      "evidence_en": "improves adherence to hierarchical instruction prompts via parameter-efficient tuning",
+      "evidence_cn": "通过参数高效微调提升模型对层级提示指令的遵循",
+      "canonical_evidence": "通过参数高效微调提升模型对层级提示指令的遵循",
+      "tldr_en": "FocalLoRA addresses hierarchical prompt conflicts by selectively fine-tuning attention heads, enhancing LLMs' ability to follow system-level instructions without extensive training, which directly improves prompt effectiveness.",
+      "tldr_cn": "针对大语言模型在层级提示中忽视系统指令导致安全隐患的问题，提出FocalLoRA框架，以参数高效的方式选择性优化关键注意力头，强化指令层级遵循能力。实验表明该方法在安全和对齐测试中显著提升了提示遵守度，为提示设计提供了模型侧保障。",
+      "title_zh": "勿忘指令：FocalLoRA用于大语言模型中的层级指令对齐",
+      "motivation_cn": "模型容易混淆层级提示中的冲突指令，削弱系统级安全性。",
+      "method_cn": "提出FocalLoRA，选择性微调关键注意力头以增强层级指令遵循。",
+      "result_cn": "在安全对齐任务上，FocalLoRA明显改善了模型对系统指令的遵从。",
+      "conclusion_cn": "结构化微调可有效提升提示效能，对安全关键应用尤其重要。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-vjjjlj5qik",
+      "score": 7.0,
+      "evidence_en": "AdaReasoner automates adaptive reasoning configurations via RL, optimizing temperature and reasoning steps for task-specific performance",
+      "evidence_cn": "AdaReasoner通过强化学习自动化自适应推理配置，优化温度和推理步骤以提升任务特定性能",
+      "canonical_evidence": "AdaReasoner通过强化学习自动化自适应推理配置，优化温度和推理步骤以提升任务特定性能",
+      "tldr_en": "AdaReasoner is an LLM-agnostic plugin that uses RL to automatically select optimal reasoning configurations (temperature, steps) for different tasks, improving reasoning performance without manual tuning.",
+      "tldr_cn": "针对LLM在不同任务中需要灵活推理配置的问题，本文提出AdaReasoner插件，利用强化学习自动化自适应推理配置，包括温度和推理步骤选择。实验显示该方法在多种推理任务上提升性能，无需人工调参，为提升模型推理灵活性提供了通用方案。",
+      "title_zh": "AdaReasoner：自适应推理实现更灵活的思维",
+      "motivation_cn": "LLM任务需要灵活配置推理步骤，现有方法固定配置无法达到任务最优。",
+      "method_cn": "提出AdaReasoner插件，基于强化学习自适应选择推理配置（如温度、推理步数）。",
+      "result_cn": "实验表明该方法能提升多种推理任务的性能。",
+      "conclusion_cn": "AdaReasoner提供了一种任务自适应的推理配置方法，增强LLM的思维灵活性。",
+      "matched_requirement_id": "req-10",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Research on prompt engineering for better model reasoning"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-yos12gdsal",
+      "score": 6.0,
+      "evidence_en": "training-free prompt compression retaining key information",
+      "evidence_cn": "无需训练的提示压缩方法保留关键信息",
+      "canonical_evidence": "无需训练的提示压缩方法保留关键信息",
+      "tldr_en": "EHPC identifies evaluator attention heads to compress long prompts efficiently without training, preserving task-critical information.",
+      "tldr_cn": "针对长上下文推理计算成本高的问题，本文提出利用评估器注意力头无训练地压缩提示，快速识别关键token，在保持性能的同时降低开销。实验验证了其有效性，为优化提示内容提供了新方法。",
+      "title_zh": "使用评估器头的高效提示压缩用于长上下文Transformer推理",
+      "motivation_cn": "长上下文输入导致高计算成本和性能下降。",
+      "method_cn": "识别评估器注意力头，利用前几层进行提示压缩。",
+      "result_cn": "实现快速且保留关键信息的提示压缩。",
+      "conclusion_cn": "该方法为长上下文推理提供了高效的提示优化方案。",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "optimizing prompt content to maximize model output quality"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-fy5ineg0ol",
+      "score": 6.0,
+      "evidence_en": "Extracts instruction function vectors that promote zero-shot accuracy, showing shared representations between prompt types",
+      "evidence_cn": "提取指令函数向量提升零样本准确率，揭示不同提示类型间共享的任务表示",
+      "canonical_evidence": "提取指令函数向量提升零样本准确率，揭示不同提示类型间共享的任务表示",
+      "tldr_en": "By generalizing function vectors to instruction prompts, the paper shows that demonstration and instruction prompts induce similar task representations, offering insights for more principled prompt design.",
+      "tldr_cn": "本文探索不同提示方法是否产生共同任务表示，通过将函数向量扩展到指令提示，提取指令函数向量。研究发现示例与指令提示的函数向量相似，能提升零样本任务准确率，表明两种方式共享任务表示机制，为基于原理的提示设计提供了新见解。",
+      "title_zh": "不同的提示方法是否在语言模型中产生共同的任务表示？",
+      "motivation_cn": "不同提示方法（示例与指令）是否产生相似的任务表示尚不清楚。",
+      "method_cn": "将函数向量推广到指令提示，提取指令函数向量，比较与示例函数向量的异同。",
+      "result_cn": "发现两种方式产生的函数向量相似，能提升零样本准确率。",
+      "conclusion_cn": "研究揭示了不同提示方法下共享的任务表示机制，为提示设计提供理论指导。",
+      "matched_requirement_id": "req-5",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "principles and strategies for designing prompts"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-mn3cmpfwr6",
+      "score": 6.0,
+      "evidence_en": "Integrates prompt backpropagation in MCTS to iteratively improve prompts for generating mathematical formulations, demonstrating automatic prompt refinement.",
+      "evidence_cn": "在MCTS中融入提示反向传播，迭代优化问题表述提示，实现自动提示精炼。",
+      "canonical_evidence": "在MCTS中融入提示反向传播，迭代优化问题表述提示，实现自动提示精炼。",
+      "tldr_en": "SolverLLM solves optimization problems with LLM-guided MCTS, featuring prompt backpropagation to automatically refine formulation prompts, enhancing search efficiency, though prompt optimization is not the core focus.",
+      "tldr_cn": "现有LLM解决优化问题依赖提示工程但泛化差，或需昂贵训练。本文提出SolverLLM，一种免训练框架，通过改进的MCTS策略（含动态扩展和提示反向传播）自动生成数学公式并求解。其中提示反向传播机制可在搜索过程中自动改进提示，提升优化求解性能，为LLM在复杂推理任务中的提示自动调整提供了新思路。",
+      "title_zh": "SolverLLM：通过LLM引导搜索利用测试时扩展解决优化问题",
+      "motivation_cn": "现有LLM求解优化问题的方法在泛化性和训练成本上存在矛盾，提示工程缺乏适应性。",
+      "method_cn": "提出SolverLLM，采用改进MCTS进行测试时搜索，通过提示反向传播自动调整问题表述提示。",
+      "result_cn": "在多种优化问题上，SolverLLM无需训练即取得有竞争力的结果，提示反向传播提升了搜索效率。",
+      "conclusion_cn": "SolverLLM展示了测试时扩展与提示自动调整结合的潜力，为LLM推理任务中提示进化提供了参考。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Methods for automatic prompt evolution in large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-zcvkvxtrkj",
+      "score": 4.0,
+      "evidence_en": "analyzes task vectors in ICL, offering insights for better prompt design",
+      "evidence_cn": "分析上下文学习中的任务向量，为优化提示提供见解",
+      "canonical_evidence": "分析上下文学习中的任务向量，为优化提示提供见解",
+      "tldr_en": "Proposes that task vectors behave like linear combinations of demonstrations, explaining their emergence and limitations, which could inform more efficient ICL prompt construction.",
+      "tldr_cn": "本文研究上下文学习中任务向量的原理，提出线性组合猜想，认为任务向量由原始演示线性组合而成。通过理论分析和实验验证了其涌现与失效条件，这些理解有助于设计更高效的上下文学习提示，但未直接提出具体提示方法。",
+      "title_zh": "理解上下文学习中的任务向量：涌现、功能与局限",
+      "motivation_cn": "任务向量在ICL中有效加速推理，但其工作机制尚不清楚。",
+      "method_cn": "提出线性组合猜想，通过损失景观分析和实验验证任务向量原理。",
+      "result_cn": "证实任务向量可视为演示的线性组合，并预测了其失效情形。",
+      "conclusion_cn": "深入理解任务向量对ICL提示设计具有潜在指导意义。",
+      "matched_requirement_id": "req-9",
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "Techniques for improving in context learning via better prompts"
+    }
+  ],
+  "llm_ranked_at": "2026-06-09T12:33:06.217870+00:00",
+  "display_min_score": 4.0,
+  "pruned_at": "2026-06-09T12:33:06.260889+00:00"
+}

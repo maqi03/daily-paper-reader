@@ -1,0 +1,3123 @@
+Title: 21487_AdaCoT_Pareto_Optimal_Ad.pdf
+
+URL Source: https://openreview.net/pdf?id=obXGSmmG70
+
+Number of Pages: 34
+
+Markdown Content:
+# AdaCoT: Pareto-Optimal Adaptive Chain-of-Thought Triggering via Reinforcement Learning 
+
+Anonymous Author(s) 
+
+Affiliation Address 
+
+email 
+
+## Abstract 
+
+Large Language Models (LLMs) have demonstrated remarkable capabilities but 1
+
+often face challenges with tasks requiring sophisticated reasoning. While Chain-2
+
+of-Thought (CoT) prompting significantly enhances reasoning, it indiscriminately 3
+
+generates lengthy reasoning steps for all queries, leading to substantial compu-4
+
+tational costs and inefficiency, especially for simpler inputs. To address this 5
+
+critical issue, we introduce AdaCoT (Adaptive Chain-of-Thought), a novel frame-6
+
+work enabling LLMs to adaptively decide when to invoke CoT. AdaCoT framed 7
+
+adaptive reasoning as a Pareto optimization problem that seeks to balance model 8
+
+performance with the costs associated with CoT invocation (both frequency and 9
+
+computational overhead). We propose a reinforcement learning (RL) based method, 10 
+
+specifically utilizing Proximal Policy Optimization (PPO), to dynamically control 11 
+
+the CoT triggering decision boundary by adjusting penalty coefficients, thereby 12 
+
+allowing the model to determine CoT necessity based on implicit query complex-13 
+
+ity. A key technical contribution is Selective Loss Masking (SLM), designed to 14 
+
+counteract decision boundary collapse during multi-stage RL training, ensuring 15 
+
+robust and stable adaptive triggering. Experimental results demonstrate that Ada-16 
+
+CoT successfully navigates the Pareto frontier, achieving substantial reductions 17 
+
+in CoT usage for queries not requiring elaborate reasoning. For instance, on our 18 
+
+production traffic testset, AdaCoT reduced CoT triggering rates to as low as 3.18% 19 
+
+and decreased average response tokens by 69.06%, while maintaining high perfor-20 
+
+mance on complex tasks. This substantial token decrease directly translates to a 21 
+
+significant reduction in inference computational load. AdaCoT pioneers adaptive 22 
+
+CoT triggering, offering a practical and principled solution for developing more 23 
+
+efficient, responsive, and cost-effective LLMs, particularly crucial for interactive 24 
+
+and resource-sensitive applications. 25 
+
+## 1 Introduction 26 
+
+Large Language Models (LLMs) have garnered substantial attention due to their remarkable ability 27 
+
+to encode extensive world knowledge from vast corpora [ 1], enabling impressive performance 28 
+
+across diverse tasks such as question answering, creative writing, and summarization. Despite 29 
+
+these successes, LLMs often demonstrate limitations in tasks requiring sophisticated reasoning, 30 
+
+including solving complex mathematical problems and intricate coding puzzles. To mitigate this, 31 
+
+recent methodologies have employed Chain-of-Thought (CoT) prompting [ 2 ], which encourages 32 
+
+models to explicitly generate step-by-step reasoning prior to producing final answers. This approach 33 
+
+significantly enhances the reasoning capability of models, even achieving human-expert levels in 34 
+
+certain domains [3, 4, 5, 6]. 35 
+
+Submitted to 39th Conference on Neural Information Processing Systems (NeurIPS 2025). Do not distribute. However, employing CoT prompting also poses critical challenges during inference [ 7]. Specifically, 36 
+
+it substantially increases the number of tokens generated, even for simple queries that do not benefit 37 
+
+from elaborate reasoning, such as straightforward arithmetic questions. This indiscriminate token 38 
+
+expense consequently raises deployment costs and reduces inference efficiency. Ideally, a model 39 
+
+should adaptively determine when detailed reasoning is necessary. For instance, simple queries like 40 
+
+"What is 1+1?" should be answered immediately without additional reasoning steps, whereas more 41 
+
+complex queries require deeper and step-by-step reasoning. An adaptive strategy would thus optimize 42 
+
+token usage, balancing cost-efficiency with response quality. 43 
+
+Recently, a few efforts has made attempts towards this direction. These approaches can be broadly 44 
+
+categorized into three main directions. (1) Incorporate length penalties or brevity rewards during 45 
+
+the reinforcement learning (RL) stage to encourage shorter, more concise reasoning paths [ 8, 9 , 10 ,46 
+
+11 , 12 , 13 ]. (2) Restructure CoT outputs through post-processing such as iterative summarization 47 
+
+or pruning [ 14 , 15 , 16 , 17 , 18 , 19 , 20 , 21 ]. (3) Employ explicit user instructions or hand-crafted 48 
+
+selection mechanisms to control the use of CoT [ 22 , 23 , 24 , 25 , 26 , 27 ]. Despite their contributions, 49 
+
+they mainly focus on monotonic reasoning reduction, failing to account for the nuanced variability 50 
+
+in query complexity, i.e., treating simple and difficult prompts adaptively. Moreover, they lack a 51 
+
+principled optimization framework to guide balancing response quality against deployment cost. 52 
+
+To address these limitations, we introduce AdaCoT (Adaptive Chain-of-Thought), a novel approach 53 
+
+grounded in formal mathematical analysis. Our key insight is framing adaptive reasoning as a 54 
+
+multi-objective optimization problem with two competing goals: maximizing response accuracy and 55 
+
+minimizing deployment costs. Specifically, we formalize this balance through Pareto optimization, 56 
+
+seeking optimal trade-offs between reasoning complexity and inference efficiency. Such a mathemati-57 
+
+cal framework provides clear theoretical grounding for dynamically adapting CoT triggering based 58 
+
+on query complexity. 59 
+
+Leveraging this formalization, we propose an RL-based strategy explicitly designed around the Pareto 60 
+
+optimization framework, enabling effective control of the model’s decision boundary for initiating 61 
+
+CoT prompting. During training, the RL agent dynamically assesses the complexity of incoming 62 
+
+user queries to determine the necessity and extent of reasoning steps. By carefully designing the 63 
+
+reward function to incorporate penalty coefficients, we encourage the RL agent to seek solutions 64 
+
+along the Pareto frontier, explicitly optimizing trade-offs between response accuracy and token 65 
+
+expenditure. This structured exploration enables the model to effectively discern when detailed 66 
+
+reasoning is beneficial, thereby systematically enhancing inference efficiency and significantly 67 
+
+reducing deployment costs. 68 
+
+The proposed AdaCoT framework delivers substantial benefits in LLM operational efficiency. By 69 
+
+empowering models to selectively engage CoT, AdaCoT can reduce triggering rates to as low as 70 
+
+3.18% and cut average response tokens by 69.1% in production settings. This significant reduction 71 
+
+in computational load is achieved while maintaining strong performance on 15 widely-adopted 72 
+
+benchmarks. For example, AdaCoT can achieve a 62.8% average score using only a 53.3% CoT rate, 73 
+
+closely rivaling the 65.0% score of a model that always employs CoT. These improvements directly 74 
+
+translate to more cost-effective and responsive LLM systems. 75 
+
+## 2 The AdaCoT Framework 76 
+
+Enabling a large language model (LLM) to dynamically decide whether to invoke Chain-of-Thought 77 
+
+(CoT) reasoning based on the complexity of user queries is a critical task, which allows LLMs to 78 
+
+allocate computational resources more rationally, i.e., spending tokens on complex reasoning tasks 79 
+
+while avoiding unnecessary overhead for simple queries. 80 
+
+To achieve this, we introduce AdaCoT, a unified framework for adaptive reasoning. The central 81 
+
+insight is that the decision to employ CoT prompting can be naturally cast as an optimization problem 82 
+
+involving two competing goals: (1) maximizing response accuracy and (2) minimizing deployment 83 
+
+costs. To capture this trade-off, we frame the task as a Pareto optimization problem, providing a 84 
+
+principled foundation for balancing reasoning quality against computational efficiency. Based on this 85 
+
+formulation, we propose an RL-based control strategy that governs the invocation of CoT reasoning. 86 
+
+Specifically, we train a policy model learning to assess the complexity of each query and decide 87 
+
+whether CoT reasoning should be used. During RL training, the policy model is optimized using a 88 
+
+reward signal carefully designed to reflect the Pareto trade-off, incorporating both task performance 89 
+
+2and token efficiency. Through this RL-based mechanism, AdaCoT learns to allocate reasoning effort 90 
+
+adaptively, yielding high-quality responses with minimal computational cost. 91 
+
+2.1 Adaptive Reasoning as a Pareto Optimization Problem 92 
+
+We formulate the adaptive reasoning challenge as a Pareto optimization problem, aiming to simulta-93 
+
+neously maximize model performance and minimize CoT usage. Let D = {(xi, y i)}Ni=1 be a dataset 94 
+
+of query-response pairs, where xi is the input query and yi is the ground truth response. Let fθ be an 95 
+
+LLM parameterized by θ, and let rθ (xi) be the response generated by the model for input xi.96 
+
+To CoT usage is measured by the CoT triggering rate T (θ), defined as the proportion of responses 97 
+
+that include reasoning: 98 
+
+T (θ) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+1[HasReasoning (rθ (xi))] (1) where 1[·] is the indicator function and HasReasoning (·) determines if a response contains explicit 99 
+
+CoT steps (e.g., non-empty content within <think>...</think> tags). 100 
+
+On the other hand, model performance P (θ) is defined as the average score on a set of evaluation 101 
+
+metrics: 102 
+
+P (θ) = 1
+
+M
+
+> M
+
+X
+
+> j=1
+
+Score j (θ) (2) where M is the number of evaluation instances/metrics and Score j (θ) is the model’s score on the 103 
+
+j-th evaluation. 104 
+
+Putting CoT usage T (θ) and model performance P (θ) together, the objective is to find model 105 
+
+parameters θ∗ that achieve an optimal trade-off: 106 
+
+θ∗ = arg max  
+
+> θ
+
+{λP · P (θ) − λT · T (θ)} (3) or more generally, to find solutions on the Pareto frontier of (P (θ), 1 − T (θ)) . The hyperparameters 107 
+
+λP and λT (or their implicit ratio) control the relative importance of performance versus CoT 108 
+
+reduction. AdaCoT focuses on providing mechanisms to explore this frontier. 109 
+
+2.2 Training Pipeline for AdaCoT 110 
+
+The AdaCoT training pipeline integrates supervised fine-tuning (SFT) as an initialization phase, 111 
+
+followed by multi-stage reinforcement learning (RL) to refine the adaptive CoT triggering behavior. 112 
+
+2.2.1 Data Preparation and Supervised Fine-Tuning (SFT) as Warm-up 113 
+
+To provide the model with an initial understanding of when CoT might be beneficial, we perform 114 
+
+a data preparation stage. This is achieved by leveraging an auxiliary model, guided by a set of 115 
+
+predefined principles (e.g., query complexity, expected reasoning depth, domain; see Appendix B). In 116 
+
+our implementation, we use an internal 15B-parameter model to generate these annotations; however, 117 
+
+the framework is model-agnostic and can be instantiated using any sufficiently capable LLM with 118 
+
+basic instruction-following abilities. Queries are labeled as either likely benefiting from CoT or 119 
+
+likely suitable for a direct answer. This principled, automated labeling process is more consistent and 120 
+
+scalable than manual annotation. 121 
+
+The SFT training data is then structured as follows: For queries labeled as benefiting from CoT, 122 
+
+responses retain the full reasoning process: <think>reasoning_steps</think>answer . For 123 
+
+queries labeled as not requiring CoT, responses omit explicit reasoning but maintain structural 124 
+
+consistency: <think></think>answer . This SFT stage serves as a "warm-up", equipping the 125 
+
+model with a foundational capability to distinguish between these two response styles. The consistent 126 
+
+use of <think></think> tags is crucial for maintaining response format integrity. 127 
+
+2.2.2 Reinforcement Learning for Adaptive CoT Control 128 
+
+The RL stage is pivotal for fine-tuning AdaCoT’s adaptive reasoning capabilities. We design a reward 129 
+
+function R(x, r ) for an input query x and generated response r:130 
+
+R(x, r ) = Rbase (x, r ) − α1 · Pmiss (x, r ) − α2 · Pover (x, r ) − γ · Pfmt (r) (4) 3where Rbase (x, r ) is the base reward reflecting response quality, Pmiss (x, r ) is a binary penalty for 131 
+
+reasoning omission, Pover (x, r ) is a binary penalty for reasoning overuse, Pfmt (r) is a binary penalty 132 
+
+for format errors, and α1, α 2, γ are non-negative penalty coefficients. By adjusting α1 and α2, we 133 
+
+steer AdaCoT towards different CoT triggering decision boundaries, allowing exploration of the 134 
+
+Pareto frontier. 135 
+
+2.2.3 Addressing Decision Boundary Collapse with Selective Loss Masking 136 
+
+A significant challenge in multi-stage RL, particularly when fine-tuning on specialized datasets with 137 
+
+skewed CoT distributions (e.g., mathematical datasets where CoT is almost always beneficial), is the 138 
+
+risk of the adaptive CoT triggering capability becoming unstable or collapsing. The model might 139 
+
+revert to a homogeneous behavior, either always or never triggering CoT, thereby losing the nuanced 140 
+
+decision-making learned in earlier, more balanced training stages. We term this phenomenon decision 141 
+
+boundary collapse. This is particularly problematic if the final RL stage has significant bias, as it can 142 
+
+lead to the model almost completely losing its adaptive triggering capability. 143 
+
+To address decision boundary collapse, AdaCoT incorporates Selective Loss Masking ( SLM ). SLM 144 
+
+aims to preserve the CoT triggering ratio and distribution established during SFT or prior RL stages. It 145 
+
+achieves this by selectively masking the loss contribution from the pivotal "decision token" during RL 146 
+
+phases prone to distribution bias. This decision token is defined as the token immediately succeeding 147 
+
+the <think> tag. 148 
+
+The modified policy gradient loss under SLM, LSLM , is computed by excluding the loss component 149 
+
+associated with this decision token: 150 
+
+LSLM = X 
+
+> k̸=kdecision
+
+ℓk (5) where ℓk is the original loss component for the k-th token, and kdecision is the index of the decision 151 
+
+token. 152 
+
+## 3 Experiments 153 
+
+We conducted extensive experiments to evaluate the AdaCoT framework, focusing on its ability to 154 
+
+navigate the performance-cost trade-off, the effectiveness of its adaptive triggering mechanism, and 155 
+
+its impact on inference efficiency. This section details our experimental setup, presents the main 156 
+
+results, and analyzes the findings. 157 
+
+3.1 Experimental Setup 158 
+
+For our base model, we utilized our internal 15B/150B parameter Mixture-of-Experts (MoE) [ 28 , 29 ]159 
+
+model. The AdaCoT post-training process comprised an initial SFT stage, followed by a two-stage 160 
+
+RL procedure: first, a Mathematics-Focused RL stage (RL-Math) concentrated on complex, rule-161 
+
+verifiable problems, and second, a General Domain RL stage (RL-General) which incorporated 162 
+
+broader data and a trained reward model. We compared our AdaCoT RL Models (Exp1-Exp4) 163 
+
+against several baselines: a Full CoT SFT Baseline (SFT model always generating CoT), a Full 164 
+
+CoT RL Baseline (RL model derived from the Full CoT SFT, always generating CoT), a No CoT 165 
+
+SFT Baseline (SFT model never generating CoT), a No CoT RL Baseline (RL model derived from 166 
+
+the No CoT SFT, never generating CoT), and our AdaCoT SFT Model (our model after only the 167 
+
+SFT stage, also referred to as Adaptive SFT Model). 168 
+
+The SFT and RL training datasets were constructed to cover a diverse range of domains, including 169 
+
+mathematics, reasoning, professional disciplines (e.g., law, medicine), dialogue, creative writing, and 170 
+
+general knowledge question answering. Both SFT and RL data were labeled for CoT necessity using 171 
+
+the principle-guided assessment detailed in Appendix B. In the SFT dataset, approximately 67% of 172 
+
+the samples were labeled as requiring CoT, while in the RL dataset, this proportion was around 40%. 173 
+
+During SFT, queries identified as not requiring CoT were formatted with empty <think></think> 174 
+
+tags. In the RL-Math stage, which is particularly prone to decision boundary collapse, we employed 175 
+
+Selective Loss Masking (SLM), as described in Section 2.2.3. For the RL-General stage, we applied 176 
+
+penalties according to Equation 4, systematically varying the α1 and α2 coefficients to explore 177 
+
+different points on the Pareto frontier. Proximal Policy Optimization (PPO) [ 30 ] was used for all RL 178 
+
+policy updates. 179 
+
+4For evaluation, we used 15 diverse open-source benchmark datasets to assess overall performance, 180 
+
+measured by the average score. To balance internal iteration efficiency with evaluation accuracy, some 181 
+
+of these datasets underwent up-sampling or down-sampling, or the number of inference runs per test 182 
+
+sample was adjusted (with the final score being an average over multiple inferences). These datasets 183 
+
+include LiveBench [ 31 ], MMLU Pro [ 32 ], SuperGPQA [ 33 ], GPQA [ 34 ], Chinese SimpleQA [ 35 ], 184 
+
+SimpleQA [ 36 ], AIME24 & AIME25, MATH [ 37 ], OlympiadBench [ 38 ], SweBench Agentless [ 39 ], 185 
+
+LiveCodeBench [ 40 ], KOR-Bench [ 41 ], ProcBench [ 42 ], and SysBench [ 43 ]. The detailed per-186 
+
+dataset scores, which form the basis for our average score calculations, are presented in Appendix A 187 
+
+(Table 4). To specifically assess CoT triggering decisions on typical user queries, we curated a high-188 
+
+quality balanced test set of 1000 prompts. These prompts were labeled for CoT necessity using the 189 
+
+same principle-guided assessment as our SFT/RL training data and subsequently underwent manual 190 
+
+verification to ensure label accuracy. On this set, we report CoT Triggering Accuracy, F1-score, 191 
+
+Precision, and Recall, where the positive class indicates that CoT is required. Other metrics included 192 
+
+the CoT triggering rate on the benchmark datasets and the average response token num on production 193 
+
+setting. 194 
+
+3.2 Results and Analysis 195 
+
+Our results demonstrate AdaCoT’s ability to effectively control CoT invocation, leading to improved 196 
+
+efficiency while maintaining strong performance. 197 
+
+3.2.1 Pareto Frontier Analysis 198 
+
+We trained four variants of our AdaCoT RL model (Exp1-Exp4) by varying the penalty coefficients α1199 
+
+(for missing CoT) and α2 (for overusing CoT). The specific coefficients were: Exp1 ( α1 = 0 .1, α 2 =200 
+
+0.3), Exp2 ( α1 = 0 .2, α 2 = 0 .3), Exp3 ( α1 = 0 .3, α 2 = 0 .3), and Exp4 ( α1 = 0 .3, α 2 = 0 .1). 201 
+
+The format error penalty γ was consistently set to 1.0. Figure 1 illustrates the average score plotted 202 
+
+against the CoT triggering rate for these models and the baselines, based on the average performance 203 
+
+across our 15 benchmark datasets (detailed in Appendix Table 4). The No CoT SFT baseline achieved 204 
+
+an average score of 43.6% with 0% CoT usage, while the No CoT RL baseline improved this to 205 
+
+47.7% at 0% CoT. The AdaCoT SFT Model (Adaptive SFT) registered a 57.1% average score at a 206 
+
+61.3% CoT rate. 207 
+
+The AdaCoT RL models trace a compelling Pareto frontier. AdaCoT RL Exp1 (43.1% CoT, 59.7% 208 
+
+score) and AdaCoT RL Exp2 (53.3% CoT, 62.8% score) demonstrate significant performance gains 209 
+
+over the AdaCoT SFT model while operating at lower or comparable CoT rates. Notably, AdaCoT 210 
+
+RL Exp2 achieves a 62.8% average score, approaching the Full CoT RL baseline (65.0% score, 211 
+
+100% CoT) with nearly half the CoT usage. As we increase the CoT triggering rate, AdaCoT RL 212 
+
+Exp3 (65.4% CoT, 64.3% score) and AdaCoT RL Exp4 (67.7% CoT, 64.4% score) further push 213 
+
+performance, closely rivaling the Full CoT RL baseline’s score but with approximately 32-35% less 214 
+
+CoT invocation. Moreover, these results indicate that despite the fixed CoT triggering labels within 215 
+
+the SFT/RL data, adjusting the combination of penalty coefficients during the RL phase enables the 216 
+
+final RL model to learn triggering strategies that transcend these initial labeling constraints. 217 
+
+This highlights AdaCoT’s effectiveness in navigating the trade-off between performance and CoT cost. 218 
+
+However, it is also observable that while the AdaCoT RL models achieve substantial efficiency gains 219 
+
+and define a superior Pareto curve compared to simpler baselines, they encounter a slight performance 220 
+
+bottleneck when their triggering rates are pushed higher. Specifically, even the highest-performing 221 
+
+adaptive models (Exp3 and Exp4, with scores of 64.3% and 64.4% respectively) do not surpass the 222 
+
+average score of the Full CoT RL baseline (65.0%). This suggests that while AdaCoT excels at 223 
+
+reducing CoT for a vast majority of queries without compromising much on average performance, 224 
+
+and indeed offers a better score-to-cost ratio, the absolute peak average performance achieved by 225 
+
+a model specialized to always use CoT (Full CoT RL) remains marginally higher. This indicates 226 
+
+that the adaptive mechanism, while highly effective, might not perfectly replicate or exceed the 227 
+
+performance of an always-on CoT strategy in every single scenario contributing to the average, thus 228 
+
+not fully crossing this specific optimal boundary for maximum average score. This could be due to 229 
+
+the inherent complexities of learning a universally optimal triggering heuristic or the RL optimization 230 
+
+finding a balance that prioritizes the significant cost savings available across the query distribution. 231 
+
+5Figure 1: Average Score vs. CoT Triggering Rate across 15 widely-adopted benchmarks. Blue points represent baseline models. The green point is the AdaCoT SFT model. Orange points represent AdaCoT RL models trained with varying penalty coefficients, forming an improved Pareto frontier (indicated by the orange dashed line and shaded region) over the baselines. The dotted line connects the No CoT RL baselines to the Full CoT RL baseline, illustrating a simpler trade-off curve. 
+
+3.2.2 Adaptive CoT Triggering Performance and Ablation Studies on Daily-Use Queries 232 
+
+We evaluated the CoT triggering capabilities of AdaCoT at various training stages using our curated 233 
+
+1000-prompt daily-use test set. Table 1 presents these results, which include an ablation study for 234 
+
+SLM and an assessment of the meta-reasoning strategy (discussed further in Section 4.2) at the SFT 235 
+
+stage. 236 
+
+Table 1: CoT triggering performance on the 1000 daily-use prompt test set across different AdaCoT stages and configurations (positive class: requires CoT). RL-Math is the Mathematics-Focused RL stage; RL-General refers to the final models (Exp1-4). 
+
+Model Stage / Variant Accuracy F1-Score Recall Precision AdaCoT SFT Model 0.795 0.750 0.616 0.959 AdaCoT RL Model (Exp1 - RL-General) 0.657 0.484 0.322 0.975 AdaCoT RL Model (Exp2 - RL-General) 0.816 0.814 0.804 0.823 AdaCoT RL Model (Exp3 - RL-General) 0.809 0.789 0.716 0.879 AdaCoT RL Model (Exp4 - RL-General) 0.678 0.535 0.370 0.963 RL-Math (without SLM) 0.506 0.669 1.000 0.503 RL-Math (with SLM) 0.813 0.781 0.670 0.938 AdaCoT SFT Model (with Meta-Reasoning) 0.858 0.840 0.762 0.935 
+
+The AdaCoT SFT model itself provides a strong baseline for adaptive triggering. The results clearly 237 
+
+show that the RL-Math stage without SLM suffers from severe decision boundary collapse: the 238 
+
+model defaults to triggering CoT (Recall=1.0) but with poor precision (0.503) and consequently low 239 
+
+overall accuracy (0.506). Applying SLM during the RL-Math stage effectively preserves the adaptive 240 
+
+capability learned during SFT, maintaining high precision (0.938) and achieving significantly better 241 
+
+accuracy (0.813). The final AdaCoT RL models (Exp1-4, emerging from the RL-General stage) 242 
+
+demonstrate how adjusting the RL penalty coefficients ( α1, α 2) allows for fine-tuning of the decision 243 
+
+6boundary. AdaCoT RL Model Exp2, for example, achieves a well-balanced F1-score of 0.814. The 244 
+
+incorporation of a meta-reasoning strategy at the SFT stage also shows a notable improvement in 245 
+
+triggering performance, a point elaborated in Section 4.2. 246 
+
+3.2.3 Response Length Reduction and Efficiency Gains 247 
+
+The adaptive reasoning enabled by AdaCoT translates into significant reductions in computational 248 
+
+costs. Table 2 shows the average response length and CoT triggering rates for AdaCoT RL Model 249 
+
+Exp2 (selected for its balanced performance on the daily-use set and strong average benchmark 250 
+
+performance) when applied to our production traffic testset, which reflects natural, unfiltered user 251 
+
+query distributions. 252 
+
+Table 2: Average response token num (with reduction noted) and CoT triggering rate on production traffic testset for AdaCoT RL Model Exp2 vs. Full CoT RL Baseline.              
+
+> Platform Model / Mode Avg. Response Tokens CoT Triggering Rate Mobile Full CoT RL Baseline 377.18 100.00% AdaCoT RL Model Exp2 (Adaptive) 116.70 ( ↓69.1%) 3.18% PC Full CoT RL Baseline 1376.31 100.00% AdaCoT RL Model Exp2 (Adaptive) 405.25 ( ↓70.6%) 12.50%
+
+As evidenced, AdaCoT RL Model Exp2 achieves very low CoT triggering rates in a production 253 
+
+setting (3.18% on mobile devices, 12.50% on PCs). This dramatic reduction from the 100% CoT 254 
+
+usage of a non-adaptive model translates directly into substantial computational savings. 255 
+
+## 4 Discussion and Future Work 256 
+
+4.1 Design Considerations and Limitations 257 
+
+AdaCoT offers a pragmatic approach to adaptive reasoning by combining principle-guided initial data 258 
+
+labeling with RL-based optimization of the CoT decision boundary. This methodology was chosen 259 
+
+to circumvent inherent challenges in purely autonomous CoT trigger learning, such as information 260 
+
+asymmetry in assessing counterfactual benefits and the difficulty of quantifying quality degradation 261 
+
+from CoT omission, particularly for subjective tasks. 262 
+
+While AdaCoT is a promising initial step, several limitations exist. The optimal CoT triggering 263 
+
+strategy is relative to the base model’s capabilities, necessitating recalibration for different LLMs. 264 
+
+Our current binary CoT invocation (on/off) simplifies a continuous spectrum of reasoning depths and 265 
+
+styles, potentially limiting nuance. Domain generalization remains a challenge, as CoT necessity can 266 
+
+vary significantly across knowledge areas, and the framework currently lacks personalization for user 267 
+
+verbosity preferences. Moreover, the initial principle-guided labeling requires continuous refinement. 268 
+
+Our Pareto analysis (Section 3.2.1) also indicates that while AdaCoT significantly improves efficiency 269 
+
+and nears the peak average performance of specialized always-on CoT models, a small performance 270 
+
+gap persists, highlighting the difficulty for adaptive mechanisms to achieve absolute maximum 271 
+
+performance across all query types. 272 
+
+Acknowledging the limitations of the current framework, we anticipate that future research will offer 273 
+
+valuable critiques and further refine these initial explorations. Areas warranting deeper investigation 274 
+
+include more granular control over reasoning, such as adaptive reasoning length where models 275 
+
+dynamically adjust verbosity, or more nuanced triggering mechanisms beyond a simple binary 276 
+
+decision. We believe such continued efforts by the community are crucial for developing more 277 
+
+sophisticated and efficient reasoning strategies, potentially addressing the observed performance gap 278 
+
+while maximizing efficiency and enhancing nuanced control over LLM reasoning. 279 
+
+4.2 Meta-Reasoning for Reasoning Decisions 280 
+
+We explored an innovative "meta-reasoning" approach during the SFT stage to enhance AdaCoT’s 281 
+
+CoT triggering decisions. This involved the model first generating a brief internal assessment of 282 
+
+the input query’s complexity before deciding whether to proceed with full CoT, as illustrated by 283 
+
+7the response structures in Figure 2. Incorporating this strategy into the AdaCoT SFT model led 284 
+
+to a notable improvement in CoT triggering performance on our daily-use test set: the F1-score 285 
+
+increased from 0.750 to 0.840 (Table 1). This result suggests that explicitly prompting the model 286 
+
+to first assess query complexity can significantly enhance its subsequent decision-making regarding 287 
+
+CoT invocation. 288 
+
+> Response Format with Meta-Reasoning Straightforward Query
+> <think>This is a straightforward question about X, I think I can answer directly. [empty]</think> {answer}
+> Complex Query
+> <think>This is a relatively complex question about Y, I need to think carefully. [formal reasoning process]</think> {answer}
+
+Figure 2: Example response structure incorporating explicit meta-reasoning for CoT decisions. An interesting and serendipitous discovery with the meta-reasoning SFT model was an emergent 289 
+
+capability for user-prompt controllability over CoT. Users could, to some extent, influence whether 290 
+
+the model engaged in CoT by including explicit cues in their prompts about the desired level of 291 
+
+reasoning (e.g., "please think step-by-step" to encourage CoT, or "give a direct answer" to discourage 292 
+
+it). While this controllability was not perfectly accurate across all scenarios, it points towards 293 
+
+a promising avenue for developing more interactive and user-guided reasoning systems (further 294 
+
+illustrative examples are provided in Appendix D). 295 
+
+Despite these benefits, the explicit meta-reasoning step inherently increases the number of tokens 296 
+
+generated for every query, as the model first articulates its complexity assessment. Considering 297 
+
+the very low CoT triggering rates observed for AdaCoT in production environments (e.g., 3.18% 298 
+
+on mobile traffic for AdaCoT RL Model Exp2, as shown in Table 2), the cumulative token cost of 299 
+
+these additional meta-reasoning steps would become substantial. Therefore, while acknowledging 300 
+
+its potential for improving decision accuracy and enabling user control, we did not adopt this 301 
+
+explicit meta-reasoning as the default for subsequent RL experiments due to this efficiency trade-off. 302 
+
+Nevertheless, it highlights an important direction for future research, which might explore more 303 
+
+token-efficient methods for incorporating such meta-reasoning, perhaps through implicit learning 304 
+
+mechanisms or parallel processing of the complexity assessment. 305 
+
+4.3 Preserving Peak Performance with AdaCoT 306 
+
+A critical question is whether adaptive reasoning limits a model’s maximum performance. We 307 
+
+investigated this using System Prompts (SPs), integrated into AdaCoT’s SFT and RL training to 308 
+
+control reasoning behavior (e.g., "Always Reason SP," "Never Reason SP"). During SFT, a small 309 
+
+portion of data was augmented with SPs, and target responses were modified for compliance. In 310 
+
+RL, a fraction of training prompts included SPs, with rewards penalizing deviations from explicit SP 311 
+
+instructions, ensuring robust adherence (details in Appendix C). Our focus here is using the "Always 312 
+
+Reason SP" to assess AdaCoT’s performance ceiling. 313 
+
+Instructing AdaCoT RL models to always generate CoT via this SP allowed direct comparison against 314 
+
+the Full CoT RL Baseline on our 15 benchmark datasets. As shown in Table 3, AdaCoT RL models 315 
+
+in this forced "Always Reason" mode achieved average scores that were highly competitive with, 316 
+
+and in instances like AdaCoT RL Model Exp4 (65.7) and Exp2 (65.3), slightly surpassed the Full 317 
+
+CoT RL Baseline (65.0). This demonstrates a key strength: AdaCoT’s adaptive training, aimed 318 
+
+at optimizing the performance-cost Pareto frontier, does not inherently restrict the model’s peak 319 
+
+reasoning capabilities when comprehensive reasoning is explicitly demanded. While our Pareto 320 
+
+analysis (Section 3.2.1) noted a slight gap in average scores when models operate adaptively, these 321 
+
+SP-controlled results affirm that AdaCoT offers efficiency without sacrificing potential high-end 322 
+
+performance. 323 
+
+An interesting secondary observation arose from the SFT stage concerning long-form generation (up 324 
+
+to 32,000 tokens). AdaCoT SFT models, when directed by an "Always Reason SP," exhibited fewer 325 
+
+8Table 3: Performance of AdaCoT RL models under "Always Reason" System Prompt vs. Full CoT RL Baseline, demonstrating preservation of peak performance. Metrics are averaged across the 15 benchmark datasets.             
+
+> Model Variant Avg. Score CoT Triggering Rate Full CoT RL Baseline 65.0 100% AdaCoT RL Model Exp1 (w/ Always CoT SP) 64.8 100% AdaCoT RL Model Exp2 (w/ Always CoT SP) 65.3 100% AdaCoT RL Model Exp3 (w/ Always CoT SP) 64.9 100% AdaCoT RL Model Exp4 (w/ Always CoT SP) 65.7 100%
+
+instances of premature output truncation and were less prone to undesirable generative loops compared 326 
+
+to a standard Full CoT SFT baseline. We hypothesize this improvement stems from AdaCoT’s diverse 327 
+
+SFT data, which includes many non-CoT examples (formatted as <think></think>answer ). This 328 
+
+results in a shorter average training sample length, potentially providing the End-of-Sequence (EOS) 329 
+
+token a stronger learning signal (average EOS proportion: 0.000239 for AdaCoT SFT vs. 0.000215 330 
+
+for Full CoT SFT). A more robust EOS representation could foster more coherent, well-terminated 331 
+
+lengthy outputs, a promising area for future investigation. 332 
+
+## 5 Related Work 333 
+
+Chain-of-Thought (CoT) reasoning [ 2] significantly advanced LLM capabilities by prompting step-334 
+
+by-step thought processes, inspiring sophisticated strategies like diverse path sampling [ 44 ] or 335 
+
+structured thoughts (trees [ 45 ], graphs [ 46 ]). However, CoT’s verbosity and cost [ 47 , 7] are major 336 
+
+drawbacks. The varying utility of CoT—direct answers being better for some queries [ 48 ] while 337 
+
+complex tasks need longer reasoning [ 49 , 50 ]—underscores a critical cost-effectiveness trade-off, 338 
+
+motivating research into efficient reasoning. 339 
+
+Most existing work on CoT efficiency has focused on reducing reasoning length , rather than adap-340 
+
+tively deciding whether to invoke CoT. These length reduction strategies include: (1) RL with length 341 
+
+penalties or rewards for brevity [ 8, 9 , 10 , 11 , 12 , 13 ]; (2) Restructuring or compressing CoT content 342 
+
+via learned compact representations, iterative summarization, cognitive paradigms, or dynamic termi-343 
+
+nation [ 14 , 15 , 16 , 17 , 18 , 19 , 20 , 21 ]; (3) Employing explicit instructions or selection mechanisms 344 
+
+for conciseness, such as dynamic token allocation, prompts for shorter responses, distillation, or 345 
+
+selecting the shortest valid reasoning [22, 23, 24, 25, 26, 27]. 346 
+
+While effective for length, these methods generally do not equip a single model to dynamically 347 
+
+decide CoT invocation based on query nature. Alternatives involve model merging [ 51 , 52 , 53 ] or 348 
+
+manual CoT toggling. AdaCoT distinctively addresses adaptive triggering. By framing it as a Pareto 349 
+
+optimization problem and using RL to control the CoT decision boundary, AdaCoT enables nuanced, 350 
+
+context-dependent CoT invocation by a single model, filling a crucial gap towards truly efficient and 351 
+
+versatile LLMs. 352 
+
+## 6 Conclusion 353 
+
+In this paper, we introduced AdaCoT, a novel framework for adaptive Chain-of-Thought reasoning 354 
+
+in LLMs. By formulating adaptive reasoning as a Pareto optimization problem and employing an 355 
+
+RL-based method with adjustable penalty coefficients, AdaCoT dynamically controls CoT triggering 356 
+
+based on implicit query complexity. Our experiments demonstrate AdaCoT’s success in navigating 357 
+
+the Pareto frontier, achieving substantial reductions in CoT usage—and thereby computational costs 358 
+
+and latency—for simpler queries, while preserving high performance on complex reasoning tasks. 359 
+
+The introduction of Selective Loss Masking effectively ensures robust adaptive triggering throughout 360 
+
+multi-stage RL training. Distinguishing itself from prior work predominantly focused on CoT length 361 
+
+compression, AdaCoT pioneers adaptive CoT triggering, offering a practical and principled solution 362 
+
+for developing more efficient, responsive, and cost-effective LLMs, particularly crucial for interactive 363 
+
+applications. 364 
+
+9References 365 
+
+[1] Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, Pamela Mishkin, 366 
+
+Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, et al. Training language models 367 
+
+to follow instructions with human feedback. In Advances in neural information processing 368 
+
+systems , volume 35, pages 27730–27744, 2022. 369 
+
+[2] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, 370 
+
+Denny Zhou, et al. Chain-of-thought prompting elicits reasoning in large language models. In 371 
+
+Advances in neural information processing systems , volume 35, pages 24824–24837, 2022. 372 
+
+[3] Fengli Xu, Qianyue Hao, Zefang Zong, Jingwei Wang, Yunke Zhang, Jingyi Wang, Xiaochong 373 
+
+Lan, Jiahui Gong, Tianjian Ouyang, Fanjin Meng, et al. Towards large reasoning models: A 374 
+
+survey of reinforced reasoning with large language models. arXiv preprint arXiv:2501.09686 ,375 
+
+2025. 376 
+
+[4] Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec 377 
+
+Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al. Openai o1 system card. arXiv 378 
+
+preprint arXiv:2412.16720 , 2024. 379 
+
+[5] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, 380 
+
+Shirong Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reasoning capability in 381 
+
+llms via reinforcement learning. arXiv preprint arXiv:2501.12948 , 2025. 382 
+
+[6] ByteDance Seed, Yufeng Yuan, Yu Yue, Mingxuan Wang, Xiaochen Zuo, Jiaze Chen, Lin Yan, 383 
+
+Wenyuan Xu, Chi Zhang, Xin Liu, et al. Seed-thinking-v1. 5: Advancing superb reasoning 384 
+
+models with reinforcement learning. arXiv preprint arXiv:2504.13914 , 2025. 385 
+
+[7] Xingyu Chen, Jiahao Xu, Tian Liang, Zhiwei He, Jianhui Pang, Dian Yu, Linfeng Song, Qiuzhi 386 
+
+Liu, Mengfei Zhou, Zhuosheng Zhang, et al. Do not think that much for 2+ 3=? on the 387 
+
+overthinking of o1-like llms. arXiv preprint arXiv:2412.21187 , 2024. 388 
+
+[8] Daman Arora and Andrea Zanette. Training language models to reason efficiently. arXiv 389 
+
+preprint arXiv:2502.04463 , 2025. 390 
+
+[9] Kimi Team, Angang Du, Bofei Gao, Bowei Xing, Changjiu Jiang, Cheng Chen, Cheng Li, 391 
+
+Chenjun Xiao, Chenzhuang Du, Chonghua Liao, et al. Kimi k1. 5: Scaling reinforcement 392 
+
+learning with llms. arXiv preprint arXiv:2501.12599 , 2025. 393 
+
+[10] Bairu Hou, Yang Zhang, Jiabao Ji, Yujian Liu, Kaizhi Qian, Jacob Andreas, and Shiyu Chang. 394 
+
+Thinkprune: Pruning long chain-of-thought of llms via reinforcement learning. arXiv preprint 395 
+
+arXiv:2504.01296 , 2025. 396 
+
+[11] Haotian Luo, Li Shen, Haiying He, Yibo Wang, Shiwei Liu, Wei Li, Naiqiang Tan, Xiaochun 397 
+
+Cao, and Dacheng Tao. O1-pruner: Length-harmonizing fine-tuning for o1-like reasoning 398 
+
+pruning. arXiv preprint arXiv:2501.12570 , 2025. 399 
+
+[12] Yi Shen, Jian Zhang, Jieyun Huang, Shuming Shi, Wenjing Zhang, Jiangze Yan, Ning Wang, 400 
+
+Kai Wang, and Shiguo Lian. Dast: Difficulty-adaptive slow-thinking for large reasoning models. 401 
+
+arXiv preprint arXiv:2503.04472 , 2025. 402 
+
+[13] Pranjal Aggarwal and Sean Welleck. L1: Controlling how long a reasoning model thinks with 403 
+
+reinforcement learning. arXiv preprint arXiv:2503.04697 , 2025. 404 
+
+[14] Jintian Zhang, Yuqi Zhu, Mengshu Sun, Yujie Luo, Shuofei Qiao, Lun Du, Da Zheng, Huajun 405 
+
+Chen, and Ningyu Zhang. Lightthinker: Thinking step-by-step compression. arXiv preprint 406 
+
+arXiv:2502.15589 , 2025. 407 
+
+[15] Yuchen Yan, Yongliang Shen, Yang Liu, Jin Jiang, Mengdi Zhang, Jian Shao, and Yueting 408 
+
+Zhuang. Inftythink: Breaking the length limits of long-context reasoning in large language 409 
+
+models. arXiv preprint arXiv:2503.06692 , 2025. 410 
+
+[16] Simon A Aytes, Jinheon Baek, and Sung Ju Hwang. Sketch-of-thought: Efficient llm reasoning 411 
+
+with adaptive cognitive-inspired sketching. arXiv preprint arXiv:2503.05179 , 2025. 412 
+
+10 [17] Chenxu Yang, Qingyi Si, Yongjie Duan, Zheliang Zhu, Chenyu Zhu, Zheng Lin, Li Cao, and 413 
+
+Weiping Wang. Dynamic early exit in reasoning models. arXiv preprint arXiv:2504.15895 ,414 
+
+2025. 415 
+
+[18] Silei Xu, Wenhao Xie, Lingxiao Zhao, and Pengcheng He. Chain of draft: Thinking faster by 416 
+
+writing less. arXiv preprint arXiv:2502.18600 , 2025. 417 
+
+[19] Yu Kang, Xianghui Sun, Liangyu Chen, and Wei Zou. C3ot: Generating shorter chain-of-418 
+
+thought without compromising effectiveness. In Proceedings of the AAAI Conference on 419 
+
+Artificial Intelligence , volume 39, pages 24312–24320, 2025. 420 
+
+[20] Heming Xia, Yongqi Li, Chak Tou Leong, Wenjie Wang, and Wenjie Li. Tokenskip: Controllable 421 
+
+chain-of-thought compression in llms. arXiv preprint arXiv:2502.12067 , 2025. 422 
+
+[21] Tengxiao Liu, Qipeng Guo, Xiangkun Hu, Cheng Jiayang, Yue Zhang, Xipeng Qiu, and Zheng 423 
+
+Zhang. Can language models learn to skip steps? In Advances in Neural Information Processing 424 
+
+Systems , volume 37, pages 45359–45385, 2024. 425 
+
+[22] Tingxu Han, Zhenting Wang, Chunrong Fang, Shiyu Zhao, Shiqing Ma, and Zhenyu Chen. 426 
+
+Token-budget-aware llm reasoning. arXiv preprint arXiv:2412.18547 , 2024. 427 
+
+[23] Matthew Renze and Erhan Guven. The benefits of a concise chain of thought on problem-428 
+
+solving in large language models. In 2024 2nd International Conference on Foundation and 429 
+
+Large Language Models (FLLM) , pages 476–483. IEEE, 2024. 430 
+
+[24] Qiguang Chen, Libo Qin, Jiaqi Wang, Jingxuan Zhou, and Wanxiang Che. Unlocking the 431 
+
+capabilities of thought: A reasoning boundary framework to quantify and optimize chain-of-432 
+
+thought. In Advances in Neural Information Processing Systems , volume 37, pages 54872– 433 
+
+54904, 2024. 434 
+
+[25] Ping Yu, Jing Xu, Jason E Weston, and Ilia Kulikov. Distilling system 2 into system 1. In The 435 
+
+First Workshop on System-2 Reasoning at Scale, NeurIPS’24 , 2024. 436 
+
+[26] Tergel Munkhbat, Namgyu Ho, Seo Hyun Kim, Yongjin Yang, Yujin Kim, and Se-Young 437 
+
+Yun. Self-training elicits concise reasoning in large language models. arXiv preprint 438 
+
+arXiv:2502.20122 , 2025. 439 
+
+[27] Jiabao Pan, Yan Zhang, Chen Zhang, Zuozhu Liu, Hongwei Wang, and Haizhou Li. Dynathink: 440 
+
+Fast or slow? a dynamic decision-making framework for large language models. arXiv preprint 441 
+
+arXiv:2407.01009 , 2024. 442 
+
+[28] Robert A Jacobs, Michael I Jordan, Steven J Nowlan, and Geoffrey E Hinton. Adaptive mixtures 443 
+
+of local experts. Neural computation , 3(1):79–87, 1991. 444 
+
+[29] Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le, Geoffrey Hinton, 445 
+
+and Jeff Dean. Outrageously large neural networks: The sparsely-gated mixture-of-experts 446 
+
+layer. arXiv preprint arXiv:1701.06538 , 2017. 447 
+
+[30] John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. Proximal 448 
+
+policy optimization algorithms. arXiv preprint arXiv:1707.06347 , 2017. 449 
+
+[31] Colin White, Samuel Dooley, Manley Roberts, Arka Pal, Benjamin Feuer, Siddhartha Jain, 450 
+
+Ravid Shwartz-Ziv, Neel Jain, Khalid Saifullah, Sreemanti Dey, Shubh-Agrawal, Sandeep Singh 451 
+
+Sandha, Siddartha Venkat Naidu, Chinmay Hegde, Yann LeCun, Tom Goldstein, Willie 452 
+
+Neiswanger, and Micah Goldblum. Livebench: A challenging, contamination-limited LLM 453 
+
+benchmark. In The Thirteenth International Conference on Learning Representations , 2025. 454 
+
+[32] Yubo Wang, Xueguang Ma, Ge Zhang, Yuansheng Ni, Abhranil Chandra, Shiguang Guo, 455 
+
+Weiming Ren, Aaran Arulraj, Xuan He, Ziyan Jiang, et al. Mmlu-pro: A more robust and 456 
+
+challenging multi-task language understanding benchmark. In Advances in Neural Information 457 
+
+Processing Systems , volume 37, pages 95266–95290, 2025. 458 
+
+[33] Xinrun Du, Yifan Yao, Kaijing Ma, Bingli Wang, Tianyu Zheng, King Zhu, Minghao Liu, 459 
+
+Yiming Liang, Xiaolong Jin, Zhenlin Wei, et al. Supergpqa: Scaling llm evaluation across 285 460 
+
+graduate disciplines. arXiv preprint arXiv:2502.14739 , 2025. 461 
+
+11 [34] David Rein, Betty Li Hou, Asa Cooper Stickland, Jackson Petty, Richard Yuanzhe Pang, Julien 462 
+
+Dirani, Julian Michael, and Samuel R Bowman. Gpqa: A graduate-level google-proof q&a 463 
+
+benchmark. In First Conference on Language Modeling , 2024. 464 
+
+[35] Yancheng He, Shilong Li, Jiaheng Liu, Yingshui Tan, Weixun Wang, Hui Huang, Xingyuan 465 
+
+Bu, Hangyu Guo, Chengwei Hu, Boren Zheng, et al. Chinese simpleqa: A chinese factuality 466 
+
+evaluation for large language models. arXiv preprint arXiv:2411.07140 , 2024. 467 
+
+[36] Jason Wei, Nguyen Karina, Hyung Won Chung, Yunxin Joy Jiao, Spencer Papay, Amelia Glaese, 468 
+
+John Schulman, and William Fedus. Measuring short-form factuality in large language models. 469 
+
+arXiv preprint arXiv:2411.04368 , 2024. 470 
+
+[37] Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn 471 
+
+Song, and Jacob Steinhardt. Measuring mathematical problem solving with the math dataset. In 472 
+
+NeurIPS , 2021. 473 
+
+[38] Chaoqun He, Renjie Luo, Yuzhuo Bai, Shengding Hu, Zhen Thai, Junhao Shen, Jinyi Hu, 474 
+
+Xu Han, Yujie Huang, Yuxiang Zhang, et al. Olympiadbench: A challenging benchmark for 475 
+
+promoting agi with olympiad-level bilingual multimodal scientific problems. In Proceedings of 476 
+
+the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long 477 
+
+Papers) , pages 3828–3850, 2024. 478 
+
+[39] Carlos E Jimenez, John Yang, Alexander Wettig, Shunyu Yao, Kexin Pei, Ofir Press, and 479 
+
+Karthik R Narasimhan. SWE-bench: Can language models resolve real-world github issues? In 480 
+
+The Twelfth International Conference on Learning Representations , 2024. 481 
+
+[40] Naman Jain, King Han, Alex Gu, Wen-Ding Li, Fanjia Yan, Tianjun Zhang, Sida Wang, Ar-482 
+
+mando Solar-Lezama, Koushik Sen, and Ion Stoica. Livecodebench: Holistic and contamination 483 
+
+free evaluation of large language models for code. In The Thirteenth International Conference 484 
+
+on Learning Representations , 2025. 485 
+
+[41] Kaijing Ma, Xinrun Du, Yunran Wang, Haoran Zhang, Zhoufutu Wen, Xingwei Qu, Jian Yang, 486 
+
+Jiaheng Liu, Minghao Liu, Xiang Yue, et al. Kor-bench: Benchmarking language models on 487 
+
+knowledge-orthogonal reasoning tasks. arXiv preprint arXiv:2410.06526 , 2024. 488 
+
+[42] Ippei Fujisawa, Sensho Nobe, Hiroki Seto, Rina Onda, Yoshiaki Uchida, Hiroki Ikoma, Pei-489 
+
+Chun Chien, and Ryota Kanai. Procbench: Benchmark for multi-step reasoning and following 490 
+
+procedure. arXiv preprint arXiv:2410.03117 , 2024. 491 
+
+[43] Yanzhao Qin, Tao Zhang, Yanjun Shen, Wenjing Luo, Haoze Sun, Yan Zhang, Yujing Qiao, 492 
+
+Weipeng Chen, Zenan Zhou, Wentao Zhang, et al. Sysbench: Can large language models follow 493 
+
+system messages? arXiv preprint arXiv:2408.10943 , 2024. 494 
+
+[44] Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc V Le, Ed H Chi, Sharan Narang, Aakanksha 495 
+
+Chowdhery, and Denny Zhou. Self-consistency improves chain of thought reasoning in language 496 
+
+models. In The Eleventh International Conference on Learning Representations , 2023. 497 
+
+[45] Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths, Yuan Cao, and Karthik 498 
+
+Narasimhan. Tree of thoughts: Deliberate problem solving with large language models. In 499 
+
+Advances in neural information processing systems , volume 36, pages 11809–11822, 2023. 500 
+
+[46] Maciej Besta, Nils Blach, Ales Kubicek, Robert Gerstenberger, Michal Podstawski, Lukas 501 
+
+Gianinazzi, Joanna Gajda, Tomasz Lehmann, Hubert Niewiadomski, Piotr Nyczyk, et al. Graph 502 
+
+of thoughts: Solving elaborate problems with large language models. In Proceedings of the 503 
+
+AAAI Conference on Artificial Intelligence , volume 38, pages 17682–17690, 2024. 504 
+
+[47] Yang Sui, Yu-Neng Chuang, Guanchu Wang, Jiamu Zhang, Tianyi Zhang, Jiayi Yuan, Hongyi 505 
+
+Liu, Andrew Wen, Hanjie Chen, Xia Hu, et al. Stop overthinking: A survey on efficient 506 
+
+reasoning for large language models. arXiv preprint arXiv:2503.16419 , 2025. 507 
+
+[48] Wenjie Ma, Jingxuan He, Charlie Snell, Tyler Griggs, Sewon Min, and Matei Zaharia. Reasoning 508 
+
+models can be effective without thinking. arXiv preprint arXiv:2504.09858 , 2025. 509 
+
+12 [49] Yuyang Wu, Yifei Wang, Tianqi Du, Stefanie Jegelka, and Yisen Wang. When more is less: 510 
+
+Understanding chain-of-thought length in llms. arXiv preprint arXiv:2502.07266 , 2025. 511 
+
+[50] Ayeong Lee, Ethan Che, and Tianyi Peng. How well do llms compress their own chain-of-512 
+
+thought? a token complexity approach. arXiv preprint arXiv:2503.01141 , 2025. 513 
+
+[51] Xinyin Ma, Guangnian Wan, Runpeng Yu, Gongfan Fang, and Xinchao Wang. Cot-valve: 514 
+
+Length-compressible chain-of-thought tuning. arXiv preprint arXiv:2502.09601 , 2025. 515 
+
+[52] Han Wu, Yuxuan Yao, Shuqi Liu, Zehua Liu, Xiaojin Fu, Xiongwei Han, Xing Li, Hui-Ling 516 
+
+Zhen, Tao Zhong, and Mingxuan Yuan. Unlocking efficient long-to-short llm reasoning with 517 
+
+model merging. arXiv preprint arXiv:2503.20641 , 2025. 518 
+
+[53] Haotian Luo, Haiying He, Yibo Wang, Jinluan Yang, Rui Liu, Naiqiang Tan, Xiaochun Cao, 519 
+
+Dacheng Tao, and Li Shen. Adar1: From long-cot to hybrid-cot via bi-level adaptive reasoning 520 
+
+optimization. arXiv preprint arXiv:2504.21659 , 2025. 521 
+
+13 A Benchmark Dataset Details and Analysis 522 
+
+This appendix provides descriptions for the benchmark datasets used in our evaluation and an analysis 523 
+
+of the experimental results on these individual datasets. The scores presented in Table 4 form the basis 524 
+
+for this analysis. For each dataset, we discuss the performance of baseline models and the AdaCoT 525 
+
+variants. We also highlight any counter-intuitive results or observations that conflict with the primary 526 
+
+motivation of achieving optimal performance with adaptive CoT, offering potential explanations such 527 
+
+as evaluation volatility, inherent limitations of the base model, or aspects of the post-training process 528 
+
+that may not be fully optimized for every scenario. 529 
+
+Table 4: Detailed scores on benchmark datasets. "TR" denotes reasoning triggering rate (%). nocot SFT baseline nocot RL baseline fullcot SFT baseline fullcot RL baseline Adaptive SFT Model Adaptive RL Model Exp1 Adaptive RL Model Exp2 Adaptive RL Model Exp3 Adaptive RL Model Exp4 Dataset TR Score TR Score TR Score TR Score TR Score TR Score TR Score TR Score TR Score MMLU pro 0.0 77.5 0.0 82.1 100.0 83.7 100.0 85.2 40.3 80.5 28.0 74.2 27.3 83.2 39.6 84.1 58.0 83.1 super GPQA 0.0 49.8 0.0 50.7 100.0 53.8 100.0 58.6 35.2 51.0 22.8 55.1 32.3 56.9 40.8 56.2 59.6 59.6 LiveBench 0.0 50.0 0.0 56.6 100.0 57.7 100.0 69.5 65.8 58.9 45.1 64.7 57.1 66.3 71.6 68.4 70.4 69.2 KORBENCH 0.0 33.9 0.0 42.1 100.0 61.3 100.0 62.8 52.5 49.1 28.0 53.5 45.1 52.1 62.2 57.4 61.0 59.2 AIME24 0.0 23.3 0.0 33.3 100.0 69.3 100.0 84.7 100.0 69.3 100.0 86.7 100.0 86.0 100.0 88.0 100.0 86.3 AIME25 0.0 13.3 0.0 21.0 100.0 52.3 100.0 70.0 100.0 56.7 100.0 73.3 100.0 75.7 100.0 74.0 100.0 72.0 MATH 0.0 84.3 0.0 88.7 100.0 96.5 100.0 97.3 44.6 95.5 40.9 91.7 52.8 95.9 61.5 95.5 68.8 97.2 LiveCodeBench 0.0 29.4 0.0 27.6 100.0 45.9 100.0 55.9 95.0 47.0 77.1 44.8 83.9 50.6 91.4 54.1 91.4 55.9 SWE-bench Agentless 0.0 27.4 0.0 27.0 100.0 36.4 100.0 37.7 98.6 35.4 1.6 28.8 44.0 35.8 94.2 37.6 79.6 36.6 Chinese SimpleQA 0.0 58.8 0.0 57.0 100.0 59.7 100.0 61.5 0.3 59.1 0.2 56.0 0.4 55.0 1.4 56.8 6.0 55.2 SimpleQA 0.0 10.8 0.0 10.3 100.0 12.7 100.0 12.2 0.7 10.3 0.0 9.9 0.0 10.7 4.4 11.3 20.0 9.6 Proc Bench 0.0 42.6 0.0 46.7 100.0 53.7 100.0 68.6 73.6 50.2 50.8 53.0 79.1 68.7 89.3 69.6 93.1 72.4 GPQA(diamond) 0.0 59.5 0.0 64.3 100.0 64.9 100.0 70.5 92.6 65.7 62.6 65.7 84.1 67.2 92.4 70.8 96.5 72.6 SysBench 0.0 42.6 0.0 48.1 100.0 56.2 100.0 62.4 35.6 52.0 1.2 57.2 4.0 55.5 38.2 60.2 15.4 55.7 Olympiad Bench 0.0 51.4 0.0 60.1 100.0 73.5 100.0 78.2 85.0 75.3 88.0 80.2 89.0 81.8 93.5 80.7 95.4 82.0                   
+
+> Average 0.0 43.6 0.0 47.7 100.0 58.5 100.0 65.0 61.3 57.1 43.1 59.7 53.3 62.8 65.4 64.3 67.7 64.4
+
+MMLU pro : An enhanced version of the MMLU benchmark, MMLU-Pro integrates more challeng-530 
+
+ing, reasoning-focused questions, expands the choice set from four to ten options, and eliminates 531 
+
+trivial/noisy questions from the original MMLU. It is designed to better discern model capabilities, 532 
+
+particularly in complex reasoning, where CoT has shown greater benefit compared to direct answering 533 
+
+on this version. Analysis : CoT clearly benefits performance, with the FullCoT RL baseline (85.2) 534 
+
+significantly outperforming NoCoT SFT (77.5) and NoCoT RL (82.1). The Adaptive SFT Model 535 
+
+(40.3% TR, 80.5 score) shows improvement over NoCoT SFT but doesn’t reach FullCoT SFT levels 536 
+
+(83.7). AdaCoT RL Exp3 (39.6% TR, 84.1 score) and Exp2 (27.3% TR, 83.2 score) achieve strong 537 
+
+scores, with Exp3 surpassing FullCoT SFT and Exp2 performing comparably. AdaCoT RL Exp4 538 
+
+(58.0% TR, 83.1 score) also performs well. Exp1 (28.0% TR, 74.2 score) shows a drop, indicat-539 
+
+ing that for MMLU pro, a moderate CoT rate is generally beneficial, reflecting the benchmark’s 540 
+
+increased reasoning demands. The adaptive models demonstrate an ability to achieve high scores 541 
+
+with significantly reduced CoT compared to FullCoT RL. 542 
+
+super GPQA : A comprehensive benchmark evaluating graduate-level knowledge and reasoning ca-543 
+
+pabilities across 285 disciplines, particularly including specialized fields in light industry, agriculture, 544 
+
+and service-oriented areas often underrepresented in other benchmarks. It employs a Human-LLM 545 
+
+collaborative filtering mechanism to ensure high question quality by eliminating trivial or ambiguous 546 
+
+questions. Analysis : CoT provides a clear advantage (NoCoT RL 50.7 vs. FullCoT RL 58.6). The 547 
+
+Adaptive SFT Model (35.2% TR, 51.0 score) also show a modest gain over NoCoT SFT. AdaCoT 548 
+
+RL Exp4 (59.6% TR) notably achieves a score of 59.6, surpassing the FullCoT RL baseline with 549 
+
+significantly less CoT. AdaCoT RL Exp2 (32.3% TR, 56.9 score) also outperforms FullCoT SFT 550 
+
+(53.8). This suggests AdaCoT effectively adapts CoT usage for these specialized, high-level questions, 551 
+
+achieving strong performance efficiently. 552 
+
+LiveBench : A benchmark designed to be resistant to test set contamination and the pitfalls of 553 
+
+LLM/human-crowdsourced judging. It features frequently updated questions from recent sources 554 
+
+(math competitions, arXiv papers, news, datasets), scores answers automatically against objective 555 
+
+ground-truth, and includes a wide variety of challenging tasks (math, coding, reasoning, language, 556 
+
+instruction following, data analysis), including harder, contamination-limited versions of tasks from 557 
+
+previous benchmarks. Analysis : This dataset shows significant gains from both CoT and RL (NoCoT 558 
+
+SFT 50.0 to FullCoT RL 69.5). The NoCoT RL baseline (56.6) and Adaptive SFT Model (65.8% 559 
+
+TR, 58.9 score) both outperform NoCoT SFT, with Adaptive SFT also surpassing FullCoT SFT 560 
+
+(57.7). AdaCoT RL Exp4 (70.4% TR, 69.2 score) very closely approaches the FullCoT RL baseline 561 
+
+performance with about 30% less CoT. AdaCoT RL Exp3 (71.6% TR, 68.4 score) is also strong. 562 
+
+AdaCoT RL Exp2 (57.1% TR, 66.3 score) substantially outperforms FullCoT SFT. The robust design 563 
+
+of LiveBench makes it a strong test case for AdaCoT’s adaptive reasoning, showing it can maintain 564 
+
+high performance with adaptive CoT. 565 
+
+14 KORBENCH : This benchmark evaluates Knowledge-Orthogonal-Reasoning, aiming to minimize 566 
+
+reliance on domain-specific knowledge to more accurately assess models’ reasoning abilities in out-of-567 
+
+distribution settings. It includes five task categories (Operation, Logic, Cipher, Puzzle, Counterfactual) 568 
+
+and emphasizes models’ effectiveness in applying new rule descriptions to solve novel rule-driven 569 
+
+questions. Analysis : Scores show a clear benefit from CoT: NoCoT SFT (33.9) is significantly lower 570 
+
+than FullCoT SFT (61.3) and FullCoT RL (62.8). The NoCoT RL baseline (42.1) improves over 571 
+
+NoCoT SFT. The Adaptive SFT Model (52.5% TR, 49.1 score) sits between the NoCoT baselines 572 
+
+and FullCoT SFT. AdaCoT RL models demonstrate adaptive behavior: Exp4 (61.0% TR, 59.2 score) 573 
+
+and Exp3 (62.2% TR, 57.4 score) approach the FullCoT SFT baseline performance with significantly 574 
+
+less CoT than FullCoT models. Exp1 (28.0% TR, 53.5 score) is also effective. This suggests AdaCoT 575 
+
+effectively discerns when to apply CoT for these rule-driven tasks, though peak performance is 576 
+
+slightly below FullCoT RL. 577 
+
+AIME24 / AIME25 : Representing problems from the American Mathematics Invitational Exami-578 
+
+nation for 2024 and 2025, these datasets are used to evaluate mathematical reasoning and problem-579 
+
+solving abilities. Analysis : These mathematics-intensive datasets show massive performance gains 580 
+
+from CoT (e.g., AIME24: NoCoT SFT 23.3 vs. FullCoT RL 84.7). All AdaCoT RL models and the 581 
+
+Adaptive SFT Model correctly identify the complexity, exhibiting a 100% CoT triggering rate. For 582 
+
+AIME24, Adaptive SFT (69.3) matches FullCoT SFT (69.3). AdaCoT RL Exp3 (88.0) and Exp1 583 
+
+(86.7) outperform the FullCoT RL baseline (84.7). For AIME25, Adaptive SFT (56.7) surpasses 584 
+
+FullCoT SFT (52.3). AdaCoT RL Exp2 (75.7) and Exp3 (74.0) outperform the FullCoT RL baseline 585 
+
+(70.0). This is a notable result, suggesting that the adaptive training regimen, even when defaulting to 586 
+
+100% CoT for such complex problems, might confer some benefits, potentially due to the diversity 587 
+
+in training data (including non-CoT examples) leading to a more robust underlying model or better 588 
+
+fine-tuning dynamics. 589 
+
+MATH : A dataset of 12,500 challenging competition mathematics problems, each with a full step-590 
+
+by-step solution. It is designed to measure mathematical problem-solving ability. Analysis : CoT is 591 
+
+highly beneficial (NoCoT RL 88.7 vs. FullCoT RL 97.3). The Adaptive SFT Model (44.6% TR, 592 
+
+95.5 score) performs well, nearly matching FullCoT SFT (96.5) with less than half the CoT. AdaCoT 593 
+
+models adapt effectively: AdaCoT RL Exp4 (68.8% TR, 97.2 score) nearly matches the FullCoT RL 594 
+
+baseline with about 30% less CoT. AdaCoT RL Exp2 (52.8% TR, 95.9 score) also performs strongly. 595 
+
+Exp1 (40.9% TR, 91.7 score) is lower, indicating that for MATH, higher CoT rates are generally 596 
+
+more beneficial among the adaptive RL models, but significant efficiency is still gained. 597 
+
+LiveCodeBench : A comprehensive and contamination-free evaluation benchmark for LLMs on 598 
+
+code, collecting new problems over time from programming contests. It assesses a broader range of 599 
+
+code-related capabilities. Analysis : CoT improves performance significantly (NoCoT SFT 29.4 vs. 600 
+
+FullCoT RL 55.9). NoCoT RL (27.6) is surprisingly lower than NoCoT SFT here, which might be due 601 
+
+to evaluation noise or specific sensitivities of the RL fine-tuning on non-CoT data for this particular 602 
+
+task. The Adaptive SFT Model (95.0% TR, 47.0 score) uses a high trigger rate and surpasses FullCoT 603 
+
+SFT (45.9). AdaCoT RL models trigger CoT at high rates: Exp4 (91.4% TR, 55.9 score) matches the 604 
+
+FullCoT RL baseline score with slightly less CoT. Exp3 (91.4% TR, 54.1 score) and Exp2 (83.9% 605 
+
+TR, 50.6 score) are also strong. This indicates recognition of coding task complexity and efficient 606 
+
+application of CoT. 607 
+
+SWE-bench Agentless : An evaluation framework consisting of 2,294 software engineering problems 608 
+
+from real GitHub issues. Models are tasked with editing codebases to resolve issues. Analysis : CoT 609 
+
+provides a notable benefit (NoCoT SFT 27.4 vs. FullCoT RL 37.7). NoCoT RL (27.0) is similar 610 
+
+to NoCoT SFT. The Adaptive SFT Model (98.6% TR, 35.4 score) uses a very high trigger rate and 611 
+
+performs close to FullCoT SFT (36.4). AdaCoT RL Exp3 (94.2% TR, 37.6 score) nearly matches 612 
+
+the FullCoT RL baseline with slightly less CoT. Interestingly, AdaCoT RL Exp1 (1.6% TR, 28.8 613 
+
+score) shows a slight improvement over NoCoT SFT with minimal reasoning. This suggests some 614 
+
+issues might be simpler, or the model is highly conservative in Exp1, but for complex software issues, 615 
+
+high CoT rates are beneficial. The performance of Exp2 (44.0% TR, 35.8 score) is also noteworthy, 616 
+
+achieving good results with moderate CoT. 617 
+
+Chinese SimpleQA : The first comprehensive Chinese benchmark to evaluate the factuality of 618 
+
+language models in answering short questions. Analysis : CoT offers minimal gains (NoCoT SFT 58.8 619 
+
+to FullCoT RL 61.5). NoCoT RL (57.0) is slightly lower than NoCoT SFT. The Adaptive SFT Model 620 
+
+(0.3% TR, 59.1 score) performs very well, slightly exceeding NoCoT SFT and approaching FullCoT 621 
+
+15 SFT (59.7) with extremely low CoT usage. AdaCoT RL models trigger CoT very infrequently (0.2% 622 
+
+to 6.0%), correctly identifying these as simple questions. Scores for AdaCoT RL models (e.g., Exp1 623 
+
+56.0, Exp3 56.8) are slightly below NoCoT SFT. This is a good demonstration of AdaCoT’s core 624 
+
+motivation: avoiding unnecessary CoT. While there’s a slight dip compared to NoCoT SFT for 625 
+
+some RL models, the Adaptive SFT model shows an excellent trade-off. The minor performance 626 
+
+variations could be due to the model sometimes being overly conservative in triggering CoT or slight 627 
+
+instabilities in evaluating purely factual recall without reasoning. 628 
+
+SimpleQA : A benchmark designed to measure the factuality of language models using short, fact-629 
+
+seeking queries. Analysis : Similar to Chinese SimpleQA, CoT provides little benefit; FullCoT RL 630 
+
+(12.2) is slightly worse than FullCoT SFT (12.7). NoCoT RL (10.3) is slightly below NoCoT SFT 631 
+
+(10.8). The Adaptive SFT Model (0.7% TR, 10.3 score) matches NoCoT RL with minimal CoT. 632 
+
+AdaCoT RL models trigger CoT very rarely (Exp1 & Exp2 at 0.0%). AdaCoT RL Exp3 (4.4% TR, 633 
+
+11.3 score) performs better than NoCoT SFT. This reinforces that for simple QA, adaptive triggering 634 
+
+is crucial for efficiency. The performance of Exp4 (20.0% TR, 9.6 score) is slightly counter-intuitive, 635 
+
+as higher CoT did not yield better results and was worse than NoCoT SFT; this might indicate that for 636 
+
+very simple questions, forcing CoT (even adaptively at a higher rate) can sometimes be detrimental 637 
+
+or that the specific penalty balance for Exp4 was not optimal for this type of dataset. 638 
+
+ProcBench : This benchmark focuses on the direct evaluation of multi-step inference by largely 639 
+
+eliminating path exploration and implicit knowledge utilization. Analysis : CoT is highly beneficial 640 
+
+(NoCoT RL 46.7 vs. FullCoT RL 68.6). The Adaptive SFT Model (73.6% TR, 50.2 score) improves 641 
+
+over NoCoT baselines but is below FullCoT SFT (53.7). AdaCoT RL models show high trigger 642 
+
+rates, with Exp4 (93.1% TR, 72.4 score) significantly surpassing the FullCoT RL baseline. Exp2 643 
+
+(79.1% TR, 68.7 score) and Exp3 (89.3% TR, 69.6 score) also match or exceed FullCoT RL. This 644 
+
+indicates effective identification of tasks requiring detailed, step-by-step procedural reasoning and 645 
+
+demonstrates that adaptive models can even outperform always-on CoT models in certain complex 646 
+
+reasoning scenarios. 647 
+
+GPQA (diamond) : GPQA is a challenging dataset of 448 multiple-choice questions by domain 648 
+
+experts in biology, physics, and chemistry. "GPQA (diamond)" refers to this specific challenging 649 
+
+set. Analysis : CoT significantly boosts performance (NoCoT RL 64.3 vs. FullCoT RL 70.5). NoCoT 650 
+
+RL is better than NoCoT SFT and close to FullCoT SFT (64.9). The Adaptive SFT Model (92.6% 651 
+
+TR, 65.7 score) also performs well, exceeding FullCoT SFT. AdaCoT RL models trigger CoT at 652 
+
+high rates. AdaCoT RL Exp4 (96.5% TR, 72.6 score) and Exp3 (92.4% TR, 70.8 score) demonstrate 653 
+
+strong performance, with Exp4 outperforming the FullCoT RL baseline. This highlights appropriate 654 
+
+and effective CoT invocation on these very hard questions. 655 
+
+SysBench : A benchmark for evaluating language models on their ability to understand and generate 656 
+
+content related to computer systems, configurations, or system-level concepts. Analysis : CoT is 657 
+
+beneficial (NoCoT RL 48.1 vs. FullCoT RL 62.4). The Adaptive SFT Model (35.6% TR, 52.0 score) 658 
+
+is better than NoCoT RL but below FullCoT SFT (56.2). AdaCoT RL models show good adaptation. 659 
+
+AdaCoT RL Exp3 (38.2% TR, 60.2 score) approaches the FullCoT RL baseline with significantly 660 
+
+reduced CoT. AdaCoT RL Exp1 (1.2% TR, 57.2 score) surpasses FullCoT SFT with very minimal 661 
+
+CoT usage, which is an excellent result for efficiency. This suggests a mix of complexities within 662 
+
+SysBench, which AdaCoT navigates effectively, although Exp4 (15.4% TR, 55.7 score) shows a 663 
+
+somewhat lower score despite a higher CoT rate than Exp1, possibly due to the specific balance of 664 
+
+penalties in Exp4 not being optimal for this dataset’s particular mix. 665 
+
+OlympiadBench : An Olympiad-level bilingual multimodal scientific benchmark with problems from 666 
+
+mathematics and physics competitions. Analysis : CoT provides substantial gains (NoCoT RL 60.1 vs. 667 
+
+FullCoT RL 78.2). The Adaptive SFT Model (85.0% TR, 75.3 score) performs strongly, exceeding 668 
+
+FullCoT SFT (73.5). AdaCoT RL models exhibit high trigger rates. AdaCoT RL Exp4 (95.4% TR, 669 
+
+82.0 score) and Exp2 (89.0% TR, 81.8 score) both surpass the FullCoT RL baseline. This indicates 670 
+
+strong reasoning capabilities and appropriate CoT usage on these exceptionally challenging problems, 671 
+
+again showing adaptive models can reach or exceed the performance of specialized always-on CoT 672 
+
+models. 673 
+
+Overall Summary of Per-Dataset Analysis : The adaptive models, including both Adaptive SFT and 674 
+
+the AdaCoT RL variants, demonstrate effective adaptation across a diverse range of benchmarks. 675 
+
+16 • The Adaptive SFT Model serves as a strong adaptive baseline. It often improves signif-676 
+
+icantly over NoCoT baselines by selectively triggering CoT (e.g., high rates for AIME, 677 
+
+LiveCodeBench, SWE-bench; low rates for SimpleQAs). On some complex tasks (AIME25, 678 
+
+LiveCodeBench, GPQA(diamond), OlympiadBench), it even surpasses the FullCoT SFT 679 
+
+baseline, and for Chinese SimpleQA, it achieves excellent efficiency and performance. 680 
+
+However, its average performance (57.1 score, 61.3% TR) is generally below the peak 681 
+
+performance of FullCoT RL (65.0 score) or the best AdaCoT RL experiments (e.g., Exp4: 682 
+
+64.4 score, 67.7% TR). 683 
+
+• On complex reasoning tasks (e.g., AIME, MATH, OlympiadBench, GPQA(diamond), 684 
+
+ProcBench), AdaCoT RL models tend to trigger CoT at high rates. Several AdaCoT RL 685 
+
+experiments (notably Exp4 on super GPQA, ProcBench, GPQA(diamond), OlympiadBench; 686 
+
+Exp3 on AIME24; Exp2 on AIME25, OlympiadBench) match or exceed the performance of 687 
+
+FullCoT RL baselines, showcasing the benefits of learned adaptive policies and suggesting 688 
+
+that adaptive training can sometimes lead to better overall models even for tasks that always 689 
+
+require CoT. 690 
+
+• On simpler tasks or those designed to test factuality (e.g., Chinese SimpleQA, SimpleQA), 691 
+
+AdaCoT RL models trigger CoT very sparingly. This leads to computational savings 692 
+
+while generally maintaining performance near NoCoT or FullCoT SFT levels, successfully 693 
+
+avoiding unnecessary CoT. The Adaptive SFT model also excels in efficiency here. Some 694 
+
+minor performance drops in RL models compared to NoCoT SFT on these tasks (e.g., 695 
+
+Chinese SimpleQA for Exp1/Exp2) might be attributed to the RL agent being slightly too 696 
+
+conservative or the inherent difficulty in perfectly balancing penalties for extremely low 697 
+
+CoT rate scenarios without any performance degradation. 698 
+
+• For benchmarks with mixed or specific reasoning types (e.g., KORBENCH, LiveBench, 699 
+
+MMLU-Pro, SysBench), both Adaptive SFT and AdaCoT RL models show nuanced adap-700 
+
+tation, adjusting CoT rates to balance performance and efficiency. They often outperform 701 
+
+static baselines or achieve comparable results with lower CoT usage. For instance, on 702 
+
+SysBench, AdaCoT RL Exp1 achieved a higher score than FullCoT SFT with only 1.2% 703 
+
+TR. 704 
+
+• The different AdaCoT RL experiments (Exp1-Exp4) effectively trace a Pareto frontier (as 705 
+
+shown in Section 3.2.1 using a specific set of average scores), offering a trade-off between 706 
+
+CoT triggering rate and performance, adaptable to specific deployment needs. Based on the 707 
+
+average scores from Appendix 4, Exp4 (64.4 score, 67.7% TR) and Exp3 (64.3 score, 65.4% 708 
+
+TR) represent high-performance points, closely approaching the FullCoT RL baseline (65.0 709 
+
+score) with about 30-35% less CoT usage on average. Exp2 (62.8 score, 53.3% TR) also 710 
+
+offers a strong balance. 711 
+
+• Some counter-intuitive results, like NoCoT RL performing worse than NoCoT SFT on 712 
+
+LiveCodeBench, or AdaCoT RL Exp4 on SimpleQA (higher CoT, lower score), could 713 
+
+be due to factors like evaluation volatility on specific datasets, the base model’s inherent 714 
+
+capabilities or sensitivities to fine-tuning on certain data distributions, or sub-optimal penalty 715 
+
+configurations for specific outlier datasets within a broadly tuned RL policy. The post-716 
+
+training process aims for general improvement, and individual dataset performance can 717 
+
+fluctuate. 718 
+
+These detailed results underscore the ability of adaptive strategies, both SFT-based and RL-based, 719 
+
+to make nuanced decisions about CoT invocation, optimizing for both performance and efficiency 720 
+
+based on query characteristics and benchmark demands. The AdaCoT RL models, in particular, 721 
+
+demonstrate the potential to significantly reduce CoT overhead while maintaining competitive, and in 722 
+
+some cases superior, performance compared to full CoT strategies. 723 
+
+## B Principle-Guided CoT Assessment 724 
+
+This appendix details the principle-guided assessment framework used to annotate data for Chain-725 
+
+of-Thought (CoT) necessity. As described in Section 2.2.1 of the main paper, an auxiliary model 726 
+
+utilizes these principles to label queries as either likely benefiting from CoT or suitable for a direct 727 
+
+answer. This labeling is crucial for the Supervised Fine-Tuning (SFT) warm-up stage of the AdaCoT 728 
+
+17 framework, providing an initial understanding for the model on when to employ CoT. The specific 729 
+
+principles provided to the auxiliary model are outlined below. 730 731 
+
+Given a dialogue between a user and an AI assistant , please 732 
+
+consider the conversation context and , from the AI 733 
+
+assistant ' s perspective , assess the difficulty of 734 
+
+answering the user ' s final question according to the 735 
+
+following requirements . 736 
+
+< AI assistant ' s system prompt - Start > 737 
+
+{ system_prompt } 738 
+
+< AI assistant ' s system prompt - End > 739 
+
+< Dialogue history - Start >: 740 
+
+{ history } 741 
+
+< Dialogue history - End > 742 
+
+< User ' s final question - Start > 743 
+
+{ last_prompt } 744 
+
+< User ' s final question - End > 745 746 
+
+## Assessment Process 747 
+
+1. Carefully read the provided prompt and any relevant 748 
+
+context ( if any ) . 749 
+
+2. Evaluate the ' question difficulty ' based on the 750 
+
+following assessment criteria . 751 
+
+3. The output assessment result must strictly adhere to the 752 
+
+specified output format requirements . 753 754 
+
+## Assessment Criteria 755 756 
+
+### Whether In - depth Thinking is Required 757 
+
+- ** Requires In - depth Thinking **: 758 
+
+- Requires multi - step reasoning and analysis to arrive at 759 
+
+the answer . 760 
+
+- Requires a logical chain and coherent reasoning process 761 
+
+.762 
+
+- May involve breaking down and synthesizing complex 763 
+
+concepts . 764 
+
+- Requires systematic thinking and structured analysis . 765 
+
+- The question is clear , but its content is complex . 766 
+
+- Requires deep thought and specialized knowledge . 767 
+
+- Demands multi - angle analysis and synthesis capabilities 768 
+
+.769 
+
+- Requires creative thinking or unique insights . 770 
+
+- There might be multiple reasonable paths to the answer . 771 
+
+- May require integration of cross - domain knowledge . 772 773 
+
+- ** Does Not Require In - depth Thinking **: 774 
+
+- The answer can be obtained through direct recall or 775 
+
+simple lookup . 776 
+
+- Does not require a complex chain of logical reasoning . 777 
+
+- The path to solving the problem is clear and direct . 778 
+
+- The solution process is singular and linear . 779 
+
+- Does not require synthesizing multiple pieces of 780 
+
+information or viewpoints . 781 
+
+- Basic facts or common sense are sufficient to address 782 
+
+it . 783 
+
+- The question is simple and direct . 784 
+
+- Can be answered without in - depth thought . 785 
+
+- The answer is definite or standardized . 786 
+
+- The solution path is singular and obvious . 787 788 
+
+18 ## Output Requirements 789 
+
+Answer using labels . Possible options are : 790 
+
+- Requires In - depth Thinking 791 
+
+- Does Not Require In - depth Thinking 792 793 
+
+Output only the assessment result , without providing any 794 
+
+explanation or additional comments . 795 796 
+
+## C System Prompt Examples 797 
+
+This appendix provides examples of the System Prompts (SPs) employed to control the CoT triggering 798 
+
+behavior of our models, as mentioned in Section 4.3 of the main paper. These SPs allow for explicit 799 
+
+instruction on whether the model should always or never engage in CoT reasoning. We present the 800 
+
+content of these SPs and illustrative examples of their application. 801 
+
+C.1 Always CoT SP 802 
+
+The following System Prompt is used to instruct the model to always use CoT: 803 
+
+You possess the capability for deep thinking. Before responding to the user, 804 
+
+you will engage in comprehensive and in-depth thought. The thinking process 805 
+
+should be enclosed in <think></think> tags, and the final answer should be 806 
+
+summarized based on this thinking process. For example: 807 
+
+<think>This is the thinking process...</think> This is the final answer. 808 
+
+For all questions posed by the user, you need to think deeply before answering. 809 
+
+Example: Simple Question with Always CoT SP 810 
+
+User input: 811 
+
+What is 1 + 1? 812 
+
+Model response: 813 814 
+
+< think > 815 
+
+The user is asking what 1+1 equals , which appears to be a very 816 
+
+basic mathematical question . First , I need to confirm the 817 
+
+user ' s actual intent . It could be a young child just 818 
+
+starting to learn math , or someone testing my basic 819 
+
+calculation abilities . It ' s also possible they are joking , 820 
+
+like the common internet meme about "1+1=3" involving 821 
+
+family concepts , but typically in such cases , the correct 822 
+
+mathematical answer should be given first , followed by 823 
+
+consideration of whether an extended explanation is needed . 824 
+
+From a mathematical perspective , the standard answer to 1+1 is 825 
+
+2. This is based on the definition of addition for natural 826 
+
+numbers and falls under basic arithmetic . As a knowledge -827 
+
+based Q &A , the primary goal is to provide an accurate 828 
+
+mathematical answer , ensuring correctness . Then , if 829 
+
+necessary , I can briefly explain the basic concept of 830 
+
+addition , or mention that in different contexts there might 831 
+
+be different answers , such as 1+1=10 in binary , or 832 
+
+different results in logical operations . However , these 833 
+
+additions should only be made after clarifying the user ' s834 
+
+needs to avoid confusing basic concepts . 835 836 
+
+Considering the user might be a beginner , I should first 837 
+
+provide a clear and correct answer , then decide whether to 838 
+
+elaborate based on the situation . Therefore , the response 839 
+
+19 structure should be to first directly answer 2 , then 840 
+
+briefly mention other possibilities , but it ' s important to 841 
+
+maintain a clear distinction between primary and secondary 842 
+
+information to avoid misleading . At the same time , the 843 
+
+response should be friendly and concise , meeting the user ' s844 
+
+actual needs . 845 
+
+</ think > 846 
+
+In basic arithmetic operations in mathematics , the result of 1847 
+
++ 1 is equal to 2. This is the fundamental definition of 848 
+
+addition for natural numbers and is the universally 849 
+
+accepted standard answer . 850 851 
+
+However , in some special contexts , there might be different 852 
+
+interpretations : 853 854 
+
+In binary operations , 1 + 1 = 10 ( binary "10" corresponds to 855 
+
+decimal "2") ; 856 
+
+In creative or humorous thinking , there might be symbolic 857 
+
+answers ( e . g . , 1 drop of water + 1 drop of water = 1 large 858 
+
+drop of water ) , but this falls into non - mathematical 859 
+
+analogies . 860 861 
+
+So , the most direct answer is 2. 862 863 
+
+C.2 Never CoT SP 864 
+
+The following System Prompt is used to instruct the model to never use CoT (i.e., provide direct 865 
+
+answers): 866 
+
+You possess the capability for deep thinking. Before responding to the user, 867 
+
+you will engage in comprehensive and in-depth thought. The thinking process 868 
+
+should be enclosed in <think></think> tags, and the final answer should be 869 
+
+summarized based on this thinking process. For example: 870 
+
+<think>This is the thinking process...</think> This is the final answer. 871 
+
+For all questions posed by the user, you need to answer directly 872 
+
+without engaging in in-depth thinking. 873 
+
+Example: Complex Question with Never CoT SP 874 
+
+User input: 875 
+
+Alice and Bob play the following game. A stack of n tokens lies before them. 876 
+
+The players take turns with Alice going first. On each turn, the player 877 
+
+removes either 1 token or 4 tokens from the stack. Whoever removes the 878 
+
+last token wins. Find the number of positive integers n less than or equal 879 
+
+to 2024 for which there exists a strategy for Bob that guarantees that Bob 880 
+
+will win the game regardless of Alice’s play. 881 
+
+Model response: 882 883 
+
+< think > </ think > 884 
+
+To determine the number of positive integers \( n \ leq 2024 \) 885 
+
+for which Bob has a winning strategy , we analyze the game 886 
+
+using modular arithmetic . We define a position as a losing 887 
+
+position if the current player cannot win regardless of 888 
+
+their moves , assuming the opponent plays optimally . 889 890 
+
+Key steps : 891 
+
+1. ** Base Cases **: 892 
+
+- \( n = 1 \) : Alice removes the last token and wins . Not a893 
+
+losing position . 894 
+
+20 - \( n = 2 \) : Alice must remove 1 token , leaving \( n = 1895 
+
+\) for Bob . Bob removes the last token and wins . Thus , 896 
+
+\( n = 2 \) is a losing position for Alice ( winning for 897 
+
+Bob ) . 898 
+
+- \( n = 3 \) : Alice removes 1 token , leaving \( n = 2 \) ( a 899 
+
+losing position for Bob ) . Bob loses , so \( n = 3 \) is 900 
+
+not a losing position . 901 
+
+- \( n = 4 \) : Alice removes 4 tokens and wins . Not a losing 902 
+
+position . 903 
+
+- \( n = 5 \) : Alice removes 1 token , leaving \( n = 4 \) (904 
+
+Bob loses ) . If Alice removes 4 tokens , leaving \( n = 1905 
+
+\) ( Bob loses ) . Thus , \( n = 5 \) is not a losing 906 
+
+position . 907 
+
+- \( n = 6 \) : Any move by Alice ( removing 1 or 4 tokens ) 908 
+
+leaves \( n = 5 \) or \( n = 2 \) . \( n = 5 \) is a909 
+
+winning position , but \( n = 2 \) is a losing position . 910 
+
+However , further analysis shows a pattern emerging . 911 912 
+
+2. ** Inductive Pattern **: 913 
+
+- By examining more cases , we observe that losing positions 914 
+
+( where Bob can win ) occur at \( n \ equiv 2 \ pmod {5} \) . 915 
+
+This is because : 916 
+
+- If \( n \ equiv 2 \ pmod {5} \) , any move by Alice (917 
+
+removing 1 or 4 tokens ) results in \( n \ equiv 1 \ pmod 918 
+
+{5} \) or \( n \ equiv 3 \ pmod {5} \) , which are winning 919 
+
+positions for Bob to counter . 920 
+
+- Conversely , if \( n \) is not \( 2 \ pmod {5} \) , Alice 921 
+
+can force the game into a losing position for Bob . 922 923 
+
+3. ** Counting Losing Positions **: 924 
+
+- We need to count all \( n \ leq 2024 \) such that \( n \925 
+
+equiv 2 \ pmod {5} \) . These numbers form the sequence \( 926 
+
+2 , 7 , 12 , \ ldots , 2022 \) . 927 
+
+- This is an arithmetic sequence with first term \( a_1 = 2928 
+
+\) , common difference \( d = 5 \) , and last term \( a_k 929 
+
+= 2022 \) . 930 
+
+- The number of terms \( k \) is given by solving \( 2 + (k 931 
+
+-1) 5 = 2022 \) : 932 
+
+\[ 933 
+
+(k -1) 5 = 2020 \ implies k -1 = 404 \ implies k = 405 934 
+
+\] 935 936 
+
+Thus , the number of positive integers \( n \ leq 2024 \) for 937 
+
+which Bob has a winning strategy is \(\ boxed {405}\) . 938 939 
+
+## D Meta-Reasoning Showcase: User Prompt Control 940 
+
+As discussed in Section 4.2 of the main paper, our exploration into meta-reasoning during the 941 
+
+SFT stage revealed an emergent capability for user-prompt controllability over CoT. This appendix 942 
+
+showcases examples where the SFT model, enhanced with meta-reasoning (as illustrated in Figure 2), 943 
+
+adapts its CoT triggering based on explicit user instructions regarding the desired level of reasoning. 944 
+
+D.1 Case 1: Historical Creative Question 945 
+
+Original Question 946 
+
+User input: 947 
+
+On the night of the Xuanwu Gate Incident, what would Li Shimin write 948 
+
+21 if he were alone? 949 
+
+Model response: 950 951 
+
+< think > 952 
+
+This is a complex or difficult question , hard to answer 953 
+
+correctly directly , so I need to think about it . The user ' s954 
+
+question is : " On the night of the Xuanwu Gate Incident , 955 
+
+what would Li Shimin write if he were alone ?" The first 956 
+
+step is to determine the core of the user ' s question . The 957 
+
+user wants to know what kind of text Li Shimin might have 958 
+
+written on the night of the Xuanwu Gate Incident , that is , 959 
+
+after this coup occurred . This might include his inner 960 
+
+thoughts at the time , his plans for the future , or 961 
+
+reflections on the events that had transpired . 962 963 
+
+Next , I need to review the historical background of the Xuanwu 964 
+
+Gate Incident . The Xuanwu Gate Incident took place in 626 965 
+
+AD . It was a coup launched by Li Shimin at Xuanwu Gate to 966 
+
+seize the imperial throne , during which he killed his elder 967 
+
+brother Li Jiancheng and his younger brother Li Yuanji . 968 
+
+This coup directly led to Emperor Gaozu ( Li Yuan ) 969 
+
+abdicating , allowing Li Shimin to ascend to the throne . 970 
+
+From this , it ' s clear that the night after the coup was an 971 
+
+extremely critical moment for Li Shimin , and he likely had 972 
+
+many thoughts . 973 974 
+
+The user might be asking this question out of historical 975 
+
+interest , or perhaps for some creative endeavor , like 976 
+
+writing a novel or screenplay , or to gain a deeper 977 
+
+understanding of Li Shimin ' s psychological state . They 978 
+
+might prefer an answer that is both historically grounded 979 
+
+and has a certain literary quality , rather than a simple 980 
+
+list of historical facts . Therefore , when answering , I must 981 
+
+consider Li Shimin ' s situation at the time , his emotions , 982 
+
+and his possible motivations . 983 984 
+
+After the coup , although Li Shimin was victorious , he also 985 
+
+faced many problems . On one hand , he had to manage his 986 
+
+relationship with his father , Li Yuan , who was still alive 987 
+
+and needed to abdicate . On the other hand , he had to 988 
+
+consolidate his power and prevent any backlash from the 989 
+
+supporters of Li Jiancheng and Li Yuanji . At the same time , 990 
+
+he needed to consider how to explain the legitimacy of 991 
+
+this coup to the world to maintain his ruling authority . 992 
+
+Furthermore , he might also have felt moral guilt for his 993 
+
+actions , having killed his own brothers . 994 995 
+
+If Li Shimin did write something that night , the content could 996 
+
+cover multiple aspects . He might record the process of the 997 
+
+coup , stating that he acted in self - defense . He might also 998 
+
+elaborate on his governance philosophy to lay the 999 
+
+groundwork for his future rule . He might express filial 1000 
+
+piety towards Li Yuan , emphasizing that launching the coup 1001 
+
+was a last resort . He might even mention arrangements for 1002 
+
+the families of Li Jiancheng and Li Yuanji to alleviate his 1003 
+
+sense of guilt . 1004 1005 
+
+However , there is no precise historical record of what Li 1006 
+
+Shimin wrote that night . Therefore , the answer can only be 1007 
+
+22 a reasonable speculation based on historical facts . The 1008 
+
+structure of the answer could be divided into several parts 1009 
+
+, such as an explanation of the coup , his attitude towards 1010 
+
+Li Yuan , plans for the future , and guilt towards his 1011 
+
+brothers . Moreover , the language style of the answer could 1012 
+
+lean towards classical Chinese to enhance the historical 1013 
+
+feel , but it must also ensure the content is easy to 1014 
+
+understand . 1015 1016 
+
+I also need to pay attention to the user ' s potential deeper 1017 
+
+needs . They might not just want to know what Li Shimin 1018 
+
+might have written , but also to understand his inner world 1019 
+
+at that time and the impact of this coup on the history of 1020 
+
+the Tang Dynasty . So , I can appropriately mention these 1021 
+
+aspects in the answer to add depth . 1022 1023 
+
+Finally , I need to check if the answer aligns with historical 1024 
+
+facts , if it reasonably speculates on Li Shimin ' s1025 
+
+psychological activities , if the language is fluent , and if 1026 
+
+it can meet the user ' s needs . </ think > 1027 
+
+On the night of the Xuanwu Gate Incident , Qin Wang Li Shimin 1028 
+
+might have , under candlelight , penned a text blending 1029 
+
+complex emotions and political strategy . The following 1030 
+
+content is a reasonable speculation based on historical 1031 
+
+context : 1032 1033 
+
+" Memoir on the Night of the Xuanwu Gate Incident " 1034 1035 
+
+Ninth year of Wude , Gengshen night . 1036 1037 
+
+My elder brother Jiancheng and younger brother Yuanji conspired 1038 
+
+in rebellion . They harbored assassins , secretly 1039 
+
+transported armor , and plotted to harm me . Left with no 1040 
+
+choice , I could only set up defenses at Xuanwu Gate . Now , 1041 
+
+their heads hang upon the city tower . This upheaval has 1042 
+
+shocked the court and beyond ; perhaps Father Emperor also 1043 
+
+harbors resentment towards me . But for the sake of the Tang 1044 
+
+Empire ' s stability , I had to do so . 1045 1046 
+
+Recalling the years past , I fought alongside my generals , 1047 
+
+shedding blood to pacify warlords like Dou Jiande and Wang 1048 
+
+Shichong . Yet now , it has come to fratricide . Is all this 1049 
+
+destiny , or the work of my own inner desires ? 1050 1051 
+
+Father Emperor , oh Father Emperor , your son is not an unfilial 1052 
+
+or disloyal person . It is just that you repeatedly favored 1053 
+
+Jiancheng , turning a blind eye to his misdeeds . Your son 1054 
+
+was truly worried that the Tang Empire would be ruined at 1055 
+
+their hands . Now that the die is cast , I hope you can 1056 
+
+follow the mandate of heaven and pass the throne to your 1057 
+
+son . Your son will surely usher in an era of peace and 1058 
+
+prosperity , allowing the common people to live and work in 1059 
+
+contentment . 1060 1061 
+
+As for the families of Jiancheng and Yuanji , your son will make 1062 
+
+proper arrangements and will not exterminate them . This is 1063 
+
+both to demonstrate my benevolence and to stabilize the 1064 
+
+court . I know that future generations may accuse me of 1065 
+
+fratricide , of cruel methods . But I believe that when they 1066 
+
+23 see the prosperity of the Great Tang , they will understand 1067 
+
+my unavoidable actions . 1068 1069 
+
+At this moment , the rooster ' s crow can be heard outside the 1070 
+
+window . A new day is about to dawn , and I too shall embark 1071 
+
+on an unknown path . May Heaven bless the Great Tang , and 1072 
+
+bless me that I may realize my ambitions . 1073 1074 
+
+Basis for Speculation : 1075 1076 
+
+Legitimacy of the Coup : Li Shimin needed to find a reasonable 1077 
+
+explanation for launching the coup , emphasizing the threat 1078 
+
+posed by Li Jiancheng and Li Yuanji , and that he acted in 1079 
+
+self - defense . 1080 
+
+Relationship with Li Yuan : After the coup , Li Yuan ' s attitude 1081 
+
+was crucial . Li Shimin needed to both show his filial piety 1082 
+
+to Li Yuan and hint at his abdication , which required 1083 
+
+considerable political wisdom . 1084 
+
+Handling the Aftermath : Dealing with the families of Li 1085 
+
+Jiancheng and Li Yuanji could both demonstrate Li Shimin ' s1086 
+
+benevolence and prevent greater turmoil . 1087 
+
+Consideration of Historical Evaluation : Li Shimin was well 1088 
+
+aware that his actions might be criticized by later 1089 
+
+generations , so in his writing , he attempted to defend 1090 
+
+himself , emphasizing that the prosperity of the Tang was 1091 
+
+the ultimate goal of his coup . 1092 1093 
+
+This memoir showcases Li Shimin ' s decisiveness and strategy as 1094 
+
+a statesman , while also revealing his contradictions and 1095 
+
+unease as an ordinary person . In the conflict between power 1096 
+
+and kinship , he chose power , but also paid a heavy price 1097 
+
+for it . 1098 1099 
+
+Modified Question (Explicitly Requesting No In-depth Thinking) 1100 
+
+User input: 1101 
+
+Answer directly without in-depth thinking: On the night of the Xuanwu Gate 1102 
+
+Incident, what would Li Shimin write if he were alone? 1103 
+
+Model response: 1104 1105 
+
+< think > 1106 
+
+This is a relatively simple creative question ; I think I can 1107 
+
+answer directly without in - depth thinking . 1108 
+
+</ think > 1109 
+
+Li Shimin might have written brief military orders or a public 1110 
+
+notice to reassure the populace on the night of the Xuanwu 1111 
+
+Gate Incident . The content would be roughly as follows : 1112 1113 
+
+" Order Yuchi Jingde to lead troops swiftly to the Eastern 1114 
+
+Palace and Prince Qi ' s mansion , exterminate all remaining 1115 
+
+partisans , and strictly prohibit any disturbance to the 1116 
+
+populace . Close the palace gates , send messengers to 1117 
+
+instruct all generals to return to their barracks ; 1118 
+
+violators will be dealt with by military law . Anyone within 1119 
+
+the city showing signs of unrest shall be executed without 1120 
+
+pardon . By Imperial Order ." 1121 1122 
+
+24 ( Note : This content is a fictional text based on reasonable 1123 
+
+historical speculation , intended to reflect Li Shimin ' s1124 
+
+decisive style as a military commander . There is no 1125 
+
+historical documentation of him personally writing such a1126 
+
+text on that night .) 1127 1128 
+
+D.2 Case 2: Factual Question 1129 
+
+Original Question 1130 
+
+User input: 1131 
+
+What is the tallest mountain in the world? 1132 
+
+Model response: 1133 1134 
+
+< think > 1135 
+
+This is a relatively simple common knowledge question ; I think 1136 
+
+I can answer directly without in - depth thinking . 1137 
+
+</ think > 1138 
+
+The tallest mountain in the world is Mount Everest , with an 1139 
+
+altitude of 8 ,848.86 meters (29 ,031.7 feet ) . This data is 1140 
+
+the result of a joint measurement by China and Nepal in 1141 
+
+2020 , which combined the technologies and data of both 1142 
+
+countries to confirm the latest height of Mount Everest . 1143 1144 
+
+It should be noted that " tallest " here refers to the vertical 1145 
+
+height from sea level to the summit . If measured by other 1146 
+
+standards , such as the height from the base to the summit (1147 
+
+like Mauna Kea in Hawaii , which is about 10 ,203 meters from 1148 
+
+its submarine base to its summit ) , or the distance from 1149 
+
+the Earth ' s center to the summit ( like Mount Chimborazo 1150 
+
+near the equator ) , the results would differ . However , in 1151 
+
+common geographical contexts , the " tallest mountain " is 1152 
+
+usually based on altitude , so Mount Everest is recognized 1153 
+
+as the world ' s highest peak . 1154 1155 
+
+Modified Question (Explicitly Requesting Careful Thinking) 1156 
+
+User input: 1157 
+
+After careful consideration, answer: What is the tallest mountain 1158 
+
+in the world? 1159 
+
+Model response: 1160 1161 
+
+< think > 1162 
+
+This is a relatively difficult question ; I need to think before 1163 
+
+answering . 1164 
+
+The user is asking for the tallest mountain in the world . First 1165 
+
+, I need to determine the definition of " tallest ," as there 1166 
+
+are usually two standards : altitude ( height above sea 1167 
+
+level ) and height from base to summit . In terms of altitude 1168 
+
+, Mount Everest is recognized as the highest , located in 1169 
+
+the Himalayas , with an altitude of 8848.86 meters . However , 1170 
+
+if considering the height from base to summit , Mauna Kea 1171 
+
+in Hawaii might be taller , as its submarine portion is very 1172 
+
+long , making its total height over 10 ,000 meters . 1173 
+
+Generally , though , when people refer to the tallest 1174 
+
+mountain , they default to altitude , so the answer should be 1175 
+
+25 Mount Everest . I need to confirm if the user is aware of 1176 
+
+these two situations , but based on common questions , 1177 
+
+directly answering with Mount Everest is appropriate , while 1178 
+
+also briefly mentioning the other standard to make the 1179 
+
+answer more comprehensive . 1180 
+
+</ think > 1181 
+
+The tallest mountain in the world is usually measured by ** 1182 
+
+altitude ( height above sea level ) ** , and the answer is ** 1183 
+
+Mount Everest **. 1184 1185 
+
+Detailed Explanation : 1186 1187 
+
+Altitude : 1188 
+
+Mount Everest is located on the border between China and Nepal 1189 
+
+in the Himalayas . Its altitude is 8 ,848.86 meters ( latest 1190 
+
+measurement data jointly announced by China and Nepal in 1191 
+
+2020) . It is the mountain peak with the greatest vertical 1192 
+
+distance from sea level on Earth ' s surface and is widely 1193 
+
+recognized as the " world ' s highest peak ." 1194 1195 
+
+Other Measurement Standards : 1196 
+
+Height from Base to Summit : 1197 
+
+If calculated by " the vertical height from the mountain ' s base 1198 
+
+to its summit ," Mauna Kea in Hawaii is more prominent . The 1199 
+
+base of this submarine volcano is located about 5 ,998 1200 
+
+meters below the Pacific Ocean surface , and its height 1201 
+
+above sea level is 4 ,205 meters , resulting in a total 1202 
+
+height of about 10 ,203 meters , exceeding Mount Everest . 1203 
+
+However , because most of its mass is underwater , it is not 1204 
+
+usually considered the mountain with the " highest altitude 1205 
+
+." 1206 1207 
+
+Relative Height : 1208 
+
+Mount Gongga in Sichuan Province , China , is known for its " base 1209 
+
+- to - summit " relative height ( approximately 6 ,200 meters ) , 1210 
+
+but its altitude (7 ,556 meters ) is still lower than Mount 1211 
+
+Everest . 1212 1213 
+
+Summary : 1214 1215 
+
+Unless " height from base to summit " is specifically mentioned , 1216 
+
+" the world ' s tallest mountain " usually refers to Mount 1217 
+
+Everest . The authority of its altitude measurement stems 1218 
+
+from the consensus of the global geographic community and 1219 
+
+long - term measurement data . 1220 1221 
+
+## E Training and Testing Details 1222 
+
+This appendix provides further details on the experimental and testing configurations used in our 1223 
+
+study, complementing the setup described in Section 3.1 of the main paper. We outline the specifics 1224 
+
+of our Supervised Fine-Tuning (SFT), Reward Model (RM) training, Reinforcement Learning (RL) 1225 
+
+training, and evaluation settings. 1226 
+
+SFT Training 1227 
+
+We utilized a pre-trained model with a 15B/150B Mixture-of-Experts (MoE) architecture as our base 1228 
+
+model. All training cases were truncated to a maximum of 32,000 tokens. We employed a cosine 1229 
+
+26 decay learning rate schedule, with the peak learning rate set to 2 × 10 −5, gradually decaying to 1230 
+
+2 × 10 −6.1231 
+
+RM Training 1232 
+
+The Reward Model (RM) was initialized using the SFT model and subsequently trained on a diverse 1233 
+
+set of internally, human-annotated data. 1234 
+
+RL Training 1235 
+
+The dataset for Reinforcement Learning (RL) training was composed of two main types: 1236 
+
+• Verifiable data , which receives feedback from a verifier. This type of data allows for direct 1237 
+
+validation of the model’s outputs against known criteria. 1238 
+
+• General data , scored by our reward model. The reward model assigns scores based on how 1239 
+
+well the model’s responses align with human preferences. 1240 
+
+Testing 1241 
+
+For all evaluations, the inference temperature was set to 1.0 and top-p sampling was set to 0.7. Each 1242 
+
+test case was inferred at least 5 times, and the average score across these inferences was reported as 1243 
+
+the result for that case. 1244 
+
+Note on Data and Setup Disclosure 1245 
+
+We strive to be as transparent as possible regarding our methodology. However, due to proprietary 1246 
+
+considerations and company confidentiality policies, we are unable to disclose further specifics 1247 
+
+about the training dataset composition or more granular details of the training setup at this time. We 1248 
+
+appreciate the understanding of the research community and hope that the provided information is 1249 
+
+sufficient to contextualize our findings and facilitate the reproducibility of our core concepts. We are 1250 
+
+committed to contributing to the open exchange of scientific knowledge within the bounds of these 1251 
+
+constraints. 1252 
+
+27 NeurIPS Paper Checklist 1253 
+
+1. Claims 1254 
+
+Question: Do the main claims made in the abstract and introduction accurately reflect the 1255 
+
+paper’s contributions and scope? 1256 
+
+Answer: [Yes] 1257 
+
+Justification: Our main contributions are also detailed in Section 3, Section 4 and Ap-1258 
+
+pendix A. 1259 
+
+Guidelines: 1260 
+
+• The answer NA means that the abstract and introduction do not include the claims 1261 
+
+made in the paper. 1262 
+
+• The abstract and/or introduction should clearly state the claims made, including the 1263 
+
+contributions made in the paper and important assumptions and limitations. A No or 1264 
+
+NA answer to this question will not be perceived well by the reviewers. 1265 
+
+• The claims made should match theoretical and experimental results, and reflect how 1266 
+
+much the results can be expected to generalize to other settings. 1267 
+
+• It is fine to include aspirational goals as motivation as long as it is clear that these goals 1268 
+
+are not attained by the paper. 1269 
+
+2. Limitations 1270 
+
+Question: Does the paper discuss the limitations of the work performed by the authors? 1271 
+
+Answer: [Yes] 1272 
+
+Justification: We discuss the limitations of our work in Section 4.1. 1273 
+
+Guidelines: 1274 
+
+• The answer NA means that the paper has no limitation while the answer No means that 1275 
+
+the paper has limitations, but those are not discussed in the paper. 1276 
+
+• The authors are encouraged to create a separate "Limitations" section in their paper. 1277 
+
+• The paper should point out any strong assumptions and how robust the results are to 1278 
+
+violations of these assumptions (e.g., independence assumptions, noiseless settings, 1279 
+
+model well-specification, asymptotic approximations only holding locally). The authors 1280 
+
+should reflect on how these assumptions might be violated in practice and what the 1281 
+
+implications would be. 1282 
+
+• The authors should reflect on the scope of the claims made, e.g., if the approach was 1283 
+
+only tested on a few datasets or with a few runs. In general, empirical results often 1284 
+
+depend on implicit assumptions, which should be articulated. 1285 
+
+• The authors should reflect on the factors that influence the performance of the approach. 1286 
+
+For example, a facial recognition algorithm may perform poorly when image resolution 1287 
+
+is low or images are taken in low lighting. Or a speech-to-text system might not be 1288 
+
+used reliably to provide closed captions for online lectures because it fails to handle 1289 
+
+technical jargon. 1290 
+
+• The authors should discuss the computational efficiency of the proposed algorithms 1291 
+
+and how they scale with dataset size. 1292 
+
+• If applicable, the authors should discuss possible limitations of their approach to 1293 
+
+address problems of privacy and fairness. 1294 
+
+• While the authors might fear that complete honesty about limitations might be used by 1295 
+
+reviewers as grounds for rejection, a worse outcome might be that reviewers discover 1296 
+
+limitations that aren’t acknowledged in the paper. The authors should use their best 1297 
+
+judgment and recognize that individual actions in favor of transparency play an impor-1298 
+
+tant role in developing norms that preserve the integrity of the community. Reviewers 1299 
+
+will be specifically instructed to not penalize honesty concerning limitations. 1300 
+
+3. Theory assumptions and proofs 1301 
+
+Question: For each theoretical result, does the paper provide the full set of assumptions and 1302 
+
+a complete (and correct) proof? 1303 
+
+Answer: [NA] 1304 
+
+28 Justification: Our paper does not include theoretical results. 1305 
+
+Guidelines: 1306 
+
+• The answer NA means that the paper does not include theoretical results. 1307 
+
+• All the theorems, formulas, and proofs in the paper should be numbered and cross-1308 
+
+referenced. 1309 
+
+• All assumptions should be clearly stated or referenced in the statement of any theorems. 1310 
+
+• The proofs can either appear in the main paper or the supplemental material, but if 1311 
+
+they appear in the supplemental material, the authors are encouraged to provide a short 1312 
+
+proof sketch to provide intuition. 1313 
+
+• Inversely, any informal proof provided in the core of the paper should be complemented 1314 
+
+by formal proofs provided in appendix or supplemental material. 1315 
+
+• Theorems and Lemmas that the proof relies upon should be properly referenced. 1316 
+
+4. Experimental result reproducibility 1317 
+
+Question: Does the paper fully disclose all the information needed to reproduce the main ex-1318 
+
+perimental results of the paper to the extent that it affects the main claims and/or conclusions 1319 
+
+of the paper (regardless of whether the code and data are provided or not)? 1320 
+
+Answer: [Yes] 1321 
+
+Justification: In Section 3 and Appendix E, we have provided comprehensive and detailed 1322 
+
+descriptions of our proposed methods and clearly outlined our experimental setup. 1323 
+
+Guidelines: 1324 
+
+• The answer NA means that the paper does not include experiments. 1325 
+
+• If the paper includes experiments, a No answer to this question will not be perceived 1326 
+
+well by the reviewers: Making the paper reproducible is important, regardless of 1327 
+
+whether the code and data are provided or not. 1328 
+
+• If the contribution is a dataset and/or model, the authors should describe the steps taken 1329 
+
+to make their results reproducible or verifiable. 1330 
+
+• Depending on the contribution, reproducibility can be accomplished in various ways. 1331 
+
+For example, if the contribution is a novel architecture, describing the architecture fully 1332 
+
+might suffice, or if the contribution is a specific model and empirical evaluation, it may 1333 
+
+be necessary to either make it possible for others to replicate the model with the same 1334 
+
+dataset, or provide access to the model. In general. releasing code and data is often 1335 
+
+one good way to accomplish this, but reproducibility can also be provided via detailed 1336 
+
+instructions for how to replicate the results, access to a hosted model (e.g., in the case 1337 
+
+of a large language model), releasing of a model checkpoint, or other means that are 1338 
+
+appropriate to the research performed. 1339 
+
+• While NeurIPS does not require releasing code, the conference does require all submis-1340 
+
+sions to provide some reasonable avenue for reproducibility, which may depend on the 1341 
+
+nature of the contribution. For example 1342 
+
+(a) If the contribution is primarily a new algorithm, the paper should make it clear how 1343 
+
+to reproduce that algorithm. 1344 
+
+(b) If the contribution is primarily a new model architecture, the paper should describe 1345 
+
+the architecture clearly and fully. 1346 
+
+(c) If the contribution is a new model (e.g., a large language model), then there should 1347 
+
+either be a way to access this model for reproducing the results or a way to reproduce 1348 
+
+the model (e.g., with an open-source dataset or instructions for how to construct 1349 
+
+the dataset). 1350 
+
+(d) We recognize that reproducibility may be tricky in some cases, in which case 1351 
+
+authors are welcome to describe the particular way they provide for reproducibility. 1352 
+
+In the case of closed-source models, it may be that access to the model is limited in 1353 
+
+some way (e.g., to registered users), but it should be possible for other researchers 1354 
+
+to have some path to reproducing or verifying the results. 1355 
+
+5. Open access to data and code 1356 
+
+Question: Does the paper provide open access to the data and code, with sufficient instruc-1357 
+
+tions to faithfully reproduce the main experimental results, as described in supplemental 1358 
+
+material? 1359 
+
+29 Answer: [No] 1360 
+
+Justification: Due to company privacy restrictions, the internal data and code utilized in 1361 
+
+this work cannot be openly shared. Thus, the paper does not provide open access to data 1362 
+
+and code or instructions for their reproduction in the supplemental materials. However, the 1363 
+
+methods and experimental setups are clearly and thoroughly described within the main text. 1364 
+
+Guidelines: 1365 
+
+• The answer NA means that paper does not include experiments requiring code. 1366 
+
+• Please see the NeurIPS code and data submission guidelines ( https://nips.cc/ 1367 
+
+public/guides/CodeSubmissionPolicy ) for more details. 1368 
+
+• While we encourage the release of code and data, we understand that this might not be 1369 
+
+possible, so “No” is an acceptable answer. Papers cannot be rejected simply for not 1370 
+
+including code, unless this is central to the contribution (e.g., for a new open-source 1371 
+
+benchmark). 1372 
+
+• The instructions should contain the exact command and environment needed to run to 1373 
+
+reproduce the results. See the NeurIPS code and data submission guidelines ( https: 1374 
+
+//nips.cc/public/guides/CodeSubmissionPolicy ) for more details. 1375 
+
+• The authors should provide instructions on data access and preparation, including how 1376 
+
+to access the raw data, preprocessed data, intermediate data, and generated data, etc. 1377 
+
+• The authors should provide scripts to reproduce all experimental results for the new 1378 
+
+proposed method and baselines. If only a subset of experiments are reproducible, they 1379 
+
+should state which ones are omitted from the script and why. 1380 
+
+• At submission time, to preserve anonymity, the authors should release anonymized 1381 
+
+versions (if applicable). 1382 
+
+• Providing as much information as possible in supplemental material (appended to the 1383 
+
+paper) is recommended, but including URLs to data and code is permitted. 1384 
+
+6. Experimental setting/details 1385 
+
+Question: Does the paper specify all the training and test details (e.g., data splits, hyper-1386 
+
+parameters, how they were chosen, type of optimizer, etc.) necessary to understand the 1387 
+
+results? 1388 
+
+Answer: [Yes] 1389 
+
+Justification: We show our training details in Section 3 and Appendix E. 1390 
+
+Guidelines: 1391 
+
+• The answer NA means that the paper does not include experiments. 1392 
+
+• The experimental setting should be presented in the core of the paper to a level of detail 1393 
+
+that is necessary to appreciate the results and make sense of them. 1394 
+
+• The full details can be provided either with the code, in appendix, or as supplemental 1395 
+
+material. 1396 
+
+7. Experiment statistical significance 1397 
+
+Question: Does the paper report error bars suitably and correctly defined or other appropriate 1398 
+
+information about the statistical significance of the experiments? 1399 
+
+Answer: [Yes] 1400 
+
+Justification: All experiments have been conducted at least three times to ensure statistical 1401 
+
+robustness. 1402 
+
+Guidelines: 1403 
+
+• The answer NA means that the paper does not include experiments. 1404 
+
+• The authors should answer "Yes" if the results are accompanied by error bars, confi-1405 
+
+dence intervals, or statistical significance tests, at least for the experiments that support 1406 
+
+the main claims of the paper. 1407 
+
+• The factors of variability that the error bars are capturing should be clearly stated (for 1408 
+
+example, train/test split, initialization, random drawing of some parameter, or overall 1409 
+
+run with given experimental conditions). 1410 
+
+30 • The method for calculating the error bars should be explained (closed form formula, 1411 
+
+call to a library function, bootstrap, etc.) 1412 
+
+• The assumptions made should be given (e.g., Normally distributed errors). 1413 
+
+• It should be clear whether the error bar is the standard deviation or the standard error 1414 
+
+of the mean. 1415 
+
+• It is OK to report 1-sigma error bars, but one should state it. The authors should 1416 
+
+preferably report a 2-sigma error bar than state that they have a 96% CI, if the hypothesis 1417 
+
+of Normality of errors is not verified. 1418 
+
+• For asymmetric distributions, the authors should be careful not to show in tables or 1419 
+
+figures symmetric error bars that would yield results that are out of range (e.g. negative 1420 
+
+error rates). 1421 
+
+• If error bars are reported in tables or plots, The authors should explain in the text how 1422 
+
+they were calculated and reference the corresponding figures or tables in the text. 1423 
+
+8. Experiments compute resources 1424 
+
+Question: For each experiment, does the paper provide sufficient information on the com-1425 
+
+puter resources (type of compute workers, memory, time of execution) needed to reproduce 1426 
+
+the experiments? 1427 
+
+Answer: [No] 1428 
+
+Justification: Due to company confidentiality constraints, details regarding the computa-1429 
+
+tional resources used for running experiments, such as computing hardware types, memory 1430 
+
+specifications, and execution time, cannot be publicly disclosed. 1431 
+
+Guidelines: 1432 
+
+• The answer NA means that the paper does not include experiments. 1433 
+
+• The paper should indicate the type of compute workers CPU or GPU, internal cluster, 1434 
+
+or cloud provider, including relevant memory and storage. 1435 
+
+• The paper should provide the amount of compute required for each of the individual 1436 
+
+experimental runs as well as estimate the total compute. 1437 
+
+• The paper should disclose whether the full research project required more compute 1438 
+
+than the experiments reported in the paper (e.g., preliminary or failed experiments that 1439 
+
+didn’t make it into the paper). 1440 
+
+9. Code of ethics 1441 
+
+Question: Does the research conducted in the paper conform, in every respect, with the 1442 
+
+NeurIPS Code of Ethics https://neurips.cc/public/EthicsGuidelines ?1443 
+
+Answer: [Yes] 1444 
+
+Justification: We have considered all potential harms caused by the research process, societal 1445 
+
+impacts, and potential harmful consequences, as described in the NeurIPS Code of Ethics. 1446 
+
+Guidelines: 1447 
+
+• The answer NA means that the authors have not reviewed the NeurIPS Code of Ethics. 1448 
+
+• If the authors answer No, they should explain the special circumstances that require a 1449 
+
+deviation from the Code of Ethics. 1450 
+
+• The authors should make sure to preserve anonymity (e.g., if there is a special consid-1451 
+
+eration due to laws or regulations in their jurisdiction). 1452 
+
+10. Broader impacts 1453 
+
+Question: Does the paper discuss both potential positive societal impacts and negative 1454 
+
+societal impacts of the work performed? 1455 
+
+Answer: [NA] 1456 
+
+Justification: No datasets or checkpoints are released in this paper. 1457 
+
+Guidelines: 1458 
+
+• The answer NA means that there is no societal impact of the work performed. 1459 
+
+• If the authors answer NA or No, they should explain why their work has no societal 1460 
+
+impact or why the paper does not address societal impact. 1461 
+
+31 • Examples of negative societal impacts include potential malicious or unintended uses 1462 
+
+(e.g., disinformation, generating fake profiles, surveillance), fairness considerations 1463 
+
+(e.g., deployment of technologies that could make decisions that unfairly impact specific 1464 
+
+groups), privacy considerations, and security considerations. 1465 
+
+• The conference expects that many papers will be foundational research and not tied 1466 
+
+to particular applications, let alone deployments. However, if there is a direct path to 1467 
+
+any negative applications, the authors should point it out. For example, it is legitimate 1468 
+
+to point out that an improvement in the quality of generative models could be used to 1469 
+
+generate deepfakes for disinformation. On the other hand, it is not needed to point out 1470 
+
+that a generic algorithm for optimizing neural networks could enable people to train 1471 
+
+models that generate Deepfakes faster. 1472 
+
+• The authors should consider possible harms that could arise when the technology is 1473 
+
+being used as intended and functioning correctly, harms that could arise when the 1474 
+
+technology is being used as intended but gives incorrect results, and harms following 1475 
+
+from (intentional or unintentional) misuse of the technology. 1476 
+
+• If there are negative societal impacts, the authors could also discuss possible mitigation 1477 
+
+strategies (e.g., gated release of models, providing defenses in addition to attacks, 1478 
+
+mechanisms for monitoring misuse, mechanisms to monitor how a system learns from 1479 
+
+feedback over time, improving the efficiency and accessibility of ML). 1480 
+
+11. Safeguards 1481 
+
+Question: Does the paper describe safeguards that have been put in place for responsible 1482 
+
+release of data or models that have a high risk for misuse (e.g., pretrained language models, 1483 
+
+image generators, or scraped datasets)? 1484 
+
+Answer: [NA] 1485 
+
+Justification: Not Applicable. 1486 
+
+Guidelines: 1487 
+
+• The answer NA means that the paper poses no such risks. 1488 
+
+• Released models that have a high risk for misuse or dual-use should be released with 1489 
+
+necessary safeguards to allow for controlled use of the model, for example by requiring 1490 
+
+that users adhere to usage guidelines or restrictions to access the model or implementing 1491 
+
+safety filters. 1492 
+
+• Datasets that have been scraped from the Internet could pose safety risks. The authors 1493 
+
+should describe how they avoided releasing unsafe images. 1494 
+
+• We recognize that providing effective safeguards is challenging, and many papers do 1495 
+
+not require this, but we encourage authors to take this into account and make a best 1496 
+
+faith effort. 1497 
+
+12. Licenses for existing assets 1498 
+
+Question: Are the creators or original owners of assets (e.g., code, data, models), used in 1499 
+
+the paper, properly credited and are the license and terms of use explicitly mentioned and 1500 
+
+properly respected? 1501 
+
+Answer: [Yes] 1502 
+
+Justification: We cite all the sources that inspired our work, and we make sure that all the 1503 
+
+resources(e.g. evaluation datasets) are open-sourced and permitted for academic using. 1504 
+
+Guidelines: 1505 
+
+• The answer NA means that the paper does not use existing assets. 1506 
+
+• The authors should cite the original paper that produced the code package or dataset. 1507 
+
+• The authors should state which version of the asset is used and, if possible, include a 1508 
+
+URL. 1509 
+
+• The name of the license (e.g., CC-BY 4.0) should be included for each asset. 1510 
+
+• For scraped data from a particular source (e.g., website), the copyright and terms of 1511 
+
+service of that source should be provided. 1512 
+
+32 • If assets are released, the license, copyright information, and terms of use in the 1513 
+
+package should be provided. For popular datasets, paperswithcode.com/datasets 1514 
+
+has curated licenses for some datasets. Their licensing guide can help determine the 1515 
+
+license of a dataset. 1516 
+
+• For existing datasets that are re-packaged, both the original license and the license of 1517 
+
+the derived asset (if it has changed) should be provided. 1518 
+
+• If this information is not available online, the authors are encouraged to reach out to 1519 
+
+the asset’s creators. 1520 
+
+13. New assets 1521 
+
+Question: Are new assets introduced in the paper well documented and is the documentation 1522 
+
+provided alongside the assets? 1523 
+
+Answer: [NA] 1524 
+
+Justification: We don’t release any new asset in our paper. 1525 
+
+Guidelines: 1526 
+
+• The answer NA means that the paper does not release new assets. 1527 
+
+• Researchers should communicate the details of the dataset/code/model as part of their 1528 
+
+submissions via structured templates. This includes details about training, license, 1529 
+
+limitations, etc. 1530 
+
+• The paper should discuss whether and how consent was obtained from people whose 1531 
+
+asset is used. 1532 
+
+• At submission time, remember to anonymize your assets (if applicable). You can either 1533 
+
+create an anonymized URL or include an anonymized zip file. 1534 
+
+14. Crowdsourcing and research with human subjects 1535 
+
+Question: For crowdsourcing experiments and research with human subjects, does the paper 1536 
+
+include the full text of instructions given to participants and screenshots, if applicable, as 1537 
+
+well as details about compensation (if any)? 1538 
+
+Answer: [NA] 1539 
+
+Justification: Our paper does not involve crowdsourcing nor research with human. 1540 
+
+Guidelines: 1541 
+
+• The answer NA means that the paper does not involve crowdsourcing nor research with 1542 
+
+human subjects. 1543 
+
+• Including this information in the supplemental material is fine, but if the main contribu-1544 
+
+tion of the paper involves human subjects, then as much detail as possible should be 1545 
+
+included in the main paper. 1546 
+
+• According to the NeurIPS Code of Ethics, workers involved in data collection, curation, 1547 
+
+or other labor should be paid at least the minimum wage in the country of the data 1548 
+
+collector. 1549 
+
+15. Institutional review board (IRB) approvals or equivalent for research with human 1550 
+
+subjects 1551 
+
+Question: Does the paper describe potential risks incurred by study participants, whether 1552 
+
+such risks were disclosed to the subjects, and whether Institutional Review Board (IRB) 1553 
+
+approvals (or an equivalent approval/review based on the requirements of your country or 1554 
+
+institution) were obtained? 1555 
+
+Answer: [NA] 1556 
+
+Justification: Our paper does not involve crowdsourcing nor research with human subjects. 1557 
+
+Guidelines: 1558 
+
+• The answer NA means that the paper does not involve crowdsourcing nor research with 1559 
+
+human subjects. 1560 
+
+• Depending on the country in which research is conducted, IRB approval (or equivalent) 1561 
+
+may be required for any human subjects research. If you obtained IRB approval, you 1562 
+
+should clearly state this in the paper. 1563 
+
+33 • We recognize that the procedures for this may vary significantly between institutions 1564 
+
+and locations, and we expect authors to adhere to the NeurIPS Code of Ethics and the 1565 
+
+guidelines for their institution. 1566 
+
+• For initial submissions, do not include any information that would break anonymity (if 1567 
+
+applicable), such as the institution conducting the review. 1568 
+
+16. Declaration of LLM usage 1569 
+
+Question: Does the paper describe the usage of LLMs if it is an important, original, or 1570 
+
+non-standard component of the core methods in this research? Note that if the LLM is used 1571 
+
+only for writing, editing, or formatting purposes and does not impact the core methodology, 1572 
+
+scientific rigorousness, or originality of the research, declaration is not required. 1573 
+
+Answer: [NA] 1574 
+
+Justification: The core method development in our paper does not involve LLMs as any 1575 
+
+important, original, or non-standard components. 1576 
+
+Guidelines: 1577 
+
+• The answer NA means that the core method development in this research does not 1578 
+
+involve LLMs as any important, original, or non-standard components. 1579 
+
+• Please refer to our LLM policy ( https://neurips.cc/Conferences/2025/LLM )1580 
+
+for what should or should not be described. 1581 
+
+34
