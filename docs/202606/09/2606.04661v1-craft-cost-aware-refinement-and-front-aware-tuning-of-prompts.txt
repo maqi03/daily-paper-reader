@@ -1,0 +1,1342 @@
+Title: CRAFT: Cost-aware Refinement And Front-aware Tuning of Prompts
+
+URL Source: https://arxiv.org/pdf/2606.04661v1
+
+Published Time: Thu, 04 Jun 2026 00:51:14 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+> CRAFT
+
+# : Cost-aware Refinement And Front-aware Tuning of Prompts 
+
+Shanu Kumar 1, Shubhanshu Khandelwal 2, Akhila Yesantarao Venkata 2,Parag Agrawal 2, Yova Kementchedjhieva 1, Manish Gupta 21MBZUAI 2Microsoft 
+
+> {shanu.kumar,yova.kementchedjhieva}@mbzuai.ac.ae {shukhand,akyesant,paragag,gmanish}@microsoft.com
+
+Abstract 
+
+Prompts tuned for accuracy often grow long, raising inference cost on every model call. The best accuracy-cost trade-off depends on the task and the budget, so prompt optimization is a search over the Pareto front of accuracy and prompt-token cost rather than for one prompt. The usual shortcut, collapsing the objectives into a weighted sum, fixes the trade-off weight before search and often recovers only a narrow region of the front, a failure we call scalar-ization collapse . We present CRAFT (Cost-aware Refinement And Front-aware Tuning), a Pareto-front prompt optimizer that treats target-LLM validation calls as the scarce resource and allocates them to candidates near the op-timistic candidate front. Each round, comple-mentary accuracy-oriented and cost-oriented generators propose edits, Pareto-gap acquisi-tion spends the per-round validation budget, and NSGA-II retention keeps a spread-out pop-ulation. Across six classification and reason-ing benchmarks, CRAFT ’s retained fronts reach both high-accuracy and low-cost regions, while accuracy-only, cost-only, and weighted-sum baselines each concentrate in narrower regions. The accuracy-cost trade-off becomes a post-search choice, not a pre-search weight. 
+
+1 Introduction 
+
+Large language models (LLMs) are adapted to downstream tasks by tuning the natural-language prompt fed to the model (Ramnath et al., 2025). Longer, more structured prompts cost more per call, and small edits change predictions dispropor-tionately (Jiang et al., 2020; Zhao et al., 2021), motivating automatic prompt optimization. Prior work splits along two paths. Accuracy-oriented optimizers, e.g., OPRO (Yang et al., 2024),  
+
+> ProTeGi
+
+(Pryzant et al., 2023), SCULPT (Kumar et al., 2025), and EvoPrompt (Guo et al., 2024), maxi-mize task accuracy; prompt-compression methods, e.g., Gist tokens (Mu et al., 2023), LLMLingua and 10 36 × 10 2 2 × 10 3
+
+> Prompt length (tokens, log scale)
+> 0.52
+> 0.54
+> 0.56
+> 0.58
+> 0.60
+> 0.62
+> 0.64
+> Task accuracy
+> Initial
+> CRAFT (ours)
+> Sculpt
+> WPRO 0.5
+> LLMLingua
+> Initial
+
+Figure 1: Accuracy-cost trade-off on BeaverTails.  
+
+> SCULPT
+
+(accuracy-only), LLMLingua (cost-only), and  
+
+> WPRO 0.5
+
+(weighted-sum) each collapse to a narrow region of the front. CRAFT (ours) covers both high-accuracy and low-token regions of the front. 
+
+> LLMLingua
+
+-2 (Jiang et al., 2023; Pan et al., 2024), reduce token count to lower per-call inference cost (Chen et al., 2024). Both lines treat a prompt as good or bad along one axis, yet two prompts of similar accuracy but different lengths are not equiv-alent: each extra token adds to inference cost on every model call, so accuracy and cost are coupled. This creates a multi-objective prompt-optimization problem. The objectives often conflict: higher accuracy tends to require more detailed prompts, while lower cost favors concise ones. The relationship between prompt text and both accuracy and cost is non-convex, and the prompt space is discrete (Wen et al., 2024; Jiang et al., 2020; Zhao et al., 2021), so the trade-off surface contains regions that a fixed scalar reward misses (Das and Dennis, 1997). We instead optimize the accuracy-cost Pareto front directly, defined as the set of prompts for which no other prompt is both more accurate and shorter. The algorithmic challenge is not merely choos-ing among evaluated trade-offs, but deciding what to evaluate: each candidate’s accuracy requires target-LLM validation calls, so the optimizer must 
+
+> arXiv:2606.04661v1 [cs.CL] 3 Jun 2026
+
+spend a per-round validation budget before the can-didate’s true front position is known. Optimizing a fixed scalar reward before search often recovers only a narrow region of the front, the scalariza-tion collapse above. We propose CRAFT (Cost-aware Refinement And Front-aware Tuning), a front-aware optimization loop: the refiner and con-denser generate edits with complementary accuracy and cost biases; Pareto-gap acquisition (Srinivas et al., 2009; Daulton et al., 2021) allocates the per-round validation budget to candidates near the opti-mistic candidate front; and Non-dominated Sorting Genetic Algorithm II (NSGA-II) retention (Deb et al., 2002) keeps a diverse validated population for the next round. Figure 1 illustrates the contrast: accuracy-only, cost-only, and weighted-sum base-lines each concentrate on a narrow region of the front, while CRAFT covers both ends. Our contributions are: (i) we formalize cost-aware prompt optimization as budgeted Pareto-front search over accuracy and prompt-token cost, where target-LLM validation calls govern which candidate trade-offs can be observed; (ii) we pro-pose CRAFT ,1 a front-aware framework that sep-arates candidate generation from validation allo-cation, using complementary accuracy-oriented and cost-oriented generators, Pareto-gap acquisi-tion, and NSGA-II retention as one budgeted loop; (iii) we show that accuracy-only, cost-only, and weighted-sum baselines concentrate in narrow re-gions of the front, while CRAFT retains feasible prompts across high-accuracy and low-cost parts of the front on six benchmarks and transfers across optimizer LLMs. 
+
+2 Related Work 
+
+Prompt Refinement. Prompt optimizers fall into four families, based on the optimization signal they use: (1) LLM-edit methods rewrite prompts via another LLM (Yang et al., 2024; Pryzant et al., 2023; Kumar et al., 2025), (2) gradient or program-based methods that propagate signal through dif-ferentiable or symbolic graphs (Yuksekgonul et al., 2025; Khattab et al., 2024), (3) RL-based methods (Deng et al., 2022), and (4) evolutionary mutation-and-selection methods (Guo et al., 2024; Fernando et al., 2024). Most operate on raw text tokens, which makes large structural edits hard to express. A small subset of refiners edit at the compile-time or tree-level abstraction (Schnabel and Neville,  
+
+> 1Code: https://github.com/Sshanu/CRAFT
+
+2024; Kumar et al., 2025). CRAFT builds on this structure-aware line, adopting SCULPT (Ku-mar et al., 2025) as its default refiner (§3.2) for its accuracy-oriented strength and treating it as swap-pable, with drop-in replacements tested in Table 1. 
+
+Prompt Compression. Token-level compressors drop low-information surface tokens to reduce length (Mu et al., 2023; Jiang et al., 2023; Pan et al., 2024). Because they operate below the level of in-structions or constraints, aggressive compression can remove task-critical content; this limits their value as a cost-oriented module inside a Pareto-front loop. A structure-aware compressor that ed-its the parsed prompt tree could avoid this fail-ure mode, but we are not aware of prior work in this direction; we introduce one ( DISTILL , §3.3) as 
+
+> CRAFT
+
+’s cost-oriented generator. 
+
+Multi-Objective Prompt Optimization. Exist-ing multi-objective prompt optimizers (Jafari et al., 2024; Menchaca Resendiz and Klinger, 2025; Zhao et al., 2025; Yang and Li, 2023; Agrawal et al., 2026) optimize multi-objective rewards, but they do not study front construction when each candi-date’s accuracy must be estimated with target-LLM validation calls and a fixed budget can cover only part of the discrete prompt set. CRAFT targets that budgeted front-construction setting for accuracy versus prompt-token cost. The closest cost-aware optimizer is CAPO (Cost-Aware Prompt Optimiza-tion) (Zehle et al., 2025); we adapt its fixed-weight scalarization as our WPRO baseline; the resulting scalarization collapse is shown in Figure 1. 
+
+Multi-Objective Bayesian Optimization and Cost-Aware Inference. Multi-objective Bayesian optimization (Knowles, 2006; Srinivas et al., 2009; Daulton et al., 2021) frames our problem but assumes numerical design spaces and Gaussian-process surrogates, neither available for discrete text; an acquisition rule on partial-validation scores is needed instead. Cost-aware LLM inference (Chen et al., 2024; Yue et al., 2024) routes inputs across models at inference time and is orthogonal to prompt optimization. 
+
+3 The CRAFT Framework  
+
+> CRAFT
+
+maintains a small population of prompts and, round by round, reshapes it into an approx-imation of the accuracy-cost Pareto front. Each round has three steps: a structure-aware refiner and condenser propose new candidates (§3.2, §3.3); Initial population Pt−1  
+
+> Retained population PtRefiner
+> Sculpt
+> Condenser
+> Distill
+> Pareto-gap Acquisition (UCB)
+> NSGA-II Selector
+> carry-over
+> nR
+> nC
+> Qt
+> k
+> retained
+> Iterate ( Rrounds)
+
+Figure 2: CRAFT framework. Each round, the refiner and condenser generate new candidates from the previous population Pt−1; Pareto-gap acquisition validates them under the per-round validation budget; the NSGA-II selector retains a non-dominated, spread-out population Pt for the next round. The loop repeats for R rounds. 
+
+a Pareto-gap acquisition function spends the per-round validation budget on the candidates near the optimistic candidate front (§3.4); and a population selector keeps k prompts spread across the front for the next round (§3.5). Figure 2 shows the loop. 
+
+3.1 Problem Formulation 
+
+We cast prompt optimization as a bi-objective search over a task-accuracy score and a prompt-token cost. Let Dval and Dtest be the validation and held-out test sets, of sizes Nval and Ntest . For a prompt P and a subset V ⊆ D val , p(P ; V) is the task score on V. For a candidate Pi we write 
+
+pi = p(Pi; Dval ) for its full-validation score (the objective that search ultimately optimizes), and 
+
+ci = c(Pi) for its cost, the number of prompt to-kens, excluding example inputs and model outputs. During search pi is estimated from partial valida-tion (§3.4), while held-out test scores are reserved for final reporting (Appendix B.1). The two ob-jectives are in tension, so no single prompt is uni-formly best. A prompt Pi dominates Pj , written 
+
+Pi ≻ Pj , if it is no worse on both objectives and strictly better on one: pi ≥ pj and ci ≤ cj , with at least one strict inequality. The prompts of a set 
+
+C that no other prompt dominates form its Pareto-optimal set C∗, and CRAFT ’s goal is to approximate 
+
+C∗ over the discrete space of LLM prompts under a fixed budget of LLM calls per round.  
+
+> CRAFT
+
+builds this approximation iteratively, starting from a single hand-written prompt. Round 
+
+t opens with a retained population Pt−1 of k
+
+prompts. The refiner and condenser expand it into a candidate set Qt; the acquisition function validates a budgeted subset of Qt; and the selector keeps k
+
+validated prompts as the next population Pt. After 
+
+R rounds, PR is the returned front approximation. 
+
+3.2 Refiner  
+
+> CRAFT
+
+draws candidates from two modules with opposite biases. Optimizing accuracy alone inflates prompts; optimizing cost alone strips away task sig-nal. An accuracy-oriented refiner (this subsection) targets higher task accuracy, and a cost-oriented 
+
+condenser (§3.3) targets lower prompt-token cost; keeping both in the population lets the selector trade the two off. The refiner is any accuracy-oriented prompt optimizer compatible with the per-round budget interface; SCULPT , OPRO , and Evo-Prompt are all interchangeable in this role. We use  
+
+> SCULPT
+
+as the default for two reasons: prior work shows it generalizes across a broader set of bench-marks than OPRO (Kumar et al., 2025), and its tree-level edits are precise and stable. SCULPT ’s critic-actor scaffold (Appendix A.3, Figure 8) parses the prompt into a hierarchical tree of sections, rules, and examples; a critic-actor pair edits that tree by reordering, elaborating, or clarifying nodes, emit-ting up to nR variants per prompt each round. Prompt templates and hyperparameters for SCULPT ,
+
+> OPRO
+
+, and EvoPrompt are listed in Appendix A.3. 
+
+3.3 Condenser 
+
+The condenser lowers prompt-token cost while preserving task-relevant instructions. Our default  
+
+> DISTILL
+
+reuses SCULPT ’s critic-actor scaffold for its precision and stability, making it structure-aware by design. Token-level compressors such as 
+
+> LLMLingua
+
+-2 drop low-information surface tokens and can discard task-critical instructions; DISTILL 
+
+instead edits the parsed prompt tree: the critic flags redundant or verbose substructures, and the actor applies the tree-level edits listed in Table 6, which update, delete, or merge nodes. Each round, ev-ery prompt is condensed at nC compression ratios sampled from a fixed interval (Appendix A.3). normalized cost ˜ c        
+
+> normalized score
+> optimistic front F+
+> t
+> Pi
+> Py
+> ∆˜ c
+> ∆˜ pPareto gap gi
+> mean μi
+> arrow = βtσi
+> tip = μi+βtσi(UCB)
+
+Figure 3: Pareto-gap acquisition geometry. Dots mark candidate means at normalized cost ˜ci; grey arrows extend means by βtσi,t to UCB tips at optimistic score 
+
+˜pi,t . Orange tips form the optimistic candidate front 
+
+F+ 
+
+> t
+
+; pink tips lie below it. For candidate Pi, the dashed L-shape to nearest front tip Py has length gi = ∆˜ c+∆˜ p.
+
+3.4 Pareto-Gap Acquisition Function 
+
+Candidate generation by the refiner and condenser uses optimizer-LLM calls, but it is cheaper than scoring many candidates with target-LLM calls over validation examples. Scoring every prompt in Qt on all of Dval would consume the per-round validation budget many times over. CRAFT there-fore validates a budgeted subset each round and scores each selected candidate on the current val-idation subset. We partition Dval once into T
+
+subsets {V j }Tj=1 by k-means clustering; round 
+
+t uses subset Vπ(t), cycling through them with 
+
+π(t) = (( t − 1) mod T ) + 1 . This shrinks per-validation cost by a factor of T ; subset sizes and the rotation schedule are detailed in Appendix A.4. Because the true Pareto front is unknown during search, CRAFT spends the per-round validation bud-get optimistically . For each candidate Pi it keeps a running mean μi,t and standard deviation σi,t of the per-example scores observed so far (formulas in Appendix A.2.2), and combines them into an Upper Confidence Bound (UCB) score p+ 
+
+> i,t
+
+= μi,t +βtσi,t .A candidate with few observations has a large σi,t ,so it is judged as if its true score sat at the opti-mistic end of its plausible range. The weight βt
+
+falls linearly from near 1 in the first round to 0.5
+
+in the last, tilting the search from exploration to-ward exploitation. A brand-new candidate has no observations at all (we initialize μi,t =0 , σi,t =1 ), so it receives the default exploratory score βt. We denote by Si,t the observation set of Pi, i.e., the validation examples on which it has been scored 
+
+Algorithm 1 Pareto-Gap UCB Acquisition                                                                    
+
+> Require: Current candidates Qt, means {μi,t }, empirical stds {σi,t }, costs {ci}, observation sets {S i,t }, validation batch size B, round t, subset count T
+> Ensure: Evaluation batch Etwith |E t| ≤ B
+> 1: Compute βtand p+
+> i,t =μi,t +βtσi,t for all Pi∈ Q t
+> 2: Min-max normalize {p+
+> i,t }and {ci}over Qtto obtain
+> (˜ pi,t ,˜ci)
+> 3: F+
+> t←PARETO FRONT
+>  {(˜ pi,t ,˜ci) : Pi∈ Q t}
+> 4: for each candidate Pi∈ Q tdo
+> 5: gi←min
+> Py∈F +
+> t
+> max(0 ,˜py,t −˜pi,t )+max(0 ,˜ci−˜cy)
+> 6: end for
+> 7: Sort Qtby ascending gi, then descending p+
+> i,t , then as-cending ci, then ascending |S i,t |, then stable prompt ID 8: return the first Bcandidates as Et
+
+through round t.The UCB score ranks candidates by their opti-mistic estimate alone; CRAFT also favors the ones that would extend the front . It pairs each UCB score with the candidate’s cost and min-max normalizes both over the current candidate set, placing Pi at 
+
+(˜ pi,t , ˜ci). In Figure 3, the non-dominated points, drawn as orange UCB tips, form a temporary, opti-mistic candidate front F+ 
+
+> t
+
+. The Pareto gap gi then measures how far an off-front candidate sits from 
+
+F+ 
+
+> t
+
+, as the Manhattan distance to the nearest front point within the dominated quadrant, shown as a dashed L-shape from Pi to its nearest front tip Py:
+
+gi = min 
+
+> y∈F +
+> t
+
+ max(0 , ˜py,t −˜pi,t ) + max(0 , ˜ci−˜cy) .
+
+A candidate already on the front has gi = 0 ; the smaller its gap, the more likely validating it is to improve the retained front. Brand-new candidates all share the UCB score βt, so among them the gap reduces to a preference for cheaper prompts until observations accrue. In Algorithm 1, we rank Qt
+
+by ascending gap and take the B smallest as the round’s validation batch Et. We set B = 2 k, twice the retained population, letting the selector pick a non-dominated, spread-out subset without inflating validation cost. After scoring, a batch-relative step prunes consistently weak candidates, sparing later rounds from re-exploring them (Appendix A.5). 
+
+3.5 Selector 
+
+Selection by a fixed scalar reward exhibits scalar-ization collapse . Instead, the selector retains a population that is non-dominated and spread out, so the k prompts carried to the next round span diverse accuracy-cost trade-offs. We use the non-dominated sorting of NSGA-II (Deb et al., 2002), which partitions candidates by their (μi, c i) pairs into successive Pareto fronts F1, F 2, . . . ; these fronts are admitted whole, best front first, until the population budget is reached (Appendix A.2.1). When admitting the next front would overflow the budget, the selector chooses among the candidates on that front (the boundary front Fj ) by a maximin spread rule (Gonzalez, 1985): starting from the two objective extremes of Fj (highest ˜μ and lowest ˜c), it iteratively admits the candidate that maximizes the minimum Euclidean distance to the already-admitted candidates of Fj in normalized (˜ μi, ˜ci)
+
+space, until k are filled, spreading the boundary-front picks across the accuracy-cost plane. Algo-rithm 2 and Figure 7 illustrate the selection process. 
+
+The Full Loop. Figure 2 shows the round-by-round loop. After R rounds CRAFT returns PR, a finite approximation to the accuracy-cost Pareto front; Table 4 in Appendix A.1 collects all sym-bols. Two choices set CRAFT apart from prior multi-objective prompt optimization: candidates come from complementary accuracy-oriented and cost-oriented generators rather than from one mutation source, and the front-relative gap decides which 
+
+candidates receive target-LLM validation in each round rather than allocating those validations by a scalar score over the candidate pool. 
+
+4 Experiments and Evaluation 
+
+4.1 Datasets 
+
+We evaluate CRAFT on six English classification and reasoning datasets: BeaverTails (Ji et al., 2023), GoEmotions (Demszky et al., 2020), and four BIG-Bench Hard tasks (DisambiguationQA, Causal Judgement, Formal Fallacies, Salient Translation) (Suzgun et al., 2023). We use the dataset abbrevia-tions BT, GoE, DQA, CJ, FF, and ST throughout. Initial prompts for each dataset follow the public release of Kumar et al. (2025) so that all methods start from the same point. Full per-dataset vali-dation/test sizes, task-score definitions, and task details are in Appendix B.1. 
+
+4.2 Setup  
+
+> CRAFT
+
+uses LLMs in two roles: an optimizer LLM 
+
+powers the critic and actor inside the refiner and condenser (i.e., it proposes prompt edits), and a 
+
+target LLM executes candidate prompts on valida-tion/test examples to score them. Main compar-isons, ablations, and the population-size sweep use 
+
+Algorithm 2 CRAFT Selection Procedure                                                                                    
+
+> Require: Candidates {(μi, c i)}2ki=1 , population size k
+> 1: Compute (˜ μi,˜ci)by min-max normalizing {μi},{ci}
+> 2: {F1, F 2, . . . }←
+> FAST NON DOMINATED SORT ({(μi, c i)})
+> 3: Pt← ∅ ;j←1
+> 4: while |P t|+|Fj| ≤ kdo
+> 5: Pt← P t∪Fj;j←j+ 1
+> 6: end while
+> 7: if |P t|< k then ▷partial fill from Fjby maximin spread 8: r←k− |P t|▷still to fill 9: S←up to min(2 , r )objective-extreme candidates of
+> Fj
+> 10: while |S|< r and Fj\S̸=∅do
+> 11: i∗←arg max
+> i∈Fj\S
+> min
+> s∈S∥(˜ μi,˜ci)−(˜ μs,˜cs)∥2
+> 12: S←S∪ { i∗}
+> 13: end while
+> 14: Pt← P t∪S
+> 15: end if
+> 16: return Pt
+
+OpenAI GPT-5 (Singh et al., 2025) as both opti-mizer and target; the cross-LLM study fixes the tar-get to GPT-5.4-mini and varies only the optimizer. The optimizer LLM uses temperature 0.7 to diver-sify generated candidates; the target LLM scores with temperature 0. The main method comparison averages two seeds; the ablation, population-size, and cross-LLM studies report a single seed. We set R = 8 for all method comparisons; di-agnostic figures use extended runs where noted, and §5 shows best score and hypervolume flatten near R = 8 . Per prompt in the current population, 
+
+> CRAFT
+
+’s refiner produces up to nR = 8 refined variants and its condenser nC = 4 condensed vari-ants; with population size k = 4 , full CRAFT gen-erates up to k(nR+nC ) new candidates per round and retains k prompts. B = 2 k candidates are validated per round on the round’s subset Vπ(t),costing B · |V π(t)| LLM calls. Across comparison groups we keep R, k, the validation-subset sched-ule, and B fixed; generation modules and score objectives vary by method as defined below. Target-validation compute is thus comparable; CRAFT ’s advantage shows up as wider front coverage and lower deployment-time prompt-token cost. 
+
+4.3 Variants and Baselines 
+
+We compare CRAFT with two baseline families and two component ablations. 
+
+Weighted-Sum Scalarization ( WPRO ). CAPO scalarizes accuracy against a length-penalty term using a hyperparameter γ fixed before search. Because accuracy and token-length ranges differ HV |F| IGD Best Mean Eff MinTok Comp.                                                      
+
+> CRAFT
+> WPRO 0.3
+> WPRO 0.5
+> WPRO 0.7
+> Sculpt
+> Distill
+> LLMLingua
+> Front Score Cost Overall
+> 2.3 2.8 2.5 2.2 2.5 3.7 3.8 2.9
+> 5.3 4.9 4.2 5.7 5.7 2.2 2.0 4.2
+> 5.0 2.2 4.2 4.1 4.5 3.6 3.9 3.9
+> 3.8 4.5 3.5 3.8 3.7 5.0 4.2 4.1
+> 2.7 3.9 6.2 2.8 2.7 6.5 6.5 4.5
+> 4.5 5.0 3.3 4.4 4.2 2.2 2.2 3.6
+> 4.3 4.7 4.2 5.0 4.8 4.9 5.4 4.8 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> 7
+> Mean rank ↓
+
+Figure 4: Mean rank across the six benchmarks at R=8 (lower is better). Columns report ranks rather than raw metric values; the left columns group per-metric ranks into front, score, and cost aspects, and the rightmost Overall 
+
+column is the composite rank with the three aspects weighted equally, lowest for CRAFT .
+
+across datasets, one fixed γ does not transfer; we address this by min-max-normalizing both axes over the current candidate set and taking a weighted sum, which we call WPRO . It scores each candidate 
+
+Pi by Score( Pi) = wp ˆpi + wcˆci, where ˆpi and 
+
+ˆci are normalized accuracy and token reduction (both larger-is-better; formulas in Appendix A.3). In WPRO , scalarization is used both when allocat-ing validation and when retaining the population. For acquisition, we replace Pareto-gap UCB with a weighted-sum UCB score over normalized opti-mistic accuracy and token reduction; for retention, we sort validated candidates by the corresponding weighted score over empirical mean accuracy and token reduction and keep the top k. The refiner, condenser, validation subsets, and per-round vali-dation batch size match CRAFT . Because the weight is still fixed before search, WPRO often recovers only a narrow region of the front (Figure 1), our empirical instance of scalarization collapse . We sweep wp ∈ { 0.3, 0.5, 0.7} with wc = 1 − wp
+
+to probe cost-leaning, balanced, and score-leaning regimes of the trade-off. 
+
+Single-Axis Baselines. Single-axis baselines run inside CRAFT ’s loop (same validation subsets and per-round budget) but use one generator family at a time and score-only acquisition/retention (Pryzant et al., 2023; Kumar et al., 2025), with no cost objective. Validation is allocated by score-only UCB, and the top k candidates by empirical mean task score are retained. SCULPT uses the accuracy-oriented refiner alone; DISTILL and LLMLingua use cost-oriented compression generators alone. Full setup details are in Appendix A.3. 
+
+Component Ablations of CRAFT . We isolate each generation module with two ablations: CRAFT -R keeps only the refiner ( SCULPT , no condenser), and CRAFT -C keeps only the condenser ( DISTILL ,no refiner). To probe how much the refiner mat-ters, we also run two alternate-refiner variants,  
+
+> CRAFT OPRO
+
+and CRAFT Evo , which replace the de-fault SCULPT refiner with OPRO and EvoPrompt re-spectively while keeping the condenser, acquisition, and selector unchanged. Unlike the single-axis baselines, these ablations keep CRAFT ’s Pareto-gap acquisition and NSGA-II selector. 
+
+4.4 Evaluation Metrics 
+
+At the default R = 8 snapshot, we report seven metrics covering score, cost, and front coverage. A prompt is feasible if its test score is at least 0.95 ×
+
+the initial-prompt test score; cost-leaning metrics use this filter to enforce the deployment floor below which cost savings are rarely worth the accuracy drop. This feasibility check is a reporting filter applied when computing metrics; it is not the in-loop pruning rule used during optimization (Ap-pendix A.5). The seven metrics are: Best score 
+
+(max task score in the retained population), Mean retained-population score (Mean in tables and fig-ures), Min feasible tokens (Tok), Peak efficiency 
+
+(Eff = Emax ; the score-per-token ratio reported in percent-score-points per 100 tokens, i.e., Emax =100 · pi∗ /c i∗ where i∗ = arg max i pi/c i), Hyper-volume HV (Zitzler and Thiele, 1999) relative to the initial prompt, Inverted Generational Dis-tance IGD (Bosman and Thierens, 2003) against the method-union front, and Front size |F| . Full per-metric definitions, the HV reference choice, and the method-union IGD justification are in Ap-pendix B.2. The composite rank aggregates per-metric ranks across three aspects of equal weight: front quality Aq = {HV , |F| , IGD }, score As =
+
+{best , mean }, and cost Ac = {Emax , tokens }.
+
+Composite( m) = 13|D|
+
+X
+
+> d∈D
+
+X
+
+> A
+
+rA(m, d ), (1) 200 300 400 500 
+
+> Tokens ↓
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> Accuracy ↑  Initial
+> preferred
+> 1
+> 4
+> 8
+> 12
+> Round
+
+Figure 5: CRAFT ’s retained set on DQA across rounds. Non-dominated points have darker outlines; dominated ones are smaller; the gold star marks the initial prompt. 
+
+where rA(m, d ) is the mean per-metric rank of method m on dataset d within aspect A.
+
+5 Results 
+
+Method Comparison. Figure 4 reports each method’s mean rank on every metric across the six datasets and aggregates them into the compos-ite rank (rightmost column). Figure 9 gives per-dataset composite ranks; Table 8 reports the abso-lute per-dataset values (Appendix C.1). The base-lines exhibit scalarization collapse . Single-axis baselines rank near the top of the axis they empha-size ( SCULPT 2nd on score, DISTILL 2nd on cost) but trail on the others, and LLMLingua fares worst because many of its compressed prompts fall be-low the feasibility threshold and lose even on cost. Weighted-sum baselines collapse along the trade-off weight: each WPRO variant leads the axis its weight favors but trails the other, and even the bal-anced WPRO 0.5 only reaches 3rd on the composite rank. CRAFT ranks 1st on the overall composite rank. It does not win every metric, placing 3rd on cost behind baselines with cost-oriented genera-tors, but maintains coverage of both high-accuracy and low-token regions: Figure 1 shows on BT that each baseline confines its retained set to one region while CRAFT ’s retained set covers both ends. Per-dataset rankings (Figure 9) further show this lead reflects robustness across the three aspects rather than dominance on any individual dataset. 
+
+Front Evolution. Figure 5 visualizes the prompts  
+
+> CRAFT
+
+selects across an extended 12-round DQA run, colored by round. The selected prompts move toward the upper-left region of high accuracy and low cost: later rounds (lighter) reach both higher ac-curacy and lower cost than the initial prompt (gold star), and each round’s non-dominated candidates spread along the trade-off rather than piling at a single corner. Per-metric trajectories across all six benchmarks (Appendix C.2) improve overall but non-monotonically, as refinement and condensa-tion alternately add and remove structure.                                                                         
+
+> Data Setting Best ↑Mean ↑Tok ↓Eff ↑HV ↑|F| ↑
+> BT CRAFT-R 63.0 61.5 1,013 6.2 62k 3
+> CRAFT-C 53.0 52.2 279 19.0 52k 1CRAFT 63.0 61.7 512 12.3 63k 3
+> CRAFT OPRO 59.0 57.3 590 9.5 57k 2CRAFT Evo 54.0 53.5 326 16.3 53k 1GoE CRAFT-R 41.0 40.5 2,130 1.9 39k 2CRAFT-C 32.0 31.0 400 8.0 31k 2CRAFT 37.0 35.0 563 6.6 36k 2CRAFT OPRO 38.0 36.8 318 11.3 38k 3
+> CRAFT Evo 36.0 34.8 455 7.3 35k 2
+
+Table 1: Ablation of CRAFT on BT and GoE. CRAFT -R retains the refiner only; CRAFT -C retains the condenser only. CRAFT OPRO and CRAFT Evo replace the default  
+
+> SCULPT
+
+refiner with OPRO and EvoPrompt . Front size counts feasible prompts only. 
+
+Ablation Study. To isolate the contribution of each generation module, we run two CRAFT vari-ants: CRAFT -R retains only the refiner; CRAFT -C re-tains only the condenser. CRAFT -R matches the full  
+
+> CRAFT
+
+on accuracy and front size, but its prompts grow to 1,013 tokens on BT and 2,130 on GoE, far longer than the full CRAFT (512 and 563 ), because the refiner has no cost counterweight. CRAFT -C produces the shortest prompts but reduces the best score by 10 points on BT and 5 on GoE, and on BT its front collapses to a single feasible prompt as aggressive compression pushes most variants below the feasibility threshold. Neither module suffices alone, since the refiner recovers accuracy but inflates length while the condenser shortens prompts but cannot recover score; only the full  
+
+> CRAFT
+
+balances both axes. 
+
+Impact of Refiner. Table 1 also reports two  
+
+> CRAFT
+
+variants that change only the refiner, re-placing SCULPT with OPRO or EvoPrompt while keep-ing the condenser, acquisition, and selector fixed.  
+
+> CRAFT OPRO
+
+matches or surpasses CRAFT on GoE while trailing on BT, plausibly because OPRO uses prior prompts and their validation scores to guide refinement. CRAFT Evo improves over the initial prompt on GoE but lags on BT. Together they show that CRAFT accommodates alternative refiners with-out retuning the loop, although the choice of refiner affects which dataset gains most. 0 2 4 6 8 10 12        
+
+> Optimization round
+> 40
+> 50
+> 60
+> Hypervolume (k) ↑
+> 0246810 12
+> Optimization round
+> 0.4
+> 0.5
+> 0.6
+> Best score ↑
+> BeaverTails GoEmotions
+
+Figure 6: CRAFT hypervolume ( ↑) and best score ( ↑)over rounds 0 to 12 on BT and GoE.                                                
+
+> Optimizer Best ↑Mean ↑Tok ↓Eff ↑HV ↑|F| ↑
+> Initial 36.5 36.5 794 4.6 n/a 1CRAFT 5.553.0 38.8 546 9.7 52k 4
+> CRAFT 5.451.0 35.5 562 9.1 50k 3CRAFT mini 48.0 34.8 573 8.4 46k 3CRAFT DS 51.0 36.0 502 10.2 51k 4
+> CRAFT Kimi 52.0 44.8 690 7.5 50k 3
+
+Table 2: Cross-LLM transfer on GoE with GPT-5.4-mini as the fixed target. Optimizer subscripts: 5.5 =GPT-5.5, 5.4 = GPT-5.4, mini = GPT-5.4-mini, DS = DeepSeek-V4 Flash, Kimi = Kimi-K2.5. 
+
+Cross-LLM Transfer. CRAFT ’s search operators depend on the optimizer LLM; the target LLM is held fixed while prompts are optimized. The main results use GPT-5 as both optimizer and tar-get. To study the impact of the optimizer LLM, we fix the target at GPT-5.4-mini and run CRAFT with five optimizers: GPT-5.5, GPT-5.4, GPT-5.4-mini, DeepSeek-V4 Flash (DeepSeek-AI, 2026), and Kimi-K2.5 (Team et al., 2026). On GoE (Table 2), every tested optimizer expands the front from the initial prompt, improving best score, peak effi-ciency, and hypervolume while reducing prompt-token cost, so CRAFT ’s gain is not tied to match-ing optimizer and target, and works across opti-mizer LLM families. Optimizer choice shifts which metric leads: GPT-5.5 leads on best score and hy-pervolume, DeepSeek-V4 Flash on prompt-token cost and peak efficiency, and Kimi-K2.5 on mean retained-population score, so CRAFT ’s front gains carry across optimizer families even when no one optimizer dominates every axis. 
+
+Impact of Round Budget. To justify the R = 8 
+
+default, we extend CRAFT to R=12 on BT and GoE and track hypervolume and best score round by round. In Figure 6, both metrics rise sharply early and flatten near R = 8 ; the four extra rounds bring oscillation rather than steady gains. Reporting at 
+
+R = 8 captures most progress while keeping cost comparable across baselines.                                                                    
+
+> Setting Best ↑Mean ↑Tok ↓Eff ↑HV ↑|F| ↑
+> BT, k=2 58.0 57.0 388 14.9 58k 2BT, k=4 63.0 61.7 512 12.3 63k 3BT, k=6 61.0 58.3 349 17.5 61k 4
+> BT, k=8 54.0 52.1 244 22.1 52k 2GoE, k=2 37.0 34.5 602 6.1 37k 2GoE, k=4 37.0 35.0 563 6.6 36k 2GoE, k=6 40.0 35.3 860 4.7 40k 3GoE, k=8 42.0 36.3 435 7.4 37k 4
+
+Table 3: Population-size ( k) sweep for CRAFT .
+
+Impact of Population Size. The retained-population size k sets how many prompts the op-timizer keeps each round. We use k = 4 as the default to leave room for high-accuracy, short, bal-anced, and intermediate prompts in the retained population. Table 3 sweeps k ∈ { 2, 4, 6, 8}: k = 2 
+
+is too small to cover both axes, while larger k
+
+trades peak accuracy for broader or cheaper fronts. The two datasets respond differently: BT peaks at 
+
+k = 4 on best score and hypervolume but reaches its lowest token count and highest efficiency at 
+
+k = 8 , while GoE improves nearly monotonically, winning best score, efficiency, and front size at 
+
+k = 8 . The best k therefore depends on whether score, cost, or front coverage matters most; k = 4 
+
+is a balanced default across all six benchmarks. 
+
+6 Conclusion 
+
+In summary, CRAFT demonstrates that cost-aware prompt optimization is more reliably addressed as Pareto-front search than as scalarized optimization. In our experiments, accuracy-only, cost-only, and weighted-sum baselines tend to concentrate in one region of the accuracy-cost front. CRAFT does not win every metric, yet it remains competitive on each of front quality, task score, and cost and pro-duces the strongest overall trade-offs, a balance that is preserved when the optimizer LLM is var-ied. The ablations show that the refiner and the condenser play complementary roles, since remov-ing either restricts the candidate set available to the acquisition function, and only their combina-tion provides the diversity needed to extend the front. The loop itself is not tied to SCULPT or to any fixed implementation of its components, so alter-native refiners or condensers can be plugged into the same front-aware procedure. CRAFT is there-fore most useful when the accuracy-cost trade-off is unknown a priori or varies across deployments. 7 Limitations  
+
+> CRAFT
+
+has several limitations. First, our evalua-tion is restricted to English classification and short-answer reasoning benchmarks. As a result, we cannot yet determine whether CRAFT generalizes to more open-ended generation settings, such as summarization, code generation, dialogue, or mul-tilingual prompting. Second, several aspects of our experimental setup remain fixed. While we vary the optimizer LLM (§5), the target model is kept within the OpenAI family. Evaluating CRAFT on non-OpenAI targets, such as Claude or Gemini, as well as open-source model families including Llama, Qwen, and Mistral, remains an important direction for future work. Similarly, we do not study smaller target models in the 1B–7B parame-ter range. Third, our main experiments use one default refiner and one default condenser, both powered by the same optimizer LLM. We partially exam-ine the role of the refiner by replacing SCULPT 
+
+with OPRO and EvoPrompt (§5). On the compres-sion side, LLMLingua -2 serves as a token-level al-ternative to DISTILL ; however, its relatively weak performance led us not to explore additional com-pressors within CRAFT . Future work could investi-gate history-aware compressors inspired by OPRO ,evolutionary compressors based on EvoPrompt , or alternative generator LLMs for both modules. Fi-nally, CRAFT assumes a minimally task-relevant initial prompt. Its behavior under very weak, un-derspecified, or adversarial initial prompts remains unexplored. 
+
+References 
+
+Lakshya A Agrawal, Shangyin Tan, Dilara Soylu, Noah Ziems, Rishi Khare, Krista Opsahl-Ong, Ar-nav Singhvi, Herumb Shandilya, Michael J Ryan, Meng Jiang, Christopher Potts, Koushik Sen, Alex Dimakis, Ion Stoica, Dan Klein, Matei Zaharia, and Omar Khattab. 2026. GEPA: Reflective prompt evo-lution can outperform reinforcement learning. In 
+
+The Fourteenth International Conference on Learn-ing Representations .Peter Auer, Nicolo Cesa-Bianchi, and Paul Fischer. 2002. Finite-time analysis of the multiarmed ban-dit problem. Machine learning , 47(2):235–256. Peter A. N. Bosman and Dirk Thierens. 2003. The balance between proximity and diversity in multiob-jective evolutionary algorithms. IEEE Transactions on Evolutionary Computation , 7(2):174–188. Lingjiao Chen, Matei Zaharia, and James Zou. 2024. FrugalGPT: How to use large language models while reducing cost and improving performance. Trans-actions on Machine Learning Research . Featured Certification. Indraneel Das and John E Dennis. 1997. A closer look at drawbacks of minimizing weighted sums of objectives for pareto set generation in multicri-teria optimization problems. Structural optimization ,14(1):63–69. Samuel Daulton, Maximilian Balandat, and Eytan Bak-shy. 2021. Parallel bayesian optimization of multiple noisy objectives with expected hypervolume improve-ment. In Advances in Neural Information Processing Systems , volume 34, pages 2187–2200. Curran Asso-ciates, Inc. Kalyanmoy Deb, Amrit Pratap, Sameer Agarwal, and TAMT Meyarivan. 2002. A fast and elitist multiob-jective genetic algorithm: Nsga-ii. IEEE transactions on evolutionary computation , 6(2):182–197. DeepSeek-AI. 2026. Deepseek-v4: Towards highly efficient million-token context intelligence. Dorottya Demszky, Dana Movshovitz-Attias, Jeongwoo Ko, Alan Cowen, Gaurav Nemade, and Sujith Ravi. 2020. GoEmotions: A dataset of fine-grained emo-tions. In Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics , pages 4040–4054, Online. Association for Computational Linguistics. Mingkai Deng, Jianyu Wang, Cheng-Ping Hsieh, Yi-han Wang, Han Guo, Tianmin Shu, Meng Song, Eric Xing, and Zhiting Hu. 2022. RLPrompt: Optimizing discrete text prompts with reinforcement learning. In Proceedings of the 2022 Conference on Empiri-cal Methods in Natural Language Processing , pages 3369–3391, Abu Dhabi, United Arab Emirates. As-sociation for Computational Linguistics. Chrisantha Fernando, Dylan Sunil Banarse, Henryk Michalewski, Simon Osindero, and Tim Rock-täschel. 2024. Promptbreeder: Self-referential self-improvement via prompt evolution. In Proceedings of the 41st International Conference on Machine Learning , volume 235 of Proceedings of Machine Learning Research , pages 13481–13544. PMLR. Teofilo F Gonzalez. 1985. Clustering to minimize the maximum intercluster distance. Theoretical com-puter science , 38:293–306. Qingyan Guo, Rui Wang, Junliang Guo, Bei Li, Kaitao Song, Xu Tan, Guoqing Liu, Jiang Bian, and Yujiu Yang. 2024. Connecting large language models with evolutionary algorithms yields powerful prompt opti-mizers. In The Twelfth International Conference on Learning Representations .Yasaman Jafari, Dheeraj Mekala, Rose Yu, and Taylor Berg-Kirkpatrick. 2024. MORL-prompt: An empiri-cal analysis of multi-objective reinforcement learning for discrete prompt optimization. In Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 9878–9889, Miami, Florida, USA. Asso-ciation for Computational Linguistics. Jiaming Ji, Mickel Liu, Josef Dai, Xuehai Pan, Chi Zhang, Ce Bian, Boyuan Chen, Ruiyang Sun, Yizhou Wang, and Yaodong Yang. 2023. Beavertails: To-wards improved safety alignment of llm via a human-preference dataset. Advances in Neural Information Processing Systems , 36:24678–24704. Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang, and Lili Qiu. 2023. LLMLingua: Compressing prompts for accelerated inference of large language models. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Process-ing , pages 13358–13376, Singapore. Association for Computational Linguistics. Zhengbao Jiang, Frank F. Xu, Jun Araki, and Graham Neubig. 2020. How can we know what language models know? Transactions of the Association for Computational Linguistics , 8:423–438. Omar Khattab, Arnav Singhvi, Paridhi Maheshwari, Zhiyuan Zhang, Keshav Santhanam, Sri Vard-hamanan A, Saiful Haq, Ashutosh Sharma, Thomas T. Joshi, Hanna Moazam, Heather Miller, Matei Za-haria, and Christopher Potts. 2024. DSPy: Com-piling declarative language model calls into state-of-the-art pipelines. In The Twelfth International Conference on Learning Representations .Joshua Knowles. 2006. ParEGO: A hybrid algorithm with on-line landscape approximation for expensive multiobjective optimization problems. IEEE Trans-actions on Evolutionary Computation , 10(1):50–66. Shanu Kumar, Akhila Yesantarao Venkata, Shubhanshu Khandelwal, Bishal Santra, Parag Agrawal, and Man-ish Gupta. 2025. SCULPT: Systematic tuning of long prompts. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Vol-ume 1: Long Papers) , pages 14996–15029, Vienna, Austria. Association for Computational Linguistics. James MacQueen. 1967. Some methods for classifica-tion and analysis of multivariate observations. In Pro-ceedings of the Fifth Berkeley Symposium on Mathe-matical Statistics and Probability , volume 1, pages 281–297. Yarik Menchaca Resendiz and Roman Klinger. 2025. MOPO: Multi-objective prompt optimization for af-fective text generation. In Proceedings of the 31st International Conference on Computational Linguis-tics , pages 5588–5606, Abu Dhabi, UAE. Associa-tion for Computational Linguistics. Jesse Mu, Xiang Lisa Li, and Noah Goodman. 2023. Learning to compress prompts with gist tokens. In 
+
+Thirty-seventh Conference on Neural Information Processing Systems .Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Rühle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, and Dongmei Zhang. 2024. LLMLingua-2: Data dis-tillation for efficient and faithful task-agnostic prompt compression. In Findings of the Association for Com-putational Linguistics: ACL 2024 , pages 963–981, Bangkok, Thailand. Association for Computational Linguistics. Reid Pryzant, Dan Iter, Jerry Li, Yin Lee, Chenguang Zhu, and Michael Zeng. 2023. Automatic prompt op-timization with “gradient descent” and beam search. In Proceedings of the 2023 Conference on Empiri-cal Methods in Natural Language Processing , pages 7957–7968, Singapore. Association for Computa-tional Linguistics. Kiran Ramnath, Kang Zhou, Sheng Guan, Soumya Sm-ruti Mishra, Xuan Qi, Zhengyuan Shen, Shuai Wang, Sangmin Woo, Sullam Jeoung, Yawei Wang, et al. 2025. A systematic survey of automatic prompt op-timization techniques. In Proceedings of the 2025 Conference on Empirical Methods in Natural Lan-guage Processing , pages 33066–33098. Nils Reimers and Iryna Gurevych. 2019. Sentence-BERT: Sentence embeddings using Siamese BERT-networks. In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natu-ral Language Processing (EMNLP-IJCNLP) , pages 3982–3992, Hong Kong, China. Association for Com-putational Linguistics. Tobias Schnabel and Jennifer Neville. 2024. Sym-bolic prompt program search: A structure-aware ap-proach to efficient compile-time prompt optimization. In Findings of the Association for Computational Linguistics: EMNLP 2024 , pages 670–686, Miami, Florida, USA. Association for Computational Lin-guistics. Aaditya Singh, Adam Fry, Adam Perelman, Adam Tart, Adi Ganesh, Ahmed El-Kishky, Aidan McLaughlin, Aiden Low, AJ Ostrow, Akhila Ananthram, et al. 2025. Openai gpt-5 system card. arXiv preprint arXiv:2601.03267 .Niranjan Srinivas, Andreas Krause, Sham M Kakade, and Matthias Seeger. 2009. Gaussian process opti-mization in the bandit setting: No regret and experi-mental design. arXiv preprint arXiv:0912.3995 .Mirac Suzgun, Nathan Scales, Nathanael Schärli, Se-bastian Gehrmann, Yi Tay, Hyung Won Chung, Aakanksha Chowdhery, Quoc Le, Ed Chi, Denny Zhou, and Jason Wei. 2023. Challenging BIG-bench tasks and whether chain-of-thought can solve them. In Findings of the Association for Computational Lin-guistics: ACL 2023 , pages 13003–13051, Toronto, Canada. Association for Computational Linguistics. Kimi Team, Tongtong Bai, Yifan Bai, Yiping Bao, SH Cai, Yuan Cao, Y Charles, HS Che, Cheng Chen, Guanduo Chen, et al. 2026. Kimi k2.5: Visual agen-tic intelligence. arXiv preprint arXiv:2602.02276 .Yuxin Wen, Neel Jain, John Kirchenbauer, Micah Gold-blum, Jonas Geiping, and Tom Goldstein. 2024. Hard prompts made easy: Gradient-based discrete opti-mization for prompt tuning and discovery. Advances in Neural Information Processing Systems , 36. Chengrun Yang, Xuezhi Wang, Yifeng Lu, Hanxiao Liu, Quoc V Le, Denny Zhou, and Xinyun Chen. 2024. Large language models as optimizers. In 
+
+The Twelfth International Conference on Learning Representations .Heng Yang and Ke Li. 2023. InstOptima: Evolution-ary multi-objective instruction optimization via large language model-based instruction operators. In Find-ings of the Association for Computational Linguis-tics: EMNLP 2023 , pages 13593–13602, Singapore. Association for Computational Linguistics. Murong Yue, Jie Zhao, Min Zhang, Liang Du, and Ziyu Yao. 2024. Large language model cascades with mixture of thought representations for cost-efficient reasoning. In The Twelfth International Conference on Learning Representations .Mert Yuksekgonul, Federico Bianchi, Joseph Boen, Sheng Liu, Pan Lu, Zhi Huang, Carlos Guestrin, and James Zou. 2025. Optimizing generative AI by backpropagating language model feedback. Nature ,639:609–616. Tom Zehle, Moritz Schlager, Timo Heiß, and Matthias Feurer. 2025. CAPO: Cost-aware prompt optimiza-tion. In Proceedings of the Fourth International Con-ference on Automated Machine Learning , volume 293 of Proceedings of Machine Learning Research ,pages 18/1–45. PMLR. Guang Zhao, Byung-Jun Yoon, Gilchan Park, Shantenu Jha, Shinjae Yoo, and Xiaoning Qian. 2025. Pareto prompt optimization. In The Thirteenth International Conference on Learning Representations .Zihao Zhao, Eric Wallace, Shi Feng, Dan Klein, and Sameer Singh. 2021. Calibrate before use: Improv-ing few-shot performance of language models. In 
+
+International conference on machine learning , pages 12697–12706. Pmlr. Eckart Zitzler and Lothar Thiele. 1999. Multiobjective evolutionary algorithms: a comparative case study and the strength pareto approach. IEEE transactions on Evolutionary Computation , 3(4):257–271. 
+
+A Method Details 
+
+A.1 Notation 
+
+Table 4 lists the symbols used in Section 3. 
+
+Symbol Definition 
+
+R Number of CRAFT optimization rounds; main experiments use R = 8 .
+
+T Number of validation subsets; concep-tually distinct from the optimization-round count R, set to 8 by default. 
+
+Kcluster Number of k-means clusters used to build validation subsets; Kcluster = T .
+
+k Population size retained by the selector after each round. 
+
+nR Maximum number of refined candidates generated per round. 
+
+nC Maximum number of condensed candi-dates generated per round. 
+
+B UCB-allocated validation batch size per round; default B = 2 k.
+
+μi,t Running mean validation score for prompt Pi through round t; we drop the t subscript when context fixes the round. 
+
+σi,t Empirical standard deviation over ob-served validation scores; conservative 
+
+σ = 1 floor when |S i,t | ≤ 1.
+
+ci Prompt-token count of Pi.
+
+p+ 
+
+> i,t
+
+Optimistic score p+ 
+
+> i,t
+
+= μi,t + βtσi,t 
+
+used for acquisition. 
+
+βt Linear exploration weight 
+
+0.5 + 0.5 max(0 , 1 − t/R ), de-caying over optimization rounds. 
+
+Bround Per-round LLM-call budget: k(nR +
+
+nC ) generation calls plus B · |V π(t)|
+
+validation calls. 
+
+Pt Retained population of size k at round 
+
+t.
+
+Qt Candidate set at round t (refined ∪ con-densed ∪ retained). 
+
+Vj The j-th validation subset, j ∈{1, . . . , T }; optimization round t val-idates on Vπ(t) with π(t) = (( t −
+
+1) mod T ) + 1 .
+
+Si,t Observation set for Pi: the validation examples on which it has been scored through round t.
+
+At Archive of all candidates evaluated through round t.
+
+F+ 
+
+> t
+
+Optimistic Pareto front in (˜ p+, ˜c) space at round t.
+
+Et Evaluation batch selected at round t,
+
+|E t| ≤ B.
+
+C, C∗ Generic candidate set and its Pareto-optimal subset (Section 3.1). 
+
+Table 4: Notation used in the CRAFT method section. We use subscripted forms ( μi, σi, ci, pi) throughout, adding the round subscript t (e.g. μi,t , σi,t , p+
+
+> i,t
+
+) when a per-round running estimate is being defined. 
+
+A.2 Background Primer: NSGA-II and UCB 
+
+This appendix gives the methodological back-ground for the two algorithmic components of 
+
+CRAFT that are reused from prior work: NSGA-II selection and UCB acquisition. Pareto-front and dominance are defined in Section 3.1 (Prelimi-naries); hypervolume and IGD are defined in Sec-tion 4.4 and elaborated in Appendix B.2. Through-out this appendix we use CRAFT ’s bi-objective set-ting: task score pi ∈ [0 , 1] (maximize) and prompt-token cost ci ∈ Z>0 (minimize), with the same per-candidate index convention as in the main pa-per. 
+
+Why a Weighted-Sum Cannot Replace Front Search. A weighted-sum scalarization w ˆpi +(1 −w) ˆ ci (used by our WPRO baselines) commits to a single tangent of the front, parameterized by w. It is provably unable to recover non-convex regions of the Pareto front for any choice of w (Das and Den-nis, 1997): scalarization is fundamentally weaker than direct front search when the trade-off shape is unknown a priori. This is the formal statement of the scalarization-collapse failure mode named in Section 1 and motivates CRAFT ’s front-aware acquisition. 
+
+A.2.1 Front-aware selection: non-dominated sort and maximin spread 
+
+> CRAFT
+
+’s selector reuses fast non-dominated sort from NSGA-II (Deb et al., 2002) and pairs it with a maximin spread tie-breaker (Gonzalez, 1985) in-stead of the standard NSGA-II crowding-distance estimator. We describe both ingredients. 
+
+Fast Non-Dominated Sort. Given a candidate set of size N with K objectives, the sort partitions candidates into successive Pareto fronts F1, F 2, . . . :
+
+F1 contains candidates not dominated by any other, 
+
+F2 contains candidates not dominated by any can-didate outside F1, and so on. The procedure runs in O(KN 2).
+
+Maximin Spread within a Front. Let ˜μi, ˜ci be min-max normalized estimates in [0 , 1] . From the boundary front Fj we want to pick m = k − |P t|
+
+candidates that are spread along the front. We use the classical farthest-first traversal (Gonzalez, 1985): seed the selected set S with the two ex-tremes of Fj (the candidates that maximize ˜μ and minimize ˜c respectively); then while |S| < m , add 
+
+i∗ = arg max i∈Fj \S min s∈S ∥(˜ μi, ˜ci) − (˜ μs, ˜cs)∥2.Each iteration picks the candidate whose closest neighbor in S is the farthest away, which spreads S
+
+as evenly as possible along Fj in normalized objec-tive space. The traversal is seeded from the bound-ary front Fj ’s own extremes rather than from the already-admitted fronts F1, . . . , F j−1; this keeps boundary-front selection self-contained, at the cost of not explicitly spacing the newly admitted points against the previously retained ones. Tokens 
+
+> Accuracy
+
+NSGA-II front     
+
+> Figure 7: CRAFT selector. Filled circles are candidates in (c, μ )space; the yellow curve is the non-dominated front. Orange-ringed points are retained by the maximin spread rule; pink dashed-ring points are on the front but pruned because admitting them would shrink the minimum pairwise distance of the retained set; blue points are dominated. The rule jointly preserves non-dominance and even spread.
+
+Selector. To form the next-round population of size k, the selector traverses F1, F 2, . . . in order, admitting whole fronts until the next would over-fill. From the boundary front it picks the remaining candidates by maximin spread, as stated in Algo-rithm 2 of the main paper. 
+
+A.2.2 Upper-Confidence-Bound (UCB) acquisition 
+
+UCB acquisition is a generic optimism-under-uncertainty rule from the bandit literature (Auer et al., 2002; Srinivas et al., 2009). For candidate 
+
+Pi with mean estimate μi and uncertainty estimate 
+
+σi, the UCB score is UCB i = μi + βσ i with ex-ploration weight β > 0. Candidates with high mean or high uncertainty receive high UCB scores. As more observations accumulate, σi shrinks and UCB approaches the empirical mean, so confidence intervals tighten with experience. The original Gaussian-process UCB rule (Srini-vas et al., 2009) derives σ from a GP posterior.  
+
+> CRAFT
+
+does not fit a surrogate model over prompts and instead uses an empirical-SD variant. σi,t is the standard deviation of Pi’s per-example task scores observed so far, with a conservative σ = 1 floor for candidates with ≤ 1 observation. The schedule 
+
+βt = 0 .5 + 0 .5 max(0 , 1 − t/R ) starts near 1 at early rounds and linearly decays to 0.5 by the fi-nal optimization round R, never collapsing to pure exploitation. 
+
+> CRAFT
+
+’s twist on UCB is multi-objective. In-stead of one UCB ranking, the optimistic scores p+ 
+
+> i,t
+
+= μi,t + βtσi,t are paired with costs ci to form an optimistic front, and the acquisition prefers can-didates closest to (or already on) that front. The full rule is in Algorithm 1. 
+
+Mean and Uncertainty. For prompt Pi, let Si,t 
+
+be the validation examples on which Pi has been evaluated up to round t, let z = ( x, y ), and si(z) = 
+
+s(Pi, x, y ) ∈ [0 , 1] the per-example score. The running mean and empirical standard deviation are 
+
+μi,t = 1
+
+|S i,t |
+
+X
+
+> z∈S i,t
+
+si(z),σi,t =
+
+vuutP
+
+> z∈S i,t
+
+ si(z) − μi,t 
+
+2
+
+max( |S i,t | − 1, 1) .
+
+With no observations CRAFT sets μi,t = 0 , σi,t = 1 ;with one observation it keeps a conservative σ = 1 
+
+floor. 
+
+Normalized Score-Cost Coordinates. Let At be the archive of candidates evaluated up to round t.With p+min = min j∈A t p+
+
+> j,t
+
+, p +max = max j∈A t p+
+
+> j,t
+
+and cmin = min j∈A t cj , c max = max j∈A t cj , the normalized coordinates are 
+
+˜pi,t = p+ 
+
+> i,t
+
+− p+min 
+
+p+max − p+min + ϵ ,
+
+˜ci = ci − cmin 
+
+cmax − cmin + ϵ ,
+
+with ϵ a small constant to guard against constant archives. Higher ˜p and lower ˜c are preferred. 
+
+Complexity. Algorithm 1 runs in 
+
+O(|Q t| log |Q t|) for two-objective front con-struction, O(|Q t| · |F + 
+
+> t
+
+|) for per-candidate gap computation (bounded by O(|Q t|2) in the worst case), and O(|Q t| log |Q t|) for the final sort. 
+
+Pareto Gap. For candidate i the gap to the opti-mistic front F+ 
+
+> t
+
+is 
+
+gi = min 
+
+> y∈F +
+> t
+
+ max(0 , ˜py,t −˜pi,t ) + max(0 , ˜ci−˜cy) .
+
+The two max(0 , ·) terms count score deficit (how much less ˜pi,t is than a front point’s ˜py,t ) and cost excess (how much more ˜ci is than the same front point’s ˜cy). The closest front point in this Man-hattan sense determines gi. Geometrically, gi = 0 
+
+iff Pi is already non-dominated in the normalized space. Prompt 
+
+> Prompt structuring
+> Prompt tree
+> Critic
+> Actor
+> New prompt tree
+> New prompt
+> feedback
+
+Figure 8: Shared critic-actor scaffold for the default refiner ( SCULPT ) and condenser ( DISTILL ) of CRAFT .The input prompt is parsed into a hierarchical tree; the critic emits feedback to the actor, which applies tree-level edits to produce a revised prompt. 
+
+A.3 SCULPT and DISTILL : Module Details 
+
+> CRAFT
+
+’s two candidate generators, SCULPT (refiner, Section 3.2) and DISTILL (condenser, Section 3.3), share the critic-actor scaffold shown in Figure 8. They differ in the roles assigned to the critic and the actor and in the action sets used (full details below). 
+
+Prompt-Tree Representation. Both modules op-erate on a hierarchical prompt tree : each node is a Heading ( H), Paragraph ( P), or List-item (L) with a level, sibling order, GUID, and to-ken count. The tree is parsed once at the start of each module call. Nodes are addressed as 
+
+<NodeType>-<Level>-<Order>-<GUID> ; delet-ing a node deletes its subtree.  
+
+> SCULPT
+
+Refiner. We adapt SCULPT (Kumar et al., 2025) as the default refiner. The critic inspects the parsed prompt tree (Figure 8) together with the previous round’s evaluation results, and emits feed-back in two channels: structural feedback (reorga-nization suggestions over the tree such as promote, split, or merge sections) and error feedback (issues inferred from per-example predictions vs. ground truth, such as misclassified examples and ambigu-ous instructions). The actor consumes the redacted tree and the critic’s feedback and outputs a justified sequence of node-level edits drawn from the action set in Table 5. Each call returns one revised prompt tree; the actor is called nR times per parent per round. Action Description      
+
+> UPDATE Rewrite a node to clarify instructions, narrow or broaden scope, or fix un-clear phrasing.
+> INSERT Add a new node (definition, example, or edge-case rule) under a parent.
+> DELETE Remove a redundant, contradictory, or off-target node and its subtree.
+> MERGE Combine overlapping sibling nodes into one.
+> REORDER Change sibling order to improve logi-cal flow.
+
+Table 5: Action types in SCULPT for structure-aware refinement. Each action operates on the parsed prompt tree of Figure 8.  
+
+> DISTILL
+
+Condenser. DISTILL reuses the same critic-actor scaffold for cost-oriented edits. The 
+
+critic receives the token-annotated prompt tree and a target compression percentage, and emits per-node feedback respecting four constraints: preserve essential task information, use scoped (node-local) actions, respect tree hierarchy (deleting a node deletes its subtree), and meet the target reduction. The actor consumes the critic feedback and applies the action set in Table 6 to produce a compressed tree whose token count meets the target.      
+
+> Action Description
+> Update Node Reword or simplify a single node. Update Subtree Simplify an entire subtree. Delete Node Remove redundant sections. Merge Nodes Combine overlapping sibling nodes.
+
+Table 6: Action types in DISTILL for structure-aware compression. Each action operates on the parsed prompt tree. 
+
+Compression Ratio. Per round, DISTILL is called 
+
+nC times with target compression ratios sampled from [ρmin , ρ max ], where the ratio is the fraction of prompt tokens to remove. In our experiments 
+
+ρmin = 0 .10 , ρmax = 0 .20 , and nC = 4 ; the four sampled ratios are passed as inputs to the critic prompt, so the critic emits a per-node plan that targets each ratio. The actor enforces the target by adjusting the depth/breadth of deletions and merges.  
+
+> OPRO
+
+Refiner. The OPRO refiner variant replaces the SCULPT critic-actor pair with a single meta-prompt over the validated history of past prompts. Its inputs are (i) the current prompt Pi and (ii) a history block of the top-k validated past prompts sorted by validation score (best last). The opti-mizer LLM is asked to produce one new prompt that scores higher than every prompt in the history block. We issue the meta-prompt nR times per par-ent with seeded temperature variation and a per-call distinct-rewrite instruction, so the LLM produces 
+
+nR different candidates rather than collapsing to a cached response. OPRO operates on raw prompt text rather than the parsed tree.  
+
+> EvoPrompt
+
+Refiner. The EvoPrompt variant re-places the SCULPT critic-actor pair with adifferential-evolution (DE) operator. Per parent, three validated prompts P1, P 2, P 3 are sampled from the retained population and paired with the parent ( Pi). The optimizer LLM is asked to (i) identify the differences between P1 and P2, (ii) mutate those differences, (iii) combine the muta-tion with P3 to produce an intermediate prompt, and (iv) cross over the intermediate prompt with the parent to produce the final candidate. We issue the DE prompt nR times per parent with different sampled triples. Like OPRO , EvoPrompt operates on raw prompt text rather than the parsed tree. 
+
+Codebase References. Full Markdown prompt templates for SCULPT (structural critic, error critic, actor), DISTILL (critic, actor), OPRO (meta-prompt), and EvoPrompt (DE operator), the action-set imple-mentations, and the prompt-tree parser are released in the public codebase. 2
+
+Baseline Construction for DISTILL and LLM-Lingua . All single-axis baselines run inside the  
+
+> CRAFT
+
+loop. Each round they generate nR + nC
+
+candidates per prompt (matching CRAFT ’s total per-round generation budget) from a single module, validate them with the score-only UCB acquisi-tion rule of Pryzant et al. (2023) and Kumar et al. (2025), and retain the top k candidates by empirical mean task score. The baselines differ only in the generator: the SCULPT baseline uses the SCULPT 
+
+refiner; the DISTILL baseline uses the DISTILL con-denser; the LLMLingua baseline uses LLMLingua -2. All three thus share validation subsets, per-round budget, acquisition rule, and retention rule with 
+
+> CRAFT
+
+, but use one-axis generation and score-only ranking.  
+
+> WPRO
+
+Normalization. The WPRO baseline scores a candidate Pi by the weighted sum 
+
+Score( Pi) = wp ˆpi + wcˆci, where ˆpi and ˆci are the 
+
+> 2https://github.com/Sshanu/CRAFT/tree/main/ src/data/prompt_enhancer/
+
+min-max-normalized accuracy and token reduction over the current candidate set: 
+
+ˆpi = μi − min j μj
+
+max j μj − min j μj
+
+,
+
+ˆci = max j cj − ci
+
+max j cj − min j cj
+
+.
+
+Both lie in [0 , 1] , with larger values denoting higher accuracy and greater token reduction respectively. 
+
+A.4 Validation Subset Construction Detail 
+
+This appendix expands the one-paragraph descrip-tion of validation subsets in Section 3.4. 
+
+Why Partial Validation. A full-validation round would evaluate every selected candidate on all Nval 
+
+examples in Dval . With B candidates evaluated per round across R rounds, the total validation-call count would be R · B · Nval . Partial validation replaces Nval with |V π(t)| per round, cutting cost by a factor of Nval /|V π(t)|. In the main experi-ments, T = 8 , R = 8 , B = 2 k = 8 , and Nval is taken from Table 7; this saves a factor of T = 8 in validation calls. 
+
+Why Clustered Subsets. Dval is partitioned into 
+
+T clusters by k-means (MacQueen, 1967) in em-bedding space, using all-MiniLM-L6-v2 sentence embeddings (Reimers and Gurevych, 2019). Each cluster becomes one validation subset Vj , j ∈{1, . . . , T }. Compared with random sampling, clustered subsets give each round semantically co-herent examples; this avoids the variance from ran-dom sampling, where one round’s subset can be substantially easier than another’s by chance. The trade-off is that any per-subset evaluation depends on the cluster’s idiosyncrasies; this is mitigated be-cause the running mean μi,t accumulates evidence across the subsets where Pi has been evaluated. 
+
+Embedding-Model Choice. 
+
+all-MiniLM-L6-v2 is a 22M-parameter sen-tence transformer trained for general semantic similarity. It is small enough that the embedding step is negligible compared to LLM calls and gives meaningful clusters for short classification and reasoning inputs. We did not sweep across embedding models; this is flagged as a limitation (Section 7). 
+
+Subset Rotation and Cumulative Observations. 
+
+The validation subset used at optimization round 
+
+t is Vπ(t) with π(t) = (( t − 1) mod T ) + 1 (1-indexed); with T = 8 and the main-experiment 
+
+R = 8 , the evaluator visits each subset exactly once across the run, and diagnostic runs with R > T 
+
+revisit subsets cyclically. For a candidate Pi that is retained across multiple rounds, the observation set Si,t is the union of all Vπ(τ ) on which Pi has been evaluated through round t. The running mean 
+
+μi,t averages over Si,t , and the empirical standard deviation σi,t uses the same per-example scores. As a result, long-lived candidates accumulate evi-dence across multiple subsets, and |S i,t | can exceed 
+
+|V π(t)|.
+
+Initial-Round Special Case. Before the first op-timization round, the evaluator measures the initial prompt’s full validation score μ0,0 on all of Dval 
+
+rather than on a single subset Vj . This avoids using a single-cluster subset to set the reference for sub-sequent feasibility checks (the 0.95 · pinit threshold in Section 4.4). 
+
+A.5 Batch-Relative Candidate Pruning 
+
+Between validation and selection, CRAFT prunes candidates that are consistently weak relative to the current round’s batch, so later rounds are not spent re-exploring them. The rule is batch-relative and uncertainty-aware, and is deliberately lenient: it is 
+
+not the strict 0.95 pinit feasibility filter used for re-porting (Section 4.4), so moderately weak prompts that may recover in later rounds are retained. For each validated candidate Pi we form a lower-confidence-bound score ℓi = μi,t −βtσi,t . A single strictness knob f ∈ [0 , 1] (set to f = 0 .7 in all runs) maps to a quantile q and a margin δ:
+
+q = qmin + ( qmax − qmin ) f, δ = δmax − (δmax − δmin ) f, 
+
+with (qmin , q max ) = (0 .70 , 0.98) and 
+
+(δmin , δ max ) = (0 .05 , 0.15) ; at f = 0.7 this gives q ≈ 0.90 and δ ≈ 0.08 . The pruning threshold blends the batch q-quantile with a margin below the batch maximum, 
+
+τ = 12
+
+ quantile q({ℓi}) + (max i ℓi − δ),
+
+and candidates with ℓi ≥ τ are kept. A floor of 
+
+⌈1.5 k⌉ candidates is always retained: if fewer pass, the top-⌈1.5 k⌉ by ℓi are kept instead. Because τ
+
+is defined from the batch, the rule adapts to each round’s score distribution rather than imposing an absolute cutoff. B Experimental Setup 
+
+B.1 Dataset Statistics 
+
+Table 7 reports the validation/test split sizes used in our experiments. For BeaverTails and GoEmotions we cap the public splits at 200 and 500 examples respectively to keep validation cost comparable across datasets. For the four BIG-Bench Hard tasks the public splits are smaller than this cap, so the cap is non-binding and the counts shown are the dataset’s own validation/test sizes.                             
+
+> Abbr. Dataset Nval Ntest Task score
+> BT BeaverTails 200 500 weighted-F1 GoE GoEmotions 200 500 micro-F1 DQA DisambiguationQA 50 175 exact acc. CJ Causal Judgement 37 130 macro-F1 FF Formal Fallacies 50 175 macro-F1 ST Salient Translation 50 175 macro-F1
+> Table 7: Validation/test split sizes per dataset, with the task-score definition used in our experiments. Counts reflect the smaller of (i) the dataset’s public split and (ii) the 200/500 cap we apply uniformly across datasets.
+
+BeaverTails (BT). A multi-class safety classifi-cation dataset of human-LLM dialogues (Ji et al., 2023); each prompt-response pair carries 14 binary harm-category labels (e.g., discrimination, hate speech , drug abuse , financial crime ). We score with weighted-F1 across the 14 labels. 
+
+GoEmotions (GoE). A 27-emotion classification dataset of English Reddit comments (Demszky et al., 2020) including categories like joy, sadness, gratitude, anger, neutral . Multi-label; we score with micro-F1. 
+
+DisambiguationQA (DQA). A BIG-Bench Hard task (Suzgun et al., 2023) in which the model re-solves a pronoun in a short sentence to its correct antecedent (often a gender-disambiguation exam-ple). Single-answer multiple choice; scored with exact accuracy. 
+
+Causal Judgement (CJ). A BIG-Bench Hard task (Suzgun et al., 2023) that asks the model to judge whether one event causally explains another in a short paragraph; binary answer scored with macro-F1. 
+
+Formal Fallacies (FF). A BIG-Bench Hard task (Suzgun et al., 2023) that asks whether a short ar-gument is a syntactically valid deductive inference; binary answer scored with macro-F1. 
+
+Salient Translation Error Detection (ST). ABIG-Bench Hard task (Suzgun et al., 2023) that asks the model to identify which of six error cat-egories (e.g., named-entity, numeric, modifiers-adjectives ) best describes a translation mistake; six-way classification scored with macro-F1. 
+
+B.2 Evaluation Metrics: Full Definitions 
+
+This appendix expands Section 4.4. All metrics are computed on the final retained population at the chosen round snapshot. 
+
+Feasibility Filter. A prompt is feasible if its test score is at least 0.95 × the initial-prompt test score. Cost-leaning metrics (min feasible tokens, peak efficiency) are computed only over the feasible sub-set to prevent rewarding degenerate prompts that are short only because they fail the task. 
+
+Per-Metric Definitions. 
+
+• Best score : max i pi across the k retained can-didates. • Mean retained-population score (Mean in tables and figures): (1 /k ) P 
+
+> i∈P t
+
+pi across the retained set Pt.• Min feasible tokens : min i ci across feasible candidates only. • Peak efficiency (Eff = Emax ): 100 ·
+
+max i pi/c i across feasible candidates, re-ported in percent-score-points per 100 tokens (matching the main-text definition in §4.4). • Hypervolume (HV) (Zitzler and Thiele, 1999): the area of the (p, c )-plane dominated by the retained front, measured against a fixed worst-corner reference point at zero accuracy and a deliberately large token count ( r =(0 , c ref ) with cref = 100000 ). This reference acts as the origin of the dominated-volume cal-culation: higher tokens (worse cost) sit at the origin, so retained prompts at lower cost and higher accuracy contribute more area. The reference is chosen far beyond any prompt ob-served in our runs so every retained candidate contributes positively. Reported HV is the raw value normalized to the initial-prompt corner 
+
+(pinit , c init ), making HV comparable within a dataset across methods; we do not compare HV across datasets because the references dif-fer. • Inverted Generational Dis-tance (IGD) (Bosman and Thierens, 2003): IGD( F ; F ∗) =(1 /|F ∗|) P  
+
+> q∈F∗
+
+min p∈F d(q, p ), where 
+
+d is Euclidean distance in min-max normal-ized (˜ p, ˜c) coordinates. Classical IGD uses an externally known true front; for each dataset we substitute the union of all methods’ feasible fronts as F ∗, since no externally validated Pareto front is available for prompt search. IGD penalizes fronts that leave regions of F ∗ uncovered, complementing HV which rewards dominated area. • Front size (|F| ): the cardinality of the final non-dominated set. Reported for continuity with prior multi-objective evolutionary algo-rithm (MOEA) work, but it is bounded by k.
+
+Composite Rank. For each metric x and dataset 
+
+d we rank the compared methods from 1 to |M | (1 is best). The composite first averages ranks within each aspect group (front quality Aq, score As, cost 
+
+Ac), then averages across the three groups and across datasets. As a worked example, CRAFT ’s per-metric mean ranks, read from Figure 4, are HV 2.33, |F| 2.83, IGD 2.50 (so rAq = 2 .55 ); best 2.25, mean 2.50 (so rAs = 2 .375 ); peak effi-ciency 3.67, min feasible tokens 3.83 (so rAc =3.75 ). The composite is the mean across aspects: 
+
+(2 .55 + 2 .375 + 3 .75) /3 = 2 .89 .
+
+C Additional Results 
+
+C.1 Full Per-Dataset Results 
+
+Table 8 reports the full per-dataset metrics that back the rank-based comparisons in §5. 
+
+Per-Dataset Detail. Across the six datasets,  
+
+> CRAFT
+
+places 1st on DQA and ST, 2nd on CJ (tied with WPRO 0.7) and GoE, 3rd on BT (within 0.11 
+
+of the leader WPRO 0.5), and 4th on FF. No other method matches this consistency: SCULPT reaches rank 6.94 on FF, WPRO 0.3 reaches 6.72 on GoE,  
+
+> WPRO 0.7
+
+reaches 6.06 on DQA, WPRO 0.5 reaches 
+
+6.28 on CJ, and LLMLingua reaches 5.89 on ST.  
+
+> CRAFT
+
+is the only method whose worst-case per-dataset rank stays below 4 (at 3.72 on FF), reflect-ing robustness across the front-quality, score, and cost aspects rather than dominance on individual datasets. BT 
+
+> CJ
+> DQA
+> FF
+> GoE
+> ST
+> CRAFT
+> WPRO 0.3
+> WPRO 0.5
+> WPRO 0.7
+> Sculpt
+> Distill
+> LLMLingua
+> 3.3
+> 3.6
+> 3.2
+> 3.2
+> 4.6
+> 4.3
+> 5.8
+> 2.8
+> 3.9
+> 6.3
+> 2.8
+> 2.7
+> 3.7
+> 5.8
+> 2.1
+> 3.6
+> 4.5
+> 6.1
+> 4.2
+> 3.6
+> 3.9
+> 3.7
+> 3.1
+> 3.8
+> 5.0
+> 6.9
+> 2.1
+> 3.4
+> 2.7
+> 6.7
+> 2.2
+> 3.4
+> 4.7
+> 4.2
+> 4.0
+> 2.8
+> 4.2
+> 3.7
+> 3.9
+> 3.9
+> 3.6
+> 5.9
+
+Figure 9: Per-dataset composite rank at R = 8 (rank 
+
+↓). CRAFT leads DQA and ST; WPRO 0.5 leads BT and GoE; SCULPT leads CJ; DISTILL leads FF. 
+
+C.2 Per-Dataset Optimization Dynamics 
+
+Figures 10 to 15 report the per-round dynamics view (hypervolume, min feasible tokens, best score, peak efficiency) for all six GPT 5 benchmarks, capped at the default R = 8 snapshot. Gaps in the (b) Min feasible tokens curve mark rounds where no DISTILL candidate passed the feasibility filter (p ≥ 0.95 pinit ); the other curves plot directly from each method’s per-round Pareto report. 
+
+D Artifacts, Reproducibility, and Responsible Use 
+
+Datasets, Models, and Code. We evaluate on six public benchmarks: BeaverTails (Ji et al., 2023), GoEmotions (Demszky et al., 2020), and four BIG-Bench Hard tasks (Suzgun et al., 2023) (Disam-biguation QA, Causal Judgement, Formal Fallacies, and Salient Translation Error Detection). The op-timizer and target models are hosted LLMs: the GPT-5 family (Singh et al., 2025), DeepSeek-V4 Flash (DeepSeek-AI, 2026), and Kimi-K2.5 (Team et al., 2026). The refiner and condenser build on  
+
+> SCULPT
+
+(Kumar et al., 2025); baselines additionally use OPRO (Yang et al., 2024), EvoPrompt (Guo et al., 2024), and LLMLingua -2 (Pan et al., 2024). Every dataset, model, and baseline method is cited at first use. All six datasets are public research bench-marks for text classification or reasoning, and we use each only to evaluate prompt optimization, con-sistent with its intended research use. 
+
+Licenses. The datasets are distributed for re-search use: BeaverTails under CC BY-NC 4.0, GoEmotions under Apache-2.0, and BIG-Bench Hard under the MIT license. Our use is non-BT Method Best ↑ Mean ↑ Tok ↓ Eff ↑ HV ↑ IGD ↓ |F| ↑ 
+
+Initial 54.0 54.0 607 8.9 n/a n/a 1
+
+WPRO 0.3 56.0 55.8 239 23.4 54k 0.46 2
+
+WPRO 0.5 57.5 57.2 296 19.4 57k 0.47 2
+
+WPRO 0.7 61.5 60.1 419 14.7 58k 0.29 2
+
+SCULPT 61.0 60.5 1,607 3.8 60k 0.75 2
+
+DISTILL 55.0 55.0 350 15.7 55k 0.45 2
+
+LLMLingua 55.0 55.0 497 11.1 52k 0.46 1
+
+CRAFT 62.0 61.3 613 10.1 61k 0.55 2GoE 
+
+Initial 34.0 34.0 794 4.3 n/a n/a 1
+
+WPRO 0.3 31.5 31.5 ∞ ∞ 31k 0.70 2
+
+WPRO 0.5 43.0 40.0 856 5.0 40k 0.12 2
+
+WPRO 0.7 39.5 39.2 845 4.7 38k 0.39 2
+
+SCULPT 37.0 36.0 2,590 1.4 35k 0.84 2
+
+DISTILL 33.0 33.0 389 8.5 32k 0.42 1
+
+LLMLingua 34.0 33.0 581 5.9 33k 0.34 2
+
+CRAFT 37.5 35.5 484 7.7 36k 0.23 2DQA 
+
+Initial 76.6 76.6 512 15.0 n/a n/a 1
+
+WPRO 0.3 73.7 70.5 190 38.8 74k 0.41 2
+
+WPRO 0.5 76.0 73.6 251 30.3 72k 0.47 3
+
+WPRO 0.7 70.3 68.5 228 30.8 70k 0.65 2
+
+SCULPT 82.3 81.1 1,240 6.6 78k 0.52 2
+
+DISTILL 76.6 74.6 224 34.2 73k 0.41 2
+
+LLMLingua 76.0 74.6 298 25.5 75k 0.40 3
+
+CRAFT 77.7 75.1 225 34.5 77k 0.20 3CJ Method Best ↑ Mean ↑ Tok ↓ Eff ↑ HV ↑ IGD ↓ |F| ↑ 
+
+Initial 68.5 68.5 499 13.7 n/a n/a 1
+
+WPRO 0.3 65.5 64.5 103 63.6 65k 0.68 2
+
+WPRO 0.5 63.1 62.0 ∞ ∞ 62k 0.78 2
+
+WPRO 0.7 74.2 73.2 682 10.9 73k 0.30 2
+
+SCULPT 76.9 72.7 1,784 4.3 75k 0.37 4
+
+DISTILL 68.5 68.5 140 48.9 63k 0.47 1
+
+LLMLingua 65.2 65.1 ∞ ∞ 65k 0.62 1
+
+CRAFT 74.2 71.2 351 21.1 73k 0.30 2
+
+FF 
+
+Initial 71.8 71.8 526 13.7 n/a n/a 1
+
+WPRO 0.3 79.7 77.4 161 49.5 78k 0.32 2
+
+WPRO 0.5 80.7 80.3 204 39.6 74k 0.44 2
+
+WPRO 0.7 74.7 73.2 206 36.3 74k 0.53 2
+
+SCULPT 73.9 72.2 1,219 6.1 69k 1.06 1
+
+DISTILL 91.4 90.2 198 46.2 85k 0.25 2
+
+LLMLingua 98.9 98.9 254 38.9 92k 0.46 1
+
+CRAFT 90.4 87.5 245 36.9 80k 0.39 2ST 
+
+Initial 62.1 62.1 419 14.8 n/a n/a 1
+
+WPRO 0.3 60.4 59.7 82 73.7 57k 0.49 2
+
+WPRO 0.5 61.8 59.5 98 63.1 58k 0.44 2
+
+WPRO 0.7 67.0 66.0 238 28.1 60k 0.34 2
+
+SCULPT 71.7 71.7 1,290 5.6 70k 0.85 2
+
+DISTILL 61.2 60.9 149 41.1 61k 0.46 2
+
+LLMLingua 60.0 59.0 419 14.3 60k 0.56 2
+
+CRAFT 68.4 67.7 190 36.0 67k 0.34 2
+
+Table 8: Main GPT-5 comparison at R = 8 across the six datasets (left: BT, GoE, DQA; right: CJ, FF, ST). Bold marks the best per (dataset, column); lower is better for Tok and IGD, higher otherwise. “n/a” on the initial-prompt row marks HV and IGD that are undefined for a single point. “ ∞” marks rows where no retained prompt clears the feasibility filter ( p ≥ 0.95 pinit ); the marker applies to both Tok and Eff, which share the feasibility filter and are therefore both undefined in that case. Values averaged across two seeds. 55000 
+
+> 60000
+> Hypervolume
+
+(a) 
+
+> 500
+> 1000
+> 1500
+> Min feasible tokens
+
+(b)     
+
+> 02468
+
+Optimization round 
+
+> 0.55
+> 0.60
+> Accuracy
+
+(c)     
+
+> 02468
+
+Optimization round 
+
+> 0.1
+> 0.2
+> Peak efficiency
+
+(d) 
+
+CRAFT Sculpt Distill 
+
+Figure 10: Optimization dynamics on BT (GPT-5) over rounds 0 to 8 for CRAFT , SCULPT , and DISTILL : (a) hypervolume, (b) min feasible tokens, (c) best score, (d) peak efficiency. 
+
+commercial academic research and falls within these terms. The hosted LLMs are accessed through their providers’ inference APIs under the respective API terms of service. 
+
+Computational Budget and Infrastructure. All experiments run through hosted LLM inference APIs; we train no model, so no GPU hours are con-sumed, and parameter counts for the API models are not publicly disclosed by their providers. The dominant cost is the number of LLM calls. Each round, CRAFT issues k(nR + nC ) = 48 candidate-generation calls and B · |V π(t)| validation calls, with validation-subset sizes following Table 7, re-peated over R = 8 rounds; the same per-round call budget applies to every compared method (§4). 32000 
+
+> 34000
+> 36000
+> Hypervolume
+
+(a) 
+
+> 1000
+> 2000
+> Min feasible tokens
+
+(b)     
+
+> 02468
+
+Optimization round 
+
+> 0.32
+> 0.34
+> 0.36
+> 0.38
+> Accuracy
+
+(c)     
+
+> 02468
+
+Optimization round 
+
+> 0.025
+> 0.050
+> 0.075
+> Peak efficiency
+
+(d) 
+
+CRAFT Sculpt Distill Figure 11: Optimization dynamics on GoE (GPT-5) over rounds 0 to 8 for CRAFT , SCULPT , and DISTILL : (a) hypervolume, (b) min feasible tokens, (c) best score, (d) peak efficiency. 65000 
+
+> 70000
+> 75000
+> 80000
+> Hypervolume
+
+(a) 
+
+> 500
+> 1000
+> Min feasible tokens
+
+(b)     
+
+> 02468
+
+Optimization round 
+
+> 0.75
+> 0.80
+> Accuracy
+
+(c)     
+
+> 02468
+
+Optimization round 
+
+> 0.1
+> 0.2
+> 0.3
+> Peak efficiency
+
+(d) 
+
+CRAFT Sculpt Distill 
+
+Figure 12: Optimization dynamics on DQA (GPT-5) over rounds 0 to 8 for CRAFT , SCULPT , and DISTILL : (a) hypervolume, (b) min feasible tokens, (c) best score, (d) peak efficiency. 60000 
+
+> 65000
+> 70000
+> 75000
+> Hypervolume
+
+(a) 
+
+> 1000
+> 2000
+> Min feasible tokens
+
+(b)     
+
+> 02468
+
+Optimization round 
+
+> 0.65
+> 0.70
+> 0.75
+> Accuracy
+
+(c)     
+
+> 02468
+
+Optimization round 
+
+> 0.2
+> 0.4
+> Peak efficiency
+
+(d) 
+
+CRAFT Sculpt Distill 
+
+Figure 13: Optimization dynamics on CJ (GPT-5) over rounds 0 to 8 for CRAFT , SCULPT , and DISTILL : (a) hypervolume, (b) min feasible tokens, (c) best score, (d) peak efficiency. 70000           
+
+> 80000
+> Hypervolume  (a)
+> 500
+> 1000
+> Min feasible tokens
+> (b)
+> 02468
+> Optimization round
+> 0.7
+> 0.8
+> 0.9
+> Accuracy  (c)
+> 02468
+> Optimization round
+> 0.2
+> 0.4
+> Peak efficiency  (d)
+> CRAFT Sculpt Distill
+
+Figure 14: Optimization dynamics on FF (GPT-5) over rounds 0 to 8 for CRAFT , SCULPT , and DISTILL : (a) hypervolume, (b) min feasible tokens, (c) best score, (d) peak efficiency. 60000           
+
+> 65000
+> 70000
+> Hypervolume  (a)
+> 500
+> 1000
+> Min feasible tokens
+> (b)
+> 02468
+> Optimization round
+> 0.60
+> 0.65
+> 0.70
+> Accuracy  (c)
+> 02468
+> Optimization round
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> Peak efficiency  (d)
+> CRAFT Sculpt Distill
+
+Figure 15: Optimization dynamics on ST (GPT-5) over rounds 0 to 8 for CRAFT , SCULPT , and DISTILL : (a) hypervolume, (b) min feasible tokens, (c) best score, (d) peak efficiency. 
+
+Sentence-embedding and k-means clustering for the validation subsets run once per dataset on CPU and are negligible next to the LLM calls. 
+
+Software and Package Settings. The implemen-tation is in Python. LLM calls are issued through the official openai and azure-ai-inference 
+
+client libraries, and runs are configured with Hy-dra and OmegaConf. Prompt-token cost c(P )
+
+is measured with the tiktoken tokenizer, and prompts are parsed and edited as trees with 
+
+networkx . Validation subsets are constructed with k-means clustering (MacQueen, 1967) from 
+
+scikit-learn , over all-MiniLM-L6-v2 sentence embeddings (Reimers and Gurevych, 2019) pro-duced by sentence-transformers on a PyTorch backend, using T = 8 clusters. The LLMLingua -2 baseline uses the llmlingua package (Pan et al., 2024) with its default token-level compression con-figuration. Numerical routines use numpy , scipy ,and pandas . All LLM calls fix the generation tem-perature to 0 (§4). A full dependency list will be released with the code. 
+
+Potential Risks. CRAFT optimizes whatever task score it is given. If that score rewards adversar-ial behavior (for example, eliciting unsafe outputs from the target LLM), the same loop that finds high-accuracy, low-cost prompts can also produce shorter and more reliable jailbreak prompts. Miti-gation is the responsibility of whoever defines the task score; CRAFT itself adds no safety constraints beyond those of the target LLM.

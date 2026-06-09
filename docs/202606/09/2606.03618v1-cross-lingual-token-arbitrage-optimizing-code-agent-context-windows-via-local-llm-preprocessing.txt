@@ -1,0 +1,366 @@
+Title: Cross-Lingual Token Arbitrage: Optimizing Code Agent Context Windows via Local LLM Preprocessing
+
+URL Source: https://arxiv.org/pdf/2606.03618v1
+
+Published Time: Wed, 03 Jun 2026 01:11:03 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# Cross-Lingual Token Arbitrage: Optimizing Code Agent Context Windows via Local LLM Preprocessing 
+
+## Mehmet Utku Çolak Department of Computer Engineering, Istanbul Technical University Istanbul, Turkey colakme19@itu.edu.tr 
+
+## Abstract 
+
+AI-assisted coding agents are bottlenecked by input-token cost. Two pathologies of raw hu-man input drive most of the overhead: tok-enization overhead (2–3× more tokens for non-English text) and structural entropy in conversa-tional prompts (greedy retrieval and verbose de-coding). Existing methods act reactively, com-pressing already-bloated contexts or cascading on failure. We introduce a pre-flight, edge-side prompt-rewriting middleware between the developer and the cloud agent. A local Llama 3.2 
+
+(3B) via Ollama performs three operations in a sub-second pass: cross-lingual translation into the cheaper English token space, structural rewriting into a compact [CONTEXT] /[TASK] 
+
+format, and a regex-validated rewrite-with-fallback guarded by a 5% token-budget thresh-old so the optimized payload is never larger than the original. We evaluate on OMH-Polyglot , the polyglot-specification arm of our OMH (Ock-
+
+Multilingual-Hard) benchmark family ( 200 
+
+instances translated into Turkish, Arabic, Chinese, or code-switched mixtures; per-prompt tokenization-overhead ratio 2.05 ×
+
+on average, max 6.15 ×). Across three commercial backends with three runs per condition, the middleware reduces prompt tokens by 34 –47% and total tokens by 8.3% ,
+
+8.3% , and 18 .8% on gpt-3.5-turbo , gpt-4o ,and gemini-2.5-flash-lite . Accuracy is 99 .5% , 99 .5% (+1 .17 pp), and 98 .0% 
+
+(+3 .00 pp). A names_only ablation isolates the function-name oracle: alone it decreases accuracy by 18 –20 pp on the two weaker backends and is neutral on gpt-4o , attributing the Gemini gain to the rewriter. Against LLMLingua-2 (Pan et al., 2024) at matched rate, our middleware strictly Pareto-dominates on OckScore across all three backends. Dollar-cost outcomes are asymmetric: −12 .4% 
+
+on Gemini, −0.4% on gpt-4o , and +15 .1% 
+
+on gpt-3.5-turbo .
+
+## 1 Introduction 
+
+AI-assisted IDEs such as Cursor, GitHub Copilot, and Claude Code now operate over repositories that exceed the model’s context window, so each chat turn inflates the prompt with retrieved code chunks, prior turns, and unstructured user instructions. At deployment scale, per-query overhead compounds into substantial financial and environmental cost (Du et al., 2026; Peng et al., 2025). A large fraction of this cost is paid before the cloud model runs, and originates from two com-pounding pathologies of the raw input. (i) To-kenization overhead : subword tokenizers used by frontier LLMs (e.g., cl100k_base ) are statis-tically optimized for English; equivalent content in Turkish, Chinese, or Arabic can require 2–3×
+
+more tokens (Petrov et al., 2023; Teklehaymanot and Petrov, 2025). (ii) Structural entropy : devel-oper prompts are conversational and vague, driv-ing Retrieval-Augmented Generation (RAG) into greedy retrieval (Jimenez et al., 2024) and inducing verbose decoding (Ahuja et al., 2025). Existing remedies act reactively. Post-hoc to-ken compressors (Jiang et al., 2023; Shi et al., 2025) prune an already-bloated context, paying perplexity-computation overhead inside the interac-tive loop. Cost-aware prompt-search frameworks (Taherkhani et al., 2025; Zehle et al., 2025) are of-fline and require expensive cloud-side iterations on the API they aim to cheapen. Local–cloud cascad-ing (Lu et al., 2026; Chen et al., 2024) falls back to the large model with the original, unoptimized prompt the moment the small model fails. None 
+
+> arXiv:2606.03618v1 [cs.AI] 2 Jun 2026
+
+of these proactively neutralize tokenization over-head, and none enforce structural discipline before 
+
+retrieval. We propose a pre-flight, edge-side prompt rewriter placed between the developer and the cloud agent. A local Llama 3.2 (3B) (AI, 2024) running through Ollama intercepts every raw query and, in a single sub-second pass, performs: (i) 
+
+Cross-Lingual Token Arbitrage —translating non-English text into the cheaper English token space; (ii) Structural Rewriting into a compact label-bracketed [CONTEXT] /[TASK] format (a Bi-Block 
+
+in the benchmark proxy, optionally extended to a Tri-Block with [CONSTRAINTS] in the IDE ex-tension); and (iii) a regex-validated rewrite-with-fallback routine guarded by a 5% token-budget threshold, so the optimized payload is never larger than the original. The pipeline runs on local hard-ware and incurs zero recursive cloud-API cost. 
+
+Contributions. 
+
+• We formalize Cross-Lingual Token Arbitrage 
+
+as an architectural mechanism (rather than an empirical observation (Ahuja et al., 2025)) and operationalize it as the first stage of a pre-flight middleware. • We introduce a label-bracketed prompt schema (Bi-Block for benchmarking; Tri-Block extension for IDE deployments) and a regex-validated rewrite-with-fallback guarded by a 5% token-budget threshold, so the opti-mizer can never inflate the cloud-billed pay-load. • We release the OMH benchmark family: 
+
+OMH-Wrapped (English spec with multi-lingual wrappers) and OMH-Polyglot (fully translated or code-switched specs), each 200 
+
+instances over twenty hard cores and ten style indices. Polyglot raises the per-prompt tokenization-overhead ratio from 0.96 × to 
+
+2.05 ×.• We provide an open implementation and re-port results on three commercial models, three runs each, showing prompt-token reductions of 34 –47% and total-token reductions of 8.3–
+
+18 .8% , with accuracy unchanged or improved by up to +3 .00 pp. A names_only ablation isolates the function-name oracle (it decreases accuracy by 18 –20 pp on the two weaker backends), attributing the accuracy result to the rewriter. A head-to-head comparison against LLMLingua-2 (Pan et al., 2024) at matched compression rate shows strict Pareto-dominance on OckScore across all three back-ends. 
+
+## 2 Related Work 
+
+Prompt optimization and compression. APE (Zhou et al., 2023) and APO (Pryzant et al., 2023) search for instructions to maximize accuracy but ig-nore cost. Token-level compressors prune unimpor-tant tokens: SelectiveContext (Li et al., 2023) via self-information, LLMLingua (Jiang et al., 2023) via a dynamic budget controller, and EHPC (Fei et al., 2025) via attention-head skimming. Agent-Diet (Xiao et al., 2026) summarizes expired tra-jectory history. These either depend on perplex-ity from a reference LM (recursive cost) or prune already-bloated context after the fact. 
+
+Cost-aware search and cascading. EPiC (Taherkhani et al., 2025) and CAPO (Zehle et al., 2025) are offline prompt-search frameworks requiring repeated cloud-side iterations. Model cascading (Chen et al., 2024) and the local–cloud MCCom framework (Lu et al., 2026) forward the raw prompt to the large model on escalation. EfficientXLang (Ahuja et al., 2025) reports that translating reasoning into English yields up to 40% 
+
+token reductions, but treats this as observation rather than an applied middleware. 
+
+Repository-level context and benchmarks. 
+
+Repository-level generation requires reasoning across files (Liu et al., 2024). RepoCoder (Zhang et al., 2023) iteratively retrieves based on interme-diate drafts; GraphCoder (Liu et al., 2024) uses control- and data-flow graphs. SWEzze (Mech-taev et al., 2026) reduces SWE-Bench token bud-gets by > 50% while improving issue resolution. Vague prompts trigger greedy RAG over-fetching and dependency hallucinations (Hai et al., 2026; Black Duck Software, 2026; MorphLLM, 2026). All act after retrieval. On the evaluation side, Hu-manEval, MBPP, and SWE-Bench (Jimenez et al., 2024) score correctness but ignore cost; OckBench (Du et al., 2026) and COFFE (Peng et al., 2025) jointly measure accuracy and efficiency but remain post-hoc measurement tools. 3 Methodology 
+
+The middleware is a pre-flight layer that intervenes before the RAG cycle in agentic IDEs. It shifts prompt-refinement compute to a local Small Lan-guage Model (SLM), neutralizing linguistic and structural overhead before cloud dispatch. 
+
+3.1 Architecture 
+
+The system is a TypeScript gateway that intercepts every IDE query and forwards a rewritten payload to the cloud backend. The local reasoning layer runs Llama 3.2 (3B) (AI, 2024) via an Ollama 
+
+instance and is responsible for cross-lingual trans-lation, removal of conversational filler, and deter-ministic structural enforcement. The cloud execu-tion layer (e.g., gpt-4o ) receives only the rewritten Bi-Block. 
+
+3.2 Cross-Lingual Token Arbitrage 
+
+Byte-Pair Encoding tokenizers such as 
+
+cl100k_base are biased toward English (Tekle-haymanot and Petrov, 2025); non-English text uses more tokens for the same semantic content (Petrov et al., 2023). Table 1 summarizes the relative per-character cost. The middleware translates non-English inputs to English locally before dispatch, exploiting the result of (Ahuja et al., 2025) that English reasoning traces are more compact than equivalents in morphologically rich languages.          
+
+> Language Relative Tokenization Cost
+> English 1.00 Spanish 1.50 Italian 1.60 Turkish 2.16 Chinese 2.41 Bulgarian 2.60 Arabic 3.00
+> Table 1: Relative tokenization cost compared to English for cl100k_base .
+
+3.3 Structural Rewriting: Bi-Block and Tri-Block 
+
+We deploy two variants of a label-bracketed schema. The empirical results in this paper use the Bi-Block. 
+
+Bi-Block (benchmark proxy). The proxy emits two labeled blocks per task. [CONTEXT] contains a single constant sentence (“ Python coding task; tests are authoritative. ”)—a generic preamble, not workspace-derived metadata. [TASK] contains an SLM-produced one- or two-sentence English in-struction, followed by the original assert lines copied verbatim. The SLM is prompted to translate non-English text, strip filler, and mention every re-quired function name verbatim; it is forbidden from emitting code or section labels. Function names are additionally extracted from the assert lines by a deterministic regex and supplied to the SLM as a hint. 
+
+Tri-Block (IDE extension only). The IDE ex-tension targets a setting where constraints are not given as executable tests, and emits a third 
+
+[CONSTRAINTS] block containing style guides, naming conventions, performance targets, or se-curity notes extracted from the raw query. Results in this paper bear only on the Bi-Block. 
+
+Decoding. In both variants the SLM is decoded greedily ( temperature = 0 , top_p = 0 .9, predic-tion budget 200 tokens for the proxy and 400 for the IDE extension) with stop sequences preventing label or code leakage. 
+
+3.4 Validation and Token-Budget Guard 
+
+Each rewrite is checked by a regex validator (validateLight ) that triggers regeneration if (i) the output is empty or shorter than 10 charac-ters, (ii) a Python code block is emitted, (iii) a filled <solution>...</solution> envelope is produced, or (iv) required block markers are miss-ing (Tri-Block). Up to two repair attempts are allowed. A token-budget guard estimates cost ( 1 token per non-ASCII char, 0.25 per ASCII char) and for-wards the original prompt unchanged whenever the rewrite is not at least 5% smaller. If repair attempts repeatedly fail validation, the proxy logs the vio-lations and forwards the raw prompt. The guard ensures the proxy never inflates the cloud-billed payload. 
+
+## 4 Experimental Setup 
+
+4.1 The OMH Benchmark Family 
+
+We retain the OckBench-Coding (Du et al., 2026) harness: each row is a natural-language problem 
+
+string followed by authoritative Python assert s, so functional grading and OckScore are unchanged. We replace the content of those rows. The default OckBench-Coding split sits near accuracy ceiling on commercial models and offers little headroom for token-efficiency mechanisms. 
+
+OMH (Ock-Multilingual-Hard) is a family of two 200 -row surfaces. Both share the same twenty in-house algorithmic cores (reference implemen-tations plus fixed assert suites) and the same ten style indices per core ( 20 × 10 = 200 ). They differ only in which parts of the prompt are non-English. 
+
+OMH-Wrapped (wrapper-only) keeps the tech-nical specification in English; each style index ap-plies one of ten hand-written multilingual or noisy wrappers (informal Turkish, Arabic, or Chinese openings; polite or chat-register English; Turkish– English mix; etc.). The cl100k_base per-prompt tokenization-overhead ratio is 0.96 × on the mean and 1.34 × at p90, so OMH-Wrapped cannot stress a fully non-English body. We retain it as a tokenizer control. 
+
+OMH-Polyglot replaces the specification sen-tences themselves with Turkish, Arabic, Simplified Chinese, or code-switched equivalents; assert 
+
+lines remain ASCII so the grader is unchanged. The twenty cores are interview-style tasks (e.g., 0/1
+
+Knapsack, longest common subsequence, sliding-window maxima, topological sort, Levenshtein dis-tance). The ten style registers are: pure Turkish; pure Arabic (Modern Standard); pure Simplified Chinese; three pairwise sentence-alternating mixes (TR ↔AR, TR ↔ZH, AR ↔ZH); a tri-language TR/AR/ZH rotation; and three native-narrative reg-isters with embedded English jargon. The per-prompt tokenization-overhead ratio is 2.05 × on the mean, 4.02 × at p90, and 6.15 × in the worst case (Table 2).                
+
+> Benchmark Mean p90
+> OMH-Wrapped (control) 0.96 ×1.34 ×
+> OMH-Polyglot (ours) 2.05 ×4.02 ×
+> Table 2: Per-prompt tokenization-overhead ratio (cl100k_base tokens of the multilingual prompt di-vided by an English-floor equivalent). All accuracy and cost results in Section 5 are on OMH-Polyglot .
+
+Why not other benchmarks? HumanEval, MBPP, and SWE-Bench (Jimenez et al., 2024) score pass@k without measuring the cost of cor-rectness. FLORES, XL-Sum, and other transla-tion benchmarks measure fidelity, not downstream code outcomes under multilingual input. Default OckBench-Coding (Du et al., 2026) hits an accu-racy ceiling. 
+
+4.2 Baselines and Implementation 
+
+We evaluate against three commercial cloud backends spanning the cost–capability frontier: gpt-3.5-turbo , gpt-4o , and 
+
+gemini-2.5-flash-lite . The local mid-dleware uses a headless OpenAI-compatible proxy running Llama 3.2 (3B) via Ollama ; only the upstream cloud endpoint changes. For the Raw 
+
+arm, OckBench dispatches the multilingual prompt directly to the cloud API with a fixed system prompt asking for a focused Python solution. For the Ours arm, OckBench routes through our proxy; the system prompt is identical across both arms, so any delta is attributable to the user-message rewrite alone. We run three independent repeats per (model × pipeline) cell at temperature = 0 
+
+to characterize residual API non-determinism, and report run means. All cloud calls use a 4096 -token output cap. 
+
+4.3 Metrics 
+
+For every (model × pipeline) cell we report: (i) 
+
+Accuracy : fraction of tasks whose code passes every assert (N = 200 ); (ii) Token counts : total, prompt, and answer summed across 200 tasks, plus percent change vs. Raw; (iii) OckScore (Du et al., 2026), defined as 
+
+OckScore = Accuracy − 10 · log 10 
+
+ ¯TTref 
+
+
+
+, (1) with Accuracy ∈ [0 , 100] , ¯T the mean tokens-per-task, and Tref a harness-reported reference budget; (iv) Wall-clock per 200 -task run. 
+
+Statistical scope. We report descriptive contrasts, not significance tests. OMH-Polyglot is 20 algo-rithm clusters × 10 style transforms with shared reference solutions and assert suites per cluster, so the effective independent-trial count is closer to 20 than 200 . A defensible inferential analysis requires a per-algorithm cluster bootstrap; we list this as required follow-up. The three repeats per cell were near-deterministic (Gemini deterministic; 
+
+gpt-3.5-turbo varied by < 10 −3; only one of three gpt-4o Raw runs differed by a single task) and act as a determinism probe rather than a sample for population inference. 
+
+## 5 Results 
+
+Table 3 reports run means; run-level sample stan-dard deviations are uniformly small (accuracy ≤
+
+1.15 pp; token columns < 0.5% of the mean) and act as a determinism probe rather than inferential standard errors. 
+
+5.1 Prompt-Side and Answer-Side Behavior Prompt-side. The prompt-token column is the most consistent finding: within each backend, 
+
+Ours reduces prompt tokens by 34 –47% , with run-to-run variation under 20 tokens out of nearly 
+
+30 ,000 . Each backend uses a different tokenizer (cl100k_base , o200k_base , Gemini’s Sentence-Piece), so absolute counts are not cross-tokenizer commensurate; the defensible reading is that each tokenizer, applied to its own backend’s prompts, separately exhibits a large reduction. 
+
+Answer-side. Only gemini-2.5-flash-lite 
+
+produces shorter completions ( −8.9% ). OpenAI models produce longer completions: +3 .5% on 
+
+gpt-4o and +42 .3% on gpt-3.5-turbo . The most plausible explanation is that the structurally clean Bi-Block removes hedging cues and elicits more complete implementations. The prompt-side savings absorb the answer-side increase in every case, so net total tokens still fall by 8.3–18 .8% .The middleware reliably compresses the input sur-face; it shapes the output surface only on certain backends. 
+
+Accuracy on gpt-4o . The +1 .17 pp delta corre-sponds to a single task swinging in one of three Raw repeats, within the 1.15 pp run-level standard deviation; the names_only ablation (Section 5.2) confirms gpt-4o is essentially flat across arms. We do not claim it as a result. 
+
+Optimization floor: benchmark artifact. 
+
+Earlier preliminary experiments on OMH-Wrapped suggested an “Optimization Floor” for gpt-3.5-turbo . On OMH-Polyglot, no regression appears: accuracy is exactly 99 .50% 
+
+in every Raw and Ours run. The names_only 
+
+ablation sharpens this: with SLM rewrite stripped but the multilingual body kept, gpt-3.5-turbo 
+
+drops to 79 .00% , a 20 .5 pp collapse. The earlier “floor” was a symptom of forwarding multilingual prompts to a weaker backend without translation. 
+
+5.2 Ablation: Isolating the Function-Name Oracle 
+
+The Ours arm bundles structural rewriting with a deterministic oracle that extracts target function identifiers from the assert lines and places them at the top of [TASK] . To attribute the accuracy column to a specific mechanism, we run names_only : the SLM is bypassed and the regex-extracted name is prepended to the raw multilingual prompt as a one-line English oracle. Three repeats per cell, identical otherwise (Table 4). The ablation cleanly separates two hypotheses. 
+
+(i) The oracle alone is insufficient on weaker backends and harmful. It drops accuracy by 
+
+20 .50 pp on gpt-3.5-turbo (99 .50 → 79 .00 ) and 
+
+18 .50 pp on gemini-2.5-flash-lite (95 .00 →
+
+76 .50 ); on gpt-4o it is neutral ( +0 .17 pp, within 
+
+±1.32 pp). The mechanism is consistent with under-attention to the multilingual body once a salient English instruction is prepended: the model treats the prefix as authoritative and par-tially ignores the foreign-language text where edge cases and return semantics are encoded. (ii) The rewriter, not the oracle, is the active accu-racy mechanism. If the oracle drove the full 
+
+delta, names_only would approximate full . It does not: full exceeds names_only by 20 .50 , 1.00 , and 
+
+21 .50 pp on the three backends. The salience-only hypothesis is directly falsified, and the +3 .00 pp Gemini gain is attributable to the SLM rewrite. 
+
+(iii) Gemini destabilizes into runaway genera-tion without scaffold. Under names_only , Gem-ini’s mean answer length explodes from 359 tokens (raw ) and 327 (full ) to 1,353 —a 3.8× expansion. A fraction of these answers are likely cap-truncated; even allowing for this, the lite model fails to termi-nate cleanly without English semantic scaffolding. This supports the structural-scaffold reading of (Ma et al., 2025). Two cells of the original five-condition matrix remain pending: regex_strip (a non-LLM pleas-antry stripper, bounding what deterministic cleanup achieves) and llm_no_names (rewriter with the ora-cle disabled, testing whether the oracle adds any-thing on top). 
+
+5.3 Comparison Against LLMLingua-2 
+
+We address whether a well-tuned post-hoc com-pressor can recover the same savings. LLMLingua-2 (Pan et al., 2024) is a token-classification model ( xlm-roberta-large , ∼ 560 M parame-ters) trained to keep or drop tokens at a target rate; the multilingual XLM-RoBERTa backbone is the natural baseline for our multilingual specifications. Cloud Agent Pipeline Acc. (%) Total Tokens Prompt Answer OckScore ↑                                                
+
+> gpt-3.5-turbo
+> Raw 99 .50 94 ,338 53 ,713 40 ,625 99 .04
+> LLMLingua-2 77 .33 85 ,026 42 ,314 42 ,712 76 .91
+> Ours 99 .50 86 ,474 (−8.3% )28 ,661 57 ,812 99 .08
+> gpt-4o
+> Raw 98 .33 139 ,085 43 ,565 95 ,520 97 .66
+> LLMLingua-2 97 .17 124 ,790 37 ,281 87 ,509 96 .56
+> Ours 99 .50 127 ,594 (−8.3% )28 ,776 98 ,819 98 .88
+> gemini-2.5-flash-lite
+> Raw 95 .00 116 ,653 44 ,918 71 ,735 94 .43
+> LLMLingua-2 35 .00 243 ,193 37 ,932 205 ,261 33 .85
+> Ours 98 .00 94 ,725 (−18 .8% )29 ,398 65 ,327 97 .54
+
+Table 3: Raw cloud baseline, LLMLingua-2 (Pan et al., 2024) at matched compression rate ( r=0 .6, with executable 
+
+assert block detached and re-attached verbatim so the grader is never corrupted by token pruning), and our middleware on OMH-Polyglot ( 200 rows; three runs per cell). The percentage in parentheses is the relative change in total tokens vs. Raw. OckScore via Equation 1. Across all three backends Ours strictly Pareto-dominates LLMLingua-2 on OckScore.                                                 
+
+> Cloud Agent Arm Acc. (%) Total Tokens Prompt Answer
+> gpt-3.5-turbo
+> raw 99 .50 94 ,338 53 ,713 40 ,625
+> names_only 79 .00 ±1.32 100 ,960 60 ,093 40 ,867
+> full 99 .50 86 ,474 28 ,661 57 ,812
+> gpt-4o
+> raw 98 .33 139 ,085 43 ,565 95 ,520
+> names_only 98 .50 ±1.32 131 ,336 49 ,212 82 ,124
+> full 99 .50 127 ,594 28 ,776 98 ,819
+> gemini-2.5-flash-lite
+> raw 95 .00 116 ,653 44 ,918 71 ,735
+> names_only 76 .50 ±0.00 321 ,654 51 ,078 270 ,576
+> full 98 .00 94 ,725 29 ,398 65 ,327
+
+Table 4: Ablation isolating the function-name oracle. names_only prepends the regex-extracted identifier to the raw multilingual prompt and skips the SLM rewrite. Three runs per cell; ± values are run-level standard deviation. Bold marks best within model. Italic flags Gemini’s 3.8× answer-token expansion under names_only (1,353 
+
+tokens/answer vs. 359 in raw and 327 in full). 
+
+Setup. We use the public MeetingBank LLMLingua-2 checkpoint 1 through the offi-cial PromptCompressor API at compression 
+
+rate = 0.6 (a 40% token-reduction target, matched to the prompt-side band achieved by 
+
+Ours ), with the recommended force_tokens 
+
+for punctuation. Because LLMLingua-2 is task-agnostic, we detach the assert block before compression and concatenate it back verbatim afterward; without this guard the grader would be silently corrupted. The hosting Python proxy is byte-compatible with the OpenAI-style proxy used for Ours : identical system prompt, identical 
+
+<solution> post-processing, and an identical 5% 
+
+token-budget guard. 
+
+Headline contrast. Across all three backends 
+
+Ours strictly Pareto-dominates LLMLingua-2 on OckScore: 99 .08 > 76 .91 on gpt-3.5-turbo ,
+
+98 .88 > 96 .56 on gpt-4o , and 97 .54 > 33 .85 
+
+> 1https://huggingface.co/microsoft/ llmlingua-2-xlm-roberta-large-meetingbank
+
+on gemini-2.5-flash-lite . LLMLingua-2 hits its configured rate (within-tokenizer prompt reduc-tions of 15 –21% vs. Raw), but the cross-lingual rewrite compresses harder ( 34 –47% ) and preserves accuracy where LLMLingua-2 does not. 
+
+Per-backend nuance. On 
+
+gemini-2.5-flash-lite , LLMLingua-2 collapses to 35 .00% accuracy ( −60 .00 pp vs. Raw, 
+
+−63 .00 pp vs. Ours) with a 2.9× answer-token expansion (mean 1,026 tokens/answer vs. 359 in Raw and 327 in Ours); total tokens more than double ( 243 ,193 vs. 116 ,653 ). The failure mode quantitatively echoes the names_only ablation on Gemini and is consistent with the structural-scaffold reading (Ma et al., 2025): the lite model destabilizes into runaway generation when the input lacks English semantic scaffolding, whether the scaffold is removed by bypassing the rewriter or by lossy compression of the multilingual body. On gpt-3.5-turbo , LLMLingua-2 drops accuracy to 77 .33% (−22 .17 pp) while saving only −2.9% on dollars. On gpt-4o , LLMLingua-2 is most competitive: 97 .17% accuracy ( −2.33 pp vs. Ours, within 2× the run-level standard deviation) at an 8.7% dollar saving relative to Ours, but OckScore still favors Ours. 
+
+Compression latency. LLMLingua-2 compres-sion on CPU averages 689 ms per prompt vs. 
+
+176 ms for our SLM rewrite on the same hard-ware. The ∼ 560 M-parameter token-classifier is not faster than the 3 B-parameter SLM at this hard-ware tier. 
+
+Qualitative spec damage. An offline batch com-pressing every OMH-Polyglot prompt exposes the semantic drift the live runs quantify. The zh_pure 
+
+style is most damaged: 5/200 rows lose more than half their byte length, including a Roman-numeral spec ( roman_to_int ) whose compressed body is IV=4,IX=900 where the original gave 
+
+IV=4,IX=9,XL=40,XC=90,CD=400,CM=900 —a factual corruption. Separately, 5/200 rows lose the target function name from the natural-language body entirely (all in code-switched styles); the asserts retain the identifier, but the scaffold the lite model needs is gone. We limit this comparison to LLMLingua-2 in its as-shipped configuration. LongCodeZip (Shi et al., 2025) requires per-token perplexity from a reference LM—the recursive cloud dependency our paper argues against—and is not on the same Pareto axis; we discuss this in Section 7. 
+
+5.4 End-to-End Latency 
+
+Per-prompt local-rewrite latency, (¯ tOurs −
+
+¯tRaw )/200 , is approximately 118 ms for gpt-4o ,
+
+131 ms for gemini-2.5-flash-lite , and 279 ms for gpt-3.5-turbo . As a fraction of total benchmark wall-clock, the proxy adds +10 .5% ,
+
++40 .5% , and +57 .5% respectively. For interactive IDE use the per-prompt overhead is sub-second on standard development hardware, but it is not zero. 
+
+5.5 From Tokens to Dollars 
+
+Commercial APIs price output tokens at 3–4× the input rate, so the same −8% change in total tokens can translate into very different dollar outcomes. Table 5 reports cost per 200 -task run using listed prices as of May 2026 2.                                       
+
+> 2$0.50/$1.50 per million input/output tokens for
+> gpt-3.5-turbo ; $2.50/$10.00 for gpt-4o ; $0.10/$0.40 for
+> gemini-2.5-flash-lite .
+> Agent Raw LL2 Ours ∆vs. Raw LL2 Ours
+> gpt-3.5 $0.0878 $0.0852 $0.1011 −2.9% +15 .1%
+> gpt-4o $1.0641 $0.9683 $1.0601 −9.0% −0.4%
+> gemini-lite $0.0332 $0.0859 $0.0291 +158 .7% −12 .4%
+> Table 5: Per-200-task cloud-API cost in USD; ∆
+> columns are percent change vs. Raw. gpt-3.5
+> and gemini-lite abbreviate gpt-3.5-turbo and
+> gemini-2.5-flash-lite . Local-compute cost (Llama 3.2 3B at ∼100 W for ∼176 ms/query) is ∼$0.07 per
+> 100 ,000 queries and omitted.
+
+On gemini-2.5-flash-lite , where both prompt and answer tokens decrease, savings are meaningful ( −12 .4% ). On gpt-4o , the −34 .0% 
+
+prompt-token reduction is almost exactly cancelled by the +3 .5% answer-token increase under that model’s 4× output-price multiplier, leaving the bill flat. On gpt-3.5-turbo , the proxy increases the bill by 15 .1% : 42 .3% longer completions charged at the 3× output rate erase the input-side savings. The middleware is most valuable when (i) the back-end has a small output/input price ratio or (ii) the answer side does not regress. The LLMLingua-2 column adds further nuance. On gpt-4o a token-classifier at matched rate beats 
+
+Ours on dollars ( −9.0% vs. −0.4% ) but at a 
+
+−2.33 pp accuracy concession; OckScore still fa-vors Ours. On the other two backends LLMLingua-2 is strictly worse: marginal saving with catas-trophic accuracy loss on gpt-3.5-turbo , and out-right cost regression with severe accuracy loss on gemini-2.5-flash-lite (+158 .7% dollars, 
+
+−63 .00 pp accuracy). 
+
+## 6 Conclusion 
+
+We presented a localized pre-flight middleware that performs cross-lingual translation and struc-tural rewriting on edge hardware and forwards a compact English specification to the cloud back-end. On OMH-Polyglot , it reduces prompt to-kens by 34 –47% and total tokens by 8.3–18 .8% 
+
+across three commercial backends over three in-dependent runs per cell, with accuracy unchanged on gpt-3.5-turbo , within-noise on gpt-4o , and 
+
++3 .00 pp on gemini-2.5-flash-lite .The names_only ablation falsifies the salience-only hypothesis (the oracle alone decreases ac-curacy by 18 –20 pp on the two weaker backends and is neutral on gpt-4o ), attributing the Gemini accuracy gain to the SLM rewrite. The rewrite additionally prevents a 3.8× answer-token explo-sion on the lite model. Against LLMLingua-2 at matched rate, our middleware strictly Pareto-dominates on OckScore across all three backends; LLMLingua-2’s failure mode on Gemini mirrors the names_only destabilization, independently vali-dating the structural-scaffold attribution. Dollar outcomes at listed cloud prices are asymmetric ( −12 .4% , −0.4% , +15 .1% ) because answer-side compression is not universal and out-put prices dominate on gpt-3.5-turbo . The mid-dleware is best suited to output-cheap or output-stable backends. Future work: (i) the remaining two ablation cells (regex_strip , llm_no_names ); (ii) an algorithm-cluster bootstrap with Holm-corrected significance; (iii) LongCodeZip (Shi et al., 2025) on a local reference LM; (iv) repository-aware grounding of 
+
+[CONTEXT] from static analysis, so the Tri-Block can replace the Bi-Block in production. 
+
+## 7 Limitations 
+
+Pending ablations & baselines. regex_strip 
+
+(non-LLM baseline) and llm_no_names (SLM without oracle) remain pending. While not required for our core accuracy claims, they would strengthen deployment guidance. Additionally, running Long-CodeZip (Shi et al., 2025) against a local reference LM, and sweeping LLMLingua-2 at r ∈ { 0.5, 0.7}
+
+(currently fixed at r = 0 .6), are planned follow-ups to tighten Pareto contrasts. 
+
+Statistical scope. OMH-Polyglot yields an effec-tive independent-trial count of ∼20 (20 clusters 
+
+× 10 styles with shared solutions). Small accu-racy deltas ( ≤ 1.17 pp) fall within run-level API noise. While the large ablation drops ( −18 .50 to 
+
+−20 .50 pp) are well outside this noise band, for-mal cluster-level bootstraps with Holm-corrected significance are required for inferential claims. 
+
+Deployment overheads. The proxy adds 118 –
+
+279 ms latency per prompt (Section 5.4), and the local Llama 3.2 (3B) requires ∼3.4 GB of mem-ory (AI, 2024). Furthermore, dollar-cost outcomes are asymmetric (Section 5.5): savings depend heav-ily on the backend’s output/input price ratio, with regressions on gpt-3.5-turbo (+15 .1% ) but sav-ings on gemini-2.5-flash-lite (−12 .4% ). 
+
+Validation & scope mismatch. The post-rewrite validator (Section 3.4) performs syntactic checks but lacks semantic requirement-coverage tracking. Additionally, empirical results reflect the bench-mark proxy’s Bi-Block, whereas the production IDE uses an extended Tri-Block. Finally, Arabic and Chinese translations await native-speaker au-dits before external release. 
+
+Compliance & Reproducibility. All models and datasets (Llama 3.2 (AI, 2024), LLMLingua-2 (Pan et al., 2024), OckBench (Du et al., 2026)) comply with their respective open-access licenses. Exhaus-tive license details, the MIT-licensed code, IDE extension, dataset, and analysis scripts are avail-able in the supplementary repository. 3
+
+## References                     
+
+> Sanchit Ahuja, Praneetha Vaddamanu, and Barun Pa-tra. 2025. Efficientxlang: Towards improving token efficiency through cross-lingual reasoning. In Find-ings of the Association for Computational Linguistics: EMNLP 2025 , pages 15612–15624. Meta AI. 2024. Llama 3.2: Lightweight and multimodal edge models. https://ai.azure.com/catalog/ models/Llama-3.2-1B-Instruct .Black Duck Software. 2026. 2026 open source security and risk analysis report. Technical report, Synopsys. Boyuan Chen, Mingzhi Zhu, Brendan Dolan-Gavitt, Muhammad Shafique, and Siddharth Garg. 2024. Model cascading for code: A cascaded black-box multi-model framework for cost-efficient code completion with self-testing. arXiv preprint arXiv:2405.15842 .Zheng Du, Hao Kang, Song Han, Tushar Krishna, and Ligeng Zhu. 2026. Ockbench: Measuring the efficiency of llm reasoning. arXiv preprint arXiv:2511.05722 .Weizhi Fei, Xueyan Niu, Guoqing Xie, Yingqing Liu, Bo Bai, and Wei Han. 2025. Efficient prompt com-pression with evaluator heads for long-context trans-former inference. In Advances in Neural Information Processing Systems .Le Hai and 1 others. 2026. Repository-level code gener-ation: A survey. arXiv preprint arXiv:2602.11671 .Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yu Yang, and Lili Qiu. 2023. LLMLingua: Compressing prompts for accelerated inference of large language models. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing .Association for Computational Linguistics. Carlos E Jimenez, John Yang Murphy, Paul Xia, Aida Wilbur MacMillan, and 1 others. 2024. SWE-bench: Can language models resolve real-world
+> 3Repository link: https://github.com/utkucolak/ cursor-prompt-optimizer
+
+github issues? In The Twelfth International Con-ference on Learning Representations .Yucheng Li, Bo Dong, Frank Guerin, and Chenghua Lin. 2023. Compressing context to enhance inference ef-ficiency of large language models. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 6342–6353. As-sociation for Computational Linguistics. Wei Liu and 1 others. 2024. Graphcoder: Enhancing repository-level code completion via code context graph-based retrieval and language model. arXiv preprint arXiv:2406.07003 .Hanzhen Lu, Lishui Fan, Jiachi Chen, and Zhongxin Liu. 2026. Balancing latency and accuracy of code com-pletion via local-cloud model cascading. Preprint .Yuanchi Ma and 1 others. 2025. Sketch-of-thought (sot): A prompting framework for reducing token usage via linguistic constraints. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing .Sergey Mechtaev and 1 others. 2026. Compressing code context for llm-based issue resolution. arXiv preprint arXiv:2603.28119 .MorphLLM. 2026. Context engineering: The key to efficient code agents. Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Rühle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, and Dongmei Zhang. 2024. LLMLingua-2: Data dis-tillation for efficient and faithful task-agnostic prompt compression. In Findings of the Association for Com-putational Linguistics: ACL 2024 , pages 963–981, Bangkok, Thailand. Association for Computational Linguistics. Yun Peng, Jun Wan, Yichen Li, and Xiaoxue Ren. 2025. COFFE: A code efficiency benchmark for code gen-eration. Proceedings of the ACM on Software Engi-neering , 2(FSE):FSE012. Aleksandar Petrov, Emanuele La Malfa, Adel Bibi, and Philip HS Torr. 2023. Language model tokenizers in-troduce unfairness between languages. In Advances in Neural Information Processing Systems .Reid Pryzant, Dan Iter, Jerry Li, Yin Tat Lee, Chen-guang Zhu, and Michael Zeng. 2023. Automatic prompt optimization with “gradient descent” and beam search. In Proceedings of the 2023 Confer-ence on Empirical Methods in Natural Language Processing , pages 7957–7968. Association for Com-putational Linguistics. Yuling Shi and 1 others. 2025. Longcodezip: Compress long context for code language models. In Proceed-ings of the 40th IEEE/ACM International Conference on Automated Software Engineering .Hamed Taherkhani, Melika Sepidband, Hung Viet Pham, Song Wang, and Hadi Hemmati. 2025. Au-tomated prompt engineering for cost-effective code generation using evolutionary algorithm. Proceed-ings of the ACM on Software Engineering , 1(1). F. Teklehaymanot and A. Petrov. 2025. Tokenization disparities: Systematic differences in segmenting lin-guistic input. Emergent Mind: AI Research Index .Yuan-An Xiao, Pengfei Gao, Chao Peng, and Yingfei Xiong. 2026. Reducing cost of llm agents with tra-jectory reduction. In Proceedings of the ACM on Software Engineering .Tom Zehle, Moritz Schlager, Timo Heiss, and Matthias Feurer. 2025. CAPO: Cost-aware prompt optimiza-tion. In 4th International Conference on Automated Machine Learning .Fengji Zhang, Bei Chen, Yue Zhang, Jacky Keung, Jin Liu, Daoguang Zan, Yi Mao, Jian-Guang Lou, and Weizhu Chen. 2023. RepoCoder: Repository-level code completion through iterative retrieval and gen-eration. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing ,pages 2471–2484. Association for Computational Linguistics. Yongchao Zhou, Andrei Ioan Muresanu, Ziwen Han, Keiran Paster, Silviu Porges, Harris Chan, Stella Biderman, Lillian Weng, and Timnit Gebru. 2023. Large language models are human-level prompt engi-neers. In The Eleventh International Conference on Learning Representations .

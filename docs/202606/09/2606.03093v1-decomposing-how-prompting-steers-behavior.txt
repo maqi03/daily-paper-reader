@@ -1,0 +1,6911 @@
+Title: Decomposing how prompting steers behavior
+
+URL Source: https://arxiv.org/pdf/2606.03093v1
+
+Published Time: Wed, 03 Jun 2026 00:37:25 GMT
+
+Number of Pages: 59
+
+Markdown Content:
+# Decomposing how prompting steers behavior 
+
+Fan L. Cheng 
+
+Columbia University fan.cheng@columbia.edu 
+
+Nikolaus Kriegeskorte 
+
+Columbia University n.kriegeskorte@columbia.edu 
+
+Abstract 
+
+Prompting steers large language models (LLMs) and vision–language models (VLMs) without weight updates, but it remains unclear how a change in instruction reshapes internal representations to produce a behavioral effect. We introduce a nested geometric decomposition framework that treats prompting as a transforma-tion of the representational geometry for the content following the prompt. We ask what class of mathematical transformation best explains the effect of prompting by finding the best alignment between representations of the same stimulus set following different prompts. For each prompt pair, we fit a sequence of increas-ingly expressive stimulus-invariant maps: translation, rigid transformation with uniform-scaling, sequential axis scaling, affine, and nonlinear transformations. We then test these maps causally by replacing a single layer’s prompt-A hidden state for a new set of stimuli with its mapped counterpart and measuring recovery of prompt-B representational geometry and behavior. Across three LLMs, three VLMs, and six text or image datasets varying in style, emotion, scene content, and number, prompts consistently reshape representational geometry toward the in-structed task structure. In the cross-validated nested variance decomposition, much of the prompt-induced activation change is explained by shape-preserving maps: translation and rigid transformation with uniform-scaling. The tier profiles reveal model- and task-specific routing strategies, differing in how much transformation classes explain variance and where along the layer hierarchy their contributions emerge. Crucially, although translation and rigid transformation tiers already im-prove behavioral agreement, affine transformation is the first tier to nearly recover target-prompt task geometry and produces corresponding gains in behavioral agree-ment. This suggests that cross-dimensional linear mixing may be a key contributor to how prompts reorganize representations toward the instructed task structure. Our framework provides a general way to decompose prompt-induced representational change into interpretable geometric components, revealing how a model routes task-relevant structure to produce prompt-driven behavior. 
+
+1 Introduction 
+
+Instruction prompts can alter model behavior at inference time without updating parameters. For a fixed stimulus, changing the instruction from “describe the object category” to “describe the artistic style,” for example, can shift which stimulus dimensions become behaviorally relevant and, consequently, which output the model produces. This raises a mechanistic question: how does a change in instruction reorganize internal representations so as to steer downstream behavior? Two complementary literatures bear on this question. First, representational analyses show that prompts and context restructure internal geometry, producing measurable changes in representational similarity, manifold capacity, trajectory geometry, probing performance, and related diagnostics [Kirsanov et al., 2025, Hosseini et al., 2026, Park et al., 2025, Polo et al., 2026, Gonzalez-Gutierrez and Hovy, 2025, Davidson et al., 2026, Park et al., 2024]. These effects can be depth-dependent,                   
+
+> Preprint.
+> arXiv:2606.03093v1 [cs.AI] 2 Jun 2026 0.0 0.2 0.4 0.6 0.8 1.0
+> Normalized layer position
+> 10 5
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> XB XA 2/ XA 2Prompt-induced representational change
+> bas1
+> s2
+> s3
+> ...
+> Stimuli S
+> Prompt A:“Are there people?”
+> Layer ℓ“Yes”
+> “No”
+> “Yes”
+> ...
+> Outputs
+> Prompt B:“How many people?” Layer ℓ
+> “3”
+> “0”
+> “2”
+> ...
+> MA
+> MB
+> hA
+> hB
+> f= ?
+
+Figure 1: (a) Two prompts A (“Are there people?”) and B (“How many people?”) are presented to the same model together with a stimulus set S. We tap the hidden state at a single transformer layer ℓ (highlighted) to obtain the layer-ℓ manifolds MA = Φ A(S) (green) and MB = Φ B (S)
+
+(purple). The same forward pass continues past ℓ and yields a prompt-specific output per stimulus (“Yes/No” vs. counts). We ask whether a systematic map f : MA → M B exists, how complex it has to be, and whether it causally drives behaviour. (b) Prompt-induced representational change as a function of normalised layer depth. Each gray curve is one pair of model and dataset from the three LLMs (OPT-2.7B, Llama3-8B, Qwen3-8B) on three text datasets and three VLMs (BLIP-2, LLaVA-OneVision, Qwen3-VL) on three image datasets; the black curve is their mean. The change is small but non-zero in early layers ( 10 −4–10 −2) and grows nearly monotonically with depth, reaching 
+
+10 −1–10 0 at the top, with a consistent shape across architectures and modalities. with some studies suggesting that intermediate layers provide especially informative or compressed representations and later layers more directly support prediction [Jiang et al., 2025, Skean et al., 2024, 2025]. Second, work on activation steering shows that relatively simple activation-space interventions, such as additive vectors, rotations, and affine maps, can modulate prompt-induced behavioral effects [Turner et al., 2023, Zou et al., 2023, Singh et al., 2024, Vu and Nguyen, 2025]. Taken together, these findings suggest that natural prompting may itself be implemented through a low-complexity transformation in activation space. What remains unclear, however, is the transformation class of the prompt-induced change. Existing work on the geometry of prompting has established that prompts alter internal representations, but it has typically characterized those changes through scalar metrics rather than decomposing them into interpretable geometric components. Conversely, activation-steering studies show that engineered low-complexity operators can influence behavior, but they rarely estimate such operators from natural prompting itself or test whether the recovered operators account for target-prompt geometry induced by an instruction change. We address this gap with a nested geometric decomposition framework. For each model, layer, dataset, and prompt pair, we fit a single stimulus-invariant alignment map from source-prompt activations to target-prompt activations and evaluate it on held-out stimuli. The operator hierarchy separates centroid shifts, global Procrustes alignment, axis-wise scaling in the Procrustes-aligned basis, cross-dimensional feature mixing, and nonlinear residual structure. This hierarchy is motivated by classical Procrustes analysis and by shape-based approaches to comparing representations under explicit transformation classes [Gower, 1975, Williams et al., 2021, Kornblith et al., 2019, Williams, 2024, Harvey et al., 2024, Barbosa et al., 2025]. In parallel, we use RSA and silhouette analyses to test whether prompting reshapes representational geometry toward the instructed task structure; RSA compares representational dissimilarity matrices and is designed to relate representational geometry to candidate task or model structures [Kriegeskorte et al., 2008, Lin and Kriegeskorte, 2024, Cheng and Jing, 2025]. Finally, we apply each fitted map as a causal activation intervention, 2replacing a source-prompt hidden state with its mapped counterpart and measuring whether the resulting representation and output recover those of the target prompt. The resulting tier profiles reveal the prompt-routing strategy a model uses to follow an instruction: which transformation tiers carry the change, where they emerge across layers, and whether they recover task-aligned geometry and behavior. 
+
+Contributions. 
+
+1. We introduce a nested geometric decomposition of prompt-induced hidden-state change across five transformation classes: translation, rigid transformation with uniform scaling, rigid transformation with axis-wise scaling, affine, and nonlinear, yielding a unique contri-bution for each tier (§3). 2. We develop a causal intervention protocol that applies the fitted map from each tier at a single layer on held-out stimuli and evaluates both representational geometry and behavioural recovery relative to the target prompt (§5). 3. Across LLMs, VLMs, and six datasets, we find that prompting consistently reshapes repre-sentational geometry toward the instructed task structure, that much of the prompt effect is captured by low-complexity maps, and that model families, datasets, and prompt-pair groups differ systematically in the relative contribution of transformation tiers and in where these contributions emerge across depth, revealing distinct prompt-routing strategies (§6). 
+
+2 Related work 
+
+Geometry of prompting and in-context representations. Prior work has characterized the ge-ometric effects of prompting and in-context structure primarily through changes in scalar metrics. A previous study analyzes zero-shot, few-shot, and soft prompting using manifold-capacity tools, showing that different prompting regimes can induce distinct representational mechanisms for task adaptation [Kirsanov et al., 2025]. Other work characterizes how context and in-context examples reorganize internal representations into compact, identifiable substrates that drive in-context general-ization, sucha as attention-head circuits, task vectors, and trajectory or phase-transition-like geometry [Hosseini et al., 2026, Park et al., 2025, Yang et al., 2026, Hendel et al., 2023, Todd et al., 2024]. A complementary line documents the dynamic, distributed, and not always task-aligned representational effects of prompting [Gonzalez-Gutierrez and Hovy, 2025, Davidson et al., 2026, Li et al., 2025b, Polo et al., 2026, Li et al., 2025a, Simhi et al., 2026]. Relative to this line of work, our contribution is to estimate explicit transformation classes between prompt-conditioned representation manifolds and to test whether the transformations causally recover both representational geometry and behavior. 
+
+Activation steering and geometric interventions. We organize prior steering methods within the transformation hierarchy FT ⊂ F Ou ⊂ F Oa ⊂ F L ⊂ F N (Fig. 3), distinguishing global operators, which is stimulus-invariant, from input-conditioned interventions, whose effective transformation depends on the current stimuli. Most existing methods are naturally described at the translation tier, where a stimulus-invariant direction is added to the hidden state [Turner et al., 2023, Rimsky et al., 2024, Li et al., 2023b, Zou et al., 2023, Templeton, 2024, Wang et al., 2025, Davidson et al., 2026, Singh et al., 2024]. A smaller group of methods fits a single global linear or affine intervention [Postmus and Abreu, 2024, Sheng et al., 2026, Wu et al., 2024, 2025, Singh et al., 2024]. Rotation-based methods and piecewise-affine optimal-transport edits are also relevant, but they are generally not estimated as Procrustes maps between paired representation clouds, and their target-angle or adaptive variants are often input-conditioned [Vu and Nguyen, 2025, Pham and Nguyen, 2024, Abdullaev et al., 2026, Rodriguez et al., 2025, Scialanga et al., 2025]. The rigid transformation with uniform scaling FOu therefore remains comparatively underexplored as a stimulus-set mapping estimator, while strictly nonlinear interventions appear relatively rare [Zhao et al., 2026, Raval et al., 2026]. Independently of the operator class, steering methods also differ in the stage of the forward pass at which the intervention is applied [Lee et al., 2024, Nguyen et al., 2025, Dang and Ngo, 2026], with a related line operating in weight space rather than activation space [Fierro and Roger, 2025], and recent audits have argued for more systematic geometric and mediator-typology characterizations [Venkatesh and Mahendran Kurapath, 2026, Tan et al., 2024, Im and Li, 2025, Wehner et al., 2025]. In this paper, our goal is not to engineer operators that induce a desired behavior, but to use the same hierarchy as a measurement framework for natural prompting. The finding that low-complexity linear 30.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+> RDM correlation
+
+Prompt A 
+
+Prompt B 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+Prompt A 
+
+Prompt B 0.0 0.2 0.4 0.6 0.8 1.0                
+
+> Normalized layer position
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> RDM correlation
+> Prompt A
+> Prompt B
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Normalized layer position
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> Silhouette score
+> Prompt A
+> Prompt B 0.0 0.2 0.4 0.6 0.8 1.0
+> Normalized layer position
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> RDM correlation
+> Prompt A
+> Prompt B
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Normalized layer position
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> Silhouette score
+> Prompt A
+> Prompt B
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+> RDM correlation
+
+Prompt A 
+
+Prompt B 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+Prompt A 
+
+Prompt B 0 10.2 0.4 0.6 0.8 
+
+0
+
+0.1 
+
+0.2 0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+> RDM correlation
+
+Prompt A 
+
+Prompt B 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+Prompt A 
+
+Prompt B 
+
+0 10.2 0.4 0.6 0.8 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+Normalized layer position 
+
+cLlava_onevision  L26 
+
+Prompt A 
+
+Are there people in this image? 
+
+L26 
+
+Prompt B 
+
+How many people are in this image? 
+
+L26 L26 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ Llava_onevision  L27 
+
+Prompt A 
+
+Are there people in this image? 
+
+L27 
+
+Prompt B 
+
+How many people are in this image? 
+
+L27 L27 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ Llava_onevision  L27 
+
+Prompt A 
+
+Are there people in this image? 
+
+L27 
+
+Prompt B 
+
+How many people are in this image? 
+
+L27 L27 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ Llava_onevision 
+
+L27 
+
+Prompt A 
+
+Are there people in this image? 
+
+L27 
+
+Prompt B 
+
+How many people are in this image? 
+
+L27 L27 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ Llava_onevision 
+
+> L27
+> Prompt A
+> Are there people in this image?
+> L27
+> Prompt B
+> How many people are in this image?
+> L27  L27
+> COCO Dataset
+> Detection
+> Present
+> Absent
+> Count
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+ Llava_onevision
+
+L27 
+
+Prompt A 
+
+Are there people in this image? 
+
+L27 
+
+Prompt B 
+
+How many people are in this image? 
+
+L27 L27 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ Llava_onevision  L27 
+
+Prompt A 
+
+Are there people in this image? 
+
+L27 
+
+Prompt B 
+
+How many people are in this image? 
+
+L27 L27 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ Op Qwen3_8b 
+
+L36 L36 
+
+> Llama3_8b_instruct
+
+L32 L32 Opt_2_7b 
+
+> L30
+> Prompt A
+> What topic is this text about?
+> L30
+> Prompt B
+> What emotion does this text expre
+> Qwen3_8b
+> L36  L36
+> Llama3_8b_instruct  L32  L32
+> EmotionalStory Dataset
+> Joy  Sadness  Anger  Fear  Trust  Disgust  Surprise  An
+
+Emotion Llava_onevision  L26 
+
+Prompt A 
+
+Are there people in this image? 
+
+L26 
+
+Prompt B 
+
+How many people are in this image? 
+
+L26 L26 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ 
+
+Joy 
+
+Sadness 
+
+Anger 
+
+Fear 
+
+Trust 
+
+Disgust 
+
+Surprise 
+
+Anticipation Opt_2_7b 
+
+L30 
+
+Prompt A 
+
+What topic is this text about? 
+
+L30 
+
+Prompt B 
+
+What emotion does this text express? 
+
+> Qwen3_8b
+
+L36 L36 
+
+> Llama3_8b_instruct
+
+L32 L32 
+
+EmotionalStory Dataset 
+
+Joy Sadness Anger Fear Trust Disgust Surprise Anticipation Opt_2_7b 
+
+L30 
+
+Prompt A 
+
+What topic is this text about? 
+
+L30 
+
+Prompt B 
+
+What emotion does this text express? 
+
+> Qwen3_8b
+
+L36 L36 
+
+> Llama3_8b_instruct
+
+L32 L32 
+
+EmotionalStory Dataset 
+
+Joy Sadness Anger Fear Trust Disgust Surprise Anticipation 
+
+aLlava_onevision  L26 
+
+Prompt A 
+
+Are there people in this image? 
+
+L26 
+
+Prompt B 
+
+How many people are in this image? 
+
+L26 L26 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ 
+
+Target RDM Llava_onevision  L26 
+
+Prompt A 
+
+Are there people in this image? 
+
+L26 
+
+Prompt B 
+
+How many people are in this image? 
+
+L26 L26 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ present    
+
+> absent
+> present
+> absent
+> Prompt A L27
+> Are there people in this image?
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> Prompt B L27
+> How many people are in this image?
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Dissimilarity (norm.)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Dissimilarity (norm.)
+> LLaVA-OneVision × COCO Data RDM at L27 Llava_onevision
+
+L27 
+
+Prompt A 
+
+Are there people in this image? 
+
+L27 
+
+Prompt B 
+
+How many people are in this image? 
+
+L27 L27 
+
+COCO Dataset 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ 
+
+RDM Llava_onevision  L26 
+
+Prompt A 
+
+Are there people in this image? 
+
+L26 
+
+Prompt B 
+
+How many people are in this image? 
+
+L26 L26 
+
+Detection 
+
+Present 
+
+Absent 
+
+Count 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+5-10 
+
+10+ 0   
+
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> Prompt A L27
+> Are there people in this image?
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> Prompt B L27
+> How many people are in this image?
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Dissimilarity (norm.)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Dissimilarity (norm.)
+> LLaVA-OneVision × COCO Data RDM at L27 Llava_onevision
+
+L27 
+
+Prompt A 
+
+Are there people in this image? 
+
+L27 
+
+Prompt B 
+
+How many people are in this image 
+
+L27 L27 
+
+COCO Dataset 
+
+RDM 
+
+0 1present 
+
+> absent
+> RSA target  detection
+> present
+> absent
+> present
+> absent
+> Silhouette target  detection
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> RSA target  count
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+> Silhouette target  count
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+
+Dissimilarity (normalized) 
+
+> COCO Dataset
+
+bFigure 2: Prompting reshapes representational geometry toward the instructed task structure. (a) Multidimensional scaling (MDS) visualizations of prompt-conditioned representations. (Top) Layer-32 representations from Llama3-8B-Instruct for 1,920 text stories under a topic prompt (Prompt A) and an emotion prompt (Prompt B). (Bottom) Layer-27 representations from LLaVA-OneVision for 1,000 COCO images under a person-detection prompt (Prompt A) and a person-counting prompt (Prompt B). Each point denotes one stimulus and is colored by the target label for Prompt B. (b) 
+
+Representational dissimilarity matrix (RDM) for the same model, layer, and image set as in the bottom row of panel (a). The top two RDMs are computed from the prompt-A and prompt-B hidden states, respectively. The bottom RDM is the target task RDM for prompt B, constructed from numerical distances between count labels. (c) Layerwise alignment with the target task structure (pooled across models and datasets). Left: Spearman correlation between each prompt-induced RDM and the corresponding target RDM, computed separately for prompt A and prompt B. Right: silhouette score using the target labels, which measures whether stimuli with the same target label form compact, well-separated clusters in representation space. The shaded regions show ±1 SD. maps recover most of the prompt-induced effect is consistent with the strong empirical performance of translation- and affine-class steering methods, which may succeed in part because they approximate the activation changes and representational geometry induced by prompting itself. 
+
+3 Method: nested geometric decomposition 
+
+Preliminaries. Let S denote the stimulus space (a measurable set of images or text excerpts), and let P be a finite set of prompts. Let M be a (vision–)language model with L transformer blocks; fix an analysis layer ℓ ∈ { 1, . . . , L }. For each prompt p ∈ P , the model defines a feature map 
+
+Φp : S −→ RD , s 7 −→ hp(s), (1) returning the layer-ℓ hidden state at the final input-prompt token. We call its image 
+
+Mp := Φ p(S) ⊂ RD
+
+the manifold of prompt p. The ambient space RD carries the canonical Euclidean inner product and the induced Frobenius metric on RN ×D .4Paired observations across prompts. Fix a pair of prompts A, B ∈ P and a finite stimulus set 
+
+{si}Ni=1 ⊂ S (indices i, j range over stimuli). For each stimulus i we obtain a paired observation  ΦA(si), ΦB (si) ∈ RD × RD , and stack these into representation matrices 
+
+XA, XB ∈ RN ×D , Xp 
+
+> i, :
+
+= Φ p(si)⊤. (2) 
+
+Problem statement. We ask whether there is a map f : RD → RD that approximately satisfies 
+
+f ◦ ΦA ≈ ΦB on S (Fig. 1 a). We call a fitted map global if its parameters are stimulus-invariant . We contrast this with input-conditioned steering rules, whose effective direction, angle, coefficient, or application mask varies with the current stimuli. We ask how expressive a global map must be before it can explain, and causally reproduce, the representational effect of changing prompts. 
+
+Hypothesis classes. We approximate f by elements of an increasing chain of transformation families on RD , ranging from classical Lie-group actions to more general affine and nonlinear families: 
+
+RD
+
+|{z}   
+
+> translations T(D)
+
+,→ RD ⋊  R>0 ×O(D)| {z } 
+
+> similarity group Sim( D)
+
+,→ RD ⋊  Diag( D)×O(D)| {z }
+
+> axis-scaled rigid maps
+
+,→ RD ⋊ GL( D)
+
+| {z } 
+
+> affine group Aff( D)
+
+,→ FN
+
+|{z} 
+
+> nonlinear maps
+
+.
+
+(3) 
+
+Each level corresponds to a hypothesis class of mappings on hidden vectors x ∈ R1×D , with free intercept parameters a, b ∈ RD :Class Fk fk(x) Parameters                                                                        
+
+> FT: translation x+bb∈RD
+> FOu: rigid transformation and uniform scaling b+c(x−a)Qa,b∈RD,Q∈O(D), c ∈R>0
+> FOa: rigid transformation and axis-wise scaling b+ ( x−a)Q D a,b∈RD,Q∈O(D),D= diag( d1, . . . , d D)
+> FL: affine transformation b+ ( x−a)Ma,b∈RD,M∈RD×D
+> FN: nonlinear transformation b+gθ(x−a)a,b∈RD,θ∈RP
+
+FN is instantiated in our experiments as a single shared multilayer perceptron gθ : RD → RD ;reported ∆R2N should therefore be read as a lower bound on what an arbitrarily expressive nonlinear map could explain. We use the right-multiplication convention xM to match the row-major data layout. The five classes form a strictly nested chain FT ⊂ F Ou ⊂ F Oa ⊂ F L ⊂ F N; FOa preserves the rigid alignment found by FOu but allows each aligned axis to be independently rescaled, isolating axis-wise gain modulation from arbitrary linear feature mixing. Inclusion identifications are in Appendix A. 
+
+Parameter estimation. Each class is fit on the training fold by minimizing the squared Frobenius reconstruction error bfk = arg min  
+
+> f∈F k
+
+XB − f (XA) 2 
+
+> F
+
+, (4) after centring each prompt condition by its training-fold mean. FT has a closed-form mean-shift so-lution; FOu is solved by orthogonal Procrustes, FOa by Procrustes followed by per-axis least squares on the rigidly-aligned features, and FL by ridge regression. The nonlinear class FN is instantiated as a shared one-hidden-layer MLP fit by stochastic gradient descent on the same Frobenius criterion. All estimators are evaluated under stratified K-fold cross-validation across stimuli. Closed-form derivations, the MLP capacity and optimizer, and the cross-validation procedure are in Appendix A. 
+
+Causal intervention. To probe whether the fitted geometric transformation also causally reproduces the effect of prompt B, we run model on stimulus si under prompt A and replace the layer-ℓ hidden state at the final input token by bfk
+
+ ΦA(si) before continuing the autoregressive forward pass. Let 
+
+yk(si) denote the resulting output token sequence. As a no-fit oracle reference we also include a level that patches the held-out prompt-B representation directly, bfprompt B (Φ A(si)) := Φ B (si), with the surrounding prompt-A context unchanged. This is distinct from running model end-to-end under prompt B: the prompt tokens, the attention pattern up to layer ℓ, and the post-layer-ℓ processing all start from prompt A’s context, so yprompt B upper-bounds what any fitted single-layer replacement can recover from prompt A alone. 5Translation 
+
+Uniform-scaled 
+
+Procrustes 
+
+Axis-scaled 
+
+Procrustes Affine Nonlinear 
+
+Before transformation After transformation Displacement Translation 
+
+Uniform-scaled 
+
+Procrustes 
+
+Axis-scaled 
+
+Procrustes Affine Nonlinear 
+
+Before transformation After transformation Displacement Translation 
+
+Uniform-scaled 
+
+Procrustes 
+
+Axis-scaled 
+
+Procrustes Affine Nonlinear 
+
+Before transformation After transformation Displacement Translation Rigid, u niform-scaled (rotation 
+
+reflection, uniform scaling) 
+
+Rigid, axis-scaled 
+
+(axis-wise scaling) 
+
+Affine 
+
+(shearing) 
+
+Nonlinear 
+
+(warping) 
+
+0 10.2 0.4 0.6 0.8 0 10.2 0.4 0.6 0.8 0 10.2 0.4 0.6 0.8 0 10.2 0.4 0.6 0.8 0 10.2 0.4 0.6 0.8 
+
+Normalized layer position 0.0 0.2 0.4 0.6 0.8 1.0                                                    
+
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> R2 from previous tier  Translation
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> Uniform-scaled
+> Procrustes
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> Axis-scaled
+> Procrustes
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> Affine
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> 0.04
+> 0.05
+> Nonlinear
+> Normalized layer position
+> Blip2 Llava_onevision Qwen3_vl 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> R2 from previous tier  Translation
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> Uniform-scaled
+> Procrustes
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> Axis-scaled
+> Procrustes
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> Affine
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> 0.04
+> 0.05
+> Nonlinear
+> Normalized layer position
+> Opt_2_7b Llama3_8b_instruct Qwen3_8b 0.0 0.5 1.0
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> R2 from previous tier
+
+Translation   
+
+> 0.0 0.5 1.0
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+
+Uniform-scaled 
+
+Procrustes   
+
+> 0.0 0.5 1.0
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+
+Axis-scaled 
+
+Procrustes   
+
+> 0.0 0.5 1.0
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+
+Affine   
+
+> 0.0 0.5 1.0
+> 0.00
+> 0.02
+> 0.04
+
+Nonlinear 
+
+Normalized layer position 
+
+Opt_2_7b Llama3_8b_instruct Qwen3_8b 
+
+1
+
+0.4 
+
+0.6 
+
+0.8 
+
+1
+
+0.4 
+
+0.6 
+
+0.8 
+
+0
+
+0.2 
+
+0.4 
+
+0.6 
+
+0
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.03 
+
+0
+
+0.01 
+
+0.02 
+
+0.03 
+
+0
+
+0.01 
+
+0.02 
+
+0.15 
+
+0
+
+0.05 
+
+0.10 
+
+0.15 
+
+0
+
+0.05 
+
+0.10 
+
+0.06 
+
+0
+
+0.02 
+
+0.04 
+
+0.06 
+
+0
+
+0.02 
+
+0.04 0.4 0.6 0.8 1.0 
+
+Translation      
+
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+
+Uniform-scaled 
+
+Procrustes      
+
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+
+Axis-scaled 
+
+Procrustes      
+
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+
+Affine      
+
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> 0.04
+> 0.05
+
+Nonlinear 
+
+Normalized layer position 
+
+Opt_2_7b Llama3_8b_instruct Qwen3_8b 0.0 0.2 0.4 0.6 0.8 1.0 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Translation 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+Uniform-scaled 
+
+Procrustes 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+Axis-scaled 
+
+Procrustes 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+Affine 
+
+0.0 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+0.04 
+
+0.05 
+
+Normalized layer position 
+
+Blip2 Llava_onevision Qwen3_vl Figure 3: Nested geometric decomposition of prompt-induced representational maps: translation ( FT), rigid transformation with uniform scaling ( FOu ), rigid transformation with axis-wise scaling ( FOa ), affine transformation ( FL), and nonlinear transformation( FN). Top: Schematic of the additional geometric freedom introduced by each tier (listed in parentheses); blue and red grids show the source and transformed representations, respectively. Middle: Incremental explained variance over the preceding tier, ∆R2, as a function of normalised layer depth for LLMs, pooled across datasets and prompt pairs. Bottom: The same decomposition for VLMs. Lines denote model-specific means across prompt pairs; shaded bands denote ±1 SD. 
+
+4 Evaluation 
+
+For each transform k ∈ { T, Ou, Oa, L, N} we report three families of measures: 1. Incremental explained variance: Let RSS k := XB − bfk(XA) 2
+
+F on held-out stimuli for k ∈ { T, Ou, Oa, L, N}, and let RSS 0 := XB − XA 2
+
+F be the no-transform residual. We define the cumulative cross-validated R2 of tier k as R2
+
+k = (RSS 0 − RSS k)/RSS 0 and the incremental R2 contribution of tier k over its predecessor k − 1 in the nested chain as 
+
+∆R2
+
+k = R2
+
+k − R2
+
+k−1. These increments together with the residual unexplained fraction 
+
+R2resid = RSS N/RSS 0 sum to 1 by construction. Individual increments may be negative under cross-validation when a more expressive class generalizes worse on held-out stimuli; 2. representational geometry metrics: Spearman correlation between the data RDM of 
+
+bfk(XA) and a category-derived target RDM over {si} based on the task structure of prompt B, and the silhouette score si = ( bi −ai)/ max( ai, b i), where ai is the mean within-category distance and bi is the mean distance to the nearest other category; 3. behavioral recovery: a per-dataset keyword evaluator scores each intervened output yk(si)
+
+on prompt B’s ground-truth attribute label (e.g. presence of the target style word, correct nu-meric count), yielding two metrics: relevance (does the text address the target attribute) and 
+
+accuracy (is the answer correct for that stimulus). The oracle-patched output yprompt B (si)
+
+provides the upper-bound reference. 
+
+5 Experiments 
+
+Models. We evaluate six open-weight transformer models. On the language models: OPT-2.7B ,
+
+Meta-Llama-3-8B-Instruct , and Qwen3-8B . On the vision language models: BLIP-2 (OPT-2.7B 6Table 1: Prompt-pair groups. Examples show the prompt pairs for EmotionalStory dataset. 
+
+Group Relation Pair type Example (Prompt A → Prompt B, EmotionalStory) G1 Cross-attribute open → open “What topic is this text about?” → “What emotion does this text express?” G2 Cross-attribute specific → specific “Is this about a career?” → “Does this text express joy?” G3 Within-attribute open → specific “What emotion does this text express?” → “Does this text express joy?” G4 Within-attribute specific → specific “Does this text express joy?” → “Does this text express sadness?” G5 Irrelevant source irrelevant → open “What is the capital of France?” → “What emotion does this text express?” G6 Irrelevant source irrelevant → specific “What is the capital of France?” → “Does this text express joy?” Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear 0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> R2 from previous tier
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Irrelevant Open 
+
+Irrelevant Specific Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear 0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> R2 from previous tier
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Irrelevant Open 
+
+Irrelevant Specific 0.0 0.5 1.0 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> R2 from previous tier
+
+Translation 
+
+0.0 0.5 1.0 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+Uniform-scaled 
+
+Procrustes 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+Axis-scaled 
+
+Procrustes 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+Affine 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.02 
+
+0.04 
+
+Nonlinear 
+
+Normalized layer position 
+
+Opt_2_7b Llama3_8b_instruct Qwen3_8b 0.0 0.5 1.0 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> R2 from previous tier
+
+Translation 
+
+0.0 0.5 1.0 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+Uniform-scaled 
+
+Procrustes 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+Axis-scaled 
+
+Procrustes 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+Affine 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.02 
+
+0.04 
+
+Nonlinear 
+
+Normalized layer position 
+
+Opt_2_7b Llama3_8b_instruct Qwen3_8b 0.25 
+
+0
+
+0.50 
+
+0.75 
+
+Translation 
+
+Rigid + 
+
+Uniform-scaling 
+
+Rigid + 
+
+axis-scaling 
+
+Affine 
+
+Nonlinear G1  WritingStyle 
+
+> EmotionalStory
+> Number
+> G2  WritingStyle
+> EmotionalStory
+> Number
+> G3  WritingStyle
+> EmotionalStory
+> Number
+> G4  WritingStyle
+> EmotionalStory
+> Number
+> G5  WritingStyle
+> EmotionalStory
+> Number
+> G6  Writ
+
+Opt_2_7b 
+
+Qwen3_8b 
+
+Llama3_8b_instruct                                           
+
+> 0.34 0.03 0.03 0.34 0.25 0.28 0.06 0.27 0.29 0.01 0.00 0.22 0.26 0.19 0.24
+> 0.03 0.01 0.07 0.11 0.07 0.10 0.04 0.03 0.07 0.15 0.17 0.14 0.05 0.03 0.08
+> 0.05 0.03 0.08 0.14 0.08 0.11 0.07 0.05 0.06 0.19 0.24 0.13 0.05 0.03 0.09
+
+R² Uniform-scaled Procrustes (LLM) G1  WritingStyle 
+
+> EmotionalStory
+> Number
+> G2  WritingStyle
+> EmotionalStory
+> Number
+> G3  WritingStyle
+> EmotionalStory
+> Number
+> G4  WritingStyle
+> EmotionalStory
+> Number
+> G5  WritingStyle
+> EmotionalStory
+> Number
+> G6  Writ
+
+Opt_2_7b 
+
+Qwen3_8b 
+
+Llama3_8b_instruct                                           
+
+> 0.34 0.03 0.03 0.34 0.25 0.28 0.06 0.27 0.29 0.01 0.00 0.22 0.26 0.19 0.24
+> 0.03 0.01 0.07 0.11 0.07 0.10 0.04 0.03 0.07 0.15 0.17 0.14 0.05 0.03 0.08
+> 0.05 0.03 0.08 0.14 0.08 0.11 0.07 0.05 0.06 0.19 0.24 0.13 0.05 0.03 0.09
+
+R² Uniform-scaled Procrustes (LLM) G1  WritingStyle 
+
+> EmotionalStory
+> Number
+> G2  WritingStyle
+> EmotionalStory
+> Number
+> G3  WritingStyle
+> EmotionalStory
+> Number
+> G4  WritingStyle
+> EmotionalStory
+> Number
+> G5  WritingStyle
+> EmotionalStory
+> Number
+> G6  Writ
+
+Opt_2_7b 
+
+Qwen3_8b 
+
+Llama3_8b_instruct                                           
+
+> 0.34 0.03 0.03 0.34 0.25 0.28 0.06 0.27 0.29 0.01 0.00 0.22 0.26 0.19 0.24
+> 0.03 0.01 0.07 0.11 0.07 0.10 0.04 0.03 0.07 0.15 0.17 0.14 0.05 0.03 0.08
+> 0.05 0.03 0.08 0.14 0.08 0.11 0.07 0.05 0.06 0.19 0.24 0.13 0.05 0.03 0.09
+
+R² Uniform-scaled Procrustes (LLM) 
+
+0.1 0.2 0.3 G2  
+
+> G3
+> G4
+> G5
+> G6
+> Number  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> 0.1
+> 0.2
+> 0.3
+> R²  Uniform-scaled Procrustes (LLM) WritingStyle G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> EmotionalStory  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> Number G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> Opt_2_7b
+> Qwen3_8b
+> Llama3_8b_instruct
+> 0.1
+> 0.2
+> 0.3
+> R² Uniform-scaled Procrustes (LLM)
+
+WritingStyle 
+
+EmotionalStory 
+
+Number 
+
+G6 WritingStyle 
+
+EmotionalStory 
+
+Number 
+
+> 25
+> 50
+> 75
+> 100
+> 125
+
+rank (sv > 0.01 × max) 
+
+25 75 125 
+
+Alignment 
+
+dimensionality WritingStyle G1   
+
+> G2
+> G3
+> G4
+> G5
+> G6
+> EmotionalStory  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> Number G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> Opt_2_7b
+> Qwen3_8b
+> Llama3_8b_instruct 25
+> 50
+> 75
+> 100
+> 125
+> rank (sv > 0.01 × max)
+> Rotation subspace dimension LLM, threshold 0.01 G1  WritingStyle
+> EmotionalStory
+> Number
+> G2  WritingStyle
+> EmotionalStory
+> Number
+> G3  WritingStyle
+> EmotionalStory
+> Number
+> G4  WritingStyle
+> EmotionalStory
+> Number
+> G5  WritingStyle
+> EmotionalStory
+> Number
+> G6  Writi
+
+Opt_2_7b 
+
+Qwen3_8b 
+
+Llama3_8b_instruct                                           
+
+> 0.34 0.03 0.03 0.34 0.25 0.28 0.06 0.27 0.29 0.01 0.00 0.22 0.26 0.19 0.24
+> 0.03 0.01 0.07 0.11 0.07 0.10 0.04 0.03 0.07 0.15 0.17 0.14 0.05 0.03 0.08
+> 0.05 0.03 0.08 0.14 0.08 0.11 0.07 0.05 0.06 0.19 0.24 0.13 0.05 0.03 0.09
+
+R² Uniform-scaled Procrustes (LLM) G1  WritingStyle 
+
+> EmotionalStory
+> Number
+> G2  WritingStyle
+> EmotionalStory
+> Number
+> G3  WritingStyle
+> EmotionalStory
+> Number
+> G4  WritingStyle
+> EmotionalStory
+> Number
+> G5  WritingStyle
+> EmotionalStory
+> Number
+> G6  Writi
+
+Opt_2_7b 
+
+Qwen3_8b 
+
+Llama3_8b_instruct                                           
+
+> 0.34 0.03 0.03 0.34 0.25 0.28 0.06 0.27 0.29 0.01 0.00 0.22 0.26 0.19 0.24
+> 0.03 0.01 0.07 0.11 0.07 0.10 0.04 0.03 0.07 0.15 0.17 0.14 0.05 0.03 0.08
+> 0.05 0.03 0.08 0.14 0.08 0.11 0.07 0.05 0.06 0.19 0.24 0.13 0.05 0.03 0.09
+
+R² Uniform-scaled Procrustes (LLM) G1  WritingStyle 
+
+> EmotionalStory
+> Number
+> G2  WritingStyle
+> EmotionalStory
+> Number
+> G3  WritingStyle
+> EmotionalStory
+> Number
+> G4  WritingStyle
+> EmotionalStory
+> Number
+> G5  WritingStyle
+> EmotionalStory
+> Number
+> G6  Writi
+
+Opt_2_7b 
+
+Qwen3_8b 
+
+Llama3_8b_instruct                                           
+
+> 0.34 0.03 0.03 0.34 0.25 0.28 0.06 0.27 0.29 0.01 0.00 0.22 0.26 0.19 0.24
+> 0.03 0.01 0.07 0.11 0.07 0.10 0.04 0.03 0.07 0.15 0.17 0.14 0.05 0.03 0.08
+> 0.05 0.03 0.08 0.14 0.08 0.11 0.07 0.05 0.06 0.19 0.24 0.13 0.05 0.03 0.09
+
+R² Uniform-scaled Procrustes (LLM) 
+
+Number Writing 
+
+Style 
+
+Emotional 
+
+Story 
+
+ba
+
+Figure 4: Comparison of prompt-pair groups and datasets. (a) Cross-validated ∆R2, averaged over datasets, models, and layers for each prompt-pair group. Specific prompt-pair groups show distinct decomposition profiles, regardless of whether the paired prompts differ across attributes or within an attribute. (b) Top: ∆R2Ou , the additional variance explained by rotation/reflection and uniform scaling beyond translation. Bottom: alignment dimensionality D. Larger D indicates that more dimensions contribute appreciably to the prompt-pair alignment. OPT-2.7B shows larger and more dataset-dependent ∆R2Ou , whereas Llama3-8B shows the lowest alignment dimensionality. EmotionalStory (story topic → emotion) shows higher alignment dimensionality across models. backbone, Q-Former bridging), LLaVA-OneVision-7B (vision encoder/projector with Qwen2 lan-guage backbone, multimodal instruction-tuned), and Qwen3-VL-8B (native vision-language model with interleaved text-image/video pretraining). 
+
+Datasets. The three text datasets (EmotionalStory, WritingStyle, Number) are used by the LLMs; the three image datasets (EmoSet, StyleTransfer, COCO) are used by the VLMs. Each dataset has a two-attribute factorial structure ( attr A ×attr B ) that the prompt taxonomy exploits for cross- and within-attribute comparisons. Dataset sizes, attribute levels, construction procedures, and prompt templates are in Appendix B. Prompts are written at three levels: open (free-form attribute query), 
+
+specific (single-value yes/no query), and irrelevant (task-unrelated factual question), and combined into six pair groups (Table 1). G3 and G4 are restricted to the secondary attribute axis; all pairs are evaluated in the forward direction only. See details in Appendix B. 
+
+Implementation. We extract hidden states at the last input-prompt token from all transformer layers, and fit and evaluate every transform under five-fold cross-validation. For causal interventions we inject the fitted transform at a single layer and decode greedily up to 50 tokens. Hyperparameters, layer indexing per model family, MLP architecture, and evaluator dictionaries are in Appendix. C. 
+
+6 Results 
+
+Prompting reshapes representational geometry toward the instructed task structure. We first ask how much change in the hidden activations is induced by prompting. We feed the same stimulus set under two cross-attribute open-ended prompts (G1) and measure the normalised squared Frobenius 72 0.4 0.6 0.8 1.0 
+
+ormalized layer position 
+
+Prompt A 
+
+Prompt A (Translation) 
+
+Prompt A (Uniform-scaled) 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 2 0.4 0.6 0.8 1.0 
+
+ormalized layer position 
+
+Prompt A 
+
+Prompt A (Translation) 
+
+Prompt A (Uniform-scaled) 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 0 0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.22 
+
+0.24 
+
+0.26 
+
+0.28 
+
+0.30 
+
+> Accuracy
+
+Prompt A 
+
+Prompt A (Translation) 
+
+Prompt A (Uniform-scaled) 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 4 0.6 0.8 1.0 
+
+ed layer position 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.22 
+
+0.24 
+
+0.26 
+
+0.28 
+
+0.30 
+
+> Accuracy
+
+Prompt A 
+
+Prompt A (Translation) 
+
+Prompt A (Uniform-scaled) 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.250 
+
+0.275 
+
+0.300 
+
+0.325 
+
+0.350 
+
+0.375 
+
+0.400 
+
+> Relevance
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.22 
+
+0.24 
+
+0.26 
+
+0.28 
+
+0.30 
+
+> Accuracy
+
+Prompt A 
+
+Prompt A (Translation) 
+
+Prompt A (Uniform-scaled) 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 0 0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.22 
+
+0.24 
+
+0.26 
+
+0.28 
+
+0.30 
+
+> Accuracy
+
+Prompt A 
+
+Prompt A (Translation) 
+
+Prompt A (Uniform-scaled) 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 4 0.6 0.8 1.0 
+
+ed layer position 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.22 
+
+0.24 
+
+0.26 
+
+0.28 
+
+0.30 
+
+> Accuracy
+
+Prompt A 
+
+Prompt A (Translation) 
+
+Prompt A (Uniform-scaled) 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B (Rigid + uniform scaling) (Rigid + axis scaling) 
+
+0 10.2 0.4 0.6 0.8 0 10.2 0.4 0.6 0.8 0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+0.40 
+
+> RDM correlation
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.00 
+
+0.04 
+
+0.08 
+
+0.12 
+
+> Silhouette score
+
+Prompt A 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.04 
+
+0
+
+0.08 
+
+0.12 0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+0.40 
+
+> RDM correlation
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.00 
+
+0.04 
+
+0.08 
+
+0.12 
+
+> Silhouette score
+
+Prompt A 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 0.0 0.2 0.4 0.6 0.8 1.0      
+
+> Normalized layer position
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> RDM correlation
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Normalized layer position
+> 0.00
+> 0.04
+> 0.08
+> 0.12
+> Silhouette score
+> Prompt A
+> Prompt A (Axis-scaled)
+> Prompt A (Affine)
+> Prompt A (Nonlinear)
+> Prompt B
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+0.40 
+
+> RDM correlation
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.00 
+
+0.04 
+
+0.08 
+
+0.12 
+
+> Silhouette score
+
+Prompt A 
+
+Prompt A (Axis-scaled) 
+
+Prompt A (Affine) 
+
+Prompt A (Nonlinear) 
+
+Prompt B 0.0 0.2 0.4 0.6 0.8 1.0      
+
+> Normalized layer position
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> RDM correlation
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Normalized layer position
+> 0.00
+> 0.04
+> 0.08
+> 0.12
+> Silhouette score
+> Prompt A
+> Prompt A (Axis-scaled)
+> Prompt A (Affine)
+> Prompt A (Nonlinear)
+> Prompt B
+
+b
+
+> Relevance
+
+0.30 
+
+0.25 
+
+0.35 
+
+0.40 0.0 0.2 0.4 0.6 0.8 1.0      
+
+> Normalized layer position
+> 0.250
+> 0.275
+> 0.300
+> 0.325
+> 0.350
+> 0.375
+> 0.400
+> Relevance
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Normalized layer position
+> 0.22
+> 0.24
+> 0.26
+> 0.28
+> 0.30
+> Accuracy  Prompt A
+> Prompt A (Translation)
+> Prompt A (Uniform-scaled)
+> Prompt A (Axis-scaled)
+> Prompt A (Affine)
+> Prompt A (Nonlinear)
+> Prompt B
+
+0 10.2 0.4 0.6 0.8 0 10.2 0.4 0.6 0.8 0.0 0.2 0.4 0.6 0.8 1.0 
+
+Normalized layer position 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+0.40 
+
+> RDM correlation
+
+0.0 0.2 0.4 0.6 0.8 
+
+Normalized layer position 
+
+0.00 
+
+0.04 
+
+0.08 
+
+0.12 
+
+> Silhouette score
+> Relevance
+
+0.30 
+
+0.25 
+
+0.35 
+
+0.40 0.0 0.2 0.4 0.6 0.8 1.0      
+
+> Normalized layer position
+> 0.250
+> 0.275
+> 0.300
+> 0.325
+> 0.350
+> 0.375
+> 0.400
+> Relevance
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Normalized layer position
+> 0.22
+> 0.24
+> 0.26
+> 0.28
+> 0.30
+> Accuracy  Prompt A
+> Prompt A (Translation)
+> Prompt A (Uniform-scaled)
+> Prompt A (Axis-scaled)
+> Prompt A (Affine)
+> Prompt A (Nonlinear)
+> Prompt B
+> Accuracy
+
+0.22 
+
+0.24 
+
+0.26 
+
+aFigure 5: Causal validation of the nested geometric decomposition. At each layer, we replace prompt-A’s hidden states with the transformed counterpart for one fitted transformation type and then run the model forward through the remaining layers. (a) RDM correlation (left) and silhouette score (right). Axis-scaled rigid transformations improve representational alignment, affine maps produce a larger gain, and nonlinear maps yield the strongest recovery. (b) Behavior evaluation on prompt-B’s task, measured by Relevance (left) and Accuracy (right). Beyond the translation tier, each successive tier improves behavioural recovery and progressively brings performance closer to prompt B.distance between the prompted hidden states (Fig. 1 b). The change grows nearly monotonically with depth, which is consistent across other prompt-pair groups (Appendix D). We then analyzed whether this prompt-induced change carries the geometrical structure required by prompt B (Fig. 2). The example 2D MDS visualization of the prompted hidden states of LLaVA-OneVision-7B for 1000 COCO images demonstrates that the representations of images were separated along the attribute the prompt targets (Fig. 2 a; see Appendix E for other models and datasets). The representational dissimilariy matrix (RDM)s that computes pair-wise distances between image repre-sentations make this explicit (Fig. 2 b): when stimuli are sorted by count, prompt B’s RDM displays the count-graded ordinal block structure of the target count-RDM (bottom panel), while prompt 
+
+A’s does not. The layer-wise alignment with each prompt’s target attribute grows monotonically with depth and clearly separates prompt B from prompt A in the top layers (Fig. 2 c; pooled across models and datasets, see Appendix F for individual results). Higher RDM correlations indicate higher alignment with the task structure of prompt B and higher silhouette scores indicate better separation among categories of the target attribute. 
+
+Nested geometric decomposition. To quantify the extent to which prompt-induced representational changes are captured at each level of transformation complexity, we fit the nested family of models 
+
+FT ⊂ F Ou ⊂ F Oa ⊂ F L ⊂ F N at every layer of each model for prompt pairs across six groups, and compute the incremental R2 contributed by each tier on held-out images (Fig. 3; Fig. 4 a; see Appendix G for group-specific results). Pure translation accounts for the largest share of explained variance, dominating in early layers and remaining substantial throughout the hierarchy. Higher-complexity tiers contribute additional, smaller increments primarily in mid-to-deep layers, with an overall increasing trend that peaks in the final layers. Across LLMs, compared with Llama3 and Qwen3, OPT-2.7B relies less on translation in early layers and more on rotation, reflection, scaling, and nonlinear transformations, as well as more on affine transformations in intermediate layers (Fig. 3). This pattern suggests that the models implement distinct early-layer encoding strategies: OPT-2.7B appears to represent prompts as more distributed perturbations that require rotational and higher-dimensional mixing components, whereas Llama3 and Qwen3 may rely on a lower-dimensional “instruction code.” Among VLMs, BLIP2 shows a stronger dependence on translation in late layers than LLaVA-OneVision and Qwen3-VL. In BLIP2, multimodal information may be encoded by the Q-Former as a steering vector that persists into deeper layers, whereas LLaVA-OneVision and Qwen3-VL show greater flexibility in information mixing, potentially because of differences in their training protocols. We additionally compare the explained incremental variance of each tier across different prompt-pair groups (Fig. 4 a). The five-tier incremental contribution hierarchy ( FT > FL > FOu > FOa ≈ F N)is consistent across prompt-pair groups, indicating that it is not an artifact of any particular pairing regime. Models rely more on rotation, reflection, and affine transformations for paired specific prompts, regardless of whether the pairs are cross-attribute or within-attribute. Appendix H further 8evaluates generalization across prompt paraphrases and out-of-distribution datasets, showing that fitted transformations are largely stable to semantic rewordings of the target prompt and partially transferable across stimulus distributions, although the relative contributions of transformations remain dataset-dependent. 
+
+Where rotation matters: explained variance and alignment dimensionality. ∆R2Ou across datasets and prompt-pair groups (Fig. 4 b, top) shows that OPT-2.7B generally exhibits larger ∆R2Ou
+
+than Llama3 and Qwen3. OPT also shows distinct profiles across datasets and groups, with much higher ∆R2Ou for cross-attribute, open-ended prompt pairs in WritingStyle than in EmotionalStory or Number, which are more translation-dominated (see Appendix G). By contrast, Llama3 and Qwen3 show higher ∆R2Ou for within-attribute, specific prompt pairs than for other groups, whereas OPT shows the opposite trend, relying more on translation for within-attribute, specific prompt pairs. We further computed the alignment dimensionality, defined as the number of singular values of the centered cross-covariance used by orthogonal Procrustes that exceed 0.01 σmax (Fig. 4 b, bottom; Appendix I shows the same qualitative pattern under a 0.1 threshold). Higher alignment dimension-ality suggests that more dimensions participate in the Procrustes alignment between prompt pairs. EmotionalStory repeatedly shows higher dimensionality than WritingStyle or Number, suggesting that topic-versus-emotion prompt pairs induce a richer, more distributed alignment structure, even when the incremental explained variance is small. Llama3-8B-Instruct tends to have the smallest alignment dimensionalities across models, indicating that its alignment is concentrated in fewer dom-inant directions than that of OPT-2.7B or Qwen3-8B. The dimensionality of rotation and reflection therefore varies with both task structure and model family. 
+
+Causal validation: representational geometry and behavior. We performed an interventional analysis (§3) and computed alignment metrics on held-out stimuli to test whether the fitted transforma-tions can causally recover the representational geometry and behaviour induced by prompt B (Fig. 5; pooled across models, datasets, and prompt-pair group G1). For the interventional analysis, we focus on the open-ended prompt B (G1 and G5) because they preserve non-degenerate multi-label structure for RSA, avoid yes-bias artefacts in behavioural evaluation, and provide a matched comparison between task-relevant and task-irrelevant source prompts. Translation and uniform-scaled rigid transformations are omitted from Fig. 5 a because they leave distance-based RDM rankings and silhouette scores unchanged (App. F for additional results). Axis-scaled rigid transformations improve geometric alignment but remain clearly below affine and nonlinear transformations, especially in later layers. This indicates that allowing each Procrustes-aligned axis to be rescaled independently captures part of the prompt-pair transformation, but does not fully account for the representational reorganisation. The additional improvement from affine maps suggests that feature mixing is important for matching prompt-B geometry. The nonlinear map gives the strongest recovery, but its advantage over the affine map is smaller than the gain from the axis-scaled tier to the affine tier. Downstream behavior shows a sharper divide between translation and the higher-capacity transformations (Fig. 5 b; see Appendix J for text outputs). As translation tier can substantially steer behavior, each successive tier improves behavioural performance and progressively brings it closer to prompt B.
+
+7 Conclusion 
+
+Our paper recast prompting as a low-complexity geometric transformation: a translation that does most of the work, rotation and shearing fixes the residual structured component. The effect of the prompts studied here, thus, can be understood as effecting an affine transform of the representation of the content following the prompt. Allowing a nonlinear transform did not explain either the resulting geometry or the resulting behavior substantially better. We see this as evidence that the hidden-state effects of instruction prompting are well approximated by an affine map at the population level, and that the residual fine structure — the rotation, and the small nonlinear part — is where the operational consequences of prompting are disproportionately concentrated. 
+
+Limitations and broader impacts. Our analysis is limited to zero-shot instruction prompts and does not evaluate few-shot demonstrations, soft prompts, or longer-context conditioning. Our intervention replaces the residual stream at a single layer and final input-prompt token; multi-layer or multi-token interventions and more systematic tests under input-distribution shift remain future 9work. The proposed framework provides an interpretability benefit by decomposing prompt-induced representational change into explicit transformation classes and quantifying their contributions to variance, geometry, and behavior. Such measurements could also inform more efficient activation-level steering. We therefore view the method both as a diagnostic tool for transparency and controlled evaluation, and as a potential basis for deployment-oriented steering techniques. 
+
+Acknowledgments and Disclosure of Funding References 
+
+Laziz U Abdullaev, Noelle YL Wong, Ryan TZ Lee, Shiqi Jiang, Khoi NM Nguyen, and Tan M Nguyen. Concept heterogeneity-aware representation steering. arXiv preprint arXiv:2603.02237 ,2026. Shuai Bai, Yuxuan Cai, Ruizhe Chen, Keqin Chen, Xionghui Chen, Zesen Cheng, Lianghao Deng, Wei Ding, Chang Gao, Chunjiang Ge, et al. Qwen3-vl technical report. arXiv preprint arXiv:2511.21631 , 2025. Joao Barbosa, Amin Nejatbakhsh, Lyndon Duong, Sarah E Harvey, Scott L Brincat, Markus Siegel, Earl K Miller, and Alex H Williams. Quantifying differences in neural population activity with shape metrics. bioRxiv , pages 2025–01, 2025. Tal Boger and Chaz Firestone. The psychophysics of style. Nature Human Behaviour , pages 1–13, 2025. Fan L. Cheng and Xin Jing. Interpreting style–content parsing in vision–language models. In NeurIPS 2025 Workshop on CogInterp , 2025. Quy-Anh Dang and Chris Ngo. Selective steering: Norm-preserving control through discriminative layer selection. arXiv preprint arXiv:2601.19375 , 2026. Guy Davidson, Todd M. Gureckis, Brenden Lake, and Adina Williams. Do different prompting methods yield a common task representation in language models? In The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2026. URL https://openreview.net/ forum?id=fy5InEg0OL .Constanza Fierro and Fabien Roger. Steering language models with weight arithmetic. arXiv preprint arXiv:2511.05408 , 2025. Cesar Gonzalez-Gutierrez and Dirk Hovy. Do prompts reshape representations? an empirical study of prompting effects on embeddings. arXiv preprint arXiv:2510.19694 , 2025. John C Gower. Generalized procrustes analysis. Psychometrika , 40(1):33–51, 1975. Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 , 2024. Sarah E Harvey, David Lipshutz, and Alex H Williams. What representational similarity measures imply about decodable information. In UniReps: 2nd Edition of the Workshop on Unifying Repre-sentations in Neural Models , 2024. URL https://openreview.net/forum?id=hqfzH6GCYj .Roee Hendel, Mor Geva, and Amir Globerson. In-context learning creates task vectors. In Findings of the Association for Computational Linguistics: EMNLP 2023 , pages 9318–9333, 2023. Eghbal A Hosseini, Yuxuan Li, Yasaman Bahri, Declan Campbell, and Andrew Kyle Lampinen. Context structure reshapes the representational geometry of language models. arXiv preprint arXiv:2601.22364 , 2026. Zhimin Hu, Lanhao Niu, and Sashank Varma. The representational geometry of number. arXiv preprint arXiv:2602.06843 , 2026. 10 Shawn Im and Sharon Li. A unified understanding and evaluation of steering methods. arXiv preprint arXiv:2502.02716 , 2025. Jiachen Jiang, Yuxin Dong, Jinxin Zhou, and Zhihui Zhu. From compression to expression: A layerwise analysis of in-context learning. arXiv preprint arXiv:2505.17322 , 2025. Artem Kirsanov, Chi-Ning Chou, Kyunghyun Cho, and SueYeon Chung. The geometry of prompt-ing: Unveiling distinct mechanisms of task adaptation in language models. arXiv preprint arXiv:2502.08009 , 2025. Simon Kornblith, Mohammad Norouzi, Honglak Lee, and Geoffrey Hinton. Similarity of neural network representations revisited. In International conference on machine learning , pages 3519– 3529. PMlR, 2019. Nikolaus Kriegeskorte, Marieke Mur, and Peter A Bandettini. Representational similarity analysis-connecting the branches of systems neuroscience. Frontiers in systems neuroscience , 2:249, 2008. Bruce W Lee, Inkit Padhi, Karthikeyan Natesan Ramamurthy, Erik Miehling, Pierre Dognin, Manish Nagireddy, and Amit Dhurandhar. Programming refusal with conditional activation steering. arXiv preprint arXiv:2409.05907 , 2024. Bo Li, Yuanhan Zhang, Dong Guo, Renrui Zhang, Feng Li, Hao Zhang, Kaichen Zhang, Peiyuan Zhang, Yanwei Li, Ziwei Liu, et al. Llava-onevision: Easy visual task transfer. arXiv preprint arXiv:2408.03326 , 2024. Bo Li, Guanzhi Deng, Ronghao Chen, Junrong Yue, Shuo Zhang, Qinghua Zhao, Linqi Song, and Lijie Wen. Rema: A unified reasoning manifold framework for interpreting large language model. 
+
+arXiv preprint arXiv:2509.22518 , 2025a. Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In International conference on machine learning , pages 19730–19742. PMLR, 2023a. Kenneth Li, Oam Patel, Fernanda Viégas, Hanspeter Pfister, and Martin Wattenberg. Inference-time intervention: Eliciting truthful answers from a language model. In Advances in Neural Information Processing Systems , volume 36, pages 41451–41530, 2023b. Yuxuan Li, Declan Campbell, Stephanie CY Chan, and Andrew Kyle Lampinen. Just-in-time and distributed task representations in language models. arXiv preprint arXiv:2509.04466 , 2025b. Baihan Lin and Nikolaus Kriegeskorte. The topology and geometry of neural representations. 
+
+Proceedings of the National Academy of Sciences , 121(42):e2317881121, 2024. Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays, Pietro Perona, Deva Ramanan, Piotr Dollár, and C Lawrence Zitnick. Microsoft coco: Common objects in context. In European conference on computer vision , pages 740–755. Springer, 2014. Stephen Merity, Caiming Xiong, James Bradbury, and Richard Socher. Pointer sentinel mixture models. arXiv preprint arXiv:1609.07843 , 2016. Dung V Nguyen, Hieu M Vu, Nhi Y Pham, Lei Zhang, and Tan M Nguyen. Activation steering with a feedback controller. arXiv preprint arXiv:2510.04309 , 2025. Core Francisco Park, Andrew Lee, Ekdeep Singh Lubana, Yongyi Yang, Maya Okawa, Kento Nishi, Martin Wattenberg, and Hidenori Tanaka. ICLR: In-context learning of representations. In The Thirteenth International Conference on Learning Representations , 2025. URL https: //openreview.net/forum?id=pXlmOmlHJZ .Kiho Park, Yo Joong Choe, and Victor Veitch. The linear representation hypothesis and the geometry of large language models. In ICML , 2024. Van-Cuong Pham and Thien Huu Nguyen. Householder pseudo-rotation: A novel approach to activation editing in llms with direction-magnitude perspective. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing , pages 13737–13751, 2024. 11 Alexandre Polo, Chanwoo Chun, and SueYeon Chung. Emergent manifold separability during reasoning in large language models. arXiv preprint arXiv:2602.20338 , 2026. Joris Postmus and Steven Abreu. Steering large language models using conceptors: Improving addition-based activation engineering. arXiv preprint arXiv:2410.16314 , 2024. Shivam Raval, Hae Jin Song, Linlin Wu, Abir Harrasse, Jeff M Phillips, Fazl Barez, and Amirali Abdullah. Curveball steering: The right direction to steer isn’t always linear. arXiv preprint arXiv:2603.09313 , 2026. Nina Rimsky, Nick Gabrieli, Julian Schulz, Meg Tong, Evan Hubinger, and Alexander Turner. Steering llama 2 via contrastive activation addition. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 15504–15522, 2024. Pau Rodriguez, Arno Blaas, Michal Klein, Luca Zappella, Nicholas Apostoloff, marco cuturi, and Xavier Suau. Controlling language and diffusion models by transporting activations. In 
+
+The Thirteenth International Conference on Learning Representations , 2025. URL https:// openreview.net/forum?id=l2zFn6TIQi .Marco Scialanga, Thibault Laugel, Vincent Grari, and Marcin Detyniecki. Sake: Steering activa-tions for knowledge editing. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 15966–15978, 2025. Leheng Sheng, Changshuo Shen, Weixiang Zhao, Junfeng Fang, Xiaohao Liu, Zhenkai Liang, Xiang Wang, An Zhang, and Tat-Seng Chua. Alphasteer: Learning refusal steering with principled null-space constraint. In The Fourteenth International Conference on Learning Representations ,2026. URL https://openreview.net/forum?id=1vvbzAqdTe .Adi Simhi, Fazl Barez, Martin Tutek, Yonatan Belinkov, and Shay B Cohen. Old habits die hard: How conversational history geometrically traps llms. arXiv preprint arXiv:2603.03308 , 2026. Shashwat Singh, Shauli Ravfogel, Jonathan Herzig, Roee Aharoni, Ryan Cotterell, and Ponnurangam Kumaraguru. Representation surgery: theory and practice of affine steering. In Proceedings of the 41st International Conference on Machine Learning , ICML’24. JMLR.org, 2024. Oscar Skean, Md Rifat Arefin, Yann LeCun, and Ravid Shwartz-Ziv. Does representation matter? exploring intermediate layers in large language models. arXiv preprint arXiv:2412.09563 , 2024. Oscar Skean, Md Rifat Arefin, Dan Zhao, Niket Nikul Patel, Jalal Naghiyev, Yann LeCun, and Ravid Shwartz-Ziv. Layer by layer: Uncovering hidden representations in language models. In 
+
+Forty-second International Conference on Machine Learning , 2025. URL https://openreview. net/forum?id=WGXb7UdvTX .Nicholas Sofroniew, Isaac Kauvar, William Saunders, Runjin Chen, Tom Henighan, Sasha Hydrie, Craig Citro, Adam Pearce, Julius Tarng, Wes Gurnee, et al. Emotion concepts and their function in a large language model. arXiv preprint arXiv:2604.07729 , 2026. Daniel Tan, David Chanin, Aengus Lynch, Brooks Paige, Dimitrios Kanoulas, Adrià Garriga-Alonso, and Robert Kirk. Analysing the generalisation and reliability of steering vectors. Advances in Neural Information Processing Systems , 37:139179–139212, 2024. Adly Templeton. Scaling monosemanticity: Extracting interpretable features from claude 3 sonnet .Anthropic, 2024. Eric Todd, Millicent Li, Arnab Sharma, Aaron Mueller, Byron C Wallace, and David Bau. Function vectors in large language models. In International conference on learning representations . ICLR, 2024. Alexander Matt Turner, Lisa Thiergart, Gavin Leech, David Udell, Juan J Vazquez, Ulisse Mini, and Monte MacDiarmid. Steering language models with activation engineering. arXiv preprint arXiv:2308.10248 , 2023. 12 Sohan Venkatesh and Ashish Mahendran Kurapath. On the non-identifiability of steering vectors in large lan-guage models. arXiv e-prints , pages arXiv–2602, 2026. Hieu M. Vu and Tan Minh Nguyen. Angular steering: Behavior control via rotation in activation space. In 2nd Workshop on Models of Human Feedback for AI Alignment , 2025. URL https: //openreview.net/forum?id=GU2UeVZrSw .Anyi Wang, Dong Shu, Yifan Wang, Yunpu Ma, and Mengnan Du. Improving llm reasoning through interpretable role-playing steering. arXiv preprint arXiv:2506.07335 , 2025. Jan Wehner, Sahar Abdelnabi, Daniel Tan, David Krueger, and Mario Fritz. Taxonomy, opportu-nities, and challenges of representation engineering for large language models. arXiv preprint arXiv:2502.19649 , 2025. Alex H Williams. Equivalence between representational similarity analysis, centered kernel alignment, and canonical correlations analysis. In UniReps: 2nd Edition of the Workshop on Unifying Repre-sentations in Neural Models , 2024. URL https://openreview.net/forum?id=zMdnnFasgC .Alex H Williams, Erin Kunz, Simon Kornblith, and Scott Linderman. Generalized shape metrics on neural representations. In A. Beygelzimer, Y. Dauphin, P. Liang, and J. Wortman Vaughan, editors, 
+
+Advances in Neural Information Processing Systems , 2021. URL https://openreview.net/ forum?id=L9JM-pxQOl .Zhengxuan Wu, Aryaman Arora, Zheng Wang, Atticus Geiger, Dan Jurafsky, Christopher D Manning, and Christopher Potts. ReFT: Representation finetuning for language models. In The Thirty-eighth Annual Conference on Neural Information Processing Systems , 2024. URL https:// openreview.net/forum?id=fykjplMc0V .Zhengxuan Wu, Qinan Yu, Aryaman Arora, Christopher D Manning, and Christopher Potts. Improved representation steering for language models. arXiv preprint arXiv:2505.20809 , 2025. An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388 ,2025. Haolin Yang, Hakaze Cho, Yiqiao Zhong, and Naoya Inoue. Unifying attention heads and task vectors via hidden state geometry in in-context learning. In The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2026. URL https://openreview.net/forum?id= FIfjDqjV0B .Jingyuan Yang, Qirui Huang, Tingting Ding, Dani Lischinski, Danny Cohen-Or, and Hui Huang. Emoset: A large-scale visual emotion dataset with rich attributes. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 20383–20394, 2023. Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe, Moya Chen, Shuohui Chen, Christopher Dewan, Mona Diab, Xian Li, Xi Victoria Lin, et al. Opt: Open pre-trained transformer language models. arXiv preprint arXiv:2205.01068 , 2022. Hongjue Zhao, Haosen Sun, Jiangtao Kong, Xiaochang Li, Qineng Wang, Liwei Jiang, Qi Zhu, Tarek Abdelzaher, Yejin Choi, Manling Li, et al. Odesteer: A unified ode-based steering framework for llm alignment. arXiv preprint arXiv:2602.17560 , 2026. Andy Zou, Long Phan, Sarah Chen, James Campbell, Phillip Guo, Richard Ren, Alexander Pan, Xuwang Yin, Mantas Mazeika, Ann-Kathrin Dombrowski, et al. Representation engineering: A top-down approach to ai transparency. arXiv preprint arXiv:2310.01405 , 2023. 13 A Methods: Nested Geometric Decomposition 
+
+Nested-chain inclusions. FT is recovered from FOu at (a, c, Q) = ( 0, 1, I); FOu from FOa at 
+
+D = c I; FOa from FL at M = Q D with Q ∈ O(D) and D diagonal; and FL from FN when gθ
+
+implements a linear map. 
+
+Parameter estimation. The four parametric tiers all operate on the centred matrices eXA =
+
+XA − μA and eXB = XB − μB . smallskip Translation ( FT). The mean-shift solution is 
+
+bb = μB − μA. (5) 
+
+Uniform-scaled rigid ( FOu ). Compute the cross-covariance C = eXA ⊤ eXB and its SVD C = UΣV ⊤.The orthogonal-Procrustes solution is 
+
+bQ = UV ⊤, bc =
+
+eXA bQ, eXB
+
+> F
+
+eXA 2
+
+> F
+
+. (6) 
+
+Axis-scaled rigid ( FOa ). Re-use bQ from the FOu fit, form the rigidly-aligned features Z = eXA bQ,and fit each diagonal entry by per-axis least squares, 
+
+bdj = Z:,j , eXB
+
+> :,j
+
+Z:,j 
+
+> 22
+
+, j = 1 , . . . , D. (7) 
+
+Affine ( FL). Ridge regression gives the closed form 
+
+cM =   eXA ⊤ eXA + λI−1 eXA ⊤ eXB , λ = 1 . (8) 
+
+gθ is a two-layer MLP with one hidden layer of size H=512 and GELU activation. It is trained for 200 epochs over the training-fold rows with mini-batch size min(256 , N train ), using AdamW (learning rate 10 −3, weight decay 10 −3) on the mean-squared reconstruction error (equivalent to the Frobenius criterion up to a 1/(Ntrain D) normalization). The seed is set per fold for reproducibility. For k ∈ { Ou, Oa, L} the empirical risk is invariant under (a, b) 7 → (a + v, b + fk(v) − fk(0)) ; we adopt the canonical choice ba = μA and bb = μB , reducing the remaining estimation to a problem on the centred matrices eXA, eXB . For FN we use the same centring convention, although the risk is not invariant under arbitrary translations due to the nonlinearity of gθ .
+
+Cross-validation. We use stratified five-fold cross-validation across each stimuli set; per-fold estimators are fit on the training partition and evaluated on the held-out partition. Cumulative R2 
+
+> k
+
+and incremental ∆R2 
+
+> k
+
+are computed from held-out residual sums of squares. 
+
+Hypothesis interpretation. Each pure transformation class produces a characteristic decomposition profile, summarized in Table 2. Table 2: Decomposition signatures of pure transformation classes. 
+
+Pure transformation Dominant component Interpretation Mean shift b ∆R2T → 1 concept-vector / steering hypothesis Rigid + uniform scaling ∆R2Ou → 1 readout realignment / shape-preserving Rigid + axis-wise scaling ∆R2Oa → 1 per-axis gain modulation General linear map ∆R2L → 1 arbitrary linear feature mixing Nonlinear map ∆R2N > 0 genuine nonlinear restructuring Residual / noise R2resid > 0 stimuli-dependent / beyond-MLP capacity 
+
+14 B Datasets and prompt design 
+
+Dataset design. EmotionalStory (N =1 ,920 ) is a corpus of 8 emotions ×8 topics ×30 short stories, with name-pool and scenario-pool diversity injections inspired by [Sofroniew et al., 2026]. Writ-ingStyle (N =1 ,440 ) is a synthetically generated corpus of 6 styles ×4 topics ×60 short passages; style and content vary factorially by rendering the same neutral content seed in each of the six styles. 
+
+Number (N =1 ,247 ) uses a mix of pseudo-stimuli, real Wikipedia sentences, and task-template stimuli spanning five cognitive-task framings, with set-property prompts (e.g. “Are there any prime numbers?”) that require scanning all numerical tokens rather than matching a single value. Tables 3–5 show representative stimuli from the three text datasets. EmoSet (N =1 ,600 ) is a balanced 
+
+8 emotions ×4 content categories (person, animal, nature, object) subset of the EmoSet benchmark [Yang et al., 2023]. StyleTransfer (N =1 ,920 ; Boger and Firestone, 2025) consists of photographs rendered in seven styles (six artistic styles plus the original photographs) across four scenes (beach, bedroom, library, mountain), with multiple images per style ×scene cell. COCO (N =1 ,000 ) is a subset of COCO val2017 [Lin et al., 2014] selected for high multi-supercategory coverage ( ≥ 3 of 12 supercategories per image), probing people-detection and people-count prompts. 
+
+Diversity controls in synthetic LLM stimuli. Without explicit controls, the LLM seed generator collapses on a few canonical patterns (e.g. defaulting to “Maya” for joy stories and “Marcus” for anger stories, or repeating one factual seed across all nature passages). To prevent this we (i) curate a balanced 100 -name pool for EmotionalStory and assign names by a coprime stride so each emotion uses ∼ 95 distinct names with ≤ 4 occurrences per (name, emotion) cell; (ii) curate a 15 -scenario pool per topic ( 120 total) and rotate as scenarios [k mod 15] , capping each scenario at ≤ 2 occurrences per cell; (iii) for WritingStyle, curate 15 subthemes per topic and rotate round-robin so each subtheme contributes 4 stimuli at full scale. 
+
+Number-stimulus design. The Number dataset extends the design in Hu et al. [2026] in two ways. First, prompts are set-property queries (“Are there any prime numbers?”, “Are there any numbers greater than 5?”) rather than value-identification queries, because lexical surface-form matching trivially solves “Is the number exactly 3?” on the input “I have 3 apples” without engaging numerical processing. Second, the single-number random insertion is generalized to a balanced 1-/2-/3-number multi-number variant. Stimuli combine three types: (a) pseudo-stimuli ( 7-word wikitext-103 
+
+chunks [Merity et al., 2016] with c ∈ { 1, 2, 3} target numbers inserted at random positions; N =90 ); (b) real Wikipedia sentences containing one or more target numbers 1–9 (N ≈675 ); and (c) task-template stimuli reproducing five cognitive tasks:quantity, comparison, arithmetic, property, ordinal, with five phrasings per (task, number, format) cell ( N ≈442 ). Anchor values in comparison/arithmetic templates are mathematically validated against the target before acceptance. 
+
+Prompt templates. EmotionalStory uses “What emotion does this text express?” and “What topic is this text about?” as the two open prompts; the sixteen specific prompts are yes/no queries “Does this text express {value}?” (joy, sadness, anger, fear, trust, disgust, surprise, anticipation) and “Is this about {value}?” (career, education, family, friendship, health, hobbies, finance, travel). WritingStyle uses the analogous open pair “What writing style is this in?” / “What topic is this text about?” with the six styles ( {formal, casual, poetic, technical, journalistic, archaic }) and four topics ( {nature, technology, food, sports }). Number uses the nine set-property prompts distributed across the five cognitive tasks (1 quantity / 3 comparison / 2 arithmetic / 2 property / 1 ordinal). Irrelevant prompts (“What is the capital of France?” and similar) are shared across all datasets. StyleTransfer uses 
+
+“What scene does the image depict?” and “What artistic style does the image belong to?” as the open pair, with eleven specific prompts: four scenes ( “Is this a {beach, bedroom, library, mountain}?” )and seven styles ( “Is this in the style of {Demuth, Klimt, Monet, Pollock}?” ). “Are there people in this image?” (detection) and “How many people are in this image?” (count) as the open pair, with eight count-specific yes/no queries of the form “Are there exactly {0, 1, 2, 3, 4, 5} people in this image?” plus the two range bins “Are there between 5 and 10 people?” and “Are there more than 10 people?” . EmoSet (VLM) uses “What is depicted in this image?” (content) and “What emotion does this image evoke?” (emotion) as the open pair, with twelve specific prompts: four content categories ( “Are there people / animals?” , “Is this a natural landscape?” , “Is this primarily an inanimate scene?” ) and eight emotions ( “Does this image evoke {amusement, awe, contentment, excitement, anger, disgust, fear, sadness}?” ). Irrelevant prompts ( “What is the capital of France?” ,15 Table 3: Example stimuli from EmotionalStory ( topic × emotion, with one example per emotion and per topic, repeated to balance both axes; first ∼ 130 characters of each story shown). The full corpus is 8 emotions × 8 topics × 30 = 1 ,920 stories. 
+
+Emotion Topic Scenario First ∼ 130 chars joy career performance review meet-ing “Aaliyah sat across from her manager, hands folded in her lap, bracing for the usual mix of praise and critique. Instead, her . . . ”sadness education a thesis defense “Devon had spent five years on this research, and as the committee chair slid the marked-up pages across the table and quietly . . . ”anger family a kitchen scene “Iris had asked her younger brother three times to stop leaving his dirty dishes in the sink, and yet there they were again — a . . . ”fear friendship a coffee shop meetup “Nasir arrived at the coffee shop early, rehearsing what he needed to say to his best friend of ten years — that he had . . . ”trust health a doctor’s visit “Saif sat across from Dr. Okafor, who had been his physician for over a decade, and listened as she care-fully explained his new . . . ”disgust hobbies a painting session “Wilhelm set his brush down and leaned in to examine the still-life arrangement he’d been painting for the past hour — a bowl of . . . ”surprise finance buying a house “Anika sat across from the loan officer, bracing herself for the familiar sting of rejection, when he slid a folder across the . . . ”anticipation travel an airport delay “Felipe checked the departures board for the fourth time in ten minutes, watching the blinking status next to his flight number . . . ”joy education a thesis defense “Beatriz stood at the front of the conference room, her hands trembling slightly as the last committee member lowered his pen and . . . ”sadness family a kitchen scene “Gerwin stood at the kitchen counter, turning his mother’s old recipe card over in his hands, the hand-writing so familiar it made . . . ”anger friendship a coffee shop meetup “Lila sat across from her best friend at their usual corner table, watching her scroll through her phone for the third time since . . . ”fear health a doctor’s visit “Ren sat on the crinkled paper of the examination table, hands gripping the edge until the knuckles went pale, waiting for the . . . ”trust hobbies a painting session “Thandiwe set her half-finished canvas on the easel beside her mentor’s, nervously watching as the older woman leaned in to study . . . ”disgust finance buying a house “Adaeze flipped through the inspection report for the house she had been dreaming about for months, and her stomach turned when . . . ”surprise travel an airport delay “Diego had settled into his gate seat with a coffee and a book, fully resigned to the four-hour delay the departures board had . . . ”anticipation career performance review meet-ing “Magnus straightened his tie for the third time as he sat outside his manager’s closed office door, the muffled voices inside . . . ”
+
+“What is 2+2?” , “What day of the week is it?” , and seven similar factual-knowledge questions) are shared across all six datasets. Full prompt JSONs will be in the released code. 16 Table 4: Example stimuli from WritingStyle (topic × style). The same neutral content seed is rendered in each of the six styles within a topic, so within-topic rows differ only in style. Each style and topic appears at least once; the full corpus is 6 styles × 4 topics × 60 = 1 ,440 short passages. 
+
+Style Topic First sentence formal nature “Forests occupy approximately 31 percent of Earth’s total land surface and con-stitute the primary habitat for an estimated 80 percent of the planet’s terrestrial biodiversity.” casual nature “Forests take up about 31% of all the land on Earth, which is pretty impressive when you think about it.” poetic nature “Like a living mantle draped across nearly a third of Earth’s ancient skin, forests breathe and pulse with the world’s wild abundance.” technical technology “A smartphone is a handheld electronic device that integrates mobile telephony with general-purpose computing capabilities, incorporating . . . ”journalistic technology “Smartphones are handheld devices that integrate mobile phone capabilities with computing functions, including internet access and . . . ”archaic technology “Behold the smartphone, that marvellous handheld contrivance which doth unite within its slender form the offices of the common . . . ”formal food “Macronutrients constitute a class of essential dietary compounds required by the human body in substantial quantities to support . . . ”casual food “Macronutrients are basically the nutrients your body needs a lot of to keep you energized and help you grow.” poetic food “Like pillars holding up the temple of the body, macronutrients are the great sustaining forces that fuel our every breath, our . . . ”technical sports “Each match consists of two opposing teams, each fielding exactly eleven players on the pitch simultaneously.” journalistic sports “Two teams of eleven players each compete in soccer, a sport in which the objective is to advance the ball into the opposing team’s goal.” archaic sports “Verily, the noble sport of soccer is contested betwixt two sides, each comprising eleven players of valiant constitution.” 
+
+Table 5: Example stimuli from Number , spanning the three stimulus types and the five task framings of Hu et al. [2026], each shown in both digit and word numerical formats. The full corpus has 
+
+N ≈1,247 stimuli. 
+
+Stimulus type Task framing Format Text pseudo-stimulus — digit “Sold at a lower price than 7 the.” pseudo-stimulus — word “Museum remained eight in the tower building for.” real Wikipedia — digit “An academic study found that Jordan’s 1st NBA comeback resulted in an increase in the market . . . ”real Wikipedia — word “In 2014, Fernandez played the leading lady in Sajid Nadiadwala’s 
+
+Kick , which is one of the . . . ”task-template quantity digit “I have a total of 1 apple.” task-template quantity word “I have a total of one apple.” task-template comparison digit “A number smaller than 15 is 1.” task-template comparison word “A number smaller than nine is one.” task-template arithmetic digit “The sum of 0 and 1 is 1.” task-template arithmetic word “The sum of zero and one is one.” task-template property digit “A perfect square is 1.” task-template property word “An example of an odd number is one.” task-template ordinal digit “1 comes after 0.” task-template ordinal word “Before two comes one.” 
+
+17 C Implementation details 
+
+Layer indexing. For each model we extract hidden states at every transformer block at the last input-prompt token. Layer indices are reported on a normalized [0 , 1] scale so that models of different depth can be overlaid; absolute layer counts are: OPT-2.7B (32), Llama-3-8B-Instruct (32), Qwen3-8B (36), BLIP-2 (32), LLaVA-OneVision-7B (28), Qwen3-VL-8B (36). 
+
+Feature extraction. For each (model, dataset, prompt) cell we feed every stimulus through the model under the prompt and store the residual-stream hidden state at the last input-prompt token from every transformer block; this token is the position at which the model commits to a continuation and is the conventional probe site for prompt-conditioned reads. LLM inputs are formatted using the model’s training-time convention: chat mod-els (Llama-3-Instruct, Qwen-2-Instruct, Qwen3) use tokenizer.apply_chat_template(..., add_generation_prompt=True) ; OPT-2.7B (a non-instruction-tuned base model) uses the QA template ( Question: {prompt}\nText: {text}\nAnswer: ). VLM inputs are processed by each model’s native processor (BLIP-2, LLaVA-OneVision, Qwen3-VL). Hidden states are stored as zarr arrays of shape (1 , n stim , D ) per layer with metadata recording the pooling convention, model identity, prompt string, sequence length, and the number of truncated stimuli (typically zero). 
+
+Cross-validation, ridge, and MLP. Five-fold stratified cross-validation across stimuli, ridge λ=1 ,and a one-hidden-layer MLP ( H=512 , GELU, AdamW with weight decay 10 −3, 200 epochs at mini-batch size ≤ 256 ), see Appendix A for the estimator definitions. 
+
+Behavioural evaluation. Per-dataset keyword evaluators check whether generated text satisfies the target prompt’s semantic constraint, scoring two metrics: a relevance flag (does the text address the target attribute at all, e.g. does it mention any artistic-style or emotion vocabulary) and an accuracy 
+
+flag (does the text identify the correct ground-truth label, e.g. “Monet” for a Monet-style image, “joy” for a joy-emotion story, the correct count for COCO). For style and emotion prompts the evaluator combines artist-name keywords, art-school keywords, and synonym lists (e.g. “post-impressionism”, “van gogh”, “starry night” all map to vangogh ). Evaluator dictionaries will be in the released code. 18 D Normalized prompt-induced activation changes 
+
+The normalized squared Frobenius distance ∥XB − XA∥2 
+
+> F
+
+/∥XA∥2 
+
+> F
+
+are shown separately for the six prompt-pair groups (G1–G6). The summary across models and datasets is shown in Fig. 6, and the individual (model, dataset) pair results are in Figs. 7–12. The two irrelevant-source prompt groups (G5–G6) produce the largest activation change, followed by the within-attribute open →specific pair (G3) and the two cross-attribute pairs (G1: open →open; G2: specific →specific). The within-attribute specific →specific pair (G4) produces the smallest change, consistent with both prompts querying the same attribute axis at the same specificity level. 0.0 0.2 0.4 0.6 0.8 1.0         
+
+> Normalized layer position
+> 10 2
+> 10 1
+> 10 0
+> Xp2 Xp1 / Xp1
+> Cross-attr: Open Open
+> Cross-attr: Specific Specific
+> Within-attr: Open Specific
+> Within-attr: Specific Specific
+> Control: Irrelevant Open
+> Control: Irrelevant Specific
+
+Figure 6: Normalized prompt-induced activation change across the six prompt-pair groups, pooled across all (model, dataset) cells. The depth-graded growth of the change is consistent across groups. 19 0 5 10 15 20 25 30 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Opt_2_7b × EmotionalStory Dataset 0 5 10 15 20 25 30 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Llama3_8b_instruct × EmotionalStory Dataset 0 5 10 15 20 25 30 35 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Qwen3_8b × EmotionalStory Dataset Figure 7: Normalized activation change for EmotionalStory across layers for OPT-2.7B (top), Llama-3-8B-Instruct (middle), Qwen3-8B (bottom). 20 0 5 10 15 20 25 30 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Opt_2_7b × WritingStyle Dataset 0 5 10 15 20 25 30 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Llama3_8b_instruct × WritingStyle Dataset 0 5 10 15 20 25 30 35 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Qwen3_8b × WritingStyle Dataset Figure 8: Normalized activation change for WritingStyle across layers for OPT-2.7B (top), Llama-3-8B-Instruct (middle), Qwen3-8B (bottom). 21 0 5 10 15 20 25 30 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Opt_2_7b × Number Dataset 0 5 10 15 20 25 30 
+
+Layer 
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Llama3_8b_instruct × Number Dataset 0 5 10 15 20 25 30 35 
+
+Layer 
+
+10 3
+
+10 2
+
+10 1
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Qwen3_8b × Number Dataset Figure 9: Normalized activation change for Number across layers for OPT-2.7B (top), Llama-3-8B-Instruct (middle), Qwen3-8B (bottom). 22 0 5 10 15 20 25 30 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Blip2 × EmoSet Dataset 0 5 10 15 20 25 
+
+Layer 
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Llava_onevision × EmoSet Dataset 0 5 10 15 20 25 30 35 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Qwen3_vl × EmoSet Dataset Figure 10: Normalized activation change for EmoSet across layers for BLIP-2 (top), LLaVA-OneVision-7B (middle), Qwen3-VL-8B (bottom). 23 0 5 10 15 20 25 30 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Blip2 × StyleTransfer Dataset 0 5 10 15 20 25 
+
+Layer 
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Llava_onevision × StyleTransfer Dataset 0 5 10 15 20 25 30 35 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Qwen3_vl × StyleTransfer Dataset Figure 11: Normalised activation change for StyleTransfer across layers for BLIP-2 (top), LLaVA-OneVision-7B (middle), Qwen3-VL-8B (bottom). 24 0 5 10 15 20 25 30 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Blip2 × COCO Dataset 0 5 10 15 20 25 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Llava_onevision × COCO Dataset 0 5 10 15 20 25 30 35 
+
+Layer 
+
+10 4
+
+10 3
+
+10 2
+
+10 1
+
+10 0
+
+> Xp2 Xp1 / Xp1
+
+Cross-attr: Open Open 
+
+Cross-attr: Specific Specific 
+
+Within-attr: Open Specific 
+
+Within-attr: Specific Specific 
+
+Control: Irrelevant Open 
+
+Control: Irrelevant Specific 
+
+Qwen3_vl × COCO Dataset Figure 12: Normalized activation change for COCO across layers for BLIP-2 (top), LLaVA-OneVision-7B (middle), Qwen3-VL-8B (bottom). 25 E MDS visualizations Opt_2_7b 
+
+L30 
+
+Prompt A 
+
+What topic is this text about? 
+
+L30 
+
+Prompt B 
+
+What emotion does this text express? 
+
+> Qwen3_8b
+
+L36 L36 
+
+> Llama3_8b_instruct
+
+L32 L32 
+
+EmotionalStory Dataset 
+
+Joy Sadness Anger Fear Trust Disgust Surprise Anticipation 
+
+Figure 13: EmotionalStory dataset, prompt A (topic) vs. prompt B (emotion); stimuli coloured by ground-truth emotion. 26 Opt_2_7b 
+
+L1 
+
+Prompt A 
+
+What topic is this text about? 
+
+L1 
+
+Prompt B 
+
+What style is this text written in? 
+
+> Qwen3_8b
+
+L36 L36 
+
+> Llama3_8b_instruct
+
+L32 L32 
+
+WritingStyle Dataset 
+
+Formal Casual Poetic Technical Journalistic Archaic Figure 14: WritingStyle dataset, prompt A (topic) vs. prompt B (writing style); stimuli coloured by ground-truth style. 27 Opt_2_7b 
+
+L29 
+
+Prompt A 
+
+What numbers are mentioned in this text? 
+
+L29 
+
+Prompt B 
+
+What cognitive operation does this text involve? 
+
+> Qwen3_8b
+
+L3 L3 
+
+> Llama3_8b_instruct
+
+L18 L18 
+
+Number Dataset 
+
+None Quantity Comparison Arithmetic Property Ordinal Figure 15: Number dataset, prompt A (numbers mentioned) vs. prompt B (cognitive operation); stimuli coloured by ground-truth task framing. 28 Blip2 
+
+L1 
+
+Prompt A 
+
+What is depicted in this image? 
+
+L1 
+
+Prompt B 
+
+What emotion does this image evoke? 
+
+> Llava_onevision
+
+L27 L27 
+
+> Qwen3_vl
+
+L36 L36 
+
+EmoSet Dataset 
+
+Amusement Awe Contentment Excitement Anger Disgust Fear Sadness Figure 16: EmoSet dataset, prompt A (image content) vs. prompt B (emotion evoked); stimuli coloured by ground-truth emotion. 29 Blip2 
+
+L1 
+
+Prompt A 
+
+What scene does the image depict? 
+
+L1 
+
+Prompt B 
+
+What artistic style does the image belong to? 
+
+L1 L1 
+
+> Qwen3_vl
+
+L34 L34 
+
+L34 L34 
+
+StyleTransfer Dataset 
+
+Scene 
+
+Beach 
+
+Bedroom 
+
+Library 
+
+Mountain 
+
+Style 
+
+Demuth 
+
+Klimt 
+
+Monet 
+
+Pollock 
+
+Scream 
+
+Vangogh 
+
+Original Figure 17: StyleTransfer dataset, prompt A (scene) vs. prompt B (artistic style); stimuli coloured by ground-truth scene (top legend) and style (bottom legend). 30 Llava_onevision  L25 
+
+Prompt A 
+
+What scene does the image depict? 
+
+L25 
+
+Prompt B 
+
+What artistic style does the image belong to? 
+
+L25 L25 
+
+StyleTransfer Dataset 
+
+Scene 
+
+Beach 
+
+Bedroom 
+
+Library 
+
+Mountain 
+
+Style 
+
+Demuth 
+
+Klimt 
+
+Monet 
+
+Pollock 
+
+Scream 
+
+Vangogh 
+
+Original Figure 18: StyleTransfer dataset (continued), prompt A (scene) vs. prompt B (artistic style); stimuli coloured by ground-truth scene (top) and style (bottom). 31 Blip2    
+
+> L1
+> Prompt A
+> Are there people in this image?
+> L1
+> Prompt B
+> How many people are in this image?
+> L1 L1
+> Qwen3_vl
+> L35 L35
+> L35 L35
+
+COCO Dataset 
+
+> Detection
+> Present
+> Absent
+> Count
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 5-10
+> 10+
+
+Figure 19: COCO dataset, prompt A (people detection) vs. prompt B (people count); stimuli coloured by ground-truth detection (top) and count bin (bottom). 32 F RSA and silhouette score 
+
+For each pair of model and dataset, we report the layerwise Spearman correlation between the data RDM of the prompt-induced hidden states and the prompt-B target attribute RDM, alongside the silhouette score based on the target-labels. 33 0 5 10 15 20 25 30 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.04 
+
+0.02 
+
+0.00 
+
+0.02 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.04 
+
+0.02 
+
+0.00 
+
+0.02 
+
+> Silhouette score
+
+opt_2_7b × emotion_topic 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B 0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.05 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.05 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+> Silhouette score
+
+llama3_8b_instruct × emotion_topic 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 20: Layerwise RDM correlation (left) and silhouette score (right) for EmotionalStory (1/2) under prompt A vs. prompt B for OPT-2.7B (top) and Llama-3-8B-Instruct (bottom). 34 0 10 20 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 10 20 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 10 20 30 
+
+> Layer
+
+0.050 
+
+0.025 
+
+0.000 
+
+0.025 
+
+0.050 
+
+0.075 
+
+> Silhouette score
+
+0 10 20 30 
+
+> Layer
+
+0.050 
+
+0.025 
+
+0.000 
+
+0.025 
+
+0.050 
+
+0.075 
+
+> Silhouette score
+
+qwen3_8b × emotion_topic     
+
+> Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B
+
+Figure 21: Layerwise RDM correlation (left) and silhouette score (right) for EmotionalStory (2/2) under prompt A vs. prompt B for for Qwen3-8B. 35 0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+> Silhouette score
+
+opt_2_7b × style_topic 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B 0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> Silhouette score
+
+llama3_8b_instruct × style_topic 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 22: Layerwise RDM correlation (left) and silhouette score (right) for WritingStyle (1/2) under prompt A vs. prompt B for OPT-2.7B (top) and Llama-3-8B-Instruct (bottom). 36 0 10 20 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 10 20 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 10 20 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+0 10 20 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+qwen3_8b × style_topic 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 23: Layerwise RDM correlation (left) and silhouette score (right) for WritingStyle (2/2) under prompt A vs. prompt B for for Qwen3-8B. 37 0 5 10 15 20 25 30 
+
+0.2 
+
+0.0 
+
+0.2 
+
+0.4 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.2 
+
+0.0 
+
+0.2 
+
+0.4 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+opt_2_7b × number 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B 0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+> Silhouette score
+
+llama3_8b_instruct × number 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 24: Layerwise RDM correlation (left) and silhouette score (right) for Number (1/2) under prompt A vs. prompt B for OPT-2.7B (top) and Llama-3-8B-Instruct (bottom). 38 0 10 20 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 10 20 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 10 20 30 
+
+Layer 
+
+0.000 
+
+0.025 
+
+0.050 
+
+0.075 
+
+0.100 
+
+0.125 
+
+0.150 
+
+> Silhouette score
+
+0 10 20 30 
+
+Layer 
+
+0.000 
+
+0.025 
+
+0.050 
+
+0.075 
+
+0.100 
+
+0.125 
+
+0.150 
+
+> Silhouette score
+
+qwen3_8b × number 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 25: Layerwise RDM correlation (left) and silhouette score (right) for Number (2/2) under prompt A vs. prompt B for for Qwen3-8B. 39 0 5 10 15 20 25 30 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.3 
+
+0.2 
+
+0.1 
+
+0.0 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.3 
+
+0.2 
+
+0.1 
+
+0.0 
+
+> Silhouette score
+
+blip2_lm × EmoSet 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B 0 5 10 15 20 25 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.04 
+
+0.02 
+
+0.00 
+
+0.02 
+
+0.04 
+
+> Silhouette score
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.06 
+
+0.04 
+
+0.02 
+
+0.00 
+
+0.02 
+
+0.04 
+
+> Silhouette score
+
+llava_onevision_lm × EmoSet 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 26: Layerwise RDM correlation (left) and silhouette score (right) for EmoSet (1/2) under prompt A vs. prompt B for OPT-2.7B (top) and Llama-3-8B-Instruct (bottom). 40 0 10 20 30 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 10 20 30 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 10 20 30 
+
+Layer 
+
+0.02 
+
+0.00 
+
+0.02 
+
+0.04 
+
+> Silhouette score
+
+0 10 20 30 
+
+Layer 
+
+0.04 
+
+0.02 
+
+0.00 
+
+0.02 
+
+0.04 
+
+> Silhouette score
+
+qwen3_vl_lm × EmoSet 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 27: Layerwise RDM correlation (left) and silhouette score (right) for EmoSet (2/2) under prompt A vs. prompt B for for Qwen3-8B. 41 0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+0.6 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+0.6 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.4 
+
+0.3 
+
+0.2 
+
+0.1 
+
+0.0 
+
+0.1 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.4 
+
+0.3 
+
+0.2 
+
+0.1 
+
+0.0 
+
+0.1 
+
+0.2 
+
+> Silhouette score
+
+blip2_lm × StyleTransfer 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B 0 5 10 15 20 25 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+> Silhouette score
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+> Silhouette score
+
+llava_onevision_lm × StyleTransfer 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 28: Layerwise RDM correlation (left) and silhouette score (right) for StyleTransfer (1/2) under prompt A vs. prompt B for OPT-2.7B (top) and Llama-3-8B-Instruct (bottom). 42 0 10 20 30 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 10 20 30 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 10 20 30 
+
+> Layer
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+> Silhouette score
+
+0 10 20 30 
+
+> Layer
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+> Silhouette score
+
+qwen3_vl_lm × StyleTransfer     
+
+> Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B
+
+Figure 29: Layerwise RDM correlation (left) and silhouette score (right) for StyleTransfer (2/2) under prompt A vs. prompt B for for Qwen3-8B. 43 0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 30 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.4 
+
+0.3 
+
+0.2 
+
+0.1 
+
+0.0 
+
+> Silhouette score
+
+0 5 10 15 20 25 30 
+
+Layer 
+
+0.4 
+
+0.3 
+
+0.2 
+
+0.1 
+
+0.0 
+
+> Silhouette score
+
+blip2_lm × COCO 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B 0 5 10 15 20 25 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+0.6 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 5 10 15 20 25 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+0.6 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.05 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.1 
+
+0.0 
+
+0.1 
+
+0.2 
+
+> Silhouette score
+
+llava_onevision_lm × COCO 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 30: Layerwise RDM correlation (left) and silhouette score (right) for COCO (1/2) under prompt A vs. prompt B for OPT-2.7B (top) and Llama-3-8B-Instruct (bottom). 44 0 10 20 30 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+> RSA (Spearman r)
+
+G1_cross_open 
+
+0 10 20 30 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+> RSA (Spearman r)
+
+G5_irr_open 
+
+0 10 20 30 
+
+Layer 
+
+0.05 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+0 10 20 30 
+
+Layer 
+
+0.05 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> Silhouette score
+
+qwen3_vl_lm × COCO 
+
+Prompt A Prompt A (Rigid + axis scaling) Prompt A (Affine) Prompt A (Nonlinear) Prompt B Figure 31: Layerwise RDM correlation (left) and silhouette score (right) for COCO (2/2) under prompt A vs. prompt B for for Qwen3-8B. 45 G Decomposition results for individual prompt-pair groups 
+
+For each (model, dataset) cell we show the full five-tier incremental cross-validated R2 at every layer as a stacked bar. Each segment is ∆R2 
+
+> k
+
+= R2 
+
+> k
+
+− R2 
+
+> k−1
+
+for one tier in the nested chain (translation 
+
+T , rigid transformation with uniform scaling Ou, rigid transformation with axis-wise scaling Oa,affine L, nonlinear N ). These visualizations complement the summary Fig. 3 and make visible the 
+
+strategy-level differences across model families discussed in §6. 46 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Opt_2_7b × EmotionalStory Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Llama3_8b_instruct × EmotionalStory Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Qwen3_8b × EmotionalStory Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual Figure 32: Incremental R2 of each transformation for EmotionalStory dataset across layers for OPT-2.7B (top), Llama-3-8B-Instruct (middle), Qwen3-8B (bottom). 47 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Opt_2_7b × WritingStyle Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Llama3_8b_instruct × WritingStyle Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Qwen3_8b × WritingStyle Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual Figure 33: Incremental R2 of each transformation for WritingStyle across layers for OPT-2.7B (top), Llama-3-8B-Instruct (middle), Qwen3-8B (bottom). 48 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Opt_2_7b × Number Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Llama3_8b_instruct × Number Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Qwen3_8b × Number Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual Figure 34: Incremental R2 of each transformation for Number across layers for OPT-2.7B (top), Llama-3-8B-Instruct (middle), Qwen3-8B (bottom). 49 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Blip2 × EmoSet Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 5 10 15 20 25 
+
+Layer 
+
+Irrelevant Open 
+
+0 5 10 15 20 25 
+
+Layer 
+
+Irrelevant Specific 
+
+Llava_onevision × EmoSet Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Qwen3_vl × EmoSet Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual Figure 35: Incremental R2 of each transformation for EmoSet across layers for BLIP-2 (top), LLaVA-OneVision-7B (middle), Qwen3-VL-8B (bottom). 50 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Blip2 × StyleTransfer Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 5 10 15 20 25 
+
+Layer 
+
+Irrelevant Open 
+
+0 5 10 15 20 25 
+
+Layer 
+
+Irrelevant Specific 
+
+Llava_onevision × StyleTransfer Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Qwen3_vl × StyleTransfer Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual Figure 36: Incremental R2 of each transformation for StyleTransfer across layers for BLIP-2 (top), LLaVA-OneVision-7B (middle), Qwen3-VL-8B (bottom). 51 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Blip2 × COCO Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 5 10 15 20 25 
+
+Layer 
+
+Irrelevant Open 
+
+0 5 10 15 20 25 
+
+Layer 
+
+Irrelevant Specific 
+
+Llava_onevision × COCO Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Qwen3_vl × COCO Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual Figure 37: Incremental R2 of each transformation for COCO across layers for BLIP-2 (top), LLaVA-OneVision-7B (middle), Qwen3-VL-8B (bottom). 52 H Generalization to prompt paraphrases and out-of-distribution (OOD) datasets 
+
+We ask whether the fitted transformations bfk capture task-dependent representational structure that generalizes beyond the specific prompt–stimulus pairings used for fitting. We evaluate two forms of generalization: (i) prompt paraphrasing , in which the canonical target prompt B is replaced by semantically equivalent rewordings that query the same attribute, and (ii) input distribution shift , in which transformations fitted on one dataset are evaluated on another dataset. 
+
+Prompt paraphrasing Setup. We fix the source prompt A and the canonical target prompt B from the cross-attribute open–open pairing group (G1). We then construct three semantic paraphrases {B′
+
+> i
+
+}3 
+
+> i=1
+
+of B, each preserving the queried attribute while varying the surface form of the instruction. For each paraphrase 
+
+B′
+
+> i
+
+, we fit each tier-k transformation bf (i) 
+
+> k
+
+on the paraphrased prompt pair (XA, XB′ 
+
+> i
+
+) using the training stimuli, and evaluate the fitted transformation against the canonical target representations 
+
+XB on held-out stimuli. We use the same 5-fold cross-validation protocol as in the main experiments (Section 5). For paraphrase i, the cumulative paraphrase-generalization score of tier k is 
+
+R2,(i) 
+
+> k
+
+= XB − XA 2 
+
+> F
+
+− XB − bf (i) 
+
+> k
+
+(XA) 2
+
+> F
+
+XB − XA 2
+
+> F
+
+,
+
+where both norms are computed over held-out stimuli and scores are averaged across folds. As a reference ceiling, we also fit and evaluate the canonical pair (XA, XB ) under the same cross-validation procedure. If the learned transformation captures the target attribute independently of the exact wording of B, the paraphrase-generalization curves should approach the canonical reference curve. We evaluate this analysis in one vision-language setting and one language-only setting: LLaVA-OneVision-7B on StyleTransfer, with canonical target prompt B = “What artistic style does the image belong to?” and three paraphrases querying style ; and Llama3-8B-Instruct on EmotionalStory, with canonical target prompt B = “What emotion does this text express?” and three paraphrases querying emotion .
+
+Results. For Llama3-8B-Instruct on EmotionalStory (Fig. 38), the paraphrase-generalization curves closely track the canonical reference curve, except in the earliest layers. This suggests that, across most layers, the fitted transformations capture a prompt-induced representational change that is largely stable across semantically equivalent rewordings of the target prompt. For LLaVA-OneVision-7B on StyleTransfer (Fig. 39), the paraphrase curves approach the canonical reference primarily in deeper layers. This indicates that paraphrase-invariant transformations emerge more strongly at later stages of LLaVA, whereas earlier layers remain more sensitive to the surface form of the prompt. 0 10 20 30                
+
+> Layer
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> cumulative  R2
+> Translation
+> 010 20 30
+> Layer
+> Uniform-scaled Procrustes
+> 010 20 30
+> Layer
+> Axis-scaled Procrustes
+> 010 20 30
+> Layer
+> Affine
+> 010 20 30
+> Layer
+> Nonlinear
+> Llama3_8b_instruct × EmotionalStory Dataset
+> canonical paraphrase 0 paraphrase 1 paraphrase 2
+
+Figure 38: Cumulative cross-validated R2 of each transformation under prompt paraphrasing, evalu-ated on the canonical XB on held-out stimuli for Llama3-8B-Instruct on EmotionalStory (source 
+
+A = topic, canonical target B = emotion; three paraphrases of emotion). 53 0 10 20            
+
+> Layer
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> cumulative  R2
+> Translation
+> 010 20
+> Layer
+> Uniform-scaled Procrustes
+> 010 20
+> Layer
+> Axis-scaled Procrustes
+> 010 20
+> Layer
+> Affine
+> 010 20
+> Layer
+> Nonlinear
+> Llava_onevision × StyleTransfer Dataset
+> canonical paraphrase 0 paraphrase 1 paraphrase 2
+
+Figure 39: Cumulative cross-validated R2 of each transformation under prompt paraphrasing, eval-uated on the canonical XB on held-out stimuli for LLaVA-OneVision-7B on StyleTransfer(source 
+
+A = scene, canonical target B = style; three paraphrases of style). 
+
+Evaluation on out-of-distribution (OOD) datasets Setup. We next test whether transformations fitted on one stimulus distribution generalize to a distinct dataset from the same modality. For each (model , D src , D tgt ) triple, we fit each tier-
+
+k transformation bf src  
+
+> k
+
+using all stimuli from the source dataset Dsrc . We then apply the fitted transformation to all stimuli in the target dataset Dtgt under the same prompt pair and compute the per-tier incremental contribution ∆R2
+
+> k
+
+. As in the paraphrase analysis, we evaluate one vision-language setting (LLaVA-OneVision-7B: StyleTransfer ↔ EmoSet) and one language-only setting (Llama3-8B-Instruct: WritingStyle ↔ EmotionalStory). For comparison, the diagonal entries in Fig. 40 show matched in-domain performance estimated by 5-fold cross-validation within each dataset, whereas the off-diagonal entries show cross-dataset transfer from Dsrc to Dtgt .
+
+Results. Transformations fitted on one dataset retain substantial explanatory power when transferred to a different dataset from the same modality, but the decomposition across transformation tiers changes under distribution shift (Fig. 40). In the language-only setting, transfer from EmotionalStory to WritingStyle shows the strongest degradation: the translation component decreases markedly in deeper layers relative to the in-domain condition, with the loss primarily redistributed to the affine tier and the residual. The reverse direction, WritingStyle to EmotionalStory, transfers more robustly, suggesting an asymmetry in how dataset-specific structure contributes to the fitted transformation. In the vision-language setting, the in-domain decompositions are dominated by translation across layers. Under cross-dataset transfer, however, a larger fraction of the explained and unexplained vari-ance is assigned to affine, nonlinear, and residual components. Thus, while a substantial component of the fitted transformation is shared across datasets, the relative contribution of simple translation versus higher-order transformations remains dataset-dependent. Together with the paraphrase analysis, these results indicate that the nested geometric hierarchy captures prompt-dependent representational structure that is partly invariant to prompt rewording and partly transferable across input distributions. At the same time, the tier-wise allocation of variance is sensitive to the stimulus distribution, suggesting that prompt-induced representational changes contain both task-level and stimulus-distribution-specific components. 54 0 5 10 15 20 25 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+StyleTransfer StyleTransfer 
+
+in-domain (CV) 
+
+0 5 10 15 20 25 
+
+StyleTransfer EmoSet 
+
+transfer 
+
+0 5 10 15 2
+
+StyleTransfer COC 
+
+transfer 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmoSet StyleTransfer 
+
+transfer 
+
+0 5 10 15 20 25 
+
+Layer 
+
+EmoSet EmoSet 
+
+in-domain (CV) 
+
+0 5 10 15 2
+
+Layer 
+
+EmoSet COCO 
+
+transfer 
+
+Llava_onevision: cross-dataset transfer (rows = source, cols = target; diagonal = in-dom 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear 0 5 10 15 20 25 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+StyleTransfer StyleTransfer 
+
+in-domain (CV) 
+
+0 5
+
+Styl 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmoSet StyleTransfer 
+
+transfer 
+
+0 5
+
+E
+
+Llava_onevision: cross-dataset transfer (rows 
+
+Translation Uniform-scaled Procrustes Ax 0 5 10 15 20 25 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+StyleTransfer StyleTransfer 
+
+in-domain (CV) 
+
+0 5 10 15 20 25 
+
+StyleTransfer EmoSet 
+
+transfer 
+
+0 5 10 15 
+
+StyleTransfer 
+
+transfe 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmoSet StyleTransfer 
+
+transfer 
+
+0 5 10 15 20 25 
+
+Layer 
+
+EmoSet EmoSet 
+
+in-domain (CV) 
+
+0 5 10 15 
+
+Layer 
+
+EmoSet C
+
+transfe 
+
+Llava_onevision: cross-dataset transfer (rows = source, cols = target; diagonal = in 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear 0 5 10 15 20 25 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+StyleTransfer StyleTransfer 
+
+in-domain (CV) 
+
+0 5 10 15 20 25 
+
+StyleTransfer EmoSet 
+
+transfer 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmoSet StyleTransfer 
+
+transfer 
+
+0 5 10 15 20 25 
+
+Layer 
+
+EmoSet EmoSet 
+
+in-domain (CV) 
+
+Llava_onevision: cross-dataset transfer (rows = source, cols = tar 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes 0 5 10 15 20 25 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+StyleTransfer StyleTransfer 
+
+in-domain (CV) 
+
+0 5 10 15 20 25 
+
+StyleTransfer EmoSet 
+
+transfer 
+
+0 5 10 15 20 25 
+
+StyleTransfer COCO 
+
+transfer 
+
+0 5 10 15 20 25 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmoSet StyleTransfer 
+
+transfer 
+
+0 5 10 15 20 25 
+
+Layer 
+
+EmoSet EmoSet 
+
+in-domain (CV) 
+
+0 5 10 15 20 25 
+
+Layer 
+
+EmoSet COCO 
+
+transfer 
+
+Llava_onevision: cross-dataset transfer (rows = source, cols = target; diagonal = in-domain CV) 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear Residual 0.0 0.5 1.0 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> R2 from previous tier
+
+Translation 
+
+0.0 0.5 1.0 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+Uniform-scaled 
+
+Procrustes 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+Axis-scaled 
+
+Procrustes 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+Affine 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.02 
+
+0.04 
+
+Nonlinear 
+
+Normalized layer position 
+
+Opt_2_7b Llama3_8b_instruct Qwen3_8b 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+WritingStyle WritingStyle 
+
+in-domain (CV) 
+
+0 10 20 30 
+
+WritingStyle EmotionalStory 
+
+transfer 
+
+0 10 20 
+
+WritingStyle Num 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory EmotionalStory 
+
+in-domain (CV) 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Nu 
+
+transfer 
+
+Llama3_8b_instruct: cross-dataset transfer (rows = source, cols = target; diagonal = in-d 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear 10 20 30 
+
+in-domain (CV) 
+
+0 10 20 30 
+
+transfer 
+
+0 10 20 30 
+
+transfer 
+
+10 20 30 
+
+Layer 
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory EmotionalStory 
+
+in-domain (CV) 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory Number 
+
+transfer 
+
+tion Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear Residual 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tie
+
+in-domain (CV) 
+
+0 10 20 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Emotion 
+
+in-domain (CV) 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrust 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+in-domain (CV) 
+
+0
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0
+
+Emotion 
+
+Translation Uniform-scaled Procrustes Ax 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+in-domain (CV) 
+
+0 10 20 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Emotional 
+
+in-domain (CV) 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+in-domain (CV) 
+
+0 10 20 30 
+
+transfer 
+
+0 10 20 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory EmotionalStory 
+
+in-domain (CV) 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Num 
+
+transfer 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+in-domain (CV) 
+
+0 10 20 30 
+
+transfer 
+
+0 10 20 30 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory EmotionalStory 
+
+in-domain (CV) 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory Number 
+
+transfer 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear Residual 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+in-domain (CV) 
+
+0 10 20 30 
+
+transfer 
+
+0 10 20 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory EmotionalStory 
+
+in-domain (CV) 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Nu 
+
+transfer 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+in-domain (CV) 
+
+0 10 20 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Emotional 
+
+in-domain (CV) 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+in-domain (CV) 
+
+0 10 20 30 
+
+transfer 
+
+0
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory EmotionalStory 
+
+in-domain (CV) 
+
+0
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine 0.0 0.5 1.0 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> R2 from previous tier
+
+Translation 
+
+0.0 0.5 1.0 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+Uniform-scaled 
+
+Procrustes 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+Axis-scaled 
+
+Procrustes 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+Affine 
+
+0.0 0.5 1.0 
+
+0.00 
+
+0.02 
+
+0.04 
+
+Nonlinear 
+
+Normalized layer position 
+
+Opt_2_7b Llama3_8b_instruct Qwen3_8b 10 20 30 
+
+WritingStyle WritingStyle 
+
+in-domain (CV) 
+
+0 10 20 30 
+
+WritingStyle EmotionalStory 
+
+transfer 
+
+0 10 20 30 
+
+WritingStyle Number 
+
+transfer 
+
+10 20 30 
+
+Layer 
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory EmotionalStory 
+
+in-domain (CV) 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory Number 
+
+transfer 
+
+b_instruct: cross-dataset transfer (rows = source, cols = target; diagonal = in-domain CV) 
+
+ation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear Residual 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+WritingStyle WritingStyle 
+
+in-domain (CV) 
+
+0 10 20 
+
+WritingStyle Emotion 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Emoti 
+
+in-domain (CV) 
+
+Llama3_8b_instruct: cross-dataset transfer (rows = source 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procru 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+WritingStyle WritingStyle 
+
+in-domain (CV) 
+
+0 10 20 30 
+
+WritingStyle EmotionalStory 
+
+transfer 
+
+0 10 20 
+
+WritingStyle Num 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+EmotionalStory EmotionalStory 
+
+in-domain (CV) 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Nu 
+
+transfer 
+
+Llama3_8b_instruct: cross-dataset transfer (rows = source, cols = target; diagonal = in-d 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrustes Affine Nonlinear 0 10 20 30 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+WritingStyle WritingStyle 
+
+in-domain (CV) 
+
+0 10 20 
+
+WritingStyle Emotion 
+
+transfer 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.5 
+
+1.0 
+
+> R2 from previous tier
+
+EmotionalStory WritingStyle 
+
+transfer 
+
+0 10 20 
+
+Layer 
+
+EmotionalStory Emotio 
+
+in-domain (CV) 
+
+Llama3_8b_instruct: cross-dataset transfer (rows = source 
+
+Translation Uniform-scaled Procrustes Axis-scaled Procrus 0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Cross-attr: Open Open Cross-attr: Specific Specific Within-attr: Ope 
+
+0 10 20 30 
+
+Layer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+> R2 from previous tier
+
+Within-attr: Specific Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 
+
+Laye 
+
+Irrelevant 
+
+Blip2 × EmoSet Dataset 
+
+Translation Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear en Open Cross-attr: Specific Specific Within-attr: Open Specific 
+
+20 30 
+
+ic Specific 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Open 
+
+0 10 20 30 
+
+Layer 
+
+Irrelevant Specific 
+
+Blip2 × EmoSet Dataset 
+
+Rigid + 
+
+uniform scaling 
+
+Rigid + 
+
+axis scaling Affine Nonlinear Residual Figure 40: Out-of-distribution (OOD) generalization of the nested geometric decomposition. Top: Llama3-8B-Instruct. Bottom: LLaVA-OneVision-7B. Rows denote the source dataset used to fit the transformation, and columns denote the target dataset used for evaluation. Diagonal panels show matched in-domain 5-fold cross-validation; off-diagonal panels show cross-dataset transfer. Each bar shows the per-layer stacked decomposition of incremental ∆R2 
+
+> k
+
+into transformation tiers and residual for cross-attribute open–open prompt pairs. 55 I Dimensionality of Procustes alignment 
+
+Fig. 4 b (bottom) shows the alignment dimensionality using a 1% relative threshold on the singular values of cross-covariance eXA ⊤ eXB (σi > 0.01 σmax ). For completeness we also report the stricter 10% threshold ( σi > 0.10 σmax ) in Fig. 41 for LLMs. WritingStyle  G1 
+
+> G2
+> G3
+> G4
+> G5
+> G6
+> EmotionalStory  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> Number  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+
+Opt_2_7b 
+
+Qwen3_8b 
+
+Llama3_8b_instruct 
+
+8 7 8 8 7 7 12 11 12 12 10 10 6 7 6 6 6 7
+
+6 6 6 5 6 5 18 16 15 14 20 16 4 4 4 4 4 4
+
+4 4 4 4 4 3 10 6 5 5 9 7 4 4 4 4 3 4 5
+
+> 10
+> 15
+> rank (sv > 0.10 × max)
+
+Alignment dimensionality: LLM, threshold 0.10 StyleTransfer  G1 
+
+> G2
+> G3
+> G4
+> G5
+> G6
+> COCO  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> EmoSet  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+
+Blip2 
+
+Llava_onevision 
+
+Qwen3_vl 
+
+43 41 41 40 40 40 61 62 61 61 62 63 70 66 67 65 67 69 
+
+19 17 17 16 18 17 32 33 33 33 38 40 37 31 32 29 33 31 
+
+18 18 17 17 19 19 33 34 34 35 41 43 41 29 31 28 38 31 20 
+
+> 40
+> 60
+> rank (sv > 0.01 × max)
+
+Alignment dimensionality: VLM, threshold 0.01 StyleTransfer  G1 
+
+> G2
+> G3
+> G4
+> G5
+> G6
+> COCO  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+> EmoSet  G1
+> G2
+> G3
+> G4
+> G5
+> G6
+
+Blip2 
+
+Llava_onevision 
+
+Qwen3_vl 
+
+9 9 9 9 9 9 10 9 10 9 10 9 12 10 11 10 11 11 
+
+5 5 4 4 5 4 7 6 7 6 7 7 7 6 6 5 6 6
+
+5 5 4 4 5 5 6 6 7 7 8 8 9 6 6 6 8 6 5
+
+> 10
+> rank (sv > 0.10 × max)
+
+Alignment dimensionality: VLM, threshold 0.10 
+
+Figure 41: Alignment dimensionality. (top) the centered cross-prompt cross-covariance at the stricter 10%-of-σmax threshold (LLM, all six prompt-pair groups). (bottom and middke ) llm. two thresholds. the layout across (model × dataset × group) is the same as in Fig. 4 b.56 J Example generated texts after interventions 
+
+We provide qualitative examples of model generations after replacing an internal representation with the output of each fitted transformation tier. For a stimulus si and layer ℓ, we run the model with prompt A, replace the residual-stream activation at the final input-prompt token by bfk(Φ A(si)) , and then greedily decode 50–100 tokens from the modified state. We compare seven conditions: prompt 
+
+A without intervention; translation ; rigid_uni , corresponding to an orthogonal transformation plus uniform scaling; rigid_axis , corresponding to an orthogonal transformation plus axis-wise scaling; 
+
+affine ; nonlinear ; and prompt B, an oracle activation reference in which the prompt-A residual stream at the same layer and token is replaced by the held-out representation ΦB (si). This oracle condition preserves the remaining prompt-A context and is therefore distinct from running the model end-to-end under prompt B.
+
+G1 / LLaVA-OneVision-7B × COCO. Prompt A: “Are there people in this image?” Prompt B:
+
+“How many people are in this image?” This prompt pair tests whether an intervention can shift the model from binary detection to numerical counting. At the mid-depth layer ℓ = 22 , higher-tier transformations replace the prompt-A yes/no response format with count-like answers (Table 6). Table 6: G1 / LLaVA-OneVision-7B × COCO, prompt pair detect → count at ℓ = 22 .                                                          
+
+> Stim prompt Atranslation rigid_uni rigid_axis affine nonlinear prompt B
+> 8yes two two two two two two 12 no no 0000013 no no 00zero 0zero 15 yes five five five five five five 25 yes four four four four four four 29 yes two two two 10 10 10 41 yes one one one one one one
+
+G1 / Qwen3-VL-8B × COCO. We use the same detection-to-counting prompt pair and apply interventions at layer ℓ = 27 (Table 7). Because Qwen3-VL often produces longer descriptive responses, we report only the first sentence in each cell. Translation and the orthogonal-plus-uniform scaling tier largely preserve the detection framing of prompt A
+
+(e.g., “Yes, there are people . . . ”), whereas affine and nonlinear interventions more consistently shift the output toward a numerical count. Table 7: G1 / Qwen3-VL-8B × COCO, prompt pair detect → count at ℓ = 27 (first sentence shown per cell). Cells with identical text within a row are grouped.                                            
+
+> Stim Generated text per level group (groups separated by “ |”) 25 prompt A: “Yes, there are people in this image.” |T, Ou,Oa: “Based on the image provided, yes, there are people in this image.” |L, N, prompt B: “There are four people in this image.” 69 prompt A: “Yes, there are people in this image.” |T, Ou: “Based on the image provided, yes, there are people in this image.” |Oa, L, N, prompt B: “There are two people in the image.” 94 prompt A: “Yes, there are two people in this image.” |T: “Based on the visual information in the image, yes, there are people in this image.” |Ou,Oa, L, N, prompt B: “There are two people in this image.” 211 prompt A: “Yes, there are people in this image.” |T, Ou,Oa: “Based on the image provided, yes, there are people in this image.” |L, N, prompt B: “There are three people in this image.” 237 prompt A: “Yes, there are people in this image.” |T: “Based on the image provided, yes, there are people in this image.” |Ou,Oa, L, N, prompt B: “There are five people in this image.”
+
+57 G5 / LLaVA-OneVision-7B × COCO: irrelevant “capital” prompt. Prompt A: “What is the capital of France?” Prompt B: “How many people are in this image?” This prompt pair tests whether an intervention can induce an image-dependent counting response even when the source prompt is task-irrelevant. Without intervention, the model answers the source question with “Paris.” After applying intermediate- and higher-tier transformations, the generated response shifts toward the count requested by prompt B (Table 8). This suggests that the fitted transformations can inject target-task structure beyond the semantic content explicitly requested by the source prompt. Table 8: G5 / LLaVA-OneVision-7B × COCO, prompt pair capital → count at ℓ = 22 .                                                          
+
+> Stim prompt Atranslation rigid_uni rigid_axis affine nonlinear prompt B
+> 8paris two two two two two two 12 paris two zero zero 00013 paris two two two 0zero zero 15 paris two five five five five five 25 paris two four four four four four 29 paris two two two two two 10 41 paris two One One three one one
+
+G5 / LLaVA-OneVision-7B × COCO: irrelevant “arithmetic” prompt. Prompt A: “What is 2+2?” Prompt B: “How many people are in this image?” This condition provides a second task-irrelevant source prompt. The unmodified model produces the arithmetic answer “4,” whereas interventions can shift the response toward an image-dependent count (Table 9). Table 9: G5 / LLaVA-OneVision-7B × COCO, prompt pair arithmetic → count at ℓ = 22 .                                                          
+
+> Stim prompt Atranslation rigid_uni rigid_axis affine nonlinear prompt B
+> 84two two two two two two 12 4two zero zero 00013 4two 0000015 4two five five five five five 25 444444429 4two two two two three 10 41 4two 1two 121
+
+58 K Asset licenses and credits 
+
+Pretrained models. All models used in this paper are publicly available HuggingFace checkpoints, cited via their original papers and listed with the URL of the specific revision and the license under which we used them: • LLaVA-OneVision-7B [Li et al., 2024] – https://huggingface.co/llava-hf/ llava-onevision-qwen2-7b-ov-hf – Apache 2.0. • Qwen3-VL-8B-Instruct [Bai et al., 2025] – https://huggingface.co/Qwen/ Qwen3-VL-8B-Instruct – Apache 2.0. • Qwen3-8B [Yang et al., 2025] – https://huggingface.co/Qwen/Qwen3-8B – Apache 2.0. • BLIP-2 (OPT-2.7B backbone) [Li et al., 2023a] – https://huggingface.co/ Salesforce/blip2-opt-2.7b – BSD-3-Clause. • Meta-Llama-3-8B-Instruct [Grattafiori et al., 2024] – https://huggingface.co/ meta-llama/Meta-Llama-3-8B-Instruct – Meta Llama 3 Community License Agree-ment. • OPT-2.7B [Zhang et al., 2022] – https://huggingface.co/facebook/opt-2.7b –OPT-175B License Agreement (research use; the same agreement covers all OPT model sizes). 
+
+Image datasets. 
+
+• COCO val2017 [Lin et al., 2014] – annotations released under CC BY 4.0; the underlying images are subject to Flickr Terms of Use. We use a 1,000-image subset balanced by supercategory. • EmoSet [Yang et al., 2023] – non-commercial research use only, no redistribution permitted; used in compliance with the dataset’s terms of use. We use a 1,600-image 8×4 emotion-by-content subset. • StyleTransfer [Boger and Firestone, 2025] – 1,920 photographs rendered in seven styles, made available alongside the published paper in Nature Human Behaviour 9 (2025) 2497– 2509. 
+
+Curated text stimulus sets. The three LLM prompt-pair sets (E MOTIONAL STORY , W RIT -
+
+> ING
+
+STYLE , N UMBER ) were authored by us. They consist of factual, style, and numeric prompts and contain no personal or sensitive content. They will be released alongside the analysis code under CC BY 4.0. 59

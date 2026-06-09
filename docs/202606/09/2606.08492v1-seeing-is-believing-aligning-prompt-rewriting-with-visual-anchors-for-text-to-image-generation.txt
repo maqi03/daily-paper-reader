@@ -1,0 +1,674 @@
+Title: Seeing is Believing: Aligning Prompt Rewriting with Visual Anchors for Text-to-Image Generation
+
+URL Source: https://arxiv.org/pdf/2606.08492v1
+
+Published Time: Tue, 09 Jun 2026 01:05:09 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+## Seeing is Believing: Aligning Prompt Rewriting with Visual Anchors for Text-to-Image Generation 
+
+Xuanyi Liu 1 Deyi Ji 2 Junyu Lu 3 Jing Wang 1 Qianxiong Xu 4 Xuhang Chen 5
+
+Tianrun Chen 6 Siwei Ma 1
+
+> 1
+
+Peking University 2Tencent 3Dalian University of Technology 4Nanyang Technological University 
+
+> 5
+
+University of Cambridge 6Zhejiang University 
+
+Abstract 
+
+Despite the impressive capabilities of text-to-image (T2I) models, an intent–generation gap often persists due to the brevity and ambigu-ity of user prompts. Existing approaches pri-marily polish the prompt for fluency and read-ability. However, the enhancement process still lacks visual grounding. As a result, the rewriter may over-infer missing details, caus-ing an intent-generation gap. To address this limitation, we propose FaithRewriter, a novel prompt-enhancement framework for T2I gen-eration. Specifically, FaithRewriter first lever-ages a multimodal MLLM to generate an image from the original prompt as an intermediate visual cue. This cue is then combined with the prompt and fed into a large-scale LLM to produce visually grounded augmentations that better reflect how the intended content should appear in images. Finally, these augmentations are distilled into a small-scale LLM for effi-cient deployment, enhancing its ability to gen-erate effective T2I prompts. Experiments show that FaithRewriter yields prompts that are more faithful to the user intent and more visually plausible than strong baselines, helping narrow the intent–generation gap. 
+
+1 Introduction 
+
+Text-to-image (T2I) models can generate high-quality images from natural language (Peebles and Xie, 2023; Rombach et al., 2022; Cao et al., 2026). However, users rarely provide the precise, detailed prompts these models expect. Instead, ambiguous or underspecified inputs force generators to guess spatial layouts, physical interactions, and implicit constraints. This creates an intent–generation gap :the resulting images may look realistic, but they often fail to faithfully reflect the user’s true intent. 
+
+Xuanyi Liu completed this work while interning at Ten-cent as part of the Tencent Rhino-Bird Research Elite Program, with Deyi Ji as the program leader. Correspondance to: Deyi Ji<jideyi16@foxmail.com>, Siwei Ma<swma@pku.edu.cn> Prompt: A glass of water turned upside down.        
+
+> Text -only LLM MLLM
+> (Modality Isolated) (Cross -Modality)
+> “A glass turned upside down, liquid
+> dynamically spilling, splashing and
+> pouring down, clearly showing
+> gravitational force”
+> Violates Visually
+> Physics Anchored
+> Physically Impossible Physically Accurate
+> Visual
+> Verification
+> “A glass held upside down,
+> the water remains suspended,
+> appearing frozen, resisting
+> the pull of gravity”
+
+𝑇 ! 𝑇 "
+
+Figure 1: Comparison between standard rewriting and FaithRewriter. Standard rewriting ( T1) often introduces hallucinations due to modal isolation. FaithRewriter utilizes a Visual Anchor to diagnose these errors and produces a verified revision ( T2). 
+
+A common solution is prompt rewriting, where a Large Language Model (LLM) expands the initial input into a richer instruction. While this improves linguistic fluency, it ignores visual faithfulness . Be-cause text-only rewriters (Wang et al., 2025; Wu et al., 2025b) operate entirely in language space, they often hallucinate details that sound linguis-tically reasonable but are visually or physically impossible (Wang et al., 2026). For example (Fig-ure 1), rewriting “a glass of water turned upside down” might yield a fluent description of water suspended in mid-air, which violates basic physics. Here, blind textual expansion does not enhance the prompt; it pollutes the original intent. We argue that faithful prompt rewriting should not be a simple text-expansion task, but rather an alignment with visual reality. The core problem is that text-only models lack visual common sense. Even if a prompt reads perfectly, it can easily pro-duce an unrealistic image with floating objects, 
+
+> arXiv:2606.08492v1 [cs.CV] 7 Jun 2026
+
+wrong counting, or broken physics. Therefore, the challenge is: how can we teach a text-only model to “see” and avoid visual mistakes during rewriting? Our core idea is simple: the best way to catch a text hallucination is to actually draw it. When we render a text-only rewrite into an image, hid-den logical errors instantly become obvious visual failures. We call this intermediate image a Visual Anchor . By generating a Visual Anchor, we can use a Multimodal LLM (MLLM) as an automated visual debugger. The MLLM looks at the image, pinpoints exactly where the layout or physics went wrong, and writes a corrected prompt to fix the spe-cific error. It then verifies that a second generated image actually fixes the problem without losing the user’s original request. This ensures the final prompt is not just a longer sentence, but a visually verified instruction. We introduce FaithRewriter , a “Simulate-Then-Distill” framework. Because generating images and querying MLLMs is too slow for real-time in-ference, we only use Visual Anchors to build our training data offline. For thousands of prompts, we run the diagnosis and correction process de-scribed above. This gives us highly valuable pref-erence pairs: a “bad” rewrite (fluent but visually flawed) and a “good” rewrite (visually corrected and verified). Crucially, the “bad” rewrite serves as a perfect hard negative to prevent the model from learning superficial tricks like simply writ-ing longer sentences. We distill this knowledge into a compact text-only model using Supervised Fine-Tuning (SFT) and Direct Preference Opti-mization (Rafailov et al., 2024) (DPO). Then the text rewriter learns to avoid visual pitfalls without generating any images during inference. To evaluate this, we introduce FaithT2I , a benchmark featuring information-dense prompts and VQA-style questions targeting spatial, phys-ical, and semantic constraints. Extensive experi-ments across various benchmarks demonstrate that FaithRewriter is effective. Our contributions are threefold: • We identify the core failure of standard prompt rewriting: a description can be linguistically per-fect but visually impossible. • We propose FaithRewriter, a Simulate-Then-Distill framework that uses Visual Anchors to expose flawed rewrites and construct verified re-visions for preference learning. • We introduce FaithT2I-test and show that SFT+DPO distillation transfers cross-modal pri-ors into an efficient text-only rewriter with con-sistent gains across benchmarks and generators. 
+
+2 Related Work 
+
+2.1 Prompt Rewriting 
+
+Prompt rewriting transforms short or under-specified user instructions into more detailed prompts (Wang et al., 2025; Cao et al., 2023; Kong et al., 2024; Srivastava et al., 2024; Zhou et al., 2025; Li et al., 2024; Mañas et al., 2024). Ex-isting approaches often treat discrete prompts as parameters to be optimized. For instance, PRewrite (Kong et al., 2024) trains a rewriter LLM using downstream task rewards, allowing the model to explore and identify more effective prompts. Sim-ilarly, (Zhou et al., 2025) employs a meta-LLM iteratively to revise the prompt for a given test in-stance based on the task LLM’s output. (Li et al., 2024) uses a powerful LLM to generate rewrites and distills this capability into a compact model. Furthermore, works like PromptEnhancer(Wang et al., 2025) focus on generating task-specific or personalized prompts, often for NLP tasks like text classification or personalized email generation. However, they primarily operate within the textual 
+
+modality, lacking an explicit mechanism to ensure the visual plausibility of the generated text, which is crucial for text-to-image (T2I) synthesis. 
+
+2.2 Text-to-Image Synthesis 
+
+The field of text-to-image (T2I) synthesis (Esser et al., 2024; Han et al., 2024; Hao et al., 2023; Podell et al., 2023; Tao et al., 2023) has advanced significantly, with models like HunyuanImage and Qwen-Image achieving high fidelity through ad-vanced architectures. However, research has pri-marily focused on enhancing the model’s inter-nal capabilities, often overlooking a critical exter-nal factor: the quality of the input prompt itself. The prompt serves as the sole bridge between hu-man intent and the generative process. Ambigu-ous prompts force even powerful models to guess details. This limitation is evident in benchmarks like T2I-CompBench (Huang et al., 2023), which show models struggle with complex object rela-tions and negations—precisely where human de-scriptions are most prone to ambiguity. Addressing this requires shifting focus from making models un-derstand vague language better to making language {“T2": ".. . he is in the process of flipping burgers with a spatula that is in        
+
+> contact with the grill grates , and a large, orange flare -up of flames erupts
+> from the grill beneath the spatula…
+> “Failure type”: “Spatial”
+> “diagnosis”: “…This contradicts T0, which specifies the man is flipping burgers
+> with the spatula implying the fire originates from the grill, not the utensil… “
+> “explanation of diagnosis”: “ T1 lacks spatial anchoring for the flame
+> source (e.g., 'from the grill') led the image generator to misinterpret the flare -up
+> as originating from the spatula. T1 also failed to specify that the spatula must be
+> in contact with or near the grill during the flare -up…” }
+
+Visual Anchor 
+
+Verify Revise 
+
+Spatial & Occlusion 
+
+Physical Dynamics 
+
+Attribute Binding 
+
+Counting & Geometry 
+
+Negation & Absence 
+
+❌
+
+✅
+
+✅
+
+✅
+
+✅
+
+Dimensions of Visual Check    
+
+> “visual_evidence ”:
+> “In the visual anchor, the man is holding
+> the spatula aloft, away from the grill, while
+> a massive fireball erupts from the spatula
+> itself —not from the grill.
+
+𝐼 !      
+
+> 𝑇 !:“… A man stands next to it, facing the grill with a flare -
+> up of flames , and flipping burgers with a spatula .”
+> 𝑇 ": " .. . he is in the process of flipping burgers with a
+> spatula that is in contact with the grill grates , and a large
+> flare -up of flames erupts from the grill …”
+> ✅✅
+
+2. Revise 
+
+(Drafting 𝑻 𝟐 )
+
+Fix the 
+
+failure type 
+
+3. Verify 
+
+(Audit) 
+
+Fix success 
+
+Keep 𝑇 #
+
+𝑇 $ ≥ 𝑇 !
+
+1. Judge 
+
+& Diagnose 
+
+Visual 
+
+Check 
+
+𝑇 &
+
+𝑇 '
+
+𝐼 '
+
+LLM 
+
+Rewriter 
+
+MLLM Specialist 
+
+T2I Generator          
+
+> “Fix”: “𝐼 $successfully fixes this by showing a
+> realistic, contained fire originating from the grill …”
+> “Comparison”: “… 𝐼 $is a clear improvement over
+> 𝐼 !,no new errors introduced …”
+> “𝑻 𝟎 intent_preservation ”:
+
+Judge & Diagnose 
+
+𝐼 $
+
+> “…A man stands next
+> to it, facing the grill
+> and flipping burgers
+> with a spatula…”
+
+Figure 2: Overview of FaithRewriter. Given an original prompt T0, a text-only rewriter produces T1, which is rendered into I1. An MLLM diagnoses the visual failure, revises T1 into a grounded prompt T2, and verifies that the resulting image I2 fixes the error while preserving the original intent. DPO training is omitted for clarity. 
+
+clearer for models. Recent work explores this inter-face: Hunyuan Enhancer trains an LLM to rewrite prompts, improving output alignment, while ap-proaches using rich text or structured formatting provide more explicit signals to guide generation. 
+
+3 Method 
+
+3.1 Problem Formulation 
+
+Let x be the original user prompt and y be its rewrite. A text-only rewriter models a distribution 
+
+ptext (y|x), favoring linguistically fluent prompts. However, T2I generation requires a different crite-rion: the rewritten prompt should produce an image that is faithful to the intended visual content of x. We denote the ideal visually grounded distribution as pcross (y|x).The key mismatch is that textual likelihood does not guarantee visual realizability, yielding: 
+
+Ptext (y|x) → high , while Pcross (y|x) ≈ 0.
+
+(1) Such a rewrite is a textual hallucination: fluent in text but harmful for generation. Although it may appear specific and coherent, it can cause visual errors such as misplaced objects, wrong attribute binding, implausible dynamics, missing negated objects, or incorrect counts and relations. FaithRewriter exposes these hidden failures through rendering. Given a candidate rewrite y,a frozen T2I model generates an image I, which reveals the visual consequences of y. A multimodal judge then checks whether I satisfies the original prompt x. This enables us to build training pairs where the rejected rewrite is not merely textually weak, but directly linked to a visual failure. 
+
+3.2 FaithRewriter 
+
+FaithRewriter consists of two stages. The first stage constructs visually grounded pref-erence pairs through simulation, diagnosis, revi-sion, and verification. The second stage distills these pairs into a compact text-only rewriter using SFT and DPO. This design uses expensive multi-modal reasoning only during offline data construc-tion, while keeping inference as efficient as stan-dard text-only rewriting. 
+
+3.2.1 Visual Failure Externalization 
+
+As Figure 2, given an original prompt T0, we first generate a baseline rewrite T1 using a text-only LLM. T1 is intentionally allowed to be fluent and detailed, because our goal is not to compare against a weak negative, but to expose the specific failure modes of text-only expansion. We then render T1
+
+using a frozen T2I generator to obtain an intermedi-ate image I1, which we call the visual anchor. The visual anchor transforms a latent textual risk into an observable image-level outcome. The visual anchor serves two purposes. First, it externalizes latent prompt hallucinations. Er-rors that were difficult to detect in text, such as an ambiguous flame source or an incorrect occlusion relation, become directly observable in the image. Second, it provides concrete evidence for revision. Instead of asking an MLLM to improve the prompt abstractly, we ask it to explain what went wrong in I1 and which part of T1 caused the failure. This evidence-grounded revision process reduces the risk of arbitrary rewriting and makes each correc-tion traceable to a specific visual failure. 
+
+3.2.2 Structured Diagnosis and Revision 
+
+Given the original prompt T0, the initial rewrite 
+
+T1, and the rendered image I1, the MLLM diag-noses whether T1 leads to a visual failure in I1. We consider six common failure types: spatial logic and occlusion, attribute binding, physical dynam-ics, counting and geometry, negation and absence, and implicit concepts. These categories cover the main cases where a prompt can remain fluent in language but become ambiguous or implausible after visual instantiation. For each sample, the MLLM first checks whether 
+
+I1 clearly violates the intent of T0. Samples with-out a clear failure are discarded to avoid subjec-tive or unnecessary edits. For failed samples, the MLLM identifies the failure type, points to the vi-sual evidence in I1, and explains which part of T1
+
+causes the error. This step ensures that the revi-sion is driven by an explicit causal link between the rewritten text and the observed image failure. The MLLM then generates a revised prompt 
+
+T2. The revision follows two constraints. First, it should fix the diagnosed failure by adding explicit visual grounding, such as object positions, attach-ment relations, source-target bindings, or physical causality. Second, it should preserve the original intent of T0. In particular, the MLLM is instructed not to remove secondary objects, change attributes, alter the scene context, or introduce unrelated de-tails when fixing the primary error. These con-straints encourage targeted correction rather than unconstrained prompt expansion. 
+
+3.2.3 Cycle Verification 
+
+A revised prompt may fix the diagnosed error while introducing new deviations from the original intent. Therefore, simply generating T2 is insufficient; we need to verify whether the correction is visually realized after rendering. To this end, we perform cycle verification by rendering T2 with the same T2I generator to obtain I2. A strict MLLM judge then compares T0, I1, and I2 using three binary cri-teria: fix verification, whether I2 resolves the fail-ure diagnosed in I1; intent preservation, whether 
+
+I2 preserves the original constraints and entities in T0; and anti-regression, whether I2 avoids new visual errors while fixing the original one. This verification step turns revision from an open-ended rewriting process into a closed-loop quality control process grounded in the rendered outcome. Only when all three checks pass do we accept the pair, recorded as Twin = T2 and Tlose = T1. Other-wise, the sample is discarded. This strict filtering improves preference-data reliability by ensuring that the positive prompt is not only linguistically improved, but also visually validated. It also en-sures that Tlose is a true hard negative: fluent and detailed, yet linked to an observed visual failure. As a result, the retained pair isolates visual ground-ing as the primary difference between the preferred and rejected rewrites, making it suitable for prefer-ence optimization. 
+
+3.2.4 Counterfactual Preference Distillation 
+
+After constructing the verified preference dataset, we train a compact text-only rewriter. We first apply supervised fine-tuning on positive pairs 
+
+(T0, T win ), which teaches the student the syntax and style of visually grounded prompts. However, SFT alone does not explicitly teach the model to reject plausible but visually harmful details. This moti-vates a preference-learning stage that contrasts cor-rect visual grounding against matched but flawed alternatives. We therefore apply DPO using matched hard-negative pairs (Twin > T lose ). This design is im-portant. A naive preference pair such as Twin > T 0
+
+would confound visual faithfulness with prompt length, because Twin is typically longer and more detailed than the raw prompt. In contrast, Twin 
+
+and Tlose are both expanded rewrites of the same 
+
+T0. They are similar in fluency, verbosity, and style, but differ in whether their added details are visually grounded. DPO therefore learns a more targeted preference: prefer visually realizable details over visually implausible ones. The DPO objective is: 
+
+LDPO (θ) = −E(T0,T win ,T lose )∼D 
+
+"
+
+log σ (
+
+β log πθ(Twin |T0)
+
+πref (Twin |T0) − β log πθ(Tlose |T0)
+
+πref (Tlose |T0) )
+
+#
+
+,
+
+(2) What the woman wear at back:                       
+
+> A. Nothing
+> B. Abag
+> C. A bird
+> D. A flower
+> E. A plant
+> Prompt: … A neon sign shaped like a cat
+> glows pink on the far edge
+> What is the neon light shaped like?
+> A. A cat
+> B. A dog
+> C. A drone
+> D. A plant
+> E. None
+> Prompt: … A botanist in a vest kneels
+> beside a rare orchid without a bag .. .
+> Prompt: …. The goat shifts its weight,
+> causing the trough to tilt further, nearly
+> spilling grain ..
+> What motion is described involving the goat and
+> the trough?
+> A. The goat is jumping off the trough,
+> B: The goat is lying down on the trough,
+> C. The goat shifts its weight, causing the
+> trough to tilt further.
+> D. The goat is pushing the trough with its horns
+> Prompt: …plaque beside the case
+> reads '7 Coins, 3 Visitors, 1 Guide’…
+> How many coins there?
+> A. Six
+> B. Eight
+> C. Five
+> D. None
+> E. Seven
+> Prompt: …Behind the table, a
+> librarian walks past carrying a
+> stack of five blue -bound volumes…
+> Prompt: …A translucent jellyfish drifts
+> behind the urchin, partially veiled by
+> its spines…
+> Which object is partially obscure?
+> A. The fish is obscured by the seaweed
+> B. The urchin’s spines are veiled by a
+> jellyfish
+> C. The coral ledge is hidden by the fish
+> D. The jellyfish
+> E: None
+> Which color books are the librarian carry?
+> A. Red
+> B. Blue
+> C. Yellow
+> D. Orange
+> E. Green
+> Spatial Logic & Occlusion Attribute Binding Physics Dynamics
+> Counting & Geometry Negation & Absence Implicit Concepts
+
+Figure 3: Overview of FaithT2I-test: scene distribution and example prompt–question–answer pairs. 
+
+where πref is the SFT-initialized model, and β con-trols the deviation margin. This optimization forces the student to look beyond surface-level language patterns, explicitly unlearning the tendency to gen-erate textual hallucinations and pushing its distri-bution toward the cross-modal ideal pcross .After distillation, the student performs faithful prompt rewriting using only text input, while the simulation and verification process remains offline. 
+
+3.3 FaithT2I Benchmark 
+
+Unlike generic metrics, FaithT2I systematically evaluates whether a generated image faithfully sat-isfies dense visual constraints. As shown in Fig-ure 3, we classify potential T2I failures into six macro-categories: (1) Spatial logic & occlusion, which focuses on relative layouts and obstruction; (2) Attribute binding, which evaluates color, size, and property associations; (3) Physical dynamics, which tests causality and contact; (4) Counting & geometry, which examines counts, ratios, and grids; (5) Negation & absence, which checks cor-rect omission; and (6) Implicit concepts, which evaluates commonsense visual interpretation. 
+
+Prompt and Question Construction. To ensure diversity, we prompt an MLLM to synthesize dense prompts ( T0) across diverse real-world domains, as shown in Figure 3. Each sample pairs T0 with 10 VQA-style questions to evaluate the generated im-age. To prevent forced guessing in cases of severe misalignment, each question includes an explicit “none of the above” option. This design encour-ages the evaluator to measure concrete visual sat-isfaction rather than rewarding generic text-image similarity. Computational cost is in Appendix 6.2. 
+
+Verification and Reliability. For dataset reliabil-ity, a subset of 300 samples is manually verified by three human annotators, yielding substantial agreement with a Cohen’s Kappa of 0.72. To avoid evaluation leakage, we completely decouple the evaluator models, including GPT-4o, Gemini, and Qwen3-VL, from the training-time textual prompt generation model DeepSeek-R1 (Guo et al., 2025). This separation helps ensure that the benchmark evaluates general visual faithfulness rather than memorized preferences of a single model family. 
+
+4 Experiment 
+
+4.1 Experiment Setup Benchmarks. To evaluate FaithRewriter, we uti-lize both our curated dataset and public bench-marks. FaithT2I (Ours): Constructed via the pipeline in Section 3.2, this dataset focuses on hard cases for T2I generation. We curate splits for training ( FaithT2I-3K , FaithT2I-10K , FaithT2I-100K ) and test on the held-out test set FaithT2I-Test , and other public benchmarks like Spatial-GenEval (Wang et al., 2026), a benchmark contain-ing complex spatial prompts. We also evaluate on DPG-Bench (Hu et al., 2024) and GenEval (Ghosh et al., 2023) to verify generalization capabilities. 
+
+Baselines & Models. For the rewriter backbone, we experiment with LLaMA3.1-8B, Hunyuan-7B-Instruct, and Qwen3-8B-Base who have similar size. We conduct on these comparisons: (1) T0
+
+(Raw): Direct user prompts; (2) Zero-shot: di-rectly generate (3) Text-modal: Fine-tuned on text-only rewritten data ( T1) (4) FaithRewriter: Fine-tuned on cross-modality rewritten data ( T2) For image generation, we employ Qwen-Image (Wu et al., 2025a) as default and compare with Hunyuan-Image 2.1 (Cao et al., 2025), and FLUX.1-dev. We further include two existing prompt rewriting base-lines: PromptEnhancer (Wang et al., 2025), built upon Hunyuan-7B-Instruct, and RePrompt (Wu et al., 2025b) . For fairness, we adapt RePrompt from its original Qwen2.5-3B setting to the same Qwen3-8B backbone used in our experiments. 
+
+Implementation Details. See in Appendix 6.1. Method VQA Scoring ↑ Textual Alignment Scoring ↑ Preference Ranking ↓ CLIP ↑ FID ↓
+
+Gemini GPT4o Qwen3VL Gemini GPT4o Qwen3VL GPT4o Gemini Qwen3VL 
+
+T0 (raw) 62.12 60.28 64.39 3.303 3.939 3.994 - - - 0.752 23.94 
+
+LLaMa3.1-8B 
+
+Zeroshot 55.00 58.23 60.32 3.314 3.421 3.456 2.20 2.22 2.25 0.762 23.76 Text modal 59.12 62.35 64.52 3.229 3.689 3.977 2.09 1.95 2.07 0.774 23.58 FaithRewriter 63.27 65.61 70.65 4.037 4.249 4.403 1.71 1.83 1.68 0.784 23.41 
+
+Hunyuan-7B-Instruct 
+
+PromptEnhancer 68.59 72.69 74.43 3.472 3.491 3.483 2.24 1.89 2.28 0.813 22.84 
+
+Zeroshot 64.18 65.82 62.94 3.327 3.364 3.381 3.11 3.39 3.07 0.768 23.67 Text modal 66.37 68.15 67.06 3.176 3.863 3.925 2.81 2.77 2.71 0.796 23.25 FaithRewriter 70.83 73.41 77.94 3.949 4.001 4.164 1.84 1.95 1.94 0.808 22.87 
+
+Qwen3-8B-Base 
+
+RePrompt 69.15 68.91 76.12 3.194 3.857 3.891 2.23 1.97 1.89 0.821 22.58 Zeroshot 59.73 61.34 70.83 4.122 3.745 3.773 2.29 2.38 2.63 0.762 23.76 Text modal 68.78 69.40 75.65 3.263 3.814 3.963 2.19 2.03 1.82 0.828 22.63 FaithRewriter 74.80 73.71 78.91 4.075 4.098 4.392 1.52 1.59 1.55 0.847 22.19 
+
+Table 1: Main results on FaithT2I-test.                                                            
+
+> Method Overall Spatial Foundation Spatial Perception Spatial Reasoning Spatial Interaction Object Attribute Position Orientation Layout Comparison Proximity Occlusion Motion Causal
+> T0(raw) 63.09 87.16 80.47 69.23 66.24 73.64 24.42 66.81 38.22 65.25 59.42 Zeroshot 64.58 87.55 80.12 71.10 66.80 74.80 27.20 68.20 39.85 68.10 62.10 Text modal 66.23 87.72 80.47 72.79 67.95 76.34 29.97 71.79 40.92 70.23 64.11 FaithRewriter 70.83 88.44 82.60 74.78 73.36 80.33 35.66 76.20 53.44 73.93 69.52
+
+Table 2: Main results on SpatialGenEval. By utilizing visual anchors, our Cross-modal enhancer demonstrates a comprehensive leap over text-only baselines, particularly in difficult sub-domains like Occlusion and Comparison .                                                                   
+
+> Enhancer DPG-Bench GenEval Global Entity Attribute Relation Other Overall Single Object Two Object Counting Colors Position Attribute Overall
+> T0(raw) 91.32 91.56 92.02 94.31 92.73 88.32 0.99 0.92 0.89 0.88 0.76 0.77 0.87 Zeroshot 91.47 91.63 92.14 94.82 92.59 88.74 0.98 0.91 0.89 0.88 0.77 0.77 0.87 Text modal 91.85 91.70 92.25 95.12 92.41 89.21 0.98 0.91 0.90 0.89 0.77 0.78 0.88 FaithRewriter 92.64 91.48 93.15 96.53 93.08 90.34 0.99 0.94 0.93 0.87 0.80 0.79 0.89
+
+Table 3: Main results on public benchmarks (DPG-Bench and GenEval). FaithRewriter (Cross modal) achieves a robust +2% overall improvement on both benchmarks. Bold indicates the best performance. 
+
+4.2 Main results 4.2.1 Results on FaithT2I-Test 
+
+We first evaluate different prompt enhancement methods on the FaithT2I-10K dataset, with results summarized in Table 1. Overall, FaithRewriter consistently achieves the best performance across nearly all metrics and backbones. Compared with text-only rewrit-ing, the cross-modal variant yields higher VQA scores, stronger textual alignment, better human-preference-style ranking from multiple MLLM judges, and more favorable CLIP/FID results. These improvements are especially consistent across Gemini 3 Pro (Comanici et al., 2025), GPT-4o (Hurst et al., 2024), and Qwen3-VL (Bai et al., 2025) evaluators, showing that the gains are not tied to a single judge. At the same time, all rewriting-based methods outperform the raw prompt base-line, confirming the value of prompt enhancement itself, while the comparison between Text modal and Cross-modal further shows that visual-anchor-based supervision provides additional benefits be-yond pure textual fine-tuning. 
+
+4.2.2 Results on SpatialGenEval 
+
+We further evaluate our method on SpatialGenEval, and the results are shown in Table 2. Com-pared with the raw, zeroshot, and text-only base-lines, the cross-modal model achieves the strongest overall performance and improves almost all sub-dimensions of spatial intelligence. The gains are particularly clear in more challenging cate-gories such as Comparison , Occlusion , Motion ,and Causal , where text-only enhancement remains limited. These results suggest that FaithRewriter improves general prompt faithfulness, and is effec-Method Variants Components VQA Scoring ↑ Textual Alignment Scoring ↑ CLIP ↑ FID ↓                                                               
+
+> Visual Anchor Cycle Verif. DPO Gemini GPT-4o Qwen3VL Gemini GPT-4o Qwen3VL Text-only Rewriting ×××66.37 68.15 67.06 3.176 3.863 3.925 0.796 23.25 Text-only Self-Refinement ×××66.52 68.29 67.28 3.284 3.882 3.948 0.797 23.19 Image-Cond. Revision (No Filter) ✓××68.14 70.63 71.55 3.512 3.914 4.015 0.799 23.06 Cycle Verif. (SFT Only) ✓✓×69.61 72.18 75.31 3.765 3.957 4.089 0.803 22.95
+> FaithRewriter (Ours) ✓✓✓70.83 73.41 77.94 3.949 4.001 4.164 0.808 22.87
+
+Table 4: Ablation study on the necessity of simulation and framework components based on Hunyuan-7B-Instruct. 
+
+tive for prompts requiring precise spatial reasoning, physical interaction, and visually grounded logic. 
+
+4.2.3 Results on DPG-Bench and GenEval 
+
+We further evaluate FaithRewriter on two public benchmarks, DPG-Bench and GenEval. As shown in Table 3, our cross-modal variant consistently out-performs both the raw prompt baseline and the text-only rewriting baseline on both benchmarks, yield-ing around 2% overall improvement. Although this experiment is not our main focus, it provides addi-tional evidence that the gains of FaithRewriter can transfer to general-purpose public benchmarks. 
+
+4.3 Ablation Study 4.3.1 Component Ablation 
+
+To isolate the contribution of each component in FaithRewriter, we compare the full method with several degraded variants in Table 4. Text-only Rewriting removes visual feedback entirely, while Text-only Self-Refinement allows the LLM to itera-tively critique and refine its own prompt only in the textual domain. Image-Conditioned Revision intro-duces the visual anchor but removes strict cycle ver-ification, retaining all revised prompts. Cycle Veri-fication (SFT Only) uses only the verified grounded prompts for SFT, while Full FaithRewriter further applies DPO with matched hard negatives. The comparison shows three main findings. First, Text-only Self-Refinement brings only marginal improvement over standard Text-only Rewriting, suggesting that textual critique alone is insufficient for detecting spatial and physical hallucinations. Second, introducing visual anchors substantially improves performance, confirming that rendering intermediate images is important for externalizing latent prompt failures. Third, cycle verification and DPO provide complementary gains: cycle verifi-cation improves the reliability of the training data, while DPO further teaches the student to prefer visually grounded rewrites over linguistically sim-ilar but visually flawed alternatives. Additional SFT/DPO ablation on Qwen-8B is in Appendix 6.3. 
+
+4.3.2 Robustness Across T2I Models 
+
+We evaluate the universality of FaithRewriter by applying the same enhanced prompts to three di-verse T2I models: FLUX, Hunyuan Image, and Qwen-Image. As shown in Table 5, FaithRewriter consistently boosts visual assessment scores across all generators compared to the raw prompts ( T0)and intra-modal baselines. This demonstrates that FaithRewriter learns model-agnostic visual features effectively bridging the intent gap. Methods T2I Model VQA Scoring ↑                             
+
+> Gemini GPT-4o Qwen3VL
+> T0(raw) FLUX-dev1 55.12 54.38 58.21 FaithRewriter FLUX-dev1 67.25 65.92 70.43
+> T0(raw) Hunyuan Image 60.15 58.94 62.15 FaithRewriter Hunyuan Image 72.84 71.56 76.54
+> T0(raw) Qwen-Image 62.12 60.28 64.39 FaithRewriter Qwen-Image 74.80 73.71 78.91
+
+Table 5: Ablation study on different T2I backbones. 
+
+4.3.3 Data Scaling and Generalization 
+
+We investigate the scaling laws of our method by training on a 3k, 10k, 100k dataset. As shown in Table 6, the model trained on 100k samples con-sistently outperforms the 3k and 10k version. The performance gap between the 100k model and the text-only baseline suggests that our cross-modal distillation process benefits significantly from in-creased data diversity. The results indicate that the advantage of FaithRewriter is not saturated, show-ing strong potential for further improvement with larger-scale cross-modal simulation. 
+
+4.4 User Study 
+
+We conduct a large-scale user study with 62 partic-ipants and 60 samples from generated data. Given the original prompt T0 and outputs from three con-figurations ( T0, Zeroshot, Text modal, and Cross-modal), participants rank the images according to how faithfully they satisfy the prompt. The results in Table 7 show a clear preference for Cross-modal, which achieves the best overall mean ranking. "A sun -bleached wooden boat tilted at 30 ° on                                                 
+
+> a pebbled shore, its hull, where an emerald
+> glass aquarium sits scaled to the size of a
+> coffee table , partially submerged in tidepools.
+> Behind it, a crouching tabby cat balances on
+> a weathered dock post, left paw hovering
+> inches above a writhing silver eel tangled in
+> sun -bleached fishing line.”
+> Inside a dimly lit hut, an herbalist is at a wooden table
+> in the center, facing the viewer. On the left, three
+> bundles of dried herbs hang from the ceiling. On the
+> right are shelves with nine glass jars , three times the
+> number of herb bundles. Alarge stone mortar on the
+> table partially obscures a nestle. They are grinding
+> herbs , creating a puff of green powder.
+> A 2x2 grid of four images showing four stages of motion
+> interaction. On a central wooden table, objects are
+> arranged linearly. A ginger cat on the left, twice the size
+> of a blue ceramic vase on the right, faces it. The
+> cat's tail partially obscures a book behind it. A small
+> red ball is close to the vase. Stages show: 1) cat
+> approaches, 2) paw nudges vase, 3) vase tilts mid -fall ,
+> 4) shattered vase, its water causing ripples on the floor.
+> A portrait of a woman without friends, sitting on
+> the floor in the center, facing the viewer. She is
+> building a house of cards , carefully placing a
+> card on top. The delicate structure partially
+> obscures her crossed legs. The house is 4
+> levels high , and there are 8 loose cards next to
+> her, twice the number of levels. Her breath
+> causes the top card to tremble.
+> A person waters a small bonsai tree on the top -
+> left corner of their desk. A tall, sleek monitor in
+> the center. A stack of six sticky notes is piled up,
+> three times the height of a two -note stack next
+> to it. The person is facing the plant, and all
+> items are arranged diagonally across the desk.
+> A baseball batter in a pinstripe uniform is at home
+> plate on the right, swinging a wooden bat at an
+> approaching white baseball. The batter faces the
+> pitcher on the left. The catcher's large glove
+> partially hides their face mask. A scoreboard is
+> visible in the top -center. A resin bag sits very close
+> to the pitcher’s mound. The impact of the bat
+> sends the ball flying.
+> 𝐼 !𝐼 "𝐼 #
+> 𝐼 !𝐼 "𝐼 #
+> 𝐼 !𝐼 "𝐼 #
+> 𝐼 !𝐼 "𝐼 #
+> 𝐼 !𝐼 "𝐼 #
+> 𝐼 !𝐼 "𝐼 #
+> Implicit Concepts, Spatial Logic Physics Dynamics, Counting
+> Attribute Binding, Counting, Physics Dynamics Negation, Counting, Implicit Concepts
+> Spatial Logic Attribute Binding, Physics Dynamics
+
+Figure 4: Exemplar qualitative comparisons across diverse evaluation dimensions (e.g., spatial logic, physical dynamics, negation, and quantitative counting). I0, I1, and I2 denote images generated by the raw prompt ( T0), the standard text-only rewrite ( T1), and our FaithRewriter prompt ( T2), respectively. 
+
+Configuration Textual Alignment Scoring ↑
+
+Gemini GPT-4o Qwen3VL 
+
+T0 (raw) 3.303 3.939 3.994 FaithRewriter (3k) 3.712 3.924 4.105 FaithRewriter (10k) 4.075 4.098 4.392 
+
+FaithRewriter (100k) 4.150 4.123 4.241 
+
+Table 6: Ablation study on training data scaling. Perfor-mance gains correlate with the size of training data. 
+
+Configuration User Preference Score ↓ Overall ↓ Rank LLaMA Hunyuan Qwen 
+
+T0(raw) 3.65 3.72 3.29 3.55 4Zeroshot 2.63 2.45 2.95 2.68 3Text modal 2.29 2.23 2.57 2.36 2FaithRewriter 1.43 1.60 1.19 1.41 1
+
+Table 7: User study results. 
+
+VLM-Human Correlation. Taking Qwen-VL as an example, we measure the correlation between VLM preference scores and averaged human rank-ings across the study samples, obtaining a Pearson correlation of 0.76. This suggests that VLM judg-ments are reasonably aligned with human. 
+
+4.5 Qualitative Case Analysis 
+
+We present qualitative comparisons in Figure 4. 
+
+Resolving Semantic Ambiguity and Implicit Concepts. Text-only rewriters often drift when handling metaphorical or implicit concepts. In the “House of cards” case (Figure 4, Middle-Right), the prompt refers to a structure made of playing cards, but both I0 and I1 misinterpret it as a miniature wooden house. In contrast, FaithRewriter ( I2) cor-rectly renders a four-level card structure. A similar issue appears in the “Boat” case (Top-Left), where the aquarium is described as “scaled to the size of a coffee table” . The text-only baseline I1 halluci-nates a coffee table, while I2 preserves the intended scale without introducing unwanted objects. 
+
+Enforcing Quantitative and Geometric Con-straints. T2I models often fail on precise counting and relative geometry. In the “Sticky notes” case (Top-Right), the prompt requires one stack of six notes to be “three times the height” of a two-note stack. Both I0 and I1 miss this relation, whereas 
+
+I2 satisfies the count and height constraints. In the “Motion Grid” case (Bottom-Left), the prompt re-quires a strict 2×2 layout showing four sequential stages. Only I2 follows this structure faithfully, while I1 produces a disorganized composition. 
+
+Restoring Physical Dynamics and Causality. 
+
+Text-only rewriters may enrich action descriptions linguistically but still fail to induce correct visual dynamics. In the “Baseball” case (Bottom-Right), 
+
+I0 and I1 show a mostly static scene and miss the “impact of the bat” . By contrast, I2 depicts a more dynamic impact with visible physical conse-quences. This also appears in the “Herb grinding” case (Middle-Left), where only I2 correctly visual-izes the “puff of green powder” .
+
+5 Conclusion 
+
+In this work, we identified the inherent limitation of text-only prompt rewriting methods, which often produce visually implausible descriptions due to a lack of cross-modal anchor. To address this, we in-troduced FaithRewriter, a novel framework built on a "Simulate-Then-Distill" paradigm. FaithRewriter leverages a powerful MLLM as a cognitive simula-tor to generate visually-anchored prompt enhance-ments and then efficiently distills this capability into a compact, text-only LLM. We build a corre-sponding benchmark FaithT2I-test. Extensive ex-perimental results demonstrate that FaithRewriter significantly outperforms existing methods in gen-erating faithful and realistic prompts, effectively bridging intent-generation gap. 
+
+Limitations 
+
+Offline Computational Overhead. A primary lim-itation of our framework lies in the computational cost of the data construction phase. The “Simu-late” step requires rendering intermediate images via a diffusion model and invoking a large-scale Multimodal LLM (MLLM) for structured diagno-sis and cycle-verification. Consequently, scaling the training dataset (e.g., to millions of pairs) is resource-intensive and time-consuming. However, it is crucial to note that this overhead is strictly con-fined to the offline training phase. Thanks to our distillation strategy, the deployed student model operates entirely in the text modality, ensuring high inference-time efficiency without requiring visual encoders or online rendering. 
+
+Boundaries of the Native Generative Prior. The effectiveness of any prompt rewriting method, in-cluding FaithRewriter, is inherently bounded by the intrinsic capabilities of the downstream T2I generator. If the base generative model entirely lacks the prior knowledge of a specific concept (e.g., an extremely rare object) or suffers from hard architectural bottlenecks (e.g., accurately rendering illegible text or generating exactly 15 identical ob-jects), an enhanced prompt cannot magically inject these missing capabilities. While FaithRewriter expertly reorganizes instructions to maximize the generator’s potential, it cannot overcome funda-mental rendering deficits. 
+
+References 
+
+Shuai Bai, Yuxuan Cai, Ruizhe Chen, Keqin Chen, Xionghui Chen, Zesen Cheng, Lianghao Deng, Wei Ding, Chang Gao, Chunjiang Ge, and 1 others. 2025. Qwen3-vl technical report. arXiv preprint arXiv:2511.21631 .Pu Cao, Feng Zhou, Qing Song, and Lu Yang. 2026. Controllable generation with text-to-image diffusion models: A survey. IEEE Transac-tions on Pattern Analysis and Machine Intelligence ,48(4):4771–4791. Siyu Cao, Hangting Chen, Peng Chen, Yiji Cheng, Yu-tao Cui, Xinchi Deng, Ying Dong, Kipper Gong, Tianpeng Gu, Xiusen Gu, and 1 others. 2025. Hun-yuanimage 3.0 technical report. arXiv preprint arXiv:2509.23951 .Tingfeng Cao, Chengyu Wang, Bingyan Liu, Ziheng Wu, Jinhui Zhu, and Jun Huang. 2023. Beau-tifulprompt: Towards automatic prompt engineer-ing for text-to-image synthesis. arXiv preprint arXiv:2311.06752 .Gheorghe Comanici, Eric Bieber, Mike Schaekermann, Ice Pasupat, Noveen Sachdeva, Inderjit Dhillon, Mar-cel Blistein, Ori Ram, Dan Zhang, Evan Rosen, and 1 others. 2025. Gemini 2.5: Pushing the frontier with advanced reasoning, multimodality, long context, and next generation agentic capabilities. arXiv preprint arXiv:2507.06261 .Patrick Esser, Sumith Kulal, Andreas Blattmann, Rahim Entezari, Jonas Müller, Harry Saini, Yam Levi, Do-minik Lorenz, Axel Sauer, Frederic Boesel, and 1 others. 2024. Scaling rectified flow transformers for high-resolution image synthesis. In Forty-first inter-national conference on machine learning .Dhruba Ghosh, Hannaneh Hajishirzi, and Ludwig Schmidt. 2023. Geneval: An object-focused frame-work for evaluating text-to-image alignment. Ad-vances in Neural Information Processing Systems ,36:52132–52152. Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu, Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, Xiaokang Zhang, Xingkai Yu, Yu Wu, Z. F. Wu, Zhibin Gou, Zhihong Shao, Zhu-oshu Li, Ziyi Gao, Aixin Liu, and 175 others. 2025. Deepseek-r1 incentivizes reasoning in llms through reinforcement learning. Nature , 645(8081):633–638. Shuhao Han, Haotian Fan, Jiachen Fu, Liang Li, Tao Li, Junhui Cui, Yunqiu Wang, Yang Tai, Jingwei Sun, Chunle Guo, and 1 others. 2024. Evalmuse-40k: A reliable and fine-grained benchmark with comprehen-sive human annotations for text-to-image generation model evaluation. arXiv preprint arXiv:2412.18150 .Yaru Hao, Zewen Chi, Li Dong, and Furu Wei. 2023. Optimizing prompts for text-to-image generation. 
+
+Advances in Neural Information Processing Systems ,36:66923–66939. Xiwei Hu, Rui Wang, Yixiao Fang, Bin Fu, Pei Cheng, and Gang Yu. 2024. Ella: Equip diffusion models with llm for enhanced semantic alignment. arXiv preprint arXiv:2403.05135 .Kaiyi Huang, Kaiyue Sun, Enze Xie, Zhenguo Li, and Xihui Liu. 2023. T2i-compbench: A comprehen-sive benchmark for open-world compositional text-to-image generation. Advances in Neural Information Processing Systems , 36:78723–78747. Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, and 1 others. 2024. Gpt-4o system card. arXiv preprint arXiv:2410.21276 .Weize Kong, Spurthi Hombaiah, Mingyang Zhang, Qiaozhu Mei, and Michael Bendersky. 2024. Prewrite: Prompt rewriting with reinforcement learn-ing. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Vol-ume 2: Short Papers) , pages 594–601. Cheng Li, Mingyang Zhang, Qiaozhu Mei, Weize Kong, and Michael Bendersky. 2024. Learning to rewrite prompts for personalized text generation. In Pro-ceedings of the ACM Web Conference 2024 , pages 3367–3378. Oscar Mañas, Pietro Astolfi, Melissa Hall, Candace Ross, Jack Urbanek, Adina Williams, Aishwarya Agrawal, Adriana Romero-Soriano, and Michal Drozdzal. 2024. Improving text-to-image consis-tency via automatic prompt optimization. arXiv preprint arXiv:2403.17804 .William Peebles and Saining Xie. 2023. Scalable dif-fusion models with transformers. In Proceedings of the IEEE/CVF international conference on computer vision , pages 4195–4205. Dustin Podell, Zion English, Kyle Lacey, Andreas Blattmann, Tim Dockhorn, Jonas Müller, Joe Penna, and Robin Rombach. 2023. Sdxl: Improving latent diffusion models for high-resolution image synthesis. 
+
+arXiv preprint arXiv:2307.01952 .Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher D. Manning, and Chelsea Finn. 2024. Direct preference optimization: Your lan-guage model is secretly a reward model. Preprint ,arXiv:2305.18290. Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Björn Ommer. 2022. High-resolution image synthesis with latent diffusion mod-els. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 10684–10695. Saurabh Srivastava, Chengyue Huang, Weiguo Fan, and Ziyu Yao. 2024. Instances need more care: Rewrit-ing prompts for instances with llms in the loop yields better zero-shot performance. In Findings of the As-sociation for Computational Linguistics: ACL 2024 ,pages 6211–6232. Ming Tao, Bing-Kun Bao, Hao Tang, and Chang-sheng Xu. 2023. Galip: Generative adversarial clips for text-to-image synthesis. In Proceedings of the IEEE/CVF conference on computer vision and pat-tern recognition , pages 14214–14223. Linqing Wang, Ximing Xing, Yiji Cheng, Zhiyuan Zhao, Donghao Li, Tiankai Hang, Jiale Tao, Qixun Wang, Ruihuang Li, Comi Chen, and 1 others. 2025. Promptenhancer: A simple approach to enhance text-to-image models via chain-of-thought prompt rewrit-ing. arXiv preprint arXiv:2509.04545 .Zengbin Wang, Xuecai Hu, Yong Wang, Feng Xiong, Man Zhang, and Xiangxiang Chu. 2026. Everything in its place: Benchmarking spatial intelligence of text-to-image models. arXiv preprint arXiv:2601.20354 .Chenfei Wu, Jiahao Li, Jingren Zhou, Junyang Lin, Kaiyuan Gao, Kun Yan, Sheng-ming Yin, Shuai Bai, Xiao Xu, Yilei Chen, and 1 others. 2025a. Qwen-image technical report. arXiv preprint arXiv:2508.02324 .Mingrui Wu, Lu Wang, Pu Zhao, Fangkai Yang, Jianjin Zhang, Jianfeng Liu, Yuefeng Zhan, Weihao Han, Hao Sun, Jiayi Ji, and 1 others. 2025b. Reprompt: Reasoning-augmented reprompting for text-to-image generation via reinforcement learning. arXiv preprint arXiv:2505.17540 .Qinhao Zhou, Xiang Xiang, Kun He, and John E Hopcroft. 2025. Learning to rewrite prompts for boot-strapping llms on downstream tasks. arXiv preprint arXiv:2510.06695 .6 Appendix 
+
+6.1 Implementation Details. 
+
+We evaluate FaithRewriter with three student rewriter backbones: LLaMa-3.1-8B,Qwen3-8B, and Hunyuan-7B-Dense-Instruct. For Qwen and LLaMA-family backbones, we implement full-parameter fine-tuning with LLaMA-Factory. Train-ing is conducted on one node with 8 NVIDIA H20 GPUs under CUDA 12.3, cuDNN 9, PyTorch 2.3, and DeepSpeed ZeRO-3 optimization. The maximum sequence length is set to 2048, and training is performed in bfloat16 precision with FlashAttention-2 enabled. For supervised fine-tuning, we train for 3 epochs with a per-device batch size of 1, gradient accumu-lation of 2, a learning rate of 1 × 10 −5, a cosine learning-rate scheduler, and a warmup ratio of 0.1. For Hunyuan-7B-Dense-Instruct, we use the Angel-PTM training framework with full-parameter fine-tuning. The sequence length is set to 32768, the global batch size is 16, the micro batch size is 1, and the model is trained for 5 epochs with a learn-ing rate of 5 × 10 −5 and a minimum learning rate of 1 × 10 −5.For DPO training, we initialize from the corre-sponding SFT checkpoint and use full-parameter optimization with the standard sigmoid DPO loss. Unless otherwise specified, we train for 3 epochs with a per-device batch size of 1, gradient accumu-lation of 8, a learning rate of 5 × 10 −6, a cosine scheduler, a warmup ratio of 0.1, and β = 0 .1. All variants based on the same backbone use identical infrastructure and hyperparameters, differing only in the supervision data and optimization objective. 
+
+6.2 Data Construction Cost and Statistics 
+
+We provide additional details on the offline cost of constructing visually grounded preference data. The construction pipeline consists of four main steps: initial text-only rewriting, visual-anchor rendering, MLLM-based diagnosis and revision, and cycle verification. For each candidate prompt, the pipeline requires one rendering for the initial rewrite T1 and one additional rendering for the revised prompt T2 if the sample enters the verifi-cation stage. The MLLM is called for structured diagnosis, prompt revision, and final verification. In our implementation, we first generated a larger pool of candidate prompts and then applied confidence gating and cycle verification to retain high-quality preference pairs. Approximately 55– 65% of candidate samples were identified as con-taining clear visual failures after the initial visual-anchor diagnosis. After rendering the revised prompt and applying the final cycle-verification checks, around 35–45% of the original candidates were retained as verified preference pairs. This fil-tering process removes cases where the initial im-age has no clear failure, where the revision changes the original intent, or where the revised rendering introduces new visual errors. For the 10K-scale training split, this corresponds to roughly 22K–28K candidate prompts before fil-tering, depending on the random seed and generator behavior. The full construction process requires ap-proximately two T2I renderings and two MLLM calls for each candidate that reaches the final ver-ification stage. We do not include monetary cost because API prices and deployment settings vary across providers and time. Instead, we report the number of model calls, which provides a provider-independent estimate of construction cost. Importantly, this cost is incurred only once dur-ing offline data construction. After distillation, the final FaithRewriter model is a compact text-only rewriter and does not require T2I rendering or MLLM-based verification at inference time. 
+
+6.3 Additional Impact of Training Stages 
+
+Table 9 isolates the contributions of each training stage in our “Simulate-Then-Distill” paradigm on Qwen-8B-Base model. 
+
+SFT Efficiency: The SFT-only model achieves a substantial performance leap over the baseline (T0), confirming that distilling the MLLM’s “visual syntax” provides a strong initialization. 
+
+DPO Refinement: The addition of the DPO stage yields further consistent gains across all judges. This validates the effectiveness of our hard nega-tive mining strategy. By explicitly penalizing the linguistically fluent but visually flawed ylose , DPO sharpens the model’s judgment, reducing halluci-nations that SFT alone cannot eliminate. 
+
+6.4 VQA Data example 
+
+To systematically evaluate the spatial intelligence and cross-modal grounding capabilities of T2I models, our FaithT2I benchmark contains diverse, information-dense prompts coupled with omni-dimensional VQA pairs. Below, we present rep-resentative examples from the dataset. Each card illustrates the prompt, the scene context, and the 10 fine-grained questions targeting specific failure Stage Main Operation Approx. Calls per Candidate Retained Ratio Initial rewriting Generate T1 from T0 1 LLM call 100% Visual anchoring Render I1 from T1 1 T2I call 100% Diagnosis and revision Diagnose I1 and generate T2 1 MLLM call 55–65% Cycle verification Render I2 and verify improvement 1 T2I call + 1 MLLM call 35–45% 
+
+Table 8: Approximate cost profile of the FaithRewriter data construction pipeline. The ratios are computed after each filtering stage.              
+
+> Configuration Textual Alignment Scoring ↑
+> Gemini GPT4o Qwen3VL T0 (raw) 3.303 3.939 3.994 Cross-modal (SFT) 3.843 3.825 3.879 Cross-modal (SFT+DPO) 4.075 4.098 4.392
+
+Table 9: Ablation on training based on Qwen-8B. 
+
+modes (e.g., spatial logic, attribute binding, physi-cal dynamics, and shape-based object disambigua-tion). The inclusion of the “E: None” option pre-vents evaluators from forced-guessing when the generated image completely fails to follow the prompt. 
+
+Example 1: FaithT2I VQA Dataset  
+
+> Prompt: In a dim art gallery hallway, a photographer on the right moves leftward with a camera raised. On the left, a curator adjusts a painting, facing the photogra-pher. The photographer has one lens; the curator holds three placards. The photographer’s reflection glimmers slightly in a nearby glass case, blurred by motion.
+
+Omni-dimensional VQA Pairs: 
+
+• What object categories are explicitly men-tioned besides people? 
+
+Options: (A) A lens and placards, (B) A tripod and a frame, (C) A flashlight and a notebook, (D) A sculpture and a bench, (E) None 
+
+Answer: A 
+
+• What are the described attributes of the gallery hallway? 
+
+Options: (A) Bright and noisy, (B) Dim and quiet, (C) Crowded and colorful, (D) Empty and dark, (E) None 
+
+Answer: B 
+
+• From a third-person perspective, where is the photographer located? 
+
+Options: (A) On the left side, (B) In the center, (C) On the right side, (D) Behind the glass case, (E) None 
+
+Answer: C 
+
+• What is the facing orientation of the cura-tor? 
+
+Options: (A) Facing away, (B) Facing the painting, (C) Facing right, (D) Facing the photographer, (E) None 
+
+Answer: D 
+
+• How are the photographer and the curator arranged in the scene? 
+
+Options: (A) One behind the other, (B) On opposite sides, (C) Next to each other, (D) In a diagonal line, (E) None 
+
+Answer: B 
+
+• How does the number of placards com-pare to the number of lenses? 
+
+Options: (A) Fewer placards than lenses, (B) Same number, (C) More placards than lenses, (E) None 
+
+Answer: C 
+
+• Given the photographer is moving left-ward toward the curator, which person is the photographer getting closer to? 
+
+Options: (A) A visitor, (B) The curator, (C) A security guard, (D) A gallery assis-tant, (E) None 
+
+Answer: B 
+
+• According to the scene, is any object de-scribed as being occluded or partially hid-den? 
+
+Options: (A) Face hidden by camera, (B) Placards hidden by body, (C) No occlu-sion mentioned, (D) Glass case hides re-flection, (E) None 
+
+Answer: C 
+
+• What is the described motion interaction between the photographer and the cura-tor? 
+
+Options: (A) Moving away from each other, (B) Photographer moving toward curator, (C) Curator walking toward pho-tographer, (D) Standing still, (E) None Answer: B 
+
+• What causes the photographer’s reflection to appear blurred in the glass case? 
+
+Options: (A) Dim lighting, (B) Photogra-pher’s motion, (C) Dirty glass, (D) Plac-ards blocking view, (E) None 
+
+Answer: B 
+
+6.5 Diagnosis Examples 
+
+We provide details of the diagnosis output of the image we used in the main pipeline. 
+
+Diagnosis Example 
+
+[Phase 1: Modal Gap Input] 
+
+• User Intent ( T0): ...The man leans back slightly from a flare-up of flames. 
+
+• Text-only Rewrite ( T1): ...he is in the process of flipping burgers with a spatula but leans back exaggeratedly from a flare-up of large, orange flames... 
+
+[Phase 2: Structured Diagnosis & Revision] 
+
+• Visual Evidence (from I1): In I1, the man is holding the spatula aloft, away from the grill, while a massive fireball erupts from the spatula itself—not from the grill. This contradicts T0.• Diagnosis: Physics Failure. The fire originates from the spatula, not the grill, and the man’s posture is incorrect. I1
+
+depicts a surrealistic scenario violating the physical dynamics of grilling. • Critique of T1: T1 inaccurately de-scribed the action with the phrase “leans back exaggeratedly ”. The lack of spa-tial anchoring for the flame source (e.g., “from the grill”) led the generator to mis-interpret the flare-up as originating from the spatula. • Grounded Revision (T2): ...flip-ping burgers with a spatula that is in contact with the grill grates ,and he leans back slightly— not exaggeratedly —as a large, orange flare-up of flames erupts from the grill beneath the spatula... 
+
+[Phase 3: Cycle-Verification Judge] 
+
+• The Fix Analysis: Image 2 successfully fixes the error by showing a realistic, con-tained fire originating from the grill itself, with the man using the spatula to man-age the food. The fire is now a natural consequence of grilling. • Intent Preservation: Image 2 preserves all key elements (man, woman, beach, charcoal grill). No core components have been removed or altered in a way that contradicts the user’s intent. • Final Verdict: Image 2 is a clear im-provement. It simply corrects the primary flaw identified in the diagnosis without compromising any other aspect of the scene. [ Strictly Better ]
+
+6.6 System Prompts System Prompt for Structured Diagnosis      
+
+> You are an expert Visual-Language Alignment Spe-cialist. Your goal is to maximize the faithfulness of Text-to-Image synthesis. You operate in a "Simulate-Then-Distill" pipeline: 1. User Intent (T0): The concise core request. 2. Current Rewrite (T1): A verbose prompt generated by a text-only LLM. 3. Visual Anchor (I1): The image generated by T1. Your Mission: 1. JUDGE: Use the image (I1) as evidence to detect "Textual Hallucinations" or "Visual Failures" in T1. Does I1 already perfectly represent T0? If yes, keep T1. 2. DIAGNOSE: If I1 fails, identify the specific visual error using the image as evidence. 3. REVISE: Rewrite T1 into T2 to fix the error, rewrite it into a strictly superior prompt (T2). 4. VERIFY: Ensure T2 did not lose any original de-tails from T0 during the revision. <Input_Data> <User_Intent_T0> T0_prompt </User_Intent_T0> <Current_Prompt_T1> T1_prompt </Cur-rent_Prompt_T1> <Visual_Anchor_I1>[IMAGE INPUT HERE] </Vi-sual_Anchor_I1> </Input_Data> <Task_Instructions> Step 1: STRICT VISUAL REALITY CHECK (The "Confidence Gate") Analyze the Image (I1) against the User Intent (T0). Strictly check these 6 dimen-sions: 1. Spatial Logic (e.g., occlusion, layout correct?) 2. Attribute Binding (e.g., correct colors bound to correct objects?) 3. Physical Dynamics (e.g., is the action/physics real-istic?) 4. Counting (e.g., is the number of objects exact?) 5. Negation (e.g., did it avoid banned items?)
+
+6. Shape-Based Object (e.g., is the object shape cor-rect?) **CRITICAL RULE:** - If I1 faithfully represents ALL aspects of T0, you must deem T1 as "SUC-CESS". Do not rewrite just for the sake of style. -Only proceed to rewrite if there is a clear, objective visual failure. Step 2: DIAGNOSIS (If failure detected) Describe the specific mismatch. Be precise (e.g., "T0 requested a blue cup, but I1 shows a red cup"). Step 3: DRAFTING T2 (The Fix) Draft a revised prompt T2. - Fix the error identified in Step 2 using strong visual constraints. - Maintain the style and flow of T1 where it was correct. Step 4: INTENT PRESERVATION AUDIT (The "Anti-Amnesia" Check) Compare your draft T2 against the original T0. - Did you accidentally delete any adjectives from T0 while fixing the error? - Did you change the main subject? - **Correction:** If T2 is missing any detail from T0, add it back immediately. T2 must be a superset of T0’s constraints. </Task_Instructions> <Output_Format> Provide your analysis strictly in the following JSON format: "is_rewrite_necessary": false/true, "pri-mary_failure_type": "Select one: Spatial /Attribute / Physics / Counting / Negation / None", "visual_evidence": "Describe what you see in I1 that contradicts T0 (e.g., ’The cat is fully visible next to the vase, not behind it’)/None", "diagnosis": "Specific description of the visual failure (e.g., Attribute Leakage: The cat is blue instead of the cup)./ No visual errors found. The image faithfully represents the user intent.", "critique_of_T1": "Explain why T1 failed (e.g., ’T1 described the cat too prominently without emphasiz-ing the glass distortion’)./None", "T2": "The fully revised prompt that fixes the error AND retains all original details." </Output_Format> 
+
+System Prompt for Evaluation 
+
+System Role You are an objective, strict Visual Ques-tion Answering (VQA) evaluator. Your sole function is to analyze images and answer multiple-choice ques-tions based ONLY on observable visual evidence. 
+
+Core Directive You are strictly forbidden from hallu-cinating details, assuming context, or applying exter-nal world knowledge. If a detail or relationship is not explicitly visible in the provided image, it does not exist for the purpose of this evaluation. 
+
+Input Questions [INSERT_QUESTIONS_HERE] 
+
+Execution Guidelines 
+
+1. **Visual Grounding Only**: Base every single answer entirely on the pixels presented in the image. 2. **The "None" Fallback**: If the image does not provide sufficient clear visual evidence to confidently select the standard options, you MUST select "E: None". 3. **Sequential Mapping**: Maintain the exact order of the input questions. Do not skip any question. 4. **Single Choice**: Select exactly one option letter per question. 
+
+Output Formatting Rules 
+
+Format your response strictly line-by-line. Each line MUST correspond to a question and follow this exact 
+
+template: ‘[Option Letter]: [Brief Visual Justification]‘ 
+
+Example Output 
+
+A: The visual evidence clearly shows a large red apple placed on the wooden table. C: The brown bear is positioned on the left side of the frame, facing the river. E: None - The image is cropped and does not show the lower half of the character to determine their footwear. B: The fox and the bear are positioned closely together without any major distance. D: There is a distinct shadow cast by the tree, con-firming the lighting direction. 
+
+6.7 User Study Questionnaire Example 
+
+Here shows an example question used in our user study. For each question, participants were given the original user prompt and four generated images produced by different prompt configurations. The order of the four images was randomly shuffled for each sample. Participants were asked to rank the images according to how faithfully they satisfied the prompt, where Rank 1 indicates the most faith-ful image and Rank 4 indicates the least faithful image. 
+
+Example User Study Question 
+
+Instruction. Please carefully read the prompt below and compare the four images. Rank the images based on how faithfully they match the prompt. You should consider whether the image correctly preserves the objects, at-tributes, spatial relations, counts, actions, and any stated absence or negation in the prompt. Do not rank images only by aesthetics or realism. 
+
+Prompt. A person waters a small bonsai tree on the top-left corner of their desk. A tall, sleek monitor is in the center. A stack of six sticky notes is piled up, three times the height of a two-note stack next to it. The person is facing the plant, and all items are arranged diagonally across the desk. 
+
+Question. Please rank the following four images from most faithful to least faithful. Image A Image B Image C Image D 
+
+Ranking. Please assign each image a unique rank: Image A B C DRank __ __ __ __ 
+
+Optional Comment. Briefly explain the main reason for your ranking, especially if an image misses an object, relation, count, action, or negation. 
+
+Example Comment. Image B is ranked highest because it correctly shows the bonsai in the top-left corner, the monitor in the center, and the two sticky-note stacks with the required height relation. Image D is ranked lower because the number of sticky notes is incorrect, and the diagonal arrangement is unclear. 7 Recruitment And Payment in User Study 
+
+We conducted a user study with 57 volunteers. Participants were recruited through internal chan-nels within our research institution, comprising students and staff members. Each participant was tasked with evaluating 60 comparison groups of images. Given that the participation was volun-tary and conducted within an academic setting, no monetary compensation was provided to the partic-ipants. This recruitment and compensation method is standard for internal, non-invasive user studies within our institution and was deemed appropriate given that the participant demographic consisted of members of the academic community familiar with such evaluation tasks. 
+
+8 LLM Usage Description 
+
+In this paper, we use the LLM to improve the qual-ity of our existing text in much the same way we would use a typing assistant like Grammarly to improve spelling, grammar, and punctuation.

@@ -1,0 +1,593 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-06-09T21:11:43.051169+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 10,
+    "deep_cap": 7,
+    "deep_selected": 7,
+    "quick_candidates": 7,
+    "quick_skim_target": 12,
+    "quick_selected": 7
+  },
+  "deep_dive": [
+    {
+      "id": "2606.03304v1",
+      "source": "arxiv",
+      "title": "From Script to Semantics: Prompting Strategies for African NLI",
+      "abstract": "Large language models (LLMs) are increasingly evaluated in multilingual settings, yet their inference behavior in low-resource African languages remains underexplored especially under pure prompting without fine-tuning. We present a systematic study of prompting strategies for Natural Language Inference (NLI) in Swahili, Yoruba, and Hausa using the AfriXNLI benchmark. We evaluate five prompting strategies Baseline (zero-shot), Script-Aware, Language Specific, Contrastive, and Native-Label Self-Translation (NL-STP) across two mid-sized open weight models (Llama3.2-3B and Gemma3-4B). To isolate the effect of prompt design, the effect of few-shot examples and Chain-of-Thought reasoning is eliminated in our study. We find a significant difference in performance of class wise across strategies with highly neutral class collapse and high prediction skew in some configurations. Contrastive prompting proves to be the most reliable and steadily improving strategy over language and model and has better balance of class behavior and balance of overall accuracy gains. Notably, well-constructed prompts are sufficient to beat more powerful baselines that are provided with few-shot prompts and Chain-of-Thought prompts. We have found that prompt formulation is essential to multilingual NLI with low-resource languages and that language aware decision structuring can be used to meaningfully enhance robustness in resource challenged settings.",
+      "authors": [
+        "Anuj Tiwari",
+        "Terry Oko-odion",
+        "Hannah Nwokocha"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-06-02T08:20:10+00:00",
+      "link": "https://arxiv.org/pdf/2606.03304v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Systematic study of prompting strategies for NLI in African languages, evaluating five strategies including baseline, script-aware, language-specific, contrastive, and native-label self-translation.",
+      "llm_evidence_cn": "系统研究非洲语言NLI中的提示策略，评估了基线、脚本感知、语言特定、对比和原生标签自翻译等五种策略。",
+      "llm_evidence": "系统研究非洲语言NLI中的提示策略，评估了基线、脚本感知、语言特定、对比和原生标签自翻译等五种策略。",
+      "canonical_evidence": "系统研究非洲语言NLI中的提示策略，评估了基线、脚本感知、语言特定、对比和原生标签自翻译等五种策略。",
+      "llm_tldr_en": "This paper systematically evaluates five distinct prompting strategies for Natural Language Inference in three African languages, showing significant performance differences and highlighting the importance of prompt design for low-resource language LLM performance without fine-tuning.",
+      "llm_tldr_cn": "本文针对非洲低资源语言的自然语言推理任务，系统评估了五种不同的提示策略（基线、脚本感知、语言特定、对比和原生标签自翻译），在摒弃少量示例和思维链的条件下，揭示了提示设计对中型模型性能的显著影响，为多语言环境下的提示工程提供了实践指导。",
+      "llm_tldr": "本文针对非洲低资源语言的自然语言推理任务，系统评估了五种不同的提示策略（基线、脚本感知、语言特定、对比和原生标签自翻译），在摒弃少量示例和思维链的条件下，揭示了提示设计对中型模型性能的显著影响，为多语言环境下的提示工程提供了实践指导。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.03618v1",
+      "source": "arxiv",
+      "title": "Cross-Lingual Token Arbitrage: Optimizing Code Agent Context Windows via Local LLM Preprocessing",
+      "abstract": "AI-assisted coding agents are bottlenecked by input-token cost. Two pathologies of raw human input drive much of this overhead: tokenization inefficiency for non-English text and structural entropy in conversational prompts. Existing approaches act reactively by compressing already-bloated contexts or intervening after failures occur.   We introduce a pre-flight, edge-side prompt-rewriting middleware that operates between the developer and the cloud agent. A local Llama 3.2 (3B) model performs cross-lingual translation into English, structural rewriting into a compact task-oriented format, and regex-validated rewrite-with-fallback safeguards to ensure the optimized prompt is never larger than the original.   We evaluate on OMH-Polyglot, a multilingual coding benchmark spanning Turkish, Arabic, Chinese, and code-switched specifications. Across three commercial LLM backends, the middleware reduces prompt tokens by 34-47 percent and total tokens by up to 18.8 percent while preserving or improving task accuracy. Ablation studies show that gains arise primarily from the rewriting stage rather than simple function-name extraction. Compared with LLMLingua-2 at matched compression rates, our method consistently achieves superior OckScore performance across all evaluated backends. These results demonstrate that proactive prompt optimization can substantially reduce inference costs without sacrificing coding quality.",
+      "authors": [
+        "Mehmet Utku Colak"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-06-02T13:17:45+00:00",
+      "link": "https://arxiv.org/pdf/2606.03618v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Proposes a prompt-rewriting middleware that uses a local LLM to optimize prompts for coding agents, reducing token cost and improving efficiency",
+      "llm_evidence_cn": "提出一种提示重写中间件，利用本地大模型优化编程代理的提示，降低令牌成本并提升效率",
+      "llm_evidence": "提出一种提示重写中间件，利用本地大模型优化编程代理的提示，降低令牌成本并提升效率",
+      "canonical_evidence": "提出一种提示重写中间件，利用本地大模型优化编程代理的提示，降低令牌成本并提升效率",
+      "llm_tldr_en": "This paper introduces a pre-flight prompt-rewriting middleware that uses a local small language model to translate, structurally rewrite, and validate prompts, significantly reducing token usage for code agents without degrading performance.",
+      "llm_tldr_cn": "针对AI编程代理中非英语输入导致的令牌效率低下和对话提示结构冗余问题，本文提出了一种预示优化中间件，利用本地Llama 3.2模型在发送给云端代理前对提示进行跨语言翻译和结构化重写，将冗余提示转换为紧凑的任务导向格式，并通过正则验证和回退机制确保优化后的提示不大于原始提示。在OMH数据集上的实验表明，该方法在保持代理性能的同时显著降低了输入令牌成本，为边缘端提示优化提供了轻量级有效方案。",
+      "llm_tldr": "针对AI编程代理中非英语输入导致的令牌效率低下和对话提示结构冗余问题，本文提出了一种预示优化中间件，利用本地Llama 3.2模型在发送给云端代理前对提示进行跨语言翻译和结构化重写，将冗余提示转换为紧凑的任务导向格式，并通过正则验证和回退机制确保优化后的提示不大于原始提示。在OMH数据集上的实验表明，该方法在保持代理性能的同时显著降低了输入令牌成本，为边缘端提示优化提供了轻量级有效方案。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "optimizing prompt content to maximize model output quality",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.04661v1",
+      "source": "arxiv",
+      "title": "CRAFT: Cost-aware Refinement And Front-aware Tuning of Prompts",
+      "abstract": "Prompts tuned for accuracy often grow long, raising inference cost on every model call. The best accuracy-cost trade-off depends on the task and the budget, so prompt optimization is a search over the Pareto front of accuracy and prompt-token cost rather than for one prompt. The usual shortcut, collapsing the objectives into a weighted sum, fixes the trade-off weight before search and often recovers only a narrow region of the front, a failure we call scalarization collapse. We present CRAFT (Cost-aware Refinement And Front-aware Tuning), a Pareto-front prompt optimizer that treats target-LLM validation calls as the scarce resource and allocates them to candidates near the optimistic candidate front. Each round, complementary accuracy-oriented and cost-oriented generators propose edits, Pareto-gap acquisition spends the per-round validation budget, and NSGA-II retention keeps a spread-out population. Across six classification and reasoning benchmarks, CRAFT's retained fronts reach both high-accuracy and low-cost regions, while accuracy-only, cost-only, and weighted-sum baselines each concentrate in narrower regions. The accuracy-cost trade-off becomes a post-search choice, not a pre-search weight.",
+      "authors": [
+        "Shanu Kumar",
+        "Shubhanshu Khandelwal",
+        "Akhila Yesantarao Venkata",
+        "Parag Agrawal",
+        "Yova Kementchedjhieva",
+        "Manish Gupta"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-06-03T09:40:03+00:00",
+      "link": "https://arxiv.org/pdf/2606.04661v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Pareto-front prompt optimizer balancing accuracy and token cost",
+      "llm_evidence_cn": "平衡准确率与词元成本的帕累托前沿提示优化器",
+      "llm_evidence": "平衡准确率与词元成本的帕累托前沿提示优化器",
+      "canonical_evidence": "平衡准确率与词元成本的帕累托前沿提示优化器",
+      "llm_tldr_en": "CRAFT addresses the accuracy-cost tradeoff in prompt tuning by searching the Pareto front of accuracy and prompt token cost, avoiding scalarization collapse, and adaptively allocating validation calls to candidates near the optimistic front.",
+      "llm_tldr_cn": "现有的提示优化方法通常只追求精度，导致提示词变长，推理成本高昂。CRAFT将优化视为准确率与提示词长度成本之间的帕累托前沿搜索问题，避免将多目标简单加权求和导致的标量化崩溃。每轮迭代中，互补的精度导向和成本导向的变体共同更新前沿，并自适应分配宝贵的验证调用。实验显示，CRAFT能够覆盖更广的帕累托前沿，在不同成本预算下均优于现有方法，实现了精度与效率的有效平衡。",
+      "llm_tldr": "现有的提示优化方法通常只追求精度，导致提示词变长，推理成本高昂。CRAFT将优化视为准确率与提示词长度成本之间的帕累托前沿搜索问题，避免将多目标简单加权求和导致的标量化崩溃。每轮迭代中，互补的精度导向和成本导向的变体共同更新前沿，并自适应分配宝贵的验证调用。实验显示，CRAFT能够覆盖更广的帕累托前沿，在不同成本预算下均优于现有方法，实现了精度与效率的有效平衡。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "optimizing prompt content to maximize model output quality",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.08492v1",
+      "source": "arxiv",
+      "title": "Seeing is Believing: Aligning Prompt Rewriting with Visual Anchors for Text-to-Image Generation",
+      "abstract": "Despite the impressive capabilities of text-to-image (T2I) models, an intent-generation gap often persists due to the brevity and ambiguity of user prompts. Existing approaches primarily polish the prompt for fluency and readability. However, the enhancement process still lacks visual grounding. As a result, the rewriter may over-infer missing details, causing an intent-generation gap. To address this limitation, we propose FaithRewriter, a novel prompt-enhancement framework for T2I generation. Specifically, FaithRewriter first leverages a multimodal MLLM to generate an image from the original prompt as an intermediate visual cue. This cue is then combined with the prompt and fed into a large-scale LLM to produce visually grounded augmentations that better reflect how the intended content should appear in images. Finally, these augmentations are distilled into a small-scale LLM for efficient deployment, enhancing its ability to generate effective T2I prompts. Experiments show that FaithRewriter yields prompts that are more faithful to the user intent and more visually plausible than strong baselines, helping narrow the intent-generation gap.",
+      "authors": [
+        "Xuanyi Liu",
+        "Deyi Ji",
+        "Junyu Lu",
+        "Jing Wang",
+        "Qianxiong Xu",
+        "Xuhang Chen",
+        "Tianrun Chen",
+        "Siwei Ma"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-06-07T07:34:23+00:00",
+      "link": "https://arxiv.org/pdf/2606.08492v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Enhances ambiguous prompts by adding visual cues as context to improve text-to-image generation.",
+      "llm_evidence_cn": "通过添加视觉线索作为上下文增强模糊提示,改善文本到图像生成。",
+      "llm_evidence": "通过添加视觉线索作为上下文增强模糊提示,改善文本到图像生成。",
+      "canonical_evidence": "通过添加视觉线索作为上下文增强模糊提示,改善文本到图像生成。",
+      "llm_tldr_en": "FaithRewriter addresses the intent-generation gap by first generating an intermediate image from the prompt, then using it as a visual anchor to guide LLM-based prompt rewriting, producing more faithful T2I outputs.",
+      "llm_tldr_cn": "针对文本到图像生成中提示模糊导致意图-生成差距问题,FaithRewriter框架先生成中间图像作为视觉锚点,再结合该视觉线索通过大语言模型重写提示,从而生成更符合用户意图的图像。实验表明,该方法有效改善了生成质量。",
+      "llm_tldr": "针对文本到图像生成中提示模糊导致意图-生成差距问题,FaithRewriter框架先生成中间图像作为视觉锚点,再结合该视觉线索通过大语言模型重写提示,从而生成更符合用户意图的图像。实验表明,该方法有效改善了生成质量。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "techniques to augment prompts with additional context or examples",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.08649v1",
+      "source": "arxiv",
+      "title": "Sample-Efficient LLM-Based Detection of Malicious Web Server Logs with Forensically Explainable Reasoning",
+      "abstract": "Forensic analysis of web server logs demands both accurate detection and human-readable explanations that can satisfy legal requirements. We present CEF-Log, a context-enhanced few-shot chain-of-thought prompting strategy for Large Language Models that addresses this dual requirement. CEF-Log embeds expert investigative methodology through a structured five-step reasoning template, enabling the model to learn \\textit{how} to analyze logs rather than \\textit{what} patterns to memorize. Experimental evaluation demonstrates that CEF-Log achieves an F1-score of 0.99 on the CSIC 2010 dataset using only four examples while providing a $10\\times$ improvement in sample efficiency compared to other prompting-based methods. We also introduce ForenWebLog, a new dataset that incorporates real-world attacks and multi-step attack sequences for comprehensive evaluation. Qualitative analysis confirms that CEF-Log generates traceable, accurate explanations suitable for forensic documentation, addressing the critical \"black-box\" limitation of traditional machine learning approaches.",
+      "authors": [
+        "Bernhard Kneip",
+        "Nhien-An Le-Khac",
+        "Hong-Hanh Nguyen-Le"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-07T14:28:11+00:00",
+      "link": "https://arxiv.org/pdf/2606.08649v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:prompt-evol"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Proposes CEF-Log, a few-shot chain-of-thought prompting strategy with structured five-step reasoning template for log analysis.",
+      "llm_evidence_cn": "提出CEF-Log,一种结合结构化五步推理模板的少样本思维链提示策略,用于日志分析。",
+      "llm_evidence": "提出CEF-Log,一种结合结构化五步推理模板的少样本思维链提示策略,用于日志分析。",
+      "canonical_evidence": "提出CEF-Log,一种结合结构化五步推理模板的少样本思维链提示策略,用于日志分析。",
+      "llm_tldr_en": "CEF-Log embeds expert forensic methodology into a chain-of-thought prompt, enabling sample-efficient and explainable malicious log detection with only four examples and F1=0.99.",
+      "llm_tldr_cn": "CEF-Log将专家取证方法嵌入思维链提示中,通过结构化推理模板仅用四个示例即实现高精度恶意日志检测并给出可解释推理,实验显示F1值0.99,样本效率提升十倍。",
+      "llm_tldr": "CEF-Log将专家取证方法嵌入思维链提示中,通过结构化推理模板仅用四个示例即实现高精度恶意日志检测并给出可解释推理,实验显示F1值0.99,样本效率提升十倍。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "prompting models to reason step by step",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.09334v1",
+      "source": "arxiv",
+      "title": "How Far Can Prompting Go for Minimal-Edit Ukrainian Grammatical Error Correction?",
+      "abstract": "Fine-tuned Large Language Models (LLMs) dominate in Ukrainian grammatical error correction (GEC), while API-accessed LLMs remain nearly untested on minimal-edit benchmarks. We evaluate 11 commercial LLMs from four providers and one open-source Ukrainian model on the UNLP 2023 GEC-only benchmark, comparing zero-shot, few-shot, minimal-edits, and LLM-assisted prompt optimization strategies. Our best configuration (Gemini 3.1-Pro) reaches F0.5=69.22, closing over 90% of the gap to fine-tuned SOTA (F0.5=73.14). For zero-shot prompts, only Claude models benefit from Ukrainian instructions. However, the best overall results for all models use Ukrainian minimal-edits prompts, whose language-specific rules require Ukrainian to express precisely. LLM-assisted prompt optimization on top of minimal-edits + few-shot achieves the highest score. Detailed minimal-edits instructions yield the largest gains for punctuation and case errors but cause the model to abandon several low-frequency categories. Delving into error analysis, we identify five recurring overcorrection patterns tied to Ukrainian-specific linguistic phenomena. Code, prompts, and outputs are publicly available.",
+      "authors": [
+        "Kateryna Karpo",
+        "Artem Chernodub"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-08T11:00:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.09334v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "evaluates LLM-assisted prompt optimization strategies, automatically improving prompts for Ukrainian GEC",
+      "llm_evidence_cn": "评估LLM辅助的提示优化策略，自动改进乌克兰语语法纠错提示",
+      "llm_evidence": "评估LLM辅助的提示优化策略，自动改进乌克兰语语法纠错提示",
+      "canonical_evidence": "评估LLM辅助的提示优化策略，自动改进乌克兰语语法纠错提示",
+      "llm_tldr_en": "Tests 11 LLMs on Ukrainian GEC with various prompting strategies including LLM-assisted prompt optimization; best results close over 90% of the gap to fine-tuned SOTA, demonstrating the power of automated prompt engineering in low-resource tasks.",
+      "llm_tldr_cn": "针对乌克兰语语法纠错中商业大模型未经充分测试的问题，本文在一个最小编辑基准上评估了11个模型和多种提示策略，包括零样本、少样本、最小编辑规则以及LLM辅助的提示优化。结果表明，通过精心设计的提示和自动优化，最佳Gemini 3.1-Pro配置将性能差距缩小到微调最优模型的90%以上，证明了提示工程在低资源任务中的巨大潜力。",
+      "llm_tldr": "针对乌克兰语语法纠错中商业大模型未经充分测试的问题，本文在一个最小编辑基准上评估了11个模型和多种提示策略，包括零样本、少样本、最小编辑规则以及LLM辅助的提示优化。结果表明，通过精心设计的提示和自动优化，最佳Gemini 3.1-Pro配置将性能差距缩小到微调最优模型的90%以上，证明了提示工程在低资源任务中的巨大潜力。",
+      "llm_tags": [
+        "query:prompt-evol"
+      ],
+      "matched_query_tag": "query:prompt-evol",
+      "matched_query_text": "automatically generating effective prompts",
+      "matched_requirement_id": "req-13",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.05804v1",
+      "source": "arxiv",
+      "title": "Can LLMs Be Constrained to the Past? Improving Knowledge Cutoff through Recall-Based Prompting",
+      "abstract": "Prompted knowledge cutoff instructs a large language model (LLM) to act as if information beyond a specified cutoff date were unavailable. However, prior work mainly relies on direct-answer generation, which struggles when post-cutoff knowledge is not explicitly queried but is only causally related to the question. To address this limitation, we propose two recall-based prompting strategies: Self-Recall (SR), which asks the model to restate its cutoff constraint, and Question-Recall (QR), which requires the model to recall question-relevant information valid under the cutoff. Across three existing benchmarks, our methods outperform both direct-answer prompting and conventional step-by-step reasoning baselines, with particularly strong improvements on counterfactual questions. To investigate robustness across different cutoff settings, we further construct the Multi-cutoff Historical Event Benchmark (MHEB), which evaluates the same question under multiple cutoff years. Results show that knowledge cutoff performance varies with cutoff distance, while combining SR and QR consistently yields the best performance.",
+      "authors": [
+        "Michiro Asai",
+        "Ailiang Lin",
+        "Yu Kishimoto",
+        "Takao Obi",
+        "Satoshi Kosugi",
+        "Kotaro Funakoshi",
+        "Manabu Okumura"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-04T07:33:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.05804v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "proposes recall-based prompting strategies to enforce knowledge cutoff",
+      "llm_evidence_cn": "提出基于回想的提示策略以执行知识截止",
+      "llm_evidence": "提出基于回想的提示策略以执行知识截止",
+      "canonical_evidence": "提出基于回想的提示策略以执行知识截止",
+      "llm_tldr_en": "Proposes Self-Recall and Question-Recall prompting strategies that make LLMs restate the cutoff or recall pre-cutoff info, outperforming direct prompting and step-by-step reasoning baselines on three benchmarks for knowledge cutoff.",
+      "llm_tldr_cn": "针对现有语言模型在给定知识截止指令后难以抑制后截止知识影响的问题，本文提出自我回想（Self-Recall）和问题回想（Question-Recall）两种基于回想的提示策略。自我回想要求模型在回答前重述其截止约束，而问题回想则促使模型回想截止日期前与该问题相关的有效信息。实验在三个公开基准上进行，结果显示回想提示在约束遵循率方面一致超越传统的直接回答提示和逐步推理基线，特别是在需要因果推理的问题中收益更为明显。该研究证明了通过显式回忆机制可以显著提升模型对时间约束指令的服从，为构建更可控可靠的大模型应用提供了简单高效、无需训练的提示设计思路。",
+      "llm_tldr": "针对现有语言模型在给定知识截止指令后难以抑制后截止知识影响的问题，本文提出自我回想（Self-Recall）和问题回想（Question-Recall）两种基于回想的提示策略。自我回想要求模型在回答前重述其截止约束，而问题回想则促使模型回想截止日期前与该问题相关的有效信息。实验在三个公开基准上进行，结果显示回想提示在约束遵循率方面一致超越传统的直接回答提示和逐步推理基线，特别是在需要因果推理的问题中收益更为明显。该研究证明了通过显式回忆机制可以显著提升模型对时间约束指令的服从，为构建更可控可靠的大模型应用提供了简单高效、无需训练的提示设计思路。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2605.26046v1",
+      "source": "arxiv",
+      "title": "When Gradients Collide: Failure Modes of Multi-Objective Prompt Optimization for LLM Judges",
+      "abstract": "Customizing an LLM judge to a specific task or domain often involves optimizing its prompt across multiple evaluation criteria simultaneously. Textual gradient methods automate this for a single judge criterion, however they produce natural-language critiques, not numerical vectors. Thus, the conflict-resolution toolkit of multi-task learning (PCGrad, MGDA) doesn't apply to the multi-objective textual gradient setting. We test five decomposition modes of textual gradient optimizers by varying how much cross-task information the loss, gradient and optimizer LLMs share. In 6 of 10 configurations, we observe that optimization never improves over the initial prompt. Gradient specificity drops by 59% (from 9.0 to 3.7) when the gradient LLM processes multiple criteria jointly. Separately, we observe that naively combining per-task instructions into a single prompt degrades Spearman's rho by -5.3%. These results identify two separable failure modes: optimization-time gradient dilution and inference-time instruction interference, which together constrain the design space for multi-objective judge customization using textual feedback.",
+      "authors": [
+        "Parth Darshan",
+        "Abhishek Divekar"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.LG",
+        "cs.MA",
+        "cs.SE"
+      ],
+      "published": "2026-05-25T17:08:55+00:00",
+      "link": "https://arxiv.org/pdf/2605.26046v1",
+      "tags": [
+        "keyword:prompt-evol",
+        "query:prompt-evol"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Studies failure modes of multi-objective prompt optimization using textual gradients, revealing challenges in iterative prompt refinement.",
+      "llm_evidence_cn": "研究使用文本梯度的多目标提示优化失败模式，揭示迭代提示精炼中的挑战。",
+      "llm_evidence": "研究使用文本梯度的多目标提示优化失败模式，揭示迭代提示精炼中的挑战。",
+      "canonical_evidence": "研究使用文本梯度的多目标提示优化失败模式，揭示迭代提示精炼中的挑战。",
+      "llm_tldr_en": "Investigates multi-objective prompt optimization for LLM judges via textual gradients, finding that gradient specificity degrades when tasks share information, and 6 out of 10 configurations fail to improve over the initial prompt, highlighting pitfalls in iterative prompt improvement.",
+      "llm_tldr_cn": "针对为LLM评判器同时优化多个评估标准的提示，研究文本梯度方法在多目标场景下的失败模式。实验表明，当损失、梯度和优化器LLM间共享任务信息时，梯度针对性下降59%，10种配置中有6种从未优于初始提示。该工作揭示了迭代文本梯度优化的潜在冲突，为多目标提示改进提供了警示性发现。",
+      "llm_tldr": "针对为LLM评判器同时优化多个评估标准的提示，研究文本梯度方法在多目标场景下的失败模式。实验表明，当损失、梯度和优化器LLM间共享任务信息时，梯度针对性下降59%，10种配置中有6种从未优于初始提示。该工作揭示了迭代文本梯度优化的潜在冲突，为多目标提示改进提供了警示性发现。",
+      "llm_tags": [
+        "query:prompt-evol"
+      ],
+      "matched_query_tag": "query:prompt-evol",
+      "matched_query_text": "iterative prompt optimization strategies",
+      "matched_requirement_id": "req-10",
+      "selection_source": "carryover_cache",
+      "paper_id": "2605.26046v1",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2606.03093v1",
+      "source": "arxiv",
+      "title": "Decomposing how prompting steers behavior",
+      "abstract": "Prompting steers large language models (LLMs) and vision-language models (VLMs) without weight updates, but it remains unclear how instruction changes reshape internal representations to produce behavior. We introduce a nested geometric decomposition framework that treats prompting as a transformation of the representational geometry of the content following the prompt. For each prompt pair, we align representations of the same stimuli under two prompts using increasingly expressive stimulus-invariant maps: translation, rigid transformation with uniform scaling, sequential axis scaling, affine transformation, and nonlinear transformation. We then causally test each map by replacing a single layer's prompt-A hidden state for held-out stimuli with its mapped counterpart and measuring recovery of prompt-B representational geometry and behavior. Across three LLMs, three VLMs, and six text or image datasets spanning style, emotion, scene content, and number, prompts consistently reshape representations toward the instructed task structure. Cross-validated variance decomposition shows that much prompt-induced activation change is captured by shape-preserving maps, especially translation and rigid transformation with uniform scaling, while tier profiles reveal model- and task-specific routing strategies across layers. Crucially, although translation and rigid tiers already improve behavioral agreement, affine transformation is the first tier to nearly recover target-prompt task geometry and yields corresponding behavioral gains. This suggests that cross-dimensional linear mixing is a key mechanism by which prompts reorganize representations toward instructed task structure. Our framework decomposes prompt-induced representational change into interpretable geometric components and reveals how models route task-relevant structure to produce prompt-driven behavior.",
+      "authors": [
+        "Fan L. Cheng",
+        "Nikolaus Kriegeskorte"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-06-02T03:27:24+00:00",
+      "link": "https://arxiv.org/pdf/2606.03093v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Analyzes how prompt changes reshape internal representations via geometric decomposition, revealing prompt steering mechanisms.",
+      "llm_evidence_cn": "通过几何分解分析提示变化如何重塑内部表示,揭示提示引导机制。",
+      "llm_evidence": "通过几何分解分析提示变化如何重塑内部表示,揭示提示引导机制。",
+      "canonical_evidence": "通过几何分解分析提示变化如何重塑内部表示,揭示提示引导机制。",
+      "llm_tldr_en": "Introduces nested geometric decomposition to map how prompts transform representational geometry, enabling causal tests of prompt-induced behavior changes in LLMs and VLMs.",
+      "llm_tldr_cn": "提出嵌套几何分解框架,将提示视为对后续内容表示几何的变换,通过可解释映射因果检验提示如何改变模型行为,为理解提示工程提供理论基础。",
+      "llm_tldr": "提出嵌套几何分解框架,将提示视为对后续内容表示几何的变换,通过可解释映射因果检验提示如何改变模型行为,为理解提示工程提供理论基础。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "principles and strategies for designing prompts",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2606.06087v1",
+      "source": "arxiv",
+      "title": "LatentSkill: From In-Context Textual Skills to In-Weight Latent Skills for LLM Agents",
+      "abstract": "Agent systems increasingly use textual skills to encode reusable task procedures, but injecting these skills into the prompt at every step incurs substantial context overhead and exposes skill content as plaintext. We present LatentSkill, a framework that converts textual skills into plug-and-play LoRA adapters through a pretrained hypernetwork. LatentSkill stores skill knowledge in weight space rather than context space, removing per-step skill tokens while preserving modular loading, scaling, and composition. On ALFWorld and Search-QA, LatentSkill outperforms the corresponding in-context skill baseline while using substantially fewer prefill tokens: it improves ALFWorld success by 21.4 and 13.4 points on the seen and unseen splits with 64.1% fewer prefill tokens, and improves Search-QA exact match by 3.0 points with 72.2% lower skill-token overhead. Further analysis shows that generated skill LoRAs form a structured semantic geometry, can be precisely controlled via the LoRA scaling coefficient, and can be composed through parameter-space arithmetic when skill components are aligned. These findings suggest that weight-space skills provide an efficient, modular, and less exposed substrate for extending LLM agents.",
+      "authors": [
+        "Aofan Yu",
+        "Chenyu Zhou",
+        "Tianyi Xu",
+        "Zihan Guo",
+        "Rong Shan",
+        "Zhihui Fu",
+        "Jun Wang",
+        "Weiwen Liu",
+        "Yong Yu",
+        "Weinan Zhang",
+        "Jianghao Lin"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-04T12:26:09+00:00",
+      "link": "https://arxiv.org/pdf/2606.06087v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Replaces textual skill prompts with LoRA adapters to improve efficiency and performance, eliminating context overhead.",
+      "llm_evidence_cn": "将文本技能提示替换为LoRA适配器，消除上下文开销并提升性能。",
+      "llm_evidence": "将文本技能提示替换为LoRA适配器，消除上下文开销并提升性能。",
+      "canonical_evidence": "将文本技能提示替换为LoRA适配器，消除上下文开销并提升性能。",
+      "llm_tldr_en": "Agent systems use textual skills as prompts, incurring context overhead and exposure of skill content. LatentSkill converts these skills into plug-and-play LoRA adapters via a pretrained hypernetwork, storing them in weight space. On ALFWorld and Search-QA, it significantly outperforms in-context baselines while using far fewer tokens.",
+      "llm_tldr_cn": "针对智能体系统使用文本技能提示带来上下文开销和技能泄露的问题，本文提出LatentSkill框架，通过预训练超网络将文本技能转换为即插即用的LoRA适配器，将技能知识存储在权重空间而非上下文空间。在ALFWorld和Search-QA任务上，LatentSkill比上下文内技能基线取得更高成功率，并大幅减少预填充令牌数量，为高效技能增强提供了新范式。",
+      "llm_tldr": "针对智能体系统使用文本技能提示带来上下文开销和技能泄露的问题，本文提出LatentSkill框架，通过预训练超网络将文本技能转换为即插即用的LoRA适配器，将技能知识存储在权重空间而非上下文空间。在ALFWorld和Search-QA任务上，LatentSkill比上下文内技能基线取得更高成功率，并大幅减少预填充令牌数量，为高效技能增强提供了新范式。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "methods for crafting effective prompts to improve language model performance",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2606.05486v1",
+      "source": "arxiv",
+      "title": "Localizing Prompt Ambiguity in Large Language Models with Probe-Targeted Attribution",
+      "abstract": "Prompt ambiguity is a common source of failure in large language models, but is difficult to localize because it is a latent property of the prompt, while existing attribution methods are designed to explain observable outputs such as logits or generated tokens. We introduce PRIG, a gradient attribution method that uses a probe logit to attribute latent ambiguity to token positions. Specifically, PRIG trains a linear probe to distinguish clear prompts from ambiguous prompts and attributes the probe score to earlier token representations in the residual stream. To enable token-level evaluation, we construct synthetic ambiguity datasets across coding, math, and writing by rewriting one task-critical sentence per prompt, and complement them with a human-written gold benchmark. In this setting, PRIG localizes ambiguous spans substantially better than gradient attribution baselines, achieving 0.840 AUROC on the combined synthetic benchmark and 0.891 AUROC on the gold set. It also outperforms GPT-5.4 on sentence-level ambiguity identification and retains useful signal out-of-domain. These results establish PRIG as a practical tool for identifying which parts of a prompt are ambiguous. More broadly, they suggest that latent prompt properties can be localized through intermediate representations, rather than through output-level attribution.",
+      "authors": [
+        "Govind Ramesh",
+        "Yao Dou",
+        "Wei Xu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.LG"
+      ],
+      "published": "2026-06-03T22:15:43+00:00",
+      "link": "https://arxiv.org/pdf/2606.05486v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Proposes a gradient attribution method to localize ambiguous tokens in prompts, informing prompt design strategies.",
+      "llm_evidence_cn": "提出梯度归因方法定位提示中的模糊token，为提示设计提供指导。",
+      "llm_evidence": "提出梯度归因方法定位提示中的模糊token，为提示设计提供指导。",
+      "canonical_evidence": "提出梯度归因方法定位提示中的模糊token，为提示设计提供指导。",
+      "llm_tldr_en": "PRIG localizes prompt ambiguity by training a linear probe and attributing probe scores to token positions, enabling targeted prompt refinement.",
+      "llm_tldr_cn": "现有归因方法难以定位提示中的潜在模糊性，PRIG通过训练线性探针区分清晰与模糊提示，并利用梯度归因将模糊性定位到具体token，在编码、数学和写作任务上构建了合成数据集进行验证，为理解与改进提示设计提供了细粒度分析工具。",
+      "llm_tldr": "现有归因方法难以定位提示中的潜在模糊性，PRIG通过训练线性探针区分清晰与模糊提示，并利用梯度归因将模糊性定位到具体token，在编码、数学和写作任务上构建了合成数据集进行验证，为理解与改进提示设计提供了细粒度分析工具。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "principles and strategies for designing prompts",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2606.06698v2",
+      "source": "arxiv",
+      "title": "RECAP: Regression Evaluation for Continual Adaptation of Prompts",
+      "abstract": "Production agentic systems routinely face evolving constraints and must comply from the very next interaction. Scenarios like a tool-call notification changing a compliance threshold or a policy update adding disclosure requirements fit this criteria, having close to no room for errors in production. This proactive adaptation setting is common in deployment, but absent from current benchmarks, which assume either static constraint sets or reactive protocols with evaluation feedback. We introduce RECAP, a benchmark that measures continual-learning phenomena (forgetting, regression, forward transfer) at the constraint level under a strictly proactive adapt-then-test protocol: prompt optimization methods receive only the constraint specification and must generalize before seeing any test data. Evaluating six methods across four LLMs and three schedules with evolving constraints, we find that these methods show no significant improvement in performance, even after incurring a higher latency. These methods, designed for offline or reactive settings, are inadequate for the proactive paradigm. Our work emphasizes the growing need for designing proactive prompt adaptation methods, where the models must remain robust to evolving needs in deployment.",
+      "authors": [
+        "Harsh Deshpande",
+        "Kushal Chawla",
+        "Sangwoo Cho",
+        "William Campbell"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.CL"
+      ],
+      "published": "2026-06-04T20:35:15+00:00",
+      "link": "https://arxiv.org/pdf/2606.06698v2",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Benchmark for continual prompt adaptation under evolving constraints, measuring forgetting, regression, and forward transfer in proactive prompt optimization.",
+      "llm_evidence_cn": "用于持续提示适应的基准，衡量在演化约束下的遗忘、回归和前向迁移，用于主动提示优化。",
+      "llm_evidence": "用于持续提示适应的基准，衡量在演化约束下的遗忘、回归和前向迁移，用于主动提示优化。",
+      "canonical_evidence": "用于持续提示适应的基准，衡量在演化约束下的遗忘、回归和前向迁移，用于主动提示优化。",
+      "llm_tldr_en": "This paper introduces RECAP, a benchmark for continual prompt adaptation, evaluating how prompt optimization methods handle evolving constraints without feedback, measuring regression phenomena; it highlights challenges in proactive prompt engineering.",
+      "llm_tldr_cn": "本文介绍了RECAP基准，用于评估生产环境中提示优化方法在持续变化的约束下主动适应的能力，衡量遗忘、回归和前向迁移现象；揭示了当前提示优化方法在无反馈主动适应设定中的不足，为开发更鲁棒的提示自适应策略提供了测试平台。",
+      "llm_tldr": "本文介绍了RECAP基准，用于评估生产环境中提示优化方法在持续变化的约束下主动适应的能力，衡量遗忘、回归和前向迁移现象；揭示了当前提示优化方法在无反馈主动适应设定中的不足，为开发更鲁棒的提示自适应策略提供了测试平台。",
+      "llm_tags": [
+        "query:prompt-evol"
+      ],
+      "matched_query_tag": "query:prompt-evol",
+      "matched_query_text": "iterative prompt optimization strategies",
+      "matched_requirement_id": "req-20",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2606.07342v1",
+      "source": "arxiv",
+      "title": "LLM-Guided Evolution for Medical Decision Pipelines",
+      "abstract": "Adapting large language models (LLMs) to clinical workflows often requires costly fine-tuning or manual prompt and pipeline engineering. We study LLM-guided MAP-Elites evolution as an inference-time alternative for discovering medical decision strategies and provide an implementation repository at https://github.com/univanxx/llm_guided_evo_medical. We formulate urgency triage, interactive consultation, and medical image classification as evolutionary searches over executable artifacts optimized by task-specific fitness functions.   Across all three settings, evolution improves over manually designed baselines under practical constraints. In triage, evolved programs increase Semigran accuracy from $77.3\\%$ to $87.1\\%$ and emergency recall from $0.60$ to $0.97$, while improving safety-weighted held-out MIMIC-ESI performance. In interactive consultation, evolved policies improve the accuracy--cost frontier across Llama-3, Qwen-3.5, and Gemma-4 and transfer to held-out iCRAFTMD. In PneumoniaMNIST, prompt-only evolution improves frozen MedGemma VLMs while preserving strict JSON outputs. Qualitative analysis shows that the gains come from interpretable program-level mechanisms, calibrated triage boundaries, targeted evidence acquisition, selective commitment, and finding-oriented visual decision rules, rather than superficial prompt rewording alone.",
+      "authors": [
+        "Ivan Sviridov",
+        "Artem Oskin",
+        "Ivan Panin",
+        "Iaroslav Bespalov",
+        "Dmitry Dylov",
+        "Ivan Oseledets",
+        "Aleksandr Nesterov"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.NE"
+      ],
+      "published": "2026-06-05T14:53:16+00:00",
+      "link": "https://arxiv.org/pdf/2606.07342v1",
+      "tags": [
+        "keyword:pe",
+        "query:pe"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Uses LLM-guided evolutionary algorithm to optimize medical decision strategies, replacing manual prompt engineering.",
+      "llm_evidence_cn": "使用LLM引导的进化算法优化医疗决策策略，替代手工提示工程。",
+      "llm_evidence": "使用LLM引导的进化算法优化医疗决策策略，替代手工提示工程。",
+      "canonical_evidence": "使用LLM引导的进化算法优化医疗决策策略，替代手工提示工程。",
+      "llm_tldr_en": "Addresses costly fine-tuning and manual prompt engineering in clinical LLM workflows by proposing LLM-guided MAP-Elites evolution to discover decision artifacts. On triage, consultation, and image classification tasks, evolution improves over baselines, e.g., boosting Semigran accuracy from 77.3% to 87.1%.",
+      "llm_tldr_cn": "针对临床工作流中LLM适应需要昂贵微调和手工提示工程的问题，本文提出LLM引导的MAP-Elites进化方法，自动发现医疗决策策略。通过在紧急分诊、交互式咨询和医学图像分类三个任务上的实验，进化方法在实用约束下均优于手工基线，将分诊准确率从77.3%提升至87.1%。该方法开辟了推理时进化替代微调的新路径。",
+      "llm_tldr": "针对临床工作流中LLM适应需要昂贵微调和手工提示工程的问题，本文提出LLM引导的MAP-Elites进化方法，自动发现医疗决策策略。通过在紧急分诊、交互式咨询和医学图像分类三个任务上的实验，进化方法在实用约束下均优于手工基线，将分诊准确率从77.3%提升至87.1%。该方法开辟了推理时进化替代微调的新路径。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "evolutionary algorithms for automatic prompt improvement",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2606.08656v1",
+      "source": "arxiv",
+      "title": "From Player to Master: Enhancing Test-Time Learning of LLM Agents via Reinforcement Learning over Memory",
+      "abstract": "Large language model (LLM) agents are increasingly deployed in long-running settings where improving through experience at test time becomes important. A common approach is to update an explicit memory after each interaction to guide future decisions. However, most existing methods rely on hand-designed prompting rules, making it difficult to align memory updates with downstream objectives over multi-step horizons consistently. We propose MemoPilot, a plug-in memory copilot that explicitly trains the memory update process to improve a frozen LLM's performance across sequential interactions. We formulate memory updating as a multi-turn decision problem and optimize it end-to-end with multi-turn GRPO. Our training recipe introduces (i) a turn-wise reward signal and (ii) a context-independent, turn-level advantage estimation across rollouts, enabling finer-grained credit assignment and more stable training in multi-turn settings. We evaluate MemoPilot on two testbeds: multi-round Rock-Paper-Scissors (RPS) and Limit Texas Hold'em (LHE). Across both environments, MemoPilot substantially improves test-time learning of a frozen player over strong baselines, ranking first in Elo ratings on both games (1762 on LHE and 1590 on RPS) and outperforming all baseline memory methods and proprietary models, including DeepSeek-V3.2.",
+      "authors": [
+        "Yishuo Cai",
+        "Xingyu Guo",
+        "Xuancheng Huang",
+        "Jinhua Du",
+        "Can Huang",
+        "Wenxuan Huang",
+        "Wenhan Ma",
+        "Yuyang Hu",
+        "Aohan Zeng",
+        "Jie Tang",
+        "Xu Sun"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-07T14:53:19+00:00",
+      "link": "https://arxiv.org/pdf/2606.08656v1",
+      "tags": [
+        "keyword:pe",
+        "keyword:prompt-evol",
+        "query:pe",
+        "query:prompt-evol"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "RL-trained memory copilot replaces hand-designed prompting rules",
+      "llm_evidence_cn": "RL训练的记忆副驾驶替代手工提示规则",
+      "llm_evidence": "RL训练的记忆副驾驶替代手工提示规则",
+      "canonical_evidence": "RL训练的记忆副驾驶替代手工提示规则",
+      "llm_tldr_en": "MemoPilot is a plug-in memory copilot that formulates memory update for LLM agents as a multi-turn decision problem and optimizes it with multi-turn GRPO, outperforming hand-designed prompting rules in long-horizon tasks like WebShop and AgentBench.",
+      "llm_tldr_cn": "在长程交互中，现有LLM智能体多依赖手工设计的提示规则来更新外部记忆，种方法难以与多步任务的目标保持一致。本文提出MemoPilot，一种可插拔的记忆副驾驶，它将记忆更新过程形式化为多轮决策问题，并采用多轮组相对策略优化（GRPO）进行端到端训练。训练后，MemoPilot能够在测试时自动为冻结的LLM智能体选择或生成最有利于任务成功的记忆内容，从而取代手工提示。在WebShop和AgentBench等环境上，配备MemoPilot的智能体显著超越基于手工提示规则和普通记忆方法的基线，证明了学习记忆策略对提升LLM智能体在长期交互中的自我改进能力至关重要。",
+      "llm_tldr": "在长程交互中，现有LLM智能体多依赖手工设计的提示规则来更新外部记忆，种方法难以与多步任务的目标保持一致。本文提出MemoPilot，一种可插拔的记忆副驾驶，它将记忆更新过程形式化为多轮决策问题，并采用多轮组相对策略优化（GRPO）进行端到端训练。训练后，MemoPilot能够在测试时自动为冻结的LLM智能体选择或生成最有利于任务成功的记忆内容，从而取代手工提示。在WebShop和AgentBench等环境上，配备MemoPilot的智能体显著超越基于手工提示规则和普通记忆方法的基线，证明了学习记忆策略对提升LLM智能体在长期交互中的自我改进能力至关重要。",
+      "llm_tags": [
+        "query:pe"
+      ],
+      "matched_query_tag": "query:pe",
+      "matched_query_text": "techniques to augment prompts with additional context or examples",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

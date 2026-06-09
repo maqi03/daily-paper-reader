@@ -1,0 +1,456 @@
+Title: How Far Can Prompting Go for Minimal-Edit Ukrainian Grammatical Error Correction?
+
+URL Source: https://arxiv.org/pdf/2606.09334v1
+
+Published Time: Tue, 09 Jun 2026 02:42:24 GMT
+
+Number of Pages: 19
+
+Markdown Content:
+# How Far Can Prompting Go for Minimal-Edit Ukrainian Grammatical Error Correction? ∗
+
+## Kateryna Karpo 𝜐,𝜎 Artem Chernodub 𝜁 𝜐 Ukrainian Catholic University 𝜎 YouScan 𝜁 Zendesk 
+
+## Abstract 
+
+Fine-tuned Large Language Models (LLMs) dominate in Ukrainian grammatical error cor-rection (GEC), while API-accessed LLMs re-main nearly untested on minimal-edit bench-marks. We evaluate 11 commercial LLMs from four providers and one open-source Ukrainian model on the UNLP 2023 GEC-only bench-mark, comparing zero-shot, few-shot, minimal-edits, and LLM-assisted prompt optimization strategies. Our best configuration (Gemini 3.1-Pro) reaches 𝐹 0.5 = 69 .22 , closing over 90% of the gap to fine-tuned SOTA ( 𝐹 0.5 = 73 .14 ). For zero-shot prompts, only Claude models benefit from Ukrainian instructions. How-ever, the best overall results for all models use Ukrainian minimal-edits prompts, whose language-specific rules require Ukrainian to ex-press precisely. LLM-assisted prompt optimiza-tion on top of minimal-edits + few-shot achieves the highest score. Detailed minimal-edits in-structions yield the largest gains for punctuation and case errors but cause the model to abandon several low-frequency categories. Delving into error analysis, we identify five recurring over-correction patterns tied to Ukrainian-specific linguistic phenomena. Code, prompts, and outputs are publicly available. 123 
+
+## 1 Introduction and Related Work 
+
+Grammatical error correction (GEC) systems op-erate under two paradigms (Bryant et al., 2023). Minimal-edit correction targets only clear grammat-ical, spelling, and punctuation errors, preserving the author’s wording. Fluency-oriented correction additionally permits lexical substitutions, syntac-tic restructuring, and stylistic improvements. The   
+
+> ∗This paper has been accepted for publication at The Fifth Ukrainian Natural Language Processing Conference UNLP 2026, https://unlp.org.ua/ .
+> 1Correspondence: a.chernodub@gmail.com
+> 2https://github.com/katerynkarpo/gec_unlp_2026
+> 3This work was conducted as part of Kateryna Karpo’s M.Sc. thesis at the Ukrainian Catholic University, Faculty of Applied Sciences.
+
+minimal-edit setting is especially relevant for educa-tional tools, where feedback should pinpoint errors rather than rewrite learner text, and for writing assistants that must preserve authorial voice. For English, a high-resource language with decades of GEC research, this distinction is well established. Minimal-edit evaluation is the stan-dard in shared tasks such as CoNLL-2014 (Ng et al., 2014) and BEA-2019 (Bryant et al., 2019), while JFLEG (Napoles et al., 2017) targets fluency. Staruch et al. (2025) recently achieved state-of-the-art single-model minimal-edit results on BEA-2019 by adapting a decoder-only LLM. The MultiGEC-2025 shared task (Masciolini et al., 2025) extended the two-track paradigm to twelve European lan-guages, confirming it as a cross-lingual standard. For Ukrainian, GEC infrastructure has only re-cently begun to emerge. The UNLP 2023 Shared Task (Syvokon and Romanyshyn, 2023) introduced the first benchmark with two parallel tracks: GEC-only (minimal-edit) and GEC+Fluency, both eval-uated with span-based 𝐹 0.5. Since then, research has shifted toward fluency (Saini et al., 2024), with Luhtaru et al. (2024) pushing GEC+Fluency SOTA to 𝐹 0.5 = 74 .09 with a fine-tuned Llama 2 model, surpassing the original winner ( 𝐹 0.5 = 68 .17 ; Bon-darenko et al., 2023). The GEC-only track, how-ever, has seen no new results. Ukrainian was also included in MultiGEC-2025, where the winning team’s fine-tuned Gemma 2 scored GLEU = 79 .55 
+
+on minimal edits vs. GLEU = 68 .03 for a one-shot Llama 3.1 baseline. Most recently, Kovalchuk et al. (2025) introduced silver-standard GEC cor-pora for multiple languages including Ukrainian and fine-tuned multilingual models on them; how-ever, their work centers on training data creation and finetuning rather than prompting strategies for API-accessed LLMs. To the best of our knowledge, most of Ukrainian GEC systems available to date rely on fine-tuned models that require dedicated GPU infras-
+
+> arXiv:2606.09334v1 [cs.CL] 8 Jun 2026
+
+tructure. Commercial API-accessed LLMs of-fer a lightweight alternative, yet remain nearly untested for Ukrainian minimal-edit GEC. The only published result is from Katinskaia and Yangar-ber (2024), who evaluated GPT-3.5 (specifically, 
+
+gpt-3.5-turbo-0613 ) in a zero-shot setting on the UNLP 2023 GEC-only test set and obtained 
+
+𝐹 0.5 = 27 .4, far below the fine-tuned SOTA of 
+
+73 .14 .This paper is the first to test newer API-accessed models on this benchmark and to explore whether better prompting strategies can close the gap with fine-tuned systems. 
+
+## 2 Experimental Setup 
+
+Data. We use the GEC-only track of the UNLP 2023 Shared Task (Syvokon and Romanyshyn, 2023), which is built on the UA-GEC corpus. We adopt UA-GEC’s own train and valid splits as our training and development sets (31,038 and 1,422 sentences) and report all final numbers on the UNLP 2023 test set (1,274 sentences), whose gold anno-tations are held out from participants and never inspected during prompt development. We use the train and development sets for prompt devel-opment (few-shot exemplar selection and prompt engineering) and report only on the test set. 
+
+Models. We evaluate commercial, API-accessed LLMs from four providers and one open-source Ukrainian model, Lapa v0.1.2 (Paniv et al., 2025). 4 We report exact snapshot identifiers for reproducibility. From Ope-nAI, we use GPT-4.1 ( gpt-4.1-2025-04-14 ), GPT-4.1-mini (gpt-4.1-mini-2025-04-14 ), GPT-5.1 (gpt-5.1-2025-11-13 ), GPT-5.2 (gpt-5.2-2025-12-11 ), and GPT-5.4 (gpt-5.4-2026-03-05 ). From Moonshot, we use Kimi-K2 ( kimi-k2-0905-preview ; 0905 denotes a dated preview build). The Google and Anthropic APIs do not expose dated snapshot identifiers; we use Gemini 3-Flash ( gemini-3-flash-preview ), Gemini 3-Pro ( gemini-3-pro-preview ), Gem-ini 3.1-Pro ( gemini-3.1-pro-preview ), Claude Sonnet 4.6 ( claude-sonnet-4.6 ), and Claude Opus 4.6 ( claude-opus-4.6 ). 5      
+
+> 4Provider documentation: OpenAI https://platform. openai.com ;Anthropic https://docs.anthropic.com ;Google https://ai.google.dev ;Moonshot https:// platform.moonshot.ai .
+> 5Inference-time parameters differ: GPT-4.1 and Kimi use temperature/top-𝑝 ; Claude and Gemini use either temperature or a reasoning effort budget; GPT-5.x uses an effort level
+
+2.1 Research Questions 
+
+We address the following four research questions: 
+
+RQ1: What is the zero-shot minimal-edit GEC performance of current LLMs on Ukrainian rel-ative to fine-tuned SOTA, and how sensitive is it to prompt language? We systematically com-pare 2025–2026 commercial LLMs on the UNLP 2023 minimal-edit GEC benchmark against the fine-tuned SOTA of 𝐹 0.5 = 73 .14 , and test both English and Ukrainian prompt variants to assess whether instruction language affects correction quality for a morphologically rich, low-resource language. To the best of our knowledge, the only published LLM baseline for Ukrainian GEC is the GPT-3.5 zero-shot result (English) from Katinskaia and Yangarber (2024), which we include for reference. 
+
+RQ2: Can prompting strategies reduce overcor-rection compared to zero-shot baselines? We evaluate how each of the four prompting strategies affects the precision–recall trade-off: (1) zero-shot, (2) few-shot, (3) minimal-edits + zero-shot, and (4) minimal-edits + few-shot. 
+
+RQ3: Can LLM-assisted prompt optimiza-tion improve over manually crafted prompts? 
+
+We apply an LLM-assisted prompt optimization pipeline built on Claude Code skills, an agentic system that iteratively generates, evaluates, and refines GEC prompts using the full evaluation loop as feedback. 
+
+RQ4: Where do minimal-edits instructions help and where do they fail? We compare per-error-type performance between a standard zero-shot prompt and our best optimized prompt using ER-RANT category breakdowns, identifying which error types benefit most from detailed minimal-edits instructions and which remain resistant to prompt-based improvement. 
+
+Prompting strategies. We compare four manu-ally engineered prompting configurations that vary in prompt detail (general vs. minimal-edits) and use of examples (zero-shot vs. few-shot). 1. Zero-shot (A.1): a general system prompt that instructs the model to correct grammatical and spelling errors and return the original sentence if no errors are found. No examples are provided.   
+
+> (low /medium /high ). We set temperature 0 where available, default effort for Claude and Gemini, and medium for GPT-5.x.
+
+2. Few-shot (A.2): the zero-shot prompt aug-mented with source–target correction pairs from the training set, covering spelling, punc-tuation, and morphological errors as well as already-correct sentences. 3. Minimal-edits + zero-shot (A.3): a detailed system prompt enumerating which error types to correct, Ukrainian-specific conventions (e.g., dash vs. hyphen in dialogue, у/в ‘u/v’ alternation, vocative case in forms of address, etc.), and categories of changes to avoid. No examples are provided. 4. Minimal-edits + few-shot (A.4): combines the detailed minimal-edits system prompt with few-shot correction examples from the training set, providing both rule-based guidance and concrete demonstrations. Strategies (1)–(4) are tested with both English (EN) and Ukrainian (UA) prompt text to address RQ1. For subsequent experiments (RQ2–RQ4), we use EN for zero-shot and few-shot prompts (where it performs best for most models; see RQ1) and UA for minimal-edits variants. This was an intentional design choice: the minimal-edits rules reference specific Ukrainian word forms, morphological cat-egories, and language-specific conventions (e.g., vocative case paradigms, euphonic preposition al-ternation) that cannot be adequately expressed in English. Because the prompt language and strategy are tied together in this comparison, we treat them as a single design decision. To test whether an LLM can improve over these handcrafted prompts, we also apply LLM-assisted prompt optimization, inspired by automatic prompt optimization meth-ods (see Ramnath et al., 2025, for a survey), on top of the best minimal-edits + few-shot prompt (Appendix A.5.2; RQ3). 
+
+Evaluation. We use the official UNLP 2023 eval-uation pipeline, which computes span-level Preci-sion (P), Recall (R), and 𝐹 0.5 using a Ukrainian adaptation of ERRANT. Per-error-type scores are extracted from the ERRANT alignment for the per-error-type analysis (RQ4). 
+
+## 3 Prompt Design 
+
+Zero-shot. We use a single-sentence system prompt (Appendix A.1), adapted from Loem et al. (2023):               
+
+> Reply with acorrected version of the sentence with all grammatical and spelling errors fixed. If there are no errors, reply with a copy of the original sentence. Input sentence: {sentence}. Corrected sentence:
+
+The Ukrainian version is its direct translation: 
+
+> Надай виправлену версiю речення з ви-правленими всiма граматичними та орфо-графiчними помилками. Якщо помилок немає, надай копiю оригiнального речен-ня. Вхiдне речення: {sentence}. Виправле-не речення:
+
+Few-shot. The few-shot prompt extends the zero-shot instruction with source–target correction pairs from the training set (Appendix A.2), e.g.:    
+
+> [Same header as zero-shot prompt] Input: Так само потерпає Україна i сьо-годнi вiд того що насправдi талановитим людям заважають працювати...
+> Output: Так само потерпає Україна i сьо-годнi вiд того, що насправдi талановитим людям заважають працювати...
+> (Input: ‘Ukraine suffers the same today from the fact that truly talented people are prevented from working...’ Output: ‘Ukraine suffers the same today from the fact ,that truly talented people are prevented from working...’)
+
+Exemplars are drawn from the UA-GEC train-ing split because it is the only publicly available Ukrainian GEC corpus at the required scale and annotation quality. Since this split is public, it may have been seen by commercial LLMs during pre-training; drawing exemplars from an independent Ukrainian GEC corpus would be a cleaner control, but no comparable dataset currently exists. We therefore treat our numbers as establishing prompt-ing baselines on this benchmark and revisit this risk in the Limitations section. 
+
+Minimal-edits. The zero-shot and few-shot prompts give only a generic correction instruction (“fix all grammatical and spelling errors”), which provides no guidance on correction scope. In prac-tice, this leads LLMs to overcorrect: rephrasing sentences, substituting synonyms, or “improving” stylistically acceptable constructions. Since the ERRANT-based 𝐹 0.5 metric penalizes unnecessary edits, such overcorrection directly hurts precision. The minimal-edits prompt addresses this with a two-part structure (Appendix A.3). The first part explicitly declares the minimal-edit constraint: “correct only clear-cut errors while preserving the original wording“. The second part provides a specific taxonomy of 16 Ukrainian GEC error cate-gories (spelling, punctuation, case, gender, number, aspect, tense, etc.), followed by language-specific conventions (e.g., у/в ‘u/v’ alternation before con-sonants/vowels, em-dash in dialogue) and strict rules on what not to change (no synonym substi-tution, no quote style normalization, no changes when in doubt): 
+
+> ...
+> Виправляй ЛИШЕ такi типи помилок:
+> (‘Fix ONLY the following types of errors:’)
+> 1. Орфографiя: явнi орфографiчнi помил-ки
+> (‘1. Spelling: obvious spelling errors’)
+> 2. Пунктуацiя: пропущенi або зайвi коми, крапки...
+> (‘2. Punctuation: missing or extra commas, peri-ods...’)
+> 3. G/Case: некоректне вживання вiдмiнко-вої форми
+> (‘3. G/Case: incorrect use of case form’)
+> ...
+
+The minimal-edits + few-shot variant (Ap-pendix A.4) combines this detailed system prompt with few-shot examples. 
+
+LLM-assisted prompt optimization. Inspired by automatic prompt optimization methods (Ram-nath et al., 2025), we develop a semi-automatic approach in which an LLM proposes prompt edits but a human reviews and accepts them. Our method borrows ideas from several automatic prompt op-timization papers: like ProTeGi (Pryzant et al., 2023), we use LLM-generated “textual gradients” derived from error analysis to guide prompt edits; following PromptAgent (Wang et al., 2024), we cluster prediction–reference mismatches into recur-ring linguistic patterns (e.g., “unnecessary dash normalization”, “missed comma before subordi-nate conjunction”) to produce domain-expert-style prompt sections; and as in OPRO (Yang et al., 2024), we maintain an optimization history of previous candidates and their scores to inform each iteration. 
+
+LLM-assisted prompt optimization design. We implemented this pipeline as a Claude Code skill powered by Claude Opus 4.6, which acts as both error analyst and prompt engineer. Starting from the best manual prompt (usually minimal-edits + few-shot), the agent iteratively: (1) evaluates the candidate on the validation set, recording span-level TP/FP/FN; (2) clusters mismatches into linguistic patterns ranked by frequency; (3) modifies the prompt via rule insertion (an explicit prohibition in the “do not change” section) or example insertion   
+
+> Figure 1: Prompt length (in tokens, cl100k_base tok-enizer 6) across prompting strategies for English (EN) and Ukrainian (UA) prompts. Optimized variants are available in UA only. The minimal-edits + few-shot + optimized-v2 prompt (A.5.2) is ∼32 ×longer than the zero-shot UA baseline (A.1.2; 3,474 vs. 108 tokens).
+
+(a targeted input–output pair, including “no-change” examples); (4) accepts the change only if 𝐹 0.5 im-proves, otherwise reverts. The cycle repeats until gains plateau. 
+
+Optimization setup. Due to cost and time con-straints, we could not run the optimization loop separately for every model. Instead, we selected the best-performing manual prompt, minimal-edits + few-shot (A.4), and optimized it in two rounds: first on GPT-4.1-mini, producing minimal-edits + few-shot + optimized-v1 (A.5.1), and then starting from that result on Gemini 3-Flash, producing minimal-edits + few-shot + optimized-v2 (A.5.2). We then transferred these prompts to the remaining models without further tuning: GPT and Claude models are evaluated with optimized-v1, Gemini models with optimized-v2 (Table 3). We acknowledge that per-model optimization would give a more com-plete picture; we report these preliminary results as a useful reference point. 
+
+Prompt length. Figure 1 shows how prompt length grows across strategies, from 43 tokens for zero-shot (EN, A.1.1) to 3,474 tokens for minimal-edits + few-shot + optimized-v2 (UA, A.5.2). 
+
+## 4 Experimental Results 
+
+RQ1: Zero-shot performance and prompt lan-guage (Table 1). We start with zero-shot prompts, the simplest and most widely used setup for LLM-based GEC, and test whether prompting in Ukrainian rather than English improves results.                                                                                                                     
+
+> 6https://github.com/openai/tiktoken Model Lang. Prec. Rec. F0.5UA?
+> Baseline: fine-tuned
+> mBART50-large †–78.52 50.60 70.71 mT5-large ‡–76.81 61.39 73.14
+> Baseline: LLM zero-shot
+> GPT-3.5 ∗EN 25.80 36.20 27.40
+> API-accessed (zero-shot)
+> GPT-4.1 EN 37.17 55.54 39.80
+> GPT-4.1 UA 30.24 58.41 33.47
+> GPT-4.1-mini EN 39.06 51.92 41.09
+> GPT-4.1-mini UA 36.73 53.03 39.13
+> GPT-5.1 (medium) EN 36.06 60.15 39.20
+> GPT-5.1 (medium) UA 32.35 62.61 35.82
+> GPT-5.2 (medium) EN 34.04 66.31 37.71
+> GPT-5.2 (medium) UA 29.89 66.90 33.60
+> GPT-5.4 (medium) EN 36.87 62.96 40.20
+> GPT-5.4 (medium) UA 32.73 65.35 36.36
+> Claude Sonnet 4.6 EN 41.79 45.83 42.54
+> Claude Sonnet 4.6 UA 42.70 47.76 43.63 +
+> Claude Opus 4.6 EN 47.60 46.20 47.30
+> Claude Opus 4.6 UA 49.20 51.60 49.70 +
+> Gemini 3-Flash EN 39.09 64.85 42.46
+> Gemini 3-Flash UA 35.91 67.38 39.61
+> Gemini 3-Pro EN 37.89 60.54 40.96
+> Gemini 3-Pro UA 36.30 63.58 39.71
+> Gemini 3.1-Pro EN 41.50 58.03 44.01
+> Gemini 3.1-Pro UA 39.16 62.01 42.28
+> Kimi-K2 EN 34.24 52.74 36.82
+> Kimi-K2 UA 29.03 60.11 32.38
+> Open-source (zero-shot)
+> Lapa v0.1.2 §EN 24.24 23.52 24.09
+> Lapa v0.1.2 §UA 28.57 32.38 29.26 +
+
+Table 1: RQ1: Zero-shot GEC performance on the UNLP 2023 test set. Lang. denotes the language of the zero-shot instructions in the system prompt: Ukrainian (UA) or English (EN). Bold marks the best result per column among API-accessed models. UA?: + indicates that the UA prompt yields a higher 𝐹 0.5 than the EN prompt for the same model. †Syvokon and Romanyshyn (2023); ‡Gomez et al. (2023); ∗Katinskaia and Yangarber (2024), EN; §Paniv et al. (2025), Ukrainian open-source LLM. 
+
+Zero-shot performance. All current models dra-matically outperform the GPT-3.5 baseline of 
+
+𝐹 0.5 = 27 .4 reported by Katinskaia and Yangar-ber (2024). The best zero-shot system, Claude Opus 4.6 with a UA prompt, reaches 𝐹 0.5 = 49 .70 ,nearly doubling the GPT-3.5 score. Notably, GPT-5.x reasoning models do not outperform the older GPT-4.1-mini ( 𝐹 0.5 = 41 .09 ), despite their stronger general benchmarks. We attribute this to over-correction: reasoning-optimized models tend to over-interpret the correction task, producing more extensive rewrites that ERRANT penalizes as false positives. Even the best zero-shot result remains 23.4 
+
+𝐹 0.5 points below the fine-tuned SOTA of 73.14. Comparing the best zero-shot system (Claude Opus 4.6 UA: P =49.20, R =51.60) against the fine-tuned reference (P =76.81, R =61.39), the gap is pri-marily driven by precision (27.6-point difference) rather than recall (9.8-point difference). Without task-specific fine-tuning, zero-shot models lack the calibration to suppress spurious corrections. Models differ in their precision–recall profiles. Gemini variants are high-recall correctors (R =60– 67%) with low precision (P =36–42%), flagging many candidates, many of which are spurious. Claude models show a more balanced profile with precision and recall within 5 points of each other, which is favorable under 𝐹 0.5’s precision weighting. GPT-5.x models lean toward high recall and low precision, similar to Gemini. 
+
+Prompt language. Surprisingly, Claude is the only family where UA prompts improve perfor-mance: Claude Opus 4.6 gains 2.4 points (47.30 
+
+→ 49.70) and Claude Sonnet 4.6 gains 1.1 points (42.54 → 43.63), with both precision and recall improving simultaneously. For all other models, UA prompts degrade 𝐹 0.5 by 1–6 points, consis-tently trading precision for recall and amplifying overcorrection. For reference, we also include Lapa v0.1.2 7, an open-source Ukrainian LLM, which scores 𝐹 0.5 = 29 .26 with a UA prompt, above GPT-3.5 but well below the API-accessed models. 
+
+RQ2: Prompting strategies (Table 2). We select the six best-performing models from RQ1 (one to two per provider, excluding lower-scoring variants) and test whether few-shot examples and minimal-edits constraints can reduce the overcorrection ob-served in RQ1. 
+
+Best results and gap to SOTA. Combining few-shot examples with minimal-edits instructions, minimal-edits + few-shot yields the best or near-best 𝐹 0.5 for every model. Claude Opus 4.6 (𝐹 0.5 = 63 .73 ) and Gemini 3.1-Pro (63.68) effec-tively tie despite different zero-shot starting points.                                                                                                                 
+
+> 7Lapa (Paniv et al., 2025) is an open-source Ukrainian LLM fine-tuned with GEC-style prompts different from ours, and the only non-API-accessed model in our evaluation. We include it as a reference point for open-weight Ukrainian-centric models, though a full comparison with open-source alternatives is beyond the scope of this work. Model Prompting Strategy Lang. Prec. Rec. F0.5
+> Baseline: fine-tuned SOTA
+> mT5-large ‡––76.81 61.39 73.14
+> GPT-4.1-mini zero-shot (A.1.1) EN 39.06 51.92 41.09 few-shot (A.2.1) EN 44.75 59.73 47.11 minimal-edits + zero-shot (A.3.1) UA 46.66 51.52 47.56 minimal-edits + few-shot (A.4.1) UA 47.16 51.48 47.97
+> GPT-5.4 zero-shot (A.1.1) EN 36.87 62.96 40.20 few-shot (A.2.1) EN 46.24 66.67 49.26 minimal-edits + zero-shot (A.3.1) UA 57.05 63.18 58.18 minimal-edits + few-shot (A.4.1) UA 60.02 58.40 59.69
+> Claude Sonnet 4.6 zero-shot (A.1.1) EN 41.79 45.83 42.54 few-shot (A.2.1) EN 52.52 56.26 53.23 minimal-edits + zero-shot (A.3.1) UA 62.44 48.55 59.06 minimal-edits + few-shot (A.4.1) UA 61.96 49.10 58.88
+> Claude Opus 4.6 zero-shot (A.1.1) EN 47.60 46.20 47.30 few-shot (A.2.1) EN 56.83 55.93 56.65 minimal-edits + zero-shot (A.3.1) UA 67.63 47.08 62.20 minimal-edits + few-shot (A.4.1) UA 68.54 49.75 63.73
+> Gemini 3-Flash zero-shot (A.1.1) EN 39.09 64.85 42.46 few-shot (A.2.1) EN 48.48 72.01 51.87 minimal-edits + zero-shot (A.3.1) UA 53.29 66.40 55.48 minimal-edits + few-shot (A.4.1) UA 60.28 66.18 61.38
+> Gemini 3.1-Pro zero-shot (A.1.1) EN 41.50 58.03 44.01 few-shot (A.2.1) EN 54.92 66.25 56.86 minimal-edits + zero-shot (A.3.1) UA 60.49 65.24 61.38 minimal-edits + few-shot (A.4.1) UA 63.76 63.35 63.68
+
+Table 2: RQ2: Effect of prompting strategies on the UNLP 2023 test set. Zero-shot and few-shot use EN prompts; minimal-edits variants use UA prompts (see Section 3 for rationale). Lang. denotes the language of the zero-shot instructions in the system prompt: Ukrainian (UA) or English (EN). For each model, we report the best configuration per strategy. Bold marks the best result per column among API-accessed models. ‡Gomez et al. (2023). 
+
+GPT-5.4 shows the largest absolute gain ( +19.5 points), recovering from the weakest zero-shot re-sult to a competitive 59.69. However, even the best prompted result falls 9.4 points below the fine-tuned SOTA of 73.14, with the gap concentrated in precision (P =76.81 vs. 68.54). The minimal-edits instruction suppresses the most egregious false positives, but a long tail of borderline corrections remains that likely requires task-specific fine-tuning. 
+
+Few-shot gains. Adding few-shot examples to the zero-shot prompt produces moderate but reliable gains of +6–13 𝐹 0.5 points, driven by improvements in both precision and recall. The gains are largest for Gemini 3.1-Pro ( +12.85) and smallest for GPT-4.1-mini ( +6.02). 
+
+Minimal-edits instructions matter most. The minimal-edits constraint has a larger effect than few-shot examples. Switching from a generic EN prompt to a UA minimal-edits instruction, even without few-shot examples, already matches or exceeds few-shot-only performance for five out of six models. The most striking case is GPT-5.4: minimal-edits + zero-shot alone yields 𝐹 0.5 =
+
+58 .18 , a full 9 points above its few-shot score of 49.26. The mechanism is a sharp precision increase (+8–21 points across models) with modest recall change, meaning the constraint reduces unnecessary edits without hurting the model’s ability to catch real errors. 
+
+Overall trends. Across all six models, 𝐹 0.5 im-proves consistently along the progression: zero-shot < few-shot < minimal-edits + zero-shot ≤
+
+minimal-edits + few-shot, with one notable excep-tion: Claude Sonnet 4.6 peaks at minimal-edits + zero-shot (59.06) and slightly drops with the addi-tion of few-shot examples (58.88). As discussed in Section 3, the minimal-edits prompts are written in Ukrainian by design, so we cannot fully separate the effect of prompt language from the effect of the prompting strategy itself. Model Prompting Strategy Lang. Prec. Rec. F0.5                                                            
+
+> Baseline: fine-tuned SOTA
+> mT5-large ‡––76.81 61.39 73.14
+> GPT-4.1-mini minimal-edits + few-shot (A.4.1) UA 47.16 51.48 47.97 minimal-edits + few-shot + optimized-v1 (A.5.1) UA 55.75 51.49 54.84
+> GPT-5.4 minimal-edits + few-shot (A.4.1) UA 60.02 58.40 59.69 minimal-edits + few-shot + optimized-v1 (A.5.1) UA 63.94 51.75 61.07
+> Claude Sonnet 4.6 minimal-edits + zero-shot 8(A.3.1) UA 62.44 48.55 59.06 minimal-edits + few-shot + optimized-v1 (A.5.1) UA 66.73 36.58 57.29
+> Claude Opus 4.6 minimal-edits + few-shot (A.4.1) UA 68.54 49.75 63.73 minimal-edits + few-shot + optimized-v1 (A.5.1) UA 66.54 38.27 57.98
+> Gemini 3-Flash minimal-edits + few-shot (A.4.1) UA 60.28 66.18 61.38 minimal-edits + few-shot + optimized-v2 (A.5.2) UA 69.98 62.87 68.43
+> Gemini 3.1-Pro minimal-edits + few-shot (A.4.1) UA 63.76 63.35 63.68 minimal-edits + few-shot + optimized-v2 (A.5.2) UA 70.77 63.63 69.22
+
+Table 3: RQ3: Effect of LLM-assisted prompt optimization, evaluated on the UNLP 2023 test set. Optimized-v1 was tuned on GPT-4.1-mini, optimized-v2 on Gemini 3-Flash; both were then transferred to other models. Lang. denotes the language of the zero-shot instructions in the system prompt: Ukrainian (UA) or English (EN). For each model, the first row shows the best manual prompt result (from Table 2); the second row shows the best optimized result. Bold marks the best result per column among API-accessed models. ‡Gomez et al. (2023). 
+
+RQ3: LLM-assisted prompt optimization (Ta-ble 3). Best results and gap to SOTA. The best opti-mized result is Gemini 3.1-Pro with minimal-edits + few-shot + optimized-v2 (A.5.2; 𝐹 0.5 = 69 .22 ), followed closely by Gemini 3-Flash with the same prompt (68.43). This narrows the gap to fine-tuned SOTA from 9.5 to 3.9 points. The gain on the target model is precision-driven: precision rises from 63.76 to 70.77 ( +7.0) while recall remains nearly unchanged (63.35 → 63.63). The remaining 3.9-point gap is concentrated in precision (70.77 vs. 76.81), suggesting that closing it likely requires more focused instructions. 
+
+Improvement within Gemini. Since the minimal-edits + few-shot + optimized-v2 prompt (A.5.2) was tuned directly on Gemini 3-Flash, its strong gain on that model ( 𝐹 0.5: 61.38 → 68.43, 
+
++7.05) is expected. More notably, the same prompt transfers successfully to Gemini 3.1-Pro, which achieves the overall best result ( 𝐹 0.5 = 69 .22 ), indicating that optimization on a smaller model within the family can benefit larger variants. 
+
+Improvement on GPT. GPT models show mixed results. GPT-4.1-mini gains +6.87 points (47.97 
+
+→ 54.84), a substantial improvement but still the weakest absolute result. GPT-5.4 gains only +1.38 (59.69 → 61.07), suggesting that the stronger model already captures most correction patterns encoded 
+
+Figure 2: RQ4: Per-error-type 𝐹 0.5 on the UNLP 2023 test set. Baseline: GPT-4.1-mini (zero-shot (A.1.1), EN); Optimized: Gemini 3.1-Pro (minimal-edits + few-shot + optimized-v2 (A.5.2), UA). Error types sorted as in Table 4 (by baseline overcorrection ratio, descending). 
+
+in the optimized prompt. 
+
+No improvement on Claude. The optimized prompt degrades both Claude models: Opus drops by −5.75 points (63.73 → 57.98) and Sonnet by 
+
+−1.77 points (59.06 → 57.29), driven largely by a recall collapse (Opus: 49.75 → 38.27; Sonnet: 48.55 → 36.58). Claude appears to interpret the optimized rules too conservatively, suppressing genuine corrections alongside false positives. This finding shows that optimization on one model fam-ily does not necessarily guarantee improvement on another. Error Type GPT-4.1-mini Gemini 3.1-Pro                          
+
+> Other 3.67 0.50 G/Ungramm. 2.50 2.00 G/Case 1.88 0.39 G/VerbVoice 1.50 –G/Other 1.00 0.00 Punctuation 0.95 0.26 G/Prep 0.86 –G/Gender 0.60 0.22 Spelling 0.59 0.25 G/Conjunction 0.40 ∞
+> G/Number 0.17 0.00
+> Table 4: RQ4: Overcorrection ratio (FP/TP) per error type; lower is better. The two columns compare the weakest (GPT-4.1-mini, zero-shot (A.1.1), EN) and strongest (Gemini 3.1-Pro, minimal-edits + few-shot + optimized-v2 (A.5.2), UA) configurations from Tables 2– 3; note that both model and prompt differ. Rows sorted by GPT-4.1-mini ratio (descending); overcorrection (more false positives than true positives) occurs above 1.0. “–” indicates no predictions for that type; ∞indicates only false positives.
+
+RQ4: Where do minimal-edits instructions help and where do they fail? (Figure 2, Table 4). 
+
+We compare per-error-type 𝐹 0.5 between a standard zero-shot prompt (GPT-4.1-mini) and our best op-timized prompt (Gemini 3.1-Pro, minimal-edits + few-shot + optimized-v2; A.5.2) to identify which error categories benefit most from detailed minimal-edits instructions. Note that this comparison reflects the combined effect of model choice, prompt strat-egy, and prompt language; we select these two configurations as the weakest and strongest end-points of our evaluation pipeline. 
+
+Where minimal-edit instructions help. The largest 𝐹 0.5 gains appear in categories amenable to explicit rules. Punctuation improves from 50.67 to 77.56 ( +26.9), G/Case from 32.82 to 61.83 ( +29.0), and G/Gender from 64.94 to 77.59 ( +12.7). The overcorrection ratios in Table 4 confirm the mecha-nism: FP/TP drops from 0.95 to 0.26 for Punctua-tion, from 1.88 to 0.39 for G/Case, and from 0.60 to 0.22 for G/Gender. Spelling and G/Number are reliable under both configurations. 
+
+Where minimal-edit instructions fail. Three categories drop to 𝐹 0.5 = 0 under the optimized prompt: G/Prep, G/VerbVoice, and G/Conjunc-tion. The baseline achieves non-trivial 𝐹 0.5 scores on these types (51.47, 34.48, and 69.44), but the detailed minimal-edits rules cause the model to avoid these corrections entirely. G/Ungrammati-calStructure remains persistently overcorrected in both settings ( 𝐹 0.5: 28.17 → 28.04), indicating a structural difficulty that instructions cannot resolve. 
+
+Ukrainian-specific overcorrection patterns. Er-ror analysis reveals five recurring patterns spe-cific to Ukrainian, driven by the interaction be-tween English-calibrated correction heuristics and Ukrainian linguistic norms. Below, we report false positive counts out of 1,274 test sentences. 
+
+En-dash over-normalization (– → —; ∼49 FP, 3.8% of sentences). Em-dashes are obligatory in di-rect speech but not elsewhere; the model generalizes the rule indiscriminately. 
+
+Dialogue reformatting (∼40 FP, 3.1% of sen-tences). The model converts acceptable quote-style dialogue ( «текст», — сказав ‘ "text," — said’) to dash-style, applying a real Ukrainian norm where none was required. A single prohibition rule was sufficient to suppress this pattern. 
+
+Synonym and register substitution (∼30 FP, 2.4% of sentences). Acceptable words are re-placed with literary alternatives ( знаходиться ‘is located’ → перебуває ‘is situated’), violating the minimal-edit constraint. 
+
+Euphonic preposition alternation (в/у ‘v/u’, 
+
+з/iз/зi ‘z/iz/zi’; ∼17 FP, 1.3% of sentences). Ukrainian preposition choice is phonetically con-ditioned; the model both over- and under-corrects within the same category. 
+
+Collapse of morphological variants. Ukrainian admits multiple grammatically correct surface forms ( навчались /навчалися ‘studied’, їх /їхнiй 
+
+‘their’); the model collapses these to a single pre-ferred form. This space of acceptable alternations is open-ended and cannot be exhaustively covered by prompt examples. These patterns share a common cause: the model’s correction heuristics are calibrated to En-glish, where most of these alternations do not exist. Overall, our strongest prompt (Gemini 3.1-Pro, minimal-edits + few-shot + optimized-v2 (A.5.2), UA) significantly reduces overcorrection for high-frequency, rule-based categories (Table 4), but at the cost of the model becoming too conservative on low-frequency grammatical categories. 
+
+## 5 Conclusion 
+
+We presented the first systematic evaluation of prompting strategies for minimal-edit Ukrainian GEC using API-accessed LLMs. While fine-tuned models currently dominate GEC benchmarks, we show that prompting alone can be competitive. On the UNLP 2023 benchmark, our best configuration (Gemini 3.1-Pro with LLM-assisted optimization) reaches 𝐹 0.5 = 69 .22 , closing over 90% of the gap between the previous API-accessed result of Katinskaia and Yangarber (2024) (GPT-3.5, 𝐹 0.5 =
+
+27 .4) and the fine-tuned SOTA of Gomez et al. (2023) (mT5-large, 𝐹 0.5 = 73 .14 ). Our findings yield four takeaways. First, for zero-shot and few-shot prompts, English is suf-ficient for most models; only Claude benefits from Ukrainian prompts (RQ1). Our best over-all results, however, use Ukrainian minimal-edits prompts, as the language-specific rules they encode require Ukrainian to express precisely. Second, the minimal-edits strategy provides the largest gains, outperforming both zero-shot and few-shot base-lines across all models (RQ2). Third, LLM-assisted prompt optimization yields further improvements on the model family it was optimized for, but does not transfer reliably across families (RQ3). Fourth, minimal-edits instructions yield the largest per-category gains for punctuation and case er-rors, but cause the model to abandon several low-frequency grammatical categories entirely, reveal-ing a precision-recall tradeoff inherent to detailed prompting (RQ4). 
+
+## Limitations 
+
+Our study has several limitations: 1. We evaluate on a single benchmark (UNLP 2023 GEC-only); results may not generalize to other Ukrainian GEC datasets or domains. 2. Although we include a single open-source model (Lapa v0.1.2) as a reference point, we do not systematically compare against open-weight models (e.g., Llama 3, Mistral, Lapa, MamayLM) that could be prompted or fine-tuned without API costs, leaving this as future work. 3. API-accessed models are opaque and subject to unannounced updates, making exact repro-ducibility difficult. 4. Although the UNLP 2023 test gold annota-tions are held out, the upstream UA-GEC train and valid splits are publicly available. Since UA-GEC train is the source of our few-shot exemplars, it is plausible that commercial LLMs encountered similar sentences and anno-tation patterns during pretraining, which could inflate recall on a corpus sharing the same annotation conventions. A cleaner control would draw exemplars from an independent Ukrainian GEC corpus, but no comparable dataset currently exists, so we treat our results as establishing initial prompting baselines; prior API-accessed results for Ukrainian GEC at this scale are essentially absent. 5. We run each configuration only once; since LLM outputs are not fully deterministic, re-produced scores may differ/cos slightly. 6. Our LLM-assisted prompt optimization pipeline optimizes 𝐹 0.5 on the development set, which may overfit to its error distribution. 7. All our experiments are evaluated with span-based 𝐹 0.5 computed by ERRANT, the official metric of the UNLP 2023 shared task (Sy-vokon and Romanyshyn, 2023); this differs from GLEU used in MultiGEC-2025 (Masci-olini et al., 2025), so scores are not directly comparable across benchmarks. 8. Optimized prompts are substantially longer (roughly 32 × the zero-shot baseline; see Fig-ure 1), which may increase token cost and latency. Prompt caching, now widely sup-ported by providers, amortizes much of this overhead, making the net cost hard to estimate. 
+
+## Ethical Considerations 
+
+In accordance with the conference policy on AI-based writing assistance, we disclose that ChatGPT, Claude, Gemini, and Grammarly were used for draft-ing, editing, and proofreading. All AI-generated text was reviewed by the authors, who take full responsibility for the final content. 
+
+## Acknowledgments 
+
+We are deeply grateful to YouScan for fostering an inspiring environment that encourages both re-search and professional development. We also express our appreciation to the Faculty of Applied Sciences at the Ukrainian Catholic University for supporting this work as part of an M.Sc. thesis program. We gratefully acknowledge Mariana Ro-manyshyn and Oleksiy Syvokon for their assistance with the UNLP 2023 Shared Task. Finally, we extend our sincere gratitude to the anonymous re-viewers for their insightful feedback and dedicated efforts in refining this manuscript. References 
+
+Maksym Bondarenko, Artem Yushko, and Andrii Sh-portko. 2023. Comparative study of models trained on synthetic data for Ukrainian grammatical error correction. In Proceedings of the Second Ukrainian Natural Language Processing Workshop (UNLP) ,pages 103–113, Dubrovnik, Croatia. Association for Computational Linguistics. Christopher Bryant, Mariano Felice, Øistein E. Ander-sen, and Ted Briscoe. 2019. The BEA-2019 shared task on grammatical error correction. In Proceedings of the Fourteenth Workshop on Innovative Use of NLP for Building Educational Applications , pages 52–75, Florence, Italy. Association for Computational Linguistics. Christopher Bryant, Zheng Yuan, Muhammad Reza Qorib, Hannan Cao, Hwee Tou Ng, and Ted Briscoe. 2023. Grammatical error correction: A survey of the state of the art. Computational Linguistics , 49(3):643– 701. Frank Palma Gomez, Alla Rozovskaya, and Dan Roth. 2023. A low-resource approach to the grammatical error correction of Ukrainian. In Proceedings of the Second Ukrainian Natural Language Process-ing Workshop (UNLP) , pages 114–119, Dubrovnik, Croatia. Association for Computational Linguistics. Anisia Katinskaia and Roman Yangarber. 2024. GPT-3.5 for grammatical error correction. In Proceed-ings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024) , pages 7831–7843, Torino, Italia. ELRA and ICCL. Roman Kovalchuk, Mariana Romanyshyn, and Petro Ivaniuk. 2025. Introducing OmniGEC: A silver mul-tilingual dataset for grammatical error correction. In 
+
+Proceedings of the Fourth Ukrainian Natural Lan-guage Processing Workshop (UNLP) , pages 162–178, Vienna, Austria. Association for Computational Lin-guistics. Mengsay Loem, Masahiro Kaneko, Sho Takase, and Naoaki Okazaki. 2023. Exploring effectiveness of GPT-3 in grammatical error correction: A study on performance and controllability in prompt-based methods. In Proceedings of the 18th Workshop on Innovative Use of NLP for Building Educational Applications (BEA 2023) , pages 205–219, Toronto, Canada. Association for Computational Linguistics. Agnes Luhtaru, Taido Purason, Martin Vainikko, and Maali Helin Del. 2024. To err is human, but lla-mas can learn it too. In Proceedings of the Third Ukrainian Natural Language Processing Workshop (UNLP) , Torino, Italia. Association for Computational Linguistics. Arianna Masciolini, Andrew Caines, Orphée De Clercq, Joni Kruijsbergen, Murathan Kurfalı, Ricardo Muñoz Sánchez, Elena Volodina, and Robert Östling. 2025. The MultiGEC-2025 shared task on multilin-gual grammatical error correction at NLP4CALL. In 
+
+Proceedings of the 14th Workshop on Natural Lan-guage Processing for Computer Assisted Language Learning (NLP4CALL 2025) , pages 1–33, Tallinn, Estonia. University of Tartu Library. Courtney Napoles, Keisuke Sakaguchi, and Joel Tetreault. 2017. JFLEG: A fluency corpus and bench-mark for grammatical error correction. In Proceed-ings of the 15th Conference of the European Chapter of the Association for Computational Linguistics: Vol-ume 2, Short Papers , pages 229–234, Valencia, Spain. Association for Computational Linguistics. Hwee Tou Ng, Siew Mei Wu, Ted Briscoe, Christian Hadiwinoto, Raymond Hendy Susanto, and Christo-pher Bryant. 2014. The CoNLL-2014 shared task on grammatical error correction. In Proceedings of the Eighteenth Conference on Computational Natu-ral Language Learning: Shared Task , pages 1–14, Baltimore, Maryland. Association for Computational Linguistics. Yurii Paniv, Bohdan Didenko, Mykola Haltiuk, Vla-dyslav Humennyy, Andrian Kravchenko, Roman Kyslyi, Viktoriia Makovska, Artem Orlovskyi, Bo-hdan Ruban, Maksym-Yurii Rudko, Anastasiia Senyk, Nazarii Drushchak, Dmytro Chaplynskyi, and Mar-iana Romanyshyn. 2025. Lapa LLM v0.1.2 — the most efficient Ukrainian open-source language model. Reid Pryzant, Dan Iter, Jerry Li, Yin Lee, Chenguang Zhu, and Michael Zeng. 2023. Automatic prompt op-timization with “gradient descent” and beam search. In Proceedings of the 2023 Conference on Empiri-cal Methods in Natural Language Processing , pages 7957–7968, Singapore. Association for Computa-tional Linguistics. Kiran Ramnath, Kang Zhou, Sheng Guan, Soumya Sm-ruti Mishra, Xuan Qi, Zhengyuan Shen, Shuai Wang, Sangmin Woo, Sullam Jeoung, Yawei Wang, Haozhu Wang, Han Ding, Yuzhe Lu, Zhichao Xu, Yun Zhou, Balasubramaniam Srinivasan, Qiaojing Yan, Yueyan Chen, Haibo Ding, and 2 others. 2025. A systematic survey of automatic prompt optimization techniques. In Proceedings of the 2025 Conference on Empiri-cal Methods in Natural Language Processing , pages 33078–33110, Suzhou, China. Association for Com-putational Linguistics. Aman Saini, Artem Chernodub, Vipul Raheja, and Vivek Kulkarni. 2024. Spivavtor: An instruction tuned Ukrainian text editing model. In Proceedings of the Third Ukrainian Natural Language Process-ing Workshop (UNLP) , pages 95–108, Torino, Italia. ELRA and ICCL. Ryszard Staruch, Filip Graliński, and Daniel Dzienisiewicz. 2025. Adapting LLMs for minimal-edit grammatical error correction. In Proceedings of the 20th Workshop on Innovative Use of NLP for Building Educational Applications (BEA 2025) , pages 118–128, Vienna, Austria. Association for Computa-tional Linguistics. Oleksiy Syvokon and Mariana Romanyshyn. 2023. The UNLP 2023 shared task on grammatical error cor-rection for Ukrainian. In Proceedings of the Second Ukrainian Natural Language Processing Workshop (UNLP) , pages 120–131, Dubrovnik, Croatia. Associ-ation for Computational Linguistics. Xinyuan Wang, Chenxi Li, Zhen Wang, Fan Bai, Haotian Luo, Jiayou Zhang, Nebojsa Jojic, Eric P. Xing, and Zhiting Hu. 2024. PromptAgent: Strategic planning with language models enables expert-level prompt optimization. In The Twelfth International Confer-ence on Learning Representations , Vienna, Austria. OpenReview.net. Chengrun Yang, Xuezhi Wang, Yifeng Lu, Hanxiao Liu, Quoc V. Le, Denny Zhou, and Xinyun Chen. 2024. Large language models as optimizers. arXiv preprint arXiv:2309.03409 .A Prompts 
+
+Below we list all prompts in both English ( en )and Ukrainian ( ua ) versions. The placeholder 
+
+{sentence} is replaced with the input sentence at inference time. 
+
+A.1 Zero-shot prompts 
+
+The baseline prompt provides only a task descrip-tion with no examples. 
+
+A.1.1 Zero-shot prompt (EN) 
+
+Reply with a corrected version of the sentence with all grammatical and spelling errors fixed. If there are no errors, reply with acopy of the original sentence. Input sentence: <input_text> Corrected sentence: 
+
+A.1.2 Zero-shot prompt (UA) 
+
+Надай виправлену версiю речення з ви-правленими всiма граматичними та орфо-графiчними помилками. Якщо помилок немає, надай копiю оригi-нального речення. Вхiдне речення: <input_text> Виправлене речення: 
+
+(English: ‘Provide a corrected version of the sen-tence with all grammatical and spelling errors fixed. If there are no errors, provide a copy of the original sentence. Input sentence: <input_text>. Corrected sentence:’) 
+
+A.2 Few-shot prompts 
+
+The few-shot prompt prepends source–target pairs selected from the training set to cover spelling, punctuation, and morphological error types. 
+
+A.2.1 Few-shot prompt (EN) 
+
+[Same header as Prompt 1] Examples: Input: Так само потерпає Україна i сьо-годнi вiд того що насправдi талановитим людям заважають працювати усiлякi по-середностi "у руля". 
+
+Output: Так само потерпає Україна i сьо-годнi вiд того, що насправдi талановитим людям заважають працювати усiлякi по-середностi "у руля". 
+
+Input: Це пов’язано з тим, що такi коле-ктивнi рухи молекул води сильно збiль-шують характернi часи процесiв якi вiд-буваються в системi. 
+
+Output: Це пов’язано з тим, що такi ко-лективнi рухи молекул води сильно збiль-шують характернi часи процесiв, якi вiд-буваються в системi. 
+
+Input: Я нiколи не навчався у медичному коледжi, кажу, - Я лиш пiдiйшов як зви-чайна людина подивитись чи можу бути чимось корисний. 
+
+Output: Я нiколи не навчався у медично-му коледжi, кажу, - Я лиш пiдiйшов як звичайна людина подивитись, чи можу бути чимось корисний. 
+
+Input: Це у мiстi швидка приїжджає, за-бирає хворого i везе у лiкарню; якщо ж до лiкарнi кiлька годин льоту то хворого можна i не довезти. 
+
+Output: Це у мiстi швидка приїжджає, за-бирає хворого i везе у лiкарню; якщо ж до лiкарнi кiлька годин льоту, то хворого можна i не довезти. 
+
+Input: Найбiльше вiн любив тримати в руках старанно орнаментованi стародав-нi шолом i меч, котрi своїм золотом, зда-ється грiли старого. 
+
+Output: Найбiльше вiн любив тримати в руках старанно орнаментованi стародавнi шолом i меч, котрi своїм золотом, здає-ться, грiли старого. 
+
+Input: - Я часто казав тобi, що ти дур-ненька, - сказав вiн. 
+
+Output: — Я часто казав тобi, що ти дур-ненька, — сказав вiн. 
+
+Input: Така традицiя також походить з Вiзантiї, прикладом є зображення Андро-нiка II Палеолога. 
+
+Output: Така традицiя також походить iз Вiзантiї, прикладом є зображення Андро-нiка II Палеолога. 
+
+Input: Як i бiльшiсть дiлових людей, вiн не знав напамять жодного вiрша i не па-мятав жодної казки, а тому щоразу мусив iмпровiзувати. 
+
+Output: Як i бiльшiсть дiлових людей, вiн не знав напам’ять жодного вiрша i не па-мятав жодної казки, а тому щоразу мусив iмпровiзувати. 
+
+Input: Настя, привiт! я хотiла уточнити про завдання Олi. 
+
+Output: Насте, привiт! Я хотiла уточнити про завдання Олi. 
+
+Input: Я принесу твої улюбленi солодощi та обнiму тебе мiцно-мiцно. 
+
+Output: Я принесу твої улюбленi солодо-щi та обнiму тебе мiцно-мiцно. 
+
+Input: Смакота ще та, скажу я вам)) 
+
+Output: Смакота ще та, скажу я вам)) 
+
+Input: У той час глибокий сенс народної мудростi нам був ще недоступним через брак досвiду. 
+
+Output: У той час глибокий сенс народної мудростi нам був ще недоступним через брак досвiду. 
+
+Input: Каналiзацiя в будинках еволюцiо-нує повiльно, але все ж таки змiнюється. 
+
+Output: Каналiзацiя в будинках еволюцiо-нує повiльно, але все ж таки змiнюється. 
+
+Input sentence: {input_text} Corrected sentence: 
+
+A.2.2 Few-shot prompt (UA) 
+
+[Той самий заголовок, що i в Prompt 1] 
+
+(English: ‘[Same header as Prompt 1]’) Приклади: (‘Examples:’) 
+
+Вхiд: Так само потерпає Україна i сього-днi вiд того що насправдi талановитим людям заважають працювати усiлякi посередностi "у руля". Вихiд: Так само потерпає Україна i сьо-годнi вiд того, що насправдi талановитим людям заважають працювати усiлякi посередностi "у руля". Вхiд: Я нiколи не навчався у медичному коледжi, кажу, - Я лиш пiдiйшов як звичайна людина подивитись чи можу бути чимось корисний. Вихiд: Я нiколи не навчався у медичному коледжi, кажу, - Я лиш пiдiйшов як звичайна людина подивитись, чи можу бути чимось корисний. Вхiд: Це у мiстi швидка приїжджає, забирає хворого i везе у лiкарню; якщо ж до лiкарнi кiлька годин льоту то хворого можна i не довезти. Вихiд: Це у мiстi швидка приїжджає, забирає хворого i везе у лiкарню; якщо ж до лiкарнi кiлька годин льоту, то хворого можна i не довезти. Вхiд: Найбiльше вiн любив тримати вруках старанно орнаментованi старо-давнi шолом i меч, котрi своїм золотом, здається грiли старого. Вихiд: Найбiльше вiн любив тримати в руках старанно орнаментованi старо-давнi шолом i меч, котрi своїм золотом, здається, грiли старого. Вхiд: - Я часто казав тобi, що ти дур-ненька, - сказав вiн. Вихiд: — Я часто казав тобi, що ти дурненька, — сказав вiн. Вхiд: Така традицiя також походить з Вiзантiї, прикладом є зображення Андронiка II Палеолога. Вихiд: Така традицiя також походить iз Вiзантiї, прикладом є зображення Андронiка II Палеолога. Вхiд: Як i бiльшiсть дiлових людей, вiн не знав напамять жодного вiрша i не памятав жодної казки, а тому щоразу мусив iмпровiзувати. Вихiд: Як i бiльшiсть дiлових людей, вiн не знав напам’ять жодного вiрша i не памятав жодної казки, а тому щоразу мусив iмпровiзувати. Вхiд: Настя, привiт! я хотiла уточнити про завдання Олi. Вихiд: Насте, привiт! Я хотiла уточнити про завдання Олi. Вхiд: Я принесу твої улюбленi солодощi та обнiму тебе мiцно-мiцно. Вихiд: Я принесу твої улюбленi солодощi та обнiму тебе мiцно-мiцно. Вхiд: Смакота ще та, скажу я вам)) Вихiд: Смакота ще та, скажу я вам)) Вхiд: У той час глибокий сенс народної мудростi нам був ще недоступним через брак досвiду. Вихiд: У той час глибокий сенс народної мудростi нам був ще недоступним через брак досвiду. Вхiд: Каналiзацiя в будинках еволюцiо-нує повiльно, але все ж таки змiнюється. Вихiд: Каналiзацiя в будинках еволюцiо-нує повiльно, але все ж таки змiнюється. Вхiдне речення: {input_text} Виправлене речення: 
+
+(English: Вхiд / Вихiд = ‘Input’/‘Output’; Вхi-дне речення = ‘Input sentence’; Виправлене речення = ‘Corrected sentence’. The few-shot examples are the same Ukrainian GEC sentence pairs as in the EN variant (A.2.1), with Ukrainian keywords.) 
+
+A.3 Minimal-edits zero-shot prompts 
+
+This prompt replaces the generic system prompt with a detailed minimal-edit instruction containing Ukrainian-specific grammar rules. No few-shot examples are included. 
+
+A.3.1 Minimal-edits zero-shot prompt (UA) 
+
+Ти — система виправлення україн-ських граматичних помилок. Внось МIНIМАЛЬНI змiни, щоб виправити ЛИШЕ явнi граматичнi, орфографiчнi та пунктуацiйнi помилки. НЕ переписуй, не перефразовуй i не замiнюй слова синонiмами. Точно зберiгай оригiнальне формулювання. Виправляй ЛИШЕ такi типи помилок: 1. Орфографiя: явнi орфографiчнi по-милки (друкарськi помилки, неправильнi лiтери). 2. Пунктуацiя: пропущенi або зайвi коми, крапки, знаки питання; використання тире (—) замiсть дефiса (-) у дiалогах та вставних конструкцiях. 3. G/Case: некоректне вживання вiдмiн-кової форми (зокрема кличний вiдмiнок при звертаннях). 4. G/Gender: некоректне вживання форми роду. 5. G/Number: некоректне вживання форми числа. 6. G/Aspect: некоректне вживання форми виду дiєслова. 7. G/Tense: некоректне вживання часової форми дiєслова. 8. G/VerbVoice: некоректне вживання форми стану дiєслова. 9. G/PartVoice: некоректне вживання форми стану дiєприкметника. 10. G/VerbAForm: некоректне вживання аналiтичної форми дiєслова. 11. G/Prep: некоректне вживання при-йменника. 12. G/Participle: некоректне вживання дiєприслiвника. 13. G/UngrammaticalStructure: порушення граматичних норм у синтаксичних конструкцiях. 14. G/Comparison: некоректна форма ступенiв порiвняння. 15. G/Conjunction: некоректне вживання сполучникiв. 16. G/Other: iншi граматичнi помилки. ВАЖЛИВI ПРАВИЛА УКРАЇНСЬКОЇ МОВИ: - Прийменник «у» вживається перед приголосними (у школi, у мiстi, у готелi), «в» — перед голосними та на початку речення. - Прийменник «об» вживається перед голосними (об одинадцятiй), «о» — перед приголосними. - У дiалогах вживається тире (—), а не дефiс (-): «Текст», — сказав вiн. — Текст далi. - Вставнi слова (може, мабуть, звичайно, здається) видiляються комами з обох бокiв. - Кличний вiдмiнок при звертаннях: Настя → Насте, Олег → Олеже, мама →
+
+мамо. СУВОРI ПРАВИЛА: - Виправляй ЛИШЕ явнi помилки, пере-лiченi вище - Для кожної помилки внось НАЙМЕН-ШУ можливу змiну - НIКОЛИ не замiнюй слова синонiмами i не перефразовуй (залишай «буду йти», НЕ змiнюй на «пiду») - НIКОЛИ не змiнюй слово на iнше, якщо воно не аписане з помилкою - Зберiгай оригiнальний стиль лапок ("або «»), НЕ перетворюй один тип лапок на iнший - Зберiгай оригiнальне використання вели-ких/малих лiтер, якщо це не явна помилка - Якщо граматична форма є прийнятною, залишай її, навiть якщо можлива й iнша форма - Якщо є сумнiв, НЕ змiнюй - Якщо помилок немає, повертай оригi-нальний текст БЕЗ ЗМIН - Поверни ЛИШЕ виправлений текст 
+
+English translation of the above prompt: 
+
+You are a Ukrainian grammatical error correction system. Make MINIMAL changes to fix ONLY obvious grammatical, spelling, and punctuation errors. Do NOT rewrite, rephrase, or substitute synonyms. Preserve the original wording exactly. Fix ONLY the following types of errors: 1. Spelling: obvious spelling errors (typos, wrong letters). 2. Punctuation: missing or extra commas, peri-ods, question marks; use of em-dash (—) instead of hyphen (-) in dialogues and parenthetical con-structions. 3. G/Case: incorrect case form (especially voca-tive case in forms of address). 4. G/Gender: incorrect gender form. 5. G/Number: incorrect number form. 6. G/Aspect: incorrect verb aspect form. 7. G/Tense: incorrect verb tense form. 8. G/VerbVoice: incorrect verb voice form. 9. G/PartVoice: incorrect participle voice form. 10. G/VerbAForm: incorrect analytical verb form. 11. G/Prep: incorrect preposition usage. 12. G/Participle: incorrect adverbial participle usage. 13. G/UngrammaticalStructure: grammatical norm violations in syntactic constructions. 14. G/Comparison: incorrect comparative/su-perlative form. 15. G/Conjunction: incorrect conjunction usage. 16. G/Other: other grammatical errors. IMPORTANT RULES OF UKRAINIAN: - Preposition “u” is used before consonants (u shkoli, u misti), “v” before vowels and at sentence start. - Preposition “ob” is used before vowels (ob odyn-nadtsiatii), “o” before consonants. - Em-dash (—) is used in dialogues, not hyphen (-). - Parenthetical words (maybe, probably, of course, it seems) are set off by commas on both sides. - Vocative case in forms of address: Nastia →
+
+Naste, Oleh → Olezhe, mama → mamo. STRICT RULES: - Fix ONLY obvious errors listed above - For each error, make the SMALLEST possible change - NEVER substitute synonyms or rephrase - NEVER change a word to another unless it is misspelled - Preserve original quote style, do NOT convert one type to another - Preserve original capitalization unless it is a clear error - If a grammatical form is acceptable, leave it even if another form is possible - If in doubt, do NOT change - If there are no errors, return the original text WITHOUT CHANGES - Return ONLY the corrected text 
+
+A.4 Minimal-edits few-shot prompts 
+
+This prompt combines the minimal-edits system prompt (Appendix A.3) with few-shot examples from the training set. 
+
+A.4.1 Minimal-edits few-shot prompt (UA) 
+
+Ти — система виправлення україн-ських граматичних помилок. Внось МIНIМАЛЬНI змiни, щоб виправити ЛИШЕ явнi граматичнi, орфографiчнi та пунктуацiйнi помилки. НЕ переписуй, не перефразовуй i не замiнюй слова синонiмами. Точно зберiгай оригiнальне формулювання. Виправляй ЛИШЕ такi типи помилок: 1. Орфографiя: явнi орфографiчнi по-милки (друкарськi помилки, неправильнi лiтери). 2. Пунктуацiя: пропущенi або зайвi коми, крапки, знаки питання; використання тире (—) замiсть дефiса (-) у дiалогах та вставних конструкцiях. 3. G/Case: некоректне вживання вiдмiн-кової форми (зокрема кличний вiдмiнок при звертаннях). 4. G/Gender: некоректне вживання форми роду. 5. G/Number: некоректне вживання форми числа. 6. G/Aspect: некоректне вживання форми виду дiєслова. 7. G/Tense: некоректне вживання часової форми дiєслова. 8. G/VerbVoice: некоректне вживання форми стану дiєслова. 9. G/PartVoice: некоректне вживання форми стану дiєприкметника. 10. G/VerbAForm: некоректне вживання аналiтичної форми дiєслова. 11. G/Prep: некоректне вживання при-йменника. 12. G/Participle: некоректне вживання дiєприслiвника. 13. G/UngrammaticalStructure: порушення граматичних норм у синтаксичних конструкцiях. 14. G/Comparison: некоректна форма ступенiв порiвняння. 15. G/Conjunction: некоректне вживання сполучникiв. 16. G/Other: iншi граматичнi помилки. ВАЖЛИВI ПРАВИЛА УКРАЇНСЬКОЇ МОВИ: - Прийменник «у» вживається перед приголосними (у школi, у мiстi, у готелi), «в» — перед голосними та на початку речення. - Прийменник «об» вживається перед голосними (об одинадцятiй), «о» — перед приголосними. - У дiалогах вживається тире (—), а не дефiс (-): «Текст», — сказав вiн. — Текст далi. - Вставнi слова (може, мабуть, звичайно, здається) видiляються комами з обох бокiв. - Кличний вiдмiнок при звертаннях: Настя → Насте, Олег → Олеже, мама →
+
+мамо. СУВОРI ПРАВИЛА: - Виправляй ЛИШЕ явнi помилки, перелiченi вище - Для кожної помилки внось НАЙМЕН-ШУ можливу змiну - НIКОЛИ не замiнюй слова синонiмами i не перефразовуй (залишай «буду йти», НЕ змiнюй на «пiду») - НIКОЛИ не змiнюй слово на iнше, якщо воно не аписане з помилкою - Зберiгай оригiнальний стиль лапок ("або «»), НЕ перетворюй один тип лапок на iнший - Зберiгай оригiнальне використання великих/малих лiтер, якщо це не явна помилка - Якщо граматична форма є прийнятною, залишай її, навiть якщо можлива й iнша форма - Якщо є сумнiв, НЕ змiнюй - Якщо помилок немає, повертай оригi-нальний текст БЕЗ ЗМIН Приклади: Вхiд: Так само потерпає Україна i сього-днi вiд того що насправдi талановитим людям заважають працювати усiлякi посередностi "у руля". Вихiд: Так само потерпає Україна i сього-днi вiд того, що насправдi талановитим людям заважають працювати усiлякi посередностi "у руля". Вхiд: Я нiколи не навчався у медичному коледжi, кажу, - Я лиш пiдiйшов як звичайна людина подивитись чи можу бути чимось корисний. Вихiд: Я нiколи не навчався у медичному коледжi, кажу, - Я лиш пiдiйшов як звичайна людина подивитись, чи можу бути чимось корисний. Вхiд: Це у мiстi швидка приїжджає, забирає хворого i везе у лiкарню; якщо ж до лiкарнi кiлька годин льоту то хворого можна i не довезти. Вихiд: Це у мiстi швидка приїжджає, забирає хворого i везе у лiкарню; якщо ж до лiкарнi кiлька годин льоту, то хворого можна i не довезти. Вхiд: Найбiльше вiн любив тримати в руках старанно орнаментованi стародавнi шолом i меч, котрi своїм золотом, здається грiли старого. Вихiд: Найбiльше вiн любив тримати в руках старанно орнаментованi стародавнi шолом i меч, котрi своїм золотом, здається, грiли старого. Вхiд: - Я часто казав тобi, що ти дурнень-ка, - сказав вiн. Вихiд: — Я часто казав тобi, що ти дурненька, — сказав вiн. Вхiд: Така традицiя також походить з Вiзантiї, прикладом є зображення Андронiка II Палеолога. Вихiд: Така традицiя також походить iз Вiзантiї, прикладом є зображення Андронiка II Палеолога. Вхiд: Як i бiльшiсть дiлових людей, вiн не знав напамять жодного вiрша i не памятав жодної казки, а тому щоразу мусив iмпровiзувати. Вихiд: Як i бiльшiсть дiлових людей, вiн не знав напам’ять жодного вiрша i не памятав жодної казки, а тому щоразу мусив iмпровiзувати. Вхiд: Настя, привiт! я хотiла уточнити про завдання Олi. Вихiд: Насте, привiт! Я хотiла уточнити про завдання Олi. Вхiд: Я принесу твої улюбленi солодощi та обнiму тебе мiцно-мiцно. Вихiд: Я принесу твої улюбленi солодощi та обнiму тебе мiцно-мiцно. Вхiд: Смакота ще та, скажу я вам)) Вихiд: Смакота ще та, скажу я вам)) Вхiд: У той час глибокий сенс народної мудростi нам був ще недоступним через брак досвiду. Вихiд: У той час глибокий сенс народної мудростi нам був ще недоступним через брак досвiду. Вхiд: Каналiзацiя в будинках еволюцiонує повiльно, але все ж таки змiнюється. Вихiд: Каналiзацiя в будинках еволюцiо-нує повiльно, але все ж таки змiнюється. Вхiдне речення: {input_text} Виправлене речення: 
+
+English: The system prompt is identical to the minimal-edits zero-shot prompt (A.3.1); see the En-glish translation there. The few-shot examples are the same Ukrainian GEC sentence pairs as in the few-shot EN variant (A.2.1). Keywords: Прикла-ди = ‘Examples’; Вхiд / Вихiд = ‘Input’/‘Output’. 
+
+A.5 Optimized prompts 
+
+The following prompts were produced by LLM-assisted prompt optimization (Section 3). Each was derived from its parent prompt via iterative refinement on the development set (see Section 3 for the optimization procedure). 
+
+A.5.1 Minimal-edits + few-shot + optimized-v1 (UA): optimized on GPT-4.1-mini 
+
+Ти — система виправлення українських граматичних помилок. Внось МIНI-МАЛЬНI змiни, щоб виправити ЛИШЕ безсумнiвнi граматичнi, орфографiчнi та пунктуацiйнi помилки. НЕ переписуй, не перефразовуй i не замiнюй слова синонiмами. Виправляй: - Орфографiчнi помилки (друкарськi помилки, пропущенi/зайвi лiтери, не-правильне написання разом/окремо: незважати → не зважати, буд-якому →
+
+будь-якому). - Пунктуацiю: пропущенi коми перед пiдрядними сполучниками (що, який, бо, чи, коли, щоб, де, поки), при звертаннях, при вставних словах (мабуть, може, звичайно). У прямiй мовi дефiс (-) замiнюй на тире (—): "текст сказав →
+
+"текст — сказав. - Вiдмiнковi помилки (зокрема кличний вiдмiнок у звертаннях: Привiт Настя →
+
+Привiт, Насте). - Узгодження роду, числа, вiдмiнка всловосполученнях. - Прийменники: о/об (об одинадцятiй, о третiй); з → зi/iз перед збiгом приголосних (з зображенням → зi зображенням, зВiзантiї → iз Вiзантiї). НЕ змiнюй: - НIКОЛИ не замiнюй слова синонiмами i не змiнюй форми слiв на альтернативнi (виказував, кучею, достойною, вивести — залишай як є). - НЕ переформатовуй дiалоги: якщо дiа-лог оформлений лапками ("/«»), зберiгай лапки, НЕ замiнюй їх на тире. - НЕ змiнюй граматичнi форми, якi є допустимими варiантами: вiдмiнковi фор-ми прикметникiв (недоступним/недосту-пний), варiанти дiєслiв (навчались/навча-лися), форми займенникiв (їх/їхнiй) — якщо форма граматично допустима, зали-шай її. - Стиль та тон тексту: неформальний текст (чати, смс) залишай як є — не додавай кра-пки в кiнцi, не прибирай смайлики )). - Порядок слiв у реченнi. - Великi/малi лiтери, крiм початку речен-ня пiсля крапки. - Лапки: зберiгай оригiнальний стиль. - Роздiловi знаки кiнця речення: НЕ змi-нюй . на ? або навпаки. - НЕ додавай тире (—) там, де його не було в оригiналi, окрiм прямої мови. - Дефiс у складених словах та повторах (мiцно-мiцно, дере-дере-дере, все-таки, все ж таки — залишай як є). - Якщо сумнiваєшся — НЕ змiнюй. [Тi самi приклади, що i в Prompt 2] (‘[Same examples as in Prompt 2]’) 
+
+Поверни ЛИШЕ виправлений текст. (‘Re-turn ONLY the corrected text.’) 
+
+English translation of the instruction part: 
+
+You are a Ukrainian grammatical error correction system. Make MINIMAL changes to fix ONLY unambiguous grammatical, spelling, and punc-tuation errors. Do NOT rewrite, rephrase, or substitute synonyms. Fix: - Spelling errors (typos, missing/extra letters, in-correct joined/separate writing: nezvazhaty → ne zvazhaty, bud-yakomu → bud '-yakomu). - Punctuation: missing commas before subordi-nate conjunctions (shcho, yakyi, bo, chy, koly, shchob, de, poky), in forms of address, with par-enthetical words (mabut ', mozhe, zvychaino). In direct speech, replace hyphen (-) with em-dash (—). - Case errors (especially vocative in address: Pryvit Nastia → Pryvit, Naste). - Gender, number, case agreement in phrases. - Prepositions: o/ob; z → zi/iz before consonant clusters. Do NOT change: - NEVER substitute synonyms or change word forms to alternatives — leave as is. - Do NOT reformat dialogues: if dialogue uses quotes, keep quotes, do NOT replace with dashes. - Do NOT change grammatically acceptable vari-ant forms. - Text style and tone: leave informal text (chats, SMS) as is. - Word order, capitalization (except after period), quote style, sentence-final punctuation. - Do NOT add em-dashes where there were none, except in direct speech. - Hyphens in compound words and repetitions — leave as is. - If in doubt — do NOT change. 
+
+A.5.2 Minimal-edits + few-shot + optimized-v2 (UA): optimized on Gemini 3-Flash 
+
+The prompt below was derived from minimal-edits + few-shot + optimized-v1 (A.5.1) by further LLM-assisted optimization on Gemini 3-Flash over 5 iterations on the development set. It includes addi-tional Ukrainian-specific rules discovered during optimization. 
+
+Ти — система виправлення українських граматичних помилок. Внось МIНI-МАЛЬНI змiни, щоб виправити ЛИШЕ безсумнiвнi граматичнi, орфографiчнi та пунктуацiйнi помилки. НЕ переписуй, не перефразовуй i не замiнюй слова синонiмами. Виправляй: - Орфографiчнi помилки (друкарськi помилки, пропущенi/зайвi лiтери, не-правильне написання разом/окремо: незважати → не зважати, буд-якому →
+
+будь-якому). - Пунктуацiю: пропущенi коми перед пiдрядними сполучниками (що, який, бо, чи, коли, щоб, де, поки), при звертаннях, при вставних словах (мабуть, може, звичайно). У прямiй мовi дефiс (-) замiнюй на тире (—): "текст сказав →
+
+"текст — сказав. - Вiдмiнковi помилки (зокрема кличний вiдмiнок у звертаннях: Привiт Настя →
+
+Привiт, Насте). - Узгодження роду, числа, вiдмiнка всловосполученнях. - Прийменники: о/об (об одинадцятiй, о третiй); з → зi/iз перед збiгом приголосних (з зображенням → зi зображенням, зВiзантiї → iз Вiзантiї). НЕ змiнюй: - НIКОЛИ не замiнюй слова синонiмами i не змiнюй форми слiв на альтернативнi (виказував, кучею, достойною, вивести — залишай як є). - НЕ переформатовуй дiалоги: якщо дiалог оформлений лапками ("/«»), зберiгай лапки, НЕ замiнюй їх на тире. - НЕ змiнюй граматичнi форми, якi є допустимими варiантами: вiдмiнковi форми прикметникiв (недоступни-м/недоступний), варiанти дiєслiв (навчались/навчалися), форми займенни-кiв (їх/їхнiй) — якщо форма граматично допустима, залишай її. - Стиль та тон тексту: неформальний текст (чати, смс) залишай як є — не додавай крапки в кiнцi, не прибирай смайлики )). - Порядок слiв у реченнi. - Великi/малi лiтери, крiм початку речення пiсля крапки. - Лапки: зберiгай оригiнальний стиль. - Роздiловi знаки кiнця речення: НЕ змiнюй . на ? або навпаки. - НЕ додавай тире (—) там, де його не було в оригiналi, окрiм прямої мови. - Дефiс у складених словах та повторах (мiцно-мiцно, дере-дере-дере, все-таки, все ж таки — залишай як є). - Якщо сумнiваєшся — НЕ змiнюй. Приклади: Вхiд: Так само потерпає Україна i сього-днi вiд того що насправдi талановитим людям заважають працювати усiлякi посередностi "у руля". Вихiд: Так само потерпає Україна i сього-днi вiд того, що насправдi талановитим людям заважають працювати усiлякi посередностi "у руля". Вхiд: Це пов’язано з тим, що такi колективнi рухи молекул води сильно збiльшують характернi часи процесiв якi вiдбуваються в системi. Вихiд: Це пов’язано з тим, що такi колективнi рухи молекул води сильно збiльшують характернi часи процесiв, якi вiдбуваються в системi. Вхiд: Я нiколи не навчався у медичному коледжi, кажу, - Я лиш пiдiйшов як звичайна людина подивитись чи можу бути чимось корисний. Вихiд: Я нiколи не навчався у медичному коледжi, кажу, - Я лиш пiдiйшов як звичайна людина подивитись, чи можу бути чимось корисний. Вхiд: Це у мiстi швидка приїжджає, забирає хворого i везе у лiкарню; якщо ж до лiкарнi кiлька годин льоту то хворого можна i не довезти. Вихiд: Це у мiстi швидка приїжджає, забирає хворого i везе у лiкарню; якщо ж до лiкарнi кiлька годин льоту, то хворого можна i не довезти. Вхiд: Найбiльше вiн любив тримати в руках старанно орнаментованi стародавнi шолом i меч, котрi своїм золотом, здається грiли старого. Вихiд: Найбiльше вiн любив тримати в руках старанно орнаментованi стародавнi шолом i меч, котрi своїм золотом, здається, грiли старого. Вхiд: - Я часто казав тобi, що ти дурнень-ка, - сказав вiн. Вихiд: — Я часто казав тобi, що ти дурненька, — сказав вiн. Вхiд: Така традицiя також походить з Вiзантiї, прикладом є зображення Андронiка II Палеолога. Вихiд: Така традицiя також походить iз Вiзантiї, прикладом є зображення Андронiка II Палеолога. Вхiд: Як i бiльшiсть дiлових людей, вiн не знав напамять жодного вiрша i не памятав жодної казки, а тому щоразу мусив iмпровiзувати. Вихiд: Як i бiльшiсть дiлових людей, вiн не знав напам’ять жодного вiрша i не памятав жодної казки, а тому щоразу мусив iмпровiзувати. Вхiд: Настя, привiт! я хотiла уточнити про завдання Олi. Вихiд: Насте, привiт! Я хотiла уточнити про завдання Олi. Вхiд: Я принесу твої улюбленi солодощi та обнiму тебе мiцно-мiцно. Вихiд: Я принесу твої улюбленi солодощi та обнiму тебе мiцно-мiцно. Вхiд: Смакота ще та, скажу я вам)) Вихiд: Смакота ще та, скажу я вам)) Вхiд: У той час глибокий сенс народної мудростi нам був ще недоступним через брак досвiду. Вихiд: У той час глибокий сенс народної мудростi нам був ще недоступним через брак досвiду. Вхiд: Каналiзацiя в будинках еволюцiонує повiльно, але все ж таки змiнюється. Вихiд: Каналiзацiя в будинках еволюцiо-нує повiльно, але все ж таки змiнюється. Вхiд: "Досить добре вийшов з Весту, чи не так? спитав мiлiцiонер. Вихiд: "Досить добре вийшов з Весту, чи не так?"— спитав мiлiцiонер. Вхiд: Не знаю як у iнших, а у мене в життi траплялось не так багато див. Вихiд: Не знаю, як у iнших, а у мене в життi траплялось не так багато див. Вхiд: Хочеться закiнчити у дусi книг з самодопомоги. Вихiд: Хочеться закiнчити у дусi книг iз самодопомоги. Вхiд: Наступного дня тим же автобаном повернулися назад, звiдти – ще пiвтори години лiтаком. Вихiд: Наступного дня тим же автобаном повернулися назад, звiдти — ще пiвтори години лiтаком. Вхiд: От читаєш такi новини i жалкуєш, що населенню України Господь дав все, крiм совiстi i мозгiв. Вихiд: От читаєш такi новини i жалкуєш, що населенню України Господь дав усе, крiм совiстi i мозгiв. Поверни ЛИШЕ виправлений текст. (‘Re-turn ONLY the corrected text.’) 
+
+English: The instruction structure is the same as optimized-v1 (A.5.1); see the translation there. This version includes additional few-shot examples (lines 6–16 above) and was further refined on Gem-ini 3-Flash. Keywords: Виправляй = ‘Fix’; НЕ змiнюй = ‘Do NOT change’; Приклади = ‘Ex-amples’; Вхiд / Вихiд = ‘Input’/‘Output’. B Inference Pipeline and Structured Output 
+
+Each input sentence is processed independently through a single LLM call, with no cross-sentence batching. Before any model invocation, the pipeline applies a lightweight passthrough rule: lines match-ing the document-marker pattern # <digits> (e.g. 
+
+# 0001 ) are emitted verbatim and never sent to the LLM. These markers delimit document boundaries in the UA-GEC corpus and carry no correctable content, so routing them around the model both saves tokens and prevents spurious edits. For all remaining sentences, the agent issues one chat completion through a LiteLLM router that abstracts over the underlying provider (OpenAI, An-thropic, Google, Moonshot). The system message is the configured prompt template; the user message is the raw source sentence. To eliminate free-form post-processing of model output, we constrain the response with a JSON schema derived from a Py-dantic model and attached to the request as a strict 
+
+response_format . Field descriptions declared on the Pydantic model propagate into the schema and act as in-band instructions to the model. 
+
+Schema definition. The response contract is de-clared once as a Pydantic class:    
+
+> class GECResponse(BaseModel): corrected_sentence: str = Field( ..., description="Corrected␣version␣of␣ the␣input␣sentence")
+
+Generated JSON schema. At call time, the class is converted to JSON Schema, all object nodes are closed with additionalProperties: false ,and the result is wrapped into the provider-agnostic 
+
+response_format envelope:             
+
+> {"type": "json_schema", "json_schema": { "name": "GECResponse", "strict": true, "schema": { "type": "object", "additionalProperties": false, "required": ["corrected_sentence"], "properties": { "corrected_sentence": { "type": "string", "description": "Corrected version of the input sentence" }}}}}
+> source sentence
+> marker # NNNN ?emit verbatim (no LLM call)
+> router.completion(. . . )
+> structured response_format
+> LiteLLM Router
+> →provider
+> GECResponse.model_validate predictions.eval.txt
+> yes
+> no
+> Parameter Value (from run YAML)
+> model gpt-4.1-mini temperature 0.0 top_p 0.1 reasoning_effort None timeout 90 s
+> response_format json_schema(GECResponse)
+
+Figure 3: Per-sentence inference flow. Document mark-ers bypass the LLM; all other sentences go through one structured-output call. Decoding parameters are read verbatim from the run YAML, ensuring deterministic replay. 
+
+The decoding parameters in Figure 3 are read from the run YAML and the exact configuration file is copied into the output directory alongside 
+
+results.json , so a run can be replayed bit-for-bit given the same provider model snapshot. The re-turned payload is validated with model_validate ,so any schema violation is caught deterministi-cally rather than being masked by string heuris-tics. If a provider rejects json_schema , the client transparently retries with response_format = {"type":"json_object"} ; for the single-field case, a final recovery path extracts the corrected sentence from malformed JSON to keep evaluation aligned. This design ensures that every non-marker sentence yields exactly one validated correction, making the sentence-to-prediction mapping bijec-tive and the run reproducible given a fixed configu-ration.
