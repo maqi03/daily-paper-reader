@@ -293,6 +293,7 @@ window.$docsify = {
           const blocked = [
             'paper-title-row',
             'paper-meta-row',
+            'paper-architecture-section',
             'paper-glance-section',
             '互动区',
             '页面导航与交互层',
@@ -311,6 +312,7 @@ window.$docsify = {
             node.classList &&
             (node.classList.contains('paper-title-row') ||
               node.classList.contains('paper-meta-row') ||
+              node.classList.contains('paper-architecture-section') ||
               node.classList.contains('paper-glance-section') ||
               node.classList.contains('paper-title-cn') ||
               node.classList.contains('paper-title-en'))
@@ -896,6 +898,139 @@ window.$docsify = {
         );
       };
 
+      const hasLatexSignal = (text) => {
+        const value = String(text || '').trim();
+        if (!value) return false;
+        if (/\\[a-zA-Z]+/.test(value)) return true;
+
+        const compactDecoratedSymbol =
+          /^[A-Za-z](?:\s*[_^]\s*(?:\{[^{}\n]{1,30}\}|[A-Za-z0-9+\-])){1,4}$/.test(value);
+        if (compactDecoratedSymbol) return true;
+
+        const decoratedSymbol =
+          /(?:^|[^A-Za-z0-9])(?:[A-Za-z])\s*[_^]\s*(?:\{[^{}\n]{1,30}\}|[A-Za-z0-9+\-])/.test(value);
+        return decoratedSymbol && /[+\-*/=<>]|\s/.test(value);
+      };
+
+      const normalizeBareLatexParenthesesInPlainText = (text) => {
+        const source = String(text || '');
+        if (!source || source.indexOf('(') === -1) return source;
+        let result = '';
+        let i = 0;
+
+        while (i < source.length) {
+          const ch = source[i];
+          if (ch !== '(' || source[i - 1] === '\\') {
+            result += ch;
+            i += 1;
+            continue;
+          }
+
+          let depth = 1;
+          let j = i + 1;
+          while (j < source.length && depth > 0) {
+            const current = source[j];
+            if (current === '(' && source[j - 1] !== '\\') {
+              depth += 1;
+            } else if (current === ')' && source[j - 1] !== '\\') {
+              depth -= 1;
+            }
+            j += 1;
+          }
+
+          if (depth !== 0) {
+            result += ch;
+            i += 1;
+            continue;
+          }
+
+          const inner = source.slice(i + 1, j - 1);
+          if (inner.length <= 500 && hasLatexSignal(inner)) {
+            result += `\\(${inner}\\)`;
+          } else {
+            result += source.slice(i, j);
+          }
+          i = j;
+        }
+
+        return result;
+      };
+
+      const normalizeMarkdownInlineCodeAwareText = (text, normalizePlainText) => {
+        const source = String(text || '');
+        if (source.indexOf('`') === -1) {
+          return normalizePlainText(source);
+        }
+
+        let result = '';
+        let plain = '';
+        let i = 0;
+        const flushPlain = () => {
+          if (!plain) return;
+          result += normalizePlainText(plain);
+          plain = '';
+        };
+
+        while (i < source.length) {
+          if (source[i] !== '`') {
+            plain += source[i];
+            i += 1;
+            continue;
+          }
+
+          const tickStart = i;
+          while (i < source.length && source[i] === '`') i += 1;
+          const marker = source.slice(tickStart, i);
+          const close = source.indexOf(marker, i);
+          if (close === -1) {
+            plain += marker;
+            continue;
+          }
+
+          flushPlain();
+          result += source.slice(tickStart, close + marker.length);
+          i = close + marker.length;
+        }
+
+        flushPlain();
+        return result;
+      };
+
+      const normalizeMarkdownCodeAwareText = (text, normalizePlainText) => {
+        const source = String(text || '');
+        if (!source) return source;
+
+        let inFence = false;
+        let fenceChar = '';
+        return source
+          .split('\n')
+          .map((line) => {
+            const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+            if (fenceMatch) {
+              const currentFenceChar = fenceMatch[1][0];
+              if (!inFence) {
+                inFence = true;
+                fenceChar = currentFenceChar;
+              } else if (currentFenceChar === fenceChar) {
+                inFence = false;
+                fenceChar = '';
+              }
+              return line;
+            }
+            if (inFence) return line;
+            return normalizeMarkdownInlineCodeAwareText(line, normalizePlainText);
+          })
+          .join('\n');
+      };
+
+      const normalizeBareLatexParentheses = (text) =>
+        normalizeMarkdownCodeAwareText(text, normalizeBareLatexParenthesesInPlainText);
+
+      const normalizeLatexMarkdownText = (text) =>
+        normalizeMarkdownCodeAwareText(text, (value) =>
+          normalizeBareLatexParenthesesInPlainText(normalizeLatexInText(value)),
+        );
+
       // 公共工具：在指定元素上渲染公式
       const renderMathInEl = (el) => {
         if (!window.renderMathInElement || !el) return;
@@ -959,7 +1094,7 @@ window.$docsify = {
 
       const protectLatexInMarkdown = (markdown) => {
         pendingLatexFragments = [];
-        let text = normalizeLatexInText(markdown || '');
+        let text = normalizeLatexMarkdownText(markdown || '');
         text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match) =>
           stashLatexFragment(match, true),
         );
@@ -1002,7 +1137,7 @@ window.$docsify = {
       };
 
       const renderInlineMarkdown = (value) => {
-        const text = escapeHtml(normalizeLatexInText(String(value || '')));
+        const text = escapeHtml(normalizeLatexMarkdownText(String(value || '')));
         return text
           .replace(/\\(?:emph|textit)\{([^{}\n]{1,200})\}/g, '<em>$1</em>')
           .replace(/\\textbf\{([^{}\n]{1,200})\}/g, '<strong>$1</strong>')
@@ -1015,7 +1150,7 @@ window.$docsify = {
       // 其他内容仍交给 marked 渲染。
       // 同时保护 LaTeX 公式块，避免被 marked 误解析。
       const renderMarkdownWithTables = (markdown) => {
-        const text = normalizeLatexInText(normalizeTables(markdown || ''));
+        const text = normalizeLatexMarkdownText(normalizeTables(markdown || ''));
 
         // 保护 LaTeX 公式：先用占位符替换，渲染后再恢复
         const latexBlocks = [];
@@ -1178,6 +1313,10 @@ window.$docsify = {
         normalizeTables,
         renderMarkdownWithTables,
         renderMathInEl,
+        __test: {
+          normalizeBareLatexParentheses,
+          normalizeLatexMarkdownText,
+        },
       };
 
       // 3. 小屏下：点击侧边栏条目后自动收起侧边栏（全屏列表 → 正文）
@@ -4437,6 +4576,77 @@ window.$docsify = {
           }
           return `<span class="tag-label tag-source">${escapeHtml(text)}</span>`;
         };
+        const buildPaperArchitectureSection = () => {
+          const compactText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+          const nodes = [
+            {
+              step: '01',
+              label: 'Problem',
+              title: '研究问题',
+              body: compactText(meta.motivation || meta.evidence || meta.tldr),
+              accent: '#2563EB',
+              tint: '#EFF6FF',
+              border: '#BFDBFE',
+            },
+            {
+              step: '02',
+              label: 'Method',
+              title: '方法路径',
+              body: compactText(meta.method || meta.tldr),
+              accent: '#7C3AED',
+              tint: '#F5F3FF',
+              border: '#DDD6FE',
+            },
+            {
+              step: '03',
+              label: 'Evidence',
+              title: '验证证据',
+              body: compactText(meta.result || meta.evidence),
+              accent: '#B45309',
+              tint: '#FFFBEB',
+              border: '#FDE68A',
+            },
+            {
+              step: '04',
+              label: 'Outcome',
+              title: '结论贡献',
+              body: compactText(meta.conclusion || meta.result),
+              accent: '#15803D',
+              tint: '#ECFDF5',
+              border: '#BBF7D0',
+            },
+          ].filter((item) => item.body);
+
+          if (nodes.length < 2) return '';
+
+          const score = meta.score !== undefined && meta.score !== null
+            ? `<span class="paper-architecture-score">${escapeHtml(String(meta.score))}/10</span>`
+            : '';
+          const nodeHtml = nodes
+            .map(
+              (item) => `
+                <article class="paper-architecture-node" data-architecture-step="${escapeHtml(item.step)}" style="--architecture-accent:${item.accent};--architecture-tint:${item.tint};--architecture-border:${item.border};">
+                  <div class="paper-architecture-kicker">${escapeHtml(item.label)}</div>
+                  <h3>${escapeHtml(item.title)}</h3>
+                  <p>${renderInlineMarkdown(item.body)}</p>
+                </article>`,
+            )
+            .join('');
+
+          return `
+            <section class="paper-architecture-section" aria-label="论文整体架构图">
+              <div class="paper-architecture-header">
+                <div>
+                  <span>Architecture</span>
+                  <strong>论文整体架构</strong>
+                </div>
+                ${score}
+              </div>
+              <div class="paper-architecture-flow">
+                ${nodeHtml}
+              </div>
+            </section>`;
+        };
 
         const lines = [];
 
@@ -4486,6 +4696,12 @@ window.$docsify = {
 
         lines.push('</div>');
         lines.push('');
+
+        const paperArchitecture = buildPaperArchitectureSection();
+        if (paperArchitecture) {
+          lines.push(paperArchitecture);
+          lines.push('');
+        }
 
         // 速览区域
         if (meta.motivation || meta.method || meta.result || meta.conclusion) {

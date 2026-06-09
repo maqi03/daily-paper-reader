@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>提示优化论文成果汇总 · Daily Paper Reader</title>
+  <meta name="description" content="汇总 Daily Paper Reader 2026-05-06 至 2026-06-04 推荐论文的研究思路、成果与方法路线。">
+  <link rel="icon" type="image/png" href="app/asserts/icon.png">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #F6F8FB;
+      --surface: #FFFFFF;
+      --surface-soft: #F8FAFC;
+      --text: #172033;
+      --muted: #52637A;
+      --line: #DDE5EF;
+      --line-soft: rgba(148, 163, 184, 0.22);
+      --blue: #1D4ED8;
+      --green: #15803D;
+      --purple: #6D28D9;
+      --amber: #B45309;
+      --red: #B91C1C;
+      --shadow: 0 18px 48px rgba(15, 23, 42, 0.10);
+      --shadow-soft: 0 10px 28px rgba(15, 23, 42, 0.07);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        linear-gradient(180deg, #FFFFFF 0, #F7FAFD 420px, var(--bg) 100%);
+      color: var(--text);
+      line-height: 1.72;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .page {
+      min-height: 100vh;
+    }
+
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(221, 229, 239, 0.88);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+    }
+
+    .site-nav__inner {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .brand img {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .hero {
+      padding: 58px 0 40px;
+      overflow: hidden;
+    }
+
+    .hero__inner,
+    .section__inner {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+
+    .hero__inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
+      gap: 38px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+      padding: 5px 10px;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin: 18px 0 18px;
+      max-width: 860px;
+      color: #0F172A;
+      font-size: clamp(38px, 6vw, 72px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .hero__lead {
+      max-width: 740px;
+      color: #334155;
+      font-size: 18px;
+      line-height: 1.9;
+    }
+
+    .hero__lead strong {
+      color: #0F172A;
+      font-weight: 800;
+    }
+
+    .hero__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 9px 14px;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      color: #0F172A;
+      background: #FFFFFF;
+      font-weight: 760;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+
+    .button--primary {
+      border-color: #1D4ED8;
+      background: #1D4ED8;
+      color: #FFFFFF;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 500px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.94), rgba(255, 255, 255, 0.98)),
+        #FFFFFF;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-visual__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line-soft);
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .hero-visual__grid {
+      display: grid;
+      grid-template-columns: 1fr 0.85fr;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .visual-tile {
+      min-height: 178px;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      background: #FFFFFF;
+      overflow: hidden;
+    }
+
+    .visual-tile:first-child {
+      grid-row: span 2;
+      min-height: 390px;
+    }
+
+    .visual-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #FFFFFF;
+      padding: 10px;
+    }
+
+    .hero-visual__caption {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .caption-pill {
+      min-height: 72px;
+      padding: 10px;
+      border: 1px solid rgba(203, 213, 225, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .caption-pill strong {
+      display: block;
+      color: #0F172A;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .caption-pill span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .section {
+      padding: 44px 0;
+    }
+
+    .section--white {
+      background: #FFFFFF;
+      border-block: 1px solid var(--line-soft);
+    }
+
+    .section__heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .section__heading h2 {
+      margin: 0;
+      color: #0F172A;
+      font-size: clamp(26px, 3vw, 38px);
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .section__heading p {
+      max-width: 620px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .stats-grid,
+    .route-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card,
+    .route-card,
+    .visual-card,
+    .paper-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .stat-card {
+      padding: 16px;
+      min-height: 136px;
+    }
+
+    .stat-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .stat-card strong {
+      display: block;
+      margin: 8px 0 6px;
+      color: #0F172A;
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .stat-card p {
+      margin: 0;
+      color: #64748B;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .route-card {
+      min-height: 168px;
+      padding: 16px;
+      border-color: var(--route-border);
+      background: linear-gradient(180deg, var(--route-bg), #FFFFFF);
+    }
+
+    .route-card__top span {
+      color: var(--route-color);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .route-card__top strong {
+      display: block;
+      margin-top: 8px;
+      color: #0F172A;
+      font-size: 17px;
+      line-height: 1.35;
+    }
+
+    .route-card p {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .method-map {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #FFFFFF;
+      box-shadow: var(--shadow-soft);
+      overflow-x: auto;
+    }
+
+    .method-map svg {
+      display: block;
+      width: 100%;
+      min-width: 820px;
+      height: auto;
+    }
+
+    .svg-title {
+      fill: #0F172A;
+      font-size: 19px;
+      font-weight: 800;
+    }
+
+    .svg-copy {
+      fill: #64748B;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .callout {
+      margin-top: 20px;
+      padding: 18px;
+      border: 1px solid #BBF7D0;
+      border-radius: 8px;
+      background: #ECFDF5;
+      color: #14532D;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .callout strong {
+      color: #15803D;
+    }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .visual-card {
+      overflow: hidden;
+    }
+
+    .visual-card__media {
+      display: block;
+      height: 214px;
+      border-bottom: 1px solid var(--line-soft);
+      background: #FFFFFF;
+    }
+
+    .visual-card__media img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 10px;
+      background: #FFFFFF;
+    }
+
+    .visual-card__body {
+      padding: 14px;
+    }
+
+    .visual-card h3 {
+      margin: 10px 0 8px;
+      color: #0F172A;
+      font-size: 17px;
+      line-height: 1.36;
+    }
+
+    .visual-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 3px 8px;
+      border: 1px solid var(--chip-border);
+      border-radius: 8px;
+      color: var(--chip-color);
+      background: var(--chip-bg);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+
+    .insight-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .insight-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .insight-item {
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: #FFFFFF;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .insight-item strong {
+      display: block;
+      color: #0F172A;
+      margin-bottom: 6px;
+    }
+
+    .insight-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #FFFFFF;
+      box-shadow: var(--shadow-soft);
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line-soft);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #F8FAFC;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    tr:nth-child(even) td {
+      background: #FBFDFF;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(220px, 340px) minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .search-box {
+      min-height: 42px;
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      background: #FFFFFF;
+      color: #0F172A;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search-box:focus {
+      border-color: #1D4ED8;
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .filter-button {
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      background: #FFFFFF;
+      color: #334155;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .filter-button span {
+      margin-left: 4px;
+      color: #64748B;
+      font-weight: 750;
+    }
+
+    .filter-button.is-active {
+      border-color: #1D4ED8;
+      background: #EFF6FF;
+      color: #1D4ED8;
+    }
+
+    .paper-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .paper-card {
+      display: grid;
+      grid-template-columns: 194px minmax(0, 1fr);
+      min-height: 356px;
+      overflow: hidden;
+    }
+
+    .paper-card[hidden] {
+      display: none;
+    }
+
+    .paper-card__thumb,
+    .paper-card__diagram {
+      min-height: 100%;
+      border-right: 1px solid var(--line-soft);
+      background: #FFFFFF;
+    }
+
+    .paper-card__thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 10px;
+      background: #FFFFFF;
+    }
+
+    .paper-card__diagram {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, #F8FAFC, #FFFFFF);
+    }
+
+    .paper-card__diagram span {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 74px;
+      height: 74px;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      background: #FFFFFF;
+      color: #334155;
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .paper-card__diagram i {
+      position: absolute;
+      display: block;
+      width: 118px;
+      height: 1px;
+      background: #CBD5E1;
+      transform-origin: center;
+    }
+
+    .paper-card__diagram i:nth-child(2) { transform: rotate(28deg); }
+    .paper-card__diagram i:nth-child(3) { transform: rotate(-28deg); }
+    .paper-card__diagram i:nth-child(4) { transform: rotate(90deg); }
+
+    .paper-card__content {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      padding: 16px;
+    }
+
+    .paper-card__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      color: #64748B;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .paper-card__meta strong {
+      margin-left: auto;
+      color: #0F172A;
+      font-size: 13px;
+    }
+
+    .paper-card h3 {
+      margin: 12px 0 12px;
+      color: #0F172A;
+      font-size: 18px;
+      line-height: 1.36;
+    }
+
+    .paper-card dl {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .paper-card dl div {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .paper-card dt {
+      color: #0F172A;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .paper-card dd {
+      margin: 0;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .paper-card__summary {
+      margin: 12px 0 0;
+      color: #64748B;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .paper-card__links {
+      display: flex;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 14px;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .empty-state {
+      display: none;
+      margin-top: 20px;
+      padding: 18px;
+      border: 1px solid #FDE68A;
+      border-radius: 8px;
+      background: #FFFBEB;
+      color: #92400E;
+      font-weight: 750;
+    }
+
+    .empty-state.is-visible {
+      display: block;
+    }
+
+    .footer {
+      padding: 28px 0 36px;
+      border-top: 1px solid var(--line-soft);
+      color: #64748B;
+      background: #FFFFFF;
+      font-size: 13px;
+    }
+
+    .footer__inner {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    @media (max-width: 1040px) {
+      .hero__inner,
+      .insight-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-visual {
+        min-height: 460px;
+      }
+
+      .stats-grid,
+      .route-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .visual-grid,
+      .paper-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .site-nav__inner {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 0;
+      }
+
+      .nav-links {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+
+      .hero {
+        padding-top: 36px;
+      }
+
+      h1 {
+        font-size: 39px;
+      }
+
+      .hero__lead {
+        font-size: 16px;
+      }
+
+      .hero-visual {
+        min-height: auto;
+      }
+
+      .hero-visual__grid {
+        grid-template-columns: 1fr;
+      }
+
+      .visual-tile:first-child,
+      .visual-tile {
+        min-height: 210px;
+        grid-row: auto;
+      }
+
+      .hero-visual__caption {
+        position: static;
+        grid-template-columns: 1fr;
+        padding: 0 16px 16px;
+      }
+
+      .section__heading {
+        display: block;
+      }
+
+      .section__heading p {
+        margin-top: 10px;
+      }
+
+      .stats-grid,
+      .route-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .filter-row {
+        justify-content: flex-start;
+      }
+
+      .paper-card {
+        grid-template-columns: 1fr;
+      }
+
+      .paper-card__thumb,
+      .paper-card__diagram {
+        min-height: 220px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      .footer__inner {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <nav class="site-nav" aria-label="页面导航">
+      <div class="site-nav__inner">
+        <a class="brand" href="index.html">
+          <img src="app/asserts/icon.png" alt="">
+          <span>Daily Paper Reader</span>
+        </a>
+        <div class="nav-links">
+          <a href="#map">路线图</a>
+          <a href="#visuals">图解精选</a>
+          <a href="#atlas">论文图谱</a>
+          <a href="index.html#/20260506-20260604/">返回日报</a>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="hero__inner">
+        <div>
+          <span class="eyebrow">2026-05-06 ~ 2026-06-04 · 论文成果汇总</span>
+          <h1>提示优化正在从“写好一句话”变成可搜索、可验证、可部署的工程系统</h1>
+          <p class="hero__lead">
+            本页汇总当前项目收录的 <strong>31 篇</strong> 相关论文，把每篇论文拆成“研究思路”和“主要成果”，并按五条路线组织：
+            <strong>搜索优化</strong>、<strong>强化学习与智能体</strong>、<strong>推理链</strong>、<strong>结构化解释</strong>、<strong>可靠性安全</strong>。
+          </p>
+          <div class="hero__actions">
+            <a class="button button--primary" href="#atlas">浏览全部论文</a>
+            <a class="button" href="#insights">先看结论</a>
+          </div>
+        </div>
+        <aside class="hero-visual" aria-label="论文图示拼贴">
+          <div class="hero-visual__header">
+            <span>本地论文图源</span>
+            <span>生成时间 2026-06-04 12:52:51</span>
+          </div>
+          <div class="hero-visual__grid">
+            <a class="visual-tile" href="index.html#/20260506-20260604/2605.26275v1-spear-code-augmented-agentic-prompt-optimization">
+              <img src="docs/assets/figures/arxiv/2605.26275v1/fig-001.webp" alt="SPEAR 智能体提示优化架构图">
+            </a>
+            <a class="visual-tile" href="index.html#/20260506-20260604/2605.29678v1-spurious-prompts-can-irrelevant-prompts-steer-large-language-models">
+              <img src="docs/assets/figures/arxiv/2605.29678v1/fig-001.webp" alt="伪提示迷宫图示">
+            </a>
+            <a class="visual-tile" href="index.html#/20260506-20260604/2605.28360v1-prompt-codebooks-discrete-compositional-optimization-for-language-model-instruction-refinement">
+              <img src="docs/assets/figures/arxiv/2605.28360v1/fig-001.webp" alt="Prompt Codebooks 架构图">
+            </a>
+          </div>
+          <div class="hero-visual__caption">
+            <div class="caption-pill"><strong>31</strong><span>推荐论文</span></div>
+            <div class="caption-pill"><strong>5</strong><span>方法路线</span></div>
+            <div class="caption-pill"><strong>20+</strong><span>本地抽取图候选</span></div>
+          </div>
+        </aside>
+      </div>
+    </header>
+
+    <section class="section section--white" aria-labelledby="stats-title">
+      <div class="section__inner">
+        <div class="section__heading">
+          <h2 id="stats-title">一眼看清这批论文</h2>
+          <p>项目日报已经做过评分与精读/速读区分，这里进一步把论文贡献压缩成展示友好的结构。</p>
+        </div>
+        <div class="stats-grid">
+
+        <article class="stat-card">
+          <span>论文总数</span>
+          <strong>31</strong>
+          <p>本周期筛选出的提示优化相关论文</p>
+        </article>
+        <article class="stat-card">
+          <span>精读论文</span>
+          <strong>25</strong>
+          <p>项目已生成深度摘要与评分</p>
+        </article>
+        <article class="stat-card">
+          <span>满分推荐</span>
+          <strong>9</strong>
+          <p>集中在搜索、RL、Agent 和推理链路线</p>
+        </article>
+        <article class="stat-card">
+          <span>展示图源</span>
+          <strong>10</strong>
+          <p>复用本地抽取图，不依赖外部网络</p>
+        </article>
+        <article class="stat-card">
+          <span>速读论文</span>
+          <strong>6</strong>
+          <p>用于补足可靠性与部署侧视角</p>
+        </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="map" aria-labelledby="map-heading">
+      <div class="section__inner">
+        <div class="section__heading">
+          <h2 id="map-heading">研究路线图</h2>
+          <p>这批论文共同指向一个变化：提示不再只是自然语言输入，而是会被搜索、组合、评估、监控的工程资产。</p>
+        </div>
+        <div class="route-grid">
+
+        <article class="route-card" style="--route-color:#1D4ED8;--route-bg:#EFF6FF;--route-border:#BFDBFE;">
+          <div class="route-card__top">
+            <span>5 篇</span>
+            <strong>搜索与多目标优化</strong>
+          </div>
+          <p>把提示空间当作可搜索对象</p>
+        </article>
+        <article class="route-card" style="--route-color:#6D28D9;--route-bg:#F5F3FF;--route-border:#DDD6FE;">
+          <div class="route-card__top">
+            <span>6 篇</span>
+            <strong>强化学习与智能体优化</strong>
+          </div>
+          <p>让优化器自己诊断、试验和回滚</p>
+        </article>
+        <article class="route-card" style="--route-color:#15803D;--route-bg:#ECFDF5;--route-border:#BBF7D0;">
+          <div class="route-card__top">
+            <span>5 篇</span>
+            <strong>推理链与上下文学习</strong>
+          </div>
+          <p>把推理过程显式纳入提示资产</p>
+        </article>
+        <article class="route-card" style="--route-color:#B45309;--route-bg:#FFFBEB;--route-border:#FDE68A;">
+          <div class="route-card__top">
+            <span>7 篇</span>
+            <strong>结构化与可解释提示</strong>
+          </div>
+          <p>把提示拆成可读、可复用、可迁移的组件</p>
+        </article>
+        <article class="route-card" style="--route-color:#B91C1C;--route-bg:#FEF2F2;--route-border:#FECACA;">
+          <div class="route-card__top">
+            <span>8 篇</span>
+            <strong>可靠性、安全与部署</strong>
+          </div>
+          <p>把提示敏感性变成可监控系统属性</p>
+        </article>
+        </div>
+
+    <div class="method-map" aria-label="提示优化研究路线图">
+      <svg viewBox="0 0 980 360" role="img" aria-labelledby="map-title map-desc">
+        <title id="map-title">提示优化路线图</title>
+        <desc id="map-desc">从人工经验出发，经结构化提示、搜索优化、智能体诊断和可靠性验证，沉淀为可部署提示资产。</desc>
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"></path>
+          </marker>
+        </defs>
+        <rect x="24" y="34" width="164" height="84" rx="8" fill="#F8FAFC" stroke="#CBD5E1"></rect>
+        <text x="106" y="70" text-anchor="middle" class="svg-title">人工提示</text>
+        <text x="106" y="98" text-anchor="middle" class="svg-copy">经验、清单、示例</text>
+
+        <line x1="188" y1="76" x2="262" y2="76" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"></line>
+        <rect x="264" y="34" width="176" height="84" rx="8" fill="#FFFBEB" stroke="#FDE68A"></rect>
+        <text x="352" y="70" text-anchor="middle" class="svg-title">结构化提示</text>
+        <text x="352" y="98" text-anchor="middle" class="svg-copy">片段、指南、码本</text>
+
+        <line x1="440" y1="76" x2="512" y2="76" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"></line>
+        <rect x="514" y="34" width="176" height="84" rx="8" fill="#EFF6FF" stroke="#BFDBFE"></rect>
+        <text x="602" y="70" text-anchor="middle" class="svg-title">搜索优化</text>
+        <text x="602" y="98" text-anchor="middle" class="svg-copy">Bandit、BO、多目标</text>
+
+        <line x1="690" y1="76" x2="762" y2="76" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"></line>
+        <rect x="764" y="34" width="176" height="84" rx="8" fill="#F5F3FF" stroke="#DDD6FE"></rect>
+        <text x="852" y="70" text-anchor="middle" class="svg-title">Agent/RL</text>
+        <text x="852" y="98" text-anchor="middle" class="svg-copy">诊断、试验、回滚</text>
+
+        <path d="M 852 118 C 852 188 680 180 680 232" fill="none" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"></path>
+        <rect x="516" y="232" width="196" height="86" rx="8" fill="#FEF2F2" stroke="#FECACA"></rect>
+        <text x="614" y="268" text-anchor="middle" class="svg-title">可靠性评估</text>
+        <text x="614" y="296" text-anchor="middle" class="svg-copy">鲁棒性、审计、安全</text>
+
+        <path d="M 516 276 C 404 276 350 214 350 124" fill="none" stroke="#64748B" stroke-width="2.5" stroke-dasharray="6 7" marker-end="url(#arrow)"></path>
+        <rect x="54" y="210" width="286" height="92" rx="8" fill="#ECFDF5" stroke="#BBF7D0"></rect>
+        <text x="197" y="248" text-anchor="middle" class="svg-title">可部署提示资产</text>
+        <text x="197" y="276" text-anchor="middle" class="svg-copy">可解释、可迁移、可监控</text>
+      </svg>
+    </div>
+        <div class="callout">
+          <strong>核心判断：</strong>满分论文集中在“优化器能力”本身：更好的搜索目标、更少的评估预算、更强的诊断工具、更明确的回滚与可靠性约束。
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--white" id="visuals" aria-labelledby="visuals-heading">
+      <div class="section__inner">
+        <div class="section__heading">
+          <h2 id="visuals-heading">图解精选</h2>
+          <p>这些图来自本仓库已抽取的论文图片，覆盖智能体优化、伪提示风险、RL 策略学习、码本组合与结构化标注。</p>
+        </div>
+        <div class="visual-grid">
+
+        <article class="visual-card">
+          <a href="index.html#/20260506-20260604/2605.26275v1-spear-code-augmented-agentic-prompt-optimization" class="visual-card__media" aria-label="打开 SPEAR: Code-Augmented Agentic Prompt Optimization">
+            <img src="docs/assets/figures/arxiv/2605.26275v1/fig-001.webp" alt="SPEAR: Code-Augmented Agentic Prompt Optimization 的论文图示" loading="lazy">
+          </a>
+          <div class="visual-card__body">
+            <span style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;" class="chip">强化学习与智能体优化</span>
+            <h3>SPEAR: Code-Augmented Agentic Prompt Optimization</h3>
+            <p>把 CodeAct 的代码即行动范式用于自动提示工程，让优化器调用 evaluate、python、set_prompt、finish 等工具。</p>
+          </div>
+        </article>
+        <article class="visual-card">
+          <a href="index.html#/20260506-20260604/2605.29678v1-spurious-prompts-can-irrelevant-prompts-steer-large-language-models" class="visual-card__media" aria-label="打开 Spurious Prompts: Can Irrelevant Prompts Steer Large Language Models?">
+            <img src="docs/assets/figures/arxiv/2605.29678v1/fig-001.webp" alt="Spurious Prompts: Can Irrelevant Prompts Steer Large Language Models? 的论文图示" loading="lazy">
+          </a>
+          <div class="visual-card__body">
+            <span style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;" class="chip">可靠性、安全与部署</span>
+            <h3>Spurious Prompts: Can Irrelevant Prompts Steer Large Language Models?</h3>
+            <p>用黑盒搜索寻找与任务语义无关的伪提示，检验 LLM 是否会被无关文本系统性引导。</p>
+          </div>
+        </article>
+        <article class="visual-card">
+          <a href="index.html#/20260506-20260604/2605.14443v1-prompting-policies-for-multi-step-reasoning-and-tool-use-in-black-box-llms-with-iterative-distillation-of-experience" class="visual-card__media" aria-label="打开 Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience">
+            <img src="docs/assets/figures/arxiv/2605.14443v1/fig-001.webp" alt="Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience 的论文图示" loading="lazy">
+          </a>
+          <div class="visual-card__body">
+            <span style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;" class="chip">强化学习与智能体优化</span>
+            <h3>Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience</h3>
+            <p>训练轻量级 prompter 策略模型，用标量奖励与文本批评组成经验缓冲区，蒸馏黑盒 LLM 的迭代优化经验。</p>
+          </div>
+        </article>
+        <article class="visual-card">
+          <a href="index.html#/20260506-20260604/2605.28360v1-prompt-codebooks-discrete-compositional-optimization-for-language-model-instruction-refinement" class="visual-card__media" aria-label="打开 Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement">
+            <img src="docs/assets/figures/arxiv/2605.28360v1/fig-001.webp" alt="Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement 的论文图示" loading="lazy">
+          </a>
+          <div class="visual-card__body">
+            <span style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;" class="chip">结构化与可解释提示</span>
+            <h3>Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement</h3>
+            <p>把提示知识拆成离散可复用的自然语言“本能”码本，并为每个输入动态选择组合。</p>
+          </div>
+        </article>
+        <article class="visual-card">
+          <a href="index.html#/20260506-20260604/2605.19102v1-prompt-optimization-for-llm-code-generation-via-reinforcement-learning" class="visual-card__media" aria-label="打开 Prompt Optimization for LLM Code Generation via Reinforcement Learning">
+            <img src="docs/assets/figures/arxiv/2605.19102v1/fig-001.webp" alt="Prompt Optimization for LLM Code Generation via Reinforcement Learning 的论文图示" loading="lazy">
+          </a>
+          <div class="visual-card__body">
+            <span style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;" class="chip">强化学习与智能体优化</span>
+            <h3>Prompt Optimization for LLM Code Generation via Reinforcement Learning</h3>
+            <p>把代码生成提示改写建模为序列决策，用 PPO 在直接生成、遗传突变、语义重写之间选择动作。</p>
+          </div>
+        </article>
+        <article class="visual-card">
+          <a href="index.html#/20260506-20260604/2605.14561v1-prompt-segmentation-and-annotation-optimisation-controlling-llm-behaviour-via-optimised-segment-level-annotations" class="visual-card__media" aria-label="打开 Prompt Segmentation and Annotation Optimisation: Controlling LLM Behaviour via Optimised Segment-Level Annotations">
+            <img src="docs/assets/figures/arxiv/2605.14561v1/fig-001.webp" alt="Prompt Segmentation and Annotation Optimisation: Controlling LLM Behaviour via Optimised Segment-Level Annotations 的论文图示" loading="lazy">
+          </a>
+          <div class="visual-card__body">
+            <span style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;" class="chip">结构化与可解释提示</span>
+            <h3>Prompt Segmentation and Annotation Optimisation: Controlling LLM Behaviour via Optimised Segment-Level Annotations</h3>
+            <p>把提示切成句子级片段，并优化“重要/非常重要/不重要”等人类可读标注来控制注意力分配。</p>
+          </div>
+        </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="insights" aria-labelledby="insights-heading">
+      <div class="section__inner">
+        <div class="section__heading">
+          <h2 id="insights-heading">可以带走的结论</h2>
+          <p>如果要把这批论文用于团队分享，最值得强调的是方法范式变化，而不是单篇论文的指标竞赛。</p>
+        </div>
+        <div class="insight-layout">
+          <div class="insight-list">
+            <article class="insight-item" style="--accent:#1D4ED8;">
+              <strong>优化目标从单指标走向多目标。</strong>
+              <p>质量、成本、延迟、鲁棒性、安全性开始一起进入提示选择过程，提示优化更接近真实部署问题。</p>
+            </article>
+            <article class="insight-item" style="--accent:#6D28D9;">
+              <strong>优化器从固定流水线走向智能体。</strong>
+              <p>SPEAR、RPT、Prompting Policies 等工作把错误诊断、实验分析、工具调用与回滚机制交给可学习或可规划的优化器。</p>
+            </article>
+            <article class="insight-item" style="--accent:#15803D;">
+              <strong>推理链从提示技巧变成可训练对象。</strong>
+              <p>ACIL、Context-CoT、RGoT、Thoughts-as-Planning 等论文将推理链生成、选择、规划和图结构设计纳入优化空间。</p>
+            </article>
+            <article class="insight-item" style="--accent:#B91C1C;">
+              <strong>提示敏感性已经是系统风险。</strong>
+              <p>伪提示、漏洞检测提示审计、非对抗鲁棒性和训练提示选择都表明：部署前必须把提示变化纳入测试与监控。</p>
+            </article>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>代表论文</th>
+                  <th>路线</th>
+                  <th>关键成果</th>
+                </tr>
+              </thead>
+              <tbody>
+
+        <tr>
+          <td><a href="index.html#/20260506-20260604/2605.09781v1-parameter-efficient-neuroevolution-for-diverse-llm-generation-quality-diversity-optimization-via-prompt-embedding-evolution">Parameter-Efficient Neuroevolution for Diverse LLM Generation: Quality-Diversity Optimization via Prompt Embedding Evolution</a></td>
+          <td><span class="chip" style="--chip-color:#1D4ED8;--chip-bg:#EFF6FF;--chip-border:#BFDBFE;">搜索与多目标优化</span></td>
+          <td>覆盖率提升 46.4%，QD-Score 提升 41.4%，还能生成更多边缘测试并提升微调数据质量。</td>
+        </tr>
+        <tr>
+          <td><a href="index.html#/20260506-20260604/2605.14553v1-efficient-multi-objective-prompt-optimization-via-pure-exploration-bandits">Efficient Multi-objective Prompt Optimization via Pure-exploration Bandits</a></td>
+          <td><span class="chip" style="--chip-color:#1D4ED8;--chip-bg:#EFF6FF;--chip-border:#BFDBFE;">搜索与多目标优化</span></td>
+          <td>给出线性情形误差界，并在多个 LLM 实验中显著优于基线，建立了多目标提示优化的原则性框架。</td>
+        </tr>
+        <tr>
+          <td><a href="index.html#/20260506-20260604/2605.19102v1-prompt-optimization-for-llm-code-generation-via-reinforcement-learning">Prompt Optimization for LLM Code Generation via Reinforcement Learning</a></td>
+          <td><span class="chip" style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;">强化学习与智能体优化</span></td>
+          <td>由单元测试奖励驱动，MBPP+ strict Pass@1 分别达到 57.58%、64.80%、85.50%，超过 EPiC、Reflexion 等方法。</td>
+        </tr>
+        <tr>
+          <td><a href="index.html#/20260506-20260604/2605.26275v1-spear-code-augmented-agentic-prompt-optimization">SPEAR: Code-Augmented Agentic Prompt Optimization</a></td>
+          <td><span class="chip" style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;">强化学习与智能体优化</span></td>
+          <td>在 13 个工业 LLM-as-judge 任务、BBH-7 与 GSM8K 上全面领先；Python 沙箱是复杂任务最大增益来源。</td>
+        </tr>
+        <tr>
+          <td><a href="index.html#/20260506-20260604/2605.28360v1-prompt-codebooks-discrete-compositional-optimization-for-language-model-instruction-refinement">Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement</a></td>
+          <td><span class="chip" style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;">结构化与可解释提示</span></td>
+          <td>零样本最高提升 30.36 点，HotpotQA 超过 GEPA 3.34 点，提示长度最多压缩 14.1 倍。</td>
+        </tr>
+        <tr>
+          <td><a href="index.html#/20260506-20260604/2605.15665v1-prism-prompt-reliability-via-iterative-simulation-and-monitoring-for-enterprise-conversational-ai">PRISM: Prompt Reliability via Iterative Simulation and Monitoring for Enterprise Conversational AI</a></td>
+          <td><span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span></td>
+          <td>提示编写时间从 2 天降到不足 30 分钟，可靠性达到 99%，生产回归可在 24 小时内修复。</td>
+        </tr>
+        <tr>
+          <td><a href="index.html#/20260506-20260604/2605.21318v1-textreg-mitigating-prompt-distributional-overfitting-via-regularized-text-space-optimization">TextReg: Mitigating Prompt Distributional Overfitting via Regularized Text-Space Optimization</a></td>
+          <td><span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span></td>
+          <td>分布外准确率相对 TextGrad 最高提升 11.8%，相对 REVOLVE 最高提升 16.5%。</td>
+        </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--white" id="atlas" aria-labelledby="atlas-heading">
+      <div class="section__inner">
+        <div class="section__heading">
+          <h2 id="atlas-heading">31 篇论文图谱</h2>
+          <p>按路线筛选，或搜索标题、思路、成果。每张卡片都链接到项目内精读页和论文 PDF。</p>
+        </div>
+        <div class="controls">
+          <label>
+            <span class="sr-only">搜索论文</span>
+            <input class="search-box" id="paper-search" type="search" placeholder="搜索：SPEAR、鲁棒性、Bandit、推理链..." autocomplete="off">
+          </label>
+          <div class="filter-row" role="list" aria-label="论文路线筛选">
+            <button class="filter-button is-active" type="button" data-filter="all">全部 <span>31</span></button><button class="filter-button" type="button" data-filter="search">搜索与多目标优化 <span>5</span></button><button class="filter-button" type="button" data-filter="agentic">强化学习与智能体优化 <span>6</span></button><button class="filter-button" type="button" data-filter="reasoning">推理链与上下文学习 <span>5</span></button><button class="filter-button" type="button" data-filter="structure">结构化与可解释提示 <span>7</span></button><button class="filter-button" type="button" data-filter="safety">可靠性、安全与部署 <span>8</span></button>
+          </div>
+        </div>
+        <div class="paper-grid" id="paper-grid">
+
+        <article class="paper-card" data-category="search" data-search="Parameter-Efficient Neuroevolution for Diverse LLM Generation: Quality-Diversity Optimization via Prompt Embedding Evolution 大型语言模型生成时易出现模式坍塌，输出缺乏多样性。本研究提出QD-LLM框架，通过无梯度优化演化约32K参数的提示嵌入，在冻结的70B+模型中实现质量-多样性搜索。在HumanEval等标准测试上，覆盖率与QD分数分别提升46.4%和41.4%，显著优于基线。该方法无需微调，可增强测试边缘案例和微调数据质量，展示了演化提示嵌入连接神经演化与现代LLM的潜力。 把提示嵌入视作可进化个体，在冻结的 70B+ 模型上用无梯度质量-多样性搜索探索更多行为空间。 覆盖率提升 46.4%，QD-Score 提升 41.4%，还能生成更多边缘测试并提升微调数据质量。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>01</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#1D4ED8;--chip-bg:#EFF6FF;--chip-border:#BFDBFE;">搜索与多目标优化</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>Parameter-Efficient Neuroevolution for Diverse LLM Generation: Quality-Diversity Optimization via Prompt Embedding Evolution</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把提示嵌入视作可进化个体，在冻结的 70B+ 模型上用无梯度质量-多样性搜索探索更多行为空间。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>覆盖率提升 46.4%，QD-Score 提升 41.4%，还能生成更多边缘测试并提升微调数据质量。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型生成时易出现模式坍塌，输出缺乏多样性。本研究提出QD-LLM框架，通过无梯度优化演化约32K参数的提示嵌入，在冻结的70B+模型中实现质量-多样性搜索。在HumanEval等标准测试上，覆盖率与QD分数分别提升46.4%和41.4%，显著优于基线。该方法无需微调，可增强测试边缘案例和微调数据质量，展示了演化提示嵌入连接神…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.09781v1-parameter-efficient-neuroevolution-for-diverse-llm-generation-quality-diversity-optimization-via-prompt-embedding-evolution">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.09781v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="search" data-search="Efficient Multi-objective Prompt Optimization via Pure-exploration Bandits 在大型语言模型应用中，提示工程至关重要，但提示性能往往涉及多个维度，仅靠单一指标优化不够全面。为填补这一空白，本文研究多目标提示选择，提出帕累托最优提示集恢复和最佳可行提示识别两种设置，并创新性地将其建模为纯探索老虎机问题。方法利用多目标老虎机高效算法，并设计了结构化老虎机下的最佳可行臂识别新算法，在线性情形下给出了理论误差界。在多个LLM上的大量实验表明，该方法显著优于现有基线，从而建立了多目标提示优化的原则性高效框架。 把多指标提示选择建模为纯探索老虎机问题，同时处理帕累托提示集恢复和最佳可行提示识别。 给出线性情形误差界，并在多个 LLM 实验中显著优于基线，建立了多目标提示优化的原则性框架。">
+
+          <a href="index.html#/20260506-20260604/2605.14553v1-efficient-multi-objective-prompt-optimization-via-pure-exploration-bandits" class="paper-card__thumb" aria-label="打开 Efficient Multi-objective Prompt Optimization via Pure-exploration Bandits">
+            <img src="docs/assets/figures/arxiv/2605.14553v1/fig-004.webp" alt="Efficient Multi-objective Prompt Optimization via Pure-exploration Bandits 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#1D4ED8;--chip-bg:#EFF6FF;--chip-border:#BFDBFE;">搜索与多目标优化</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>Efficient Multi-objective Prompt Optimization via Pure-exploration Bandits</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把多指标提示选择建模为纯探索老虎机问题，同时处理帕累托提示集恢复和最佳可行提示识别。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>给出线性情形误差界，并在多个 LLM 实验中显著优于基线，建立了多目标提示优化的原则性框架。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">在大型语言模型应用中，提示工程至关重要，但提示性能往往涉及多个维度，仅靠单一指标优化不够全面。为填补这一空白，本文研究多目标提示选择，提出帕累托最优提示集恢复和最佳可行提示识别两种设置，并创新性地将其建模为纯探索老虎机问题。方法利用多目标老虎机高效算法，并设计了结构化老虎机下的最佳可行臂识别新算法，在线性情形下给出了理论误差界。在多…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.14553v1-efficient-multi-objective-prompt-optimization-via-pure-exploration-bandits">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.14553v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="reasoning" data-search="ACIL: Auto Chain of Thoughts for In-Context Learning 大语言模型通过上下文学习可适应新任务，但标准方法仅提供输入输出对，缺乏中间推理步骤，难以处理复杂多步推理问题。本文提出的自动链式思维框架（ACIL）自动为示例生成推理链，筛选高质量演示以增强上下文提示。实验结果表明，ACIL在多个推理任务上显著提升了预测准确率，从而为上下文学习提供了显式推理指导的有效途径。 自动为上下文学习示例生成推理链，并筛除低质量演示，让 ICL 不再只有输入输出对。 在多个复杂推理任务上提升预测准确率，证明显式中间推理可以增强上下文学习。">
+
+          <a href="index.html#/20260506-20260604/2605.17088v1-acil-auto-chain-of-thoughts-for-in-context-learning" class="paper-card__thumb" aria-label="打开 ACIL: Auto Chain of Thoughts for In-Context Learning">
+            <img src="docs/assets/figures/arxiv/2605.17088v1/fig-001.webp" alt="ACIL: Auto Chain of Thoughts for In-Context Learning 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#15803D;--chip-bg:#ECFDF5;--chip-border:#BBF7D0;">推理链与上下文学习</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>ACIL: Auto Chain of Thoughts for In-Context Learning</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>自动为上下文学习示例生成推理链，并筛除低质量演示，让 ICL 不再只有输入输出对。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在多个复杂推理任务上提升预测准确率，证明显式中间推理可以增强上下文学习。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大语言模型通过上下文学习可适应新任务，但标准方法仅提供输入输出对，缺乏中间推理步骤，难以处理复杂多步推理问题。本文提出的自动链式思维框架（ACIL）自动为示例生成推理链，筛选高质量演示以增强上下文提示。实验结果表明，ACIL在多个推理任务上显著提升了预测准确率，从而为上下文学习提供了显式推理指导的有效途径。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.17088v1-acil-auto-chain-of-thoughts-for-in-context-learning">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.17088v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="structure" data-search="iPOE: Interpretable Prompt Optimization via Explanations 传统的提示优化方法通常依赖离散搜索，虽然能找到高性能提示，却无法解释为何特定修改带来提升，优化过程不透明。iPOE创新地借鉴了人类标注指南设计经验，利用自动或人工标注解释生成初始指南，再通过删除、添加、洗牌、合并等操作迭代优化，最终产出包含指南的提示，使得决策过程可解释、可追溯。在四个不同数据集的评估中，iPOE大幅优于无指南提示（最高提升31%）和随机指南提示（最高提升35%），并且使用LLM自动生成解释也能达到与人工解释相当的效果。iPOE为提示优化提供了可解释的新范式，降低了技术门槛，对需要领域知识的复杂任务尤其有帮助。 从自动或人工解释中生成标注指南，再通过删除、添加、洗牌、合并等操作优化指南式提示。 相对无指南提示最高提升 31%，相对随机指南最高提升 35%，且 LLM 解释可替代人工解释。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>04</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;">结构化与可解释提示</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>iPOE: Interpretable Prompt Optimization via Explanations</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>从自动或人工解释中生成标注指南，再通过删除、添加、洗牌、合并等操作优化指南式提示。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>相对无指南提示最高提升 31%，相对随机指南最高提升 35%，且 LLM 解释可替代人工解释。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">传统的提示优化方法通常依赖离散搜索，虽然能找到高性能提示，却无法解释为何特定修改带来提升，优化过程不透明。iPOE创新地借鉴了人类标注指南设计经验，利用自动或人工标注解释生成初始指南，再通过删除、添加、洗牌、合并等操作迭代优化，最终产出包含指南的提示，使得决策过程可解释、可追溯。在四个不同数据集的评估中，iPOE大幅优于无指南提示（…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.18113v1-ipoe-interpretable-prompt-optimization-via-explanations">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.18113v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="search" data-search="MO-CAPO: Multi-Objective Cost-Aware Prompt Optimization 现有自动提示优化方法大多只优化性能，忽视推理成本等多目标，且多目标优化效率低。MO-CAPO提出一种联合优化性能与成本的新算法，并通过预算分配实现成本高效的搜索。在多个任务和LLM上，MO-CAPO能发现多样、鲁棒的帕累托前沿，以更低预算获得有竞争力的性能，支持从业者按需选择性能-成本权衡的提示。 把提示质量与推理成本一起纳入目标函数，并用预算分配降低多目标搜索成本。 在 8/12 个 noisy R2 场景优于 NSGA-II 基线，发现更稳健且可部署的性能-成本帕累托前沿。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>05</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#1D4ED8;--chip-bg:#EFF6FF;--chip-border:#BFDBFE;">搜索与多目标优化</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>MO-CAPO: Multi-Objective Cost-Aware Prompt Optimization</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把提示质量与推理成本一起纳入目标函数，并用预算分配降低多目标搜索成本。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在 8/12 个 noisy R2 场景优于 NSGA-II 基线，发现更稳健且可部署的性能-成本帕累托前沿。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">现有自动提示优化方法大多只优化性能，忽视推理成本等多目标，且多目标优化效率低。MO-CAPO提出一种联合优化性能与成本的新算法，并通过预算分配实现成本高效的搜索。在多个任务和LLM上，MO-CAPO能发现多样、鲁棒的帕累托前沿，以更低预算获得有竞争力的性能，支持从业者按需选择性能-成本权衡的提示。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.18869v1-mo-capo-multi-objective-cost-aware-prompt-optimization">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.18869v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="agentic" data-search="Prompt Optimization for LLM Code Generation via Reinforcement Learning 大型语言模型（LLMs）的代码生成性能对提示词高度敏感，但手动设计提示难以达到最优，现有自动优化方法考虑代码正确性不足。本文提出基于强化学习的提示优化框架，将迭代改进提示建模为序列决策，利用PPO智能体在混合动作空间（直接生成、遗传突变、语义重写）中搜索，并通过单元测试反馈塑造奖励。在MBPP+等多个基准上，该方法显著提升了三种主流模型的Pass@1分数，超越了现有方法，证明了测试驱动强化学习可有效提升代码生成正确性，为自动化提示优化提供了新范式。 把代码生成提示改写建模为序列决策，用 PPO 在直接生成、遗传突变、语义重写之间选择动作。 由单元测试奖励驱动，MBPP+ strict Pass@1 分别达到 57.58%、64.80%、85.50%，超过 EPiC、Reflexion 等方法。">
+
+          <a href="index.html#/20260506-20260604/2605.19102v1-prompt-optimization-for-llm-code-generation-via-reinforcement-learning" class="paper-card__thumb" aria-label="打开 Prompt Optimization for LLM Code Generation via Reinforcement Learning">
+            <img src="docs/assets/figures/arxiv/2605.19102v1/fig-001.webp" alt="Prompt Optimization for LLM Code Generation via Reinforcement Learning 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;">强化学习与智能体优化</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>Prompt Optimization for LLM Code Generation via Reinforcement Learning</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把代码生成提示改写建模为序列决策，用 PPO 在直接生成、遗传突变、语义重写之间选择动作。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>由单元测试奖励驱动，MBPP+ strict Pass@1 分别达到 57.58%、64.80%、85.50%，超过 EPiC、Reflexion 等方法。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型（LLMs）的代码生成性能对提示词高度敏感，但手动设计提示难以达到最优，现有自动优化方法考虑代码正确性不足。本文提出基于强化学习的提示优化框架，将迭代改进提示建模为序列决策，利用PPO智能体在混合动作空间（直接生成、遗传突变、语义重写）中搜索，并通过单元测试反馈塑造奖励。在MBPP+等多个基准上，该方法显著提升了三种主流…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.19102v1-prompt-optimization-for-llm-code-generation-via-reinforcement-learning">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.19102v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="reasoning" data-search="Context-CoT: Enhancing Context Learning via High-Quality Reasoning Synthesis 大型语言模型在利用静态预训练知识推理上表现优异，但在需要动态从特定任务上下文中提取、内化并应用新知识的上下文学习任务中严重不足，前沿模型在CL-Bench上平均仅解决17.2%任务。本文提出Context-CoT方法，通过合成高质量推理过程来增强上下文学习能力。实验表明该方法显著提升了上下文依赖任务上的性能，证实了高质量推理合成的有效性，为构建更具适应性的LLM提供了新思路。 针对动态上下文学习能力缺口，合成高质量推理过程，让模型学会抽取、内化并应用新知识。 在上下文依赖任务上显著改善表现，回应了前沿模型在 CL-Bench 平均仅解出 17.2% 任务的问题。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>07</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#15803D;--chip-bg:#ECFDF5;--chip-border:#BBF7D0;">推理链与上下文学习</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>Context-CoT: Enhancing Context Learning via High-Quality Reasoning Synthesis</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>针对动态上下文学习能力缺口，合成高质量推理过程，让模型学会抽取、内化并应用新知识。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在上下文依赖任务上显著改善表现，回应了前沿模型在 CL-Bench 平均仅解出 17.2% 任务的问题。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型在利用静态预训练知识推理上表现优异，但在需要动态从特定任务上下文中提取、内化并应用新知识的上下文学习任务中严重不足，前沿模型在CL-Bench上平均仅解决17.2%任务。本文提出Context-CoT方法，通过合成高质量推理过程来增强上下文学习能力。实验表明该方法显著提升了上下文依赖任务上的性能，证实了高质量推理合成的有…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.25354v1-context-cot-enhancing-context-learning-via-high-quality-reasoning-synthesis">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.25354v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="agentic" data-search="SPEAR: Code-Augmented Agentic Prompt Optimization 自动提示工程（APE）通过重写提示提升下游任务表现，但现有方法将优化器视为固定流水线。SPEAR将CodeAct的代码即行动范式移植到APE，提出一个拥有评估、Python沙箱等工具的自由形式智能优化器，它可自主进行错误聚类和指标分析，配合自动回滚确保稳定提升。在三个工业级LLM评审套件的13项任务及BBH-7、GSM8K上，SPEAR取得全面领先，消融揭示Python沙箱是最大贡献因素。该方法首次将代码增强智能体引入提示优化，为复杂提示工程开辟新路径。 把 CodeAct 的代码即行动范式用于自动提示工程，让优化器调用 evaluate、python、set_prompt、finish 等工具。 在 13 个工业 LLM-as-judge 任务、BBH-7 与 GSM8K 上全面领先；Python 沙箱是复杂任务最大增益来源。">
+
+          <a href="index.html#/20260506-20260604/2605.26275v1-spear-code-augmented-agentic-prompt-optimization" class="paper-card__thumb" aria-label="打开 SPEAR: Code-Augmented Agentic Prompt Optimization">
+            <img src="docs/assets/figures/arxiv/2605.26275v1/fig-001.webp" alt="SPEAR: Code-Augmented Agentic Prompt Optimization 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;">强化学习与智能体优化</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>SPEAR: Code-Augmented Agentic Prompt Optimization</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把 CodeAct 的代码即行动范式用于自动提示工程，让优化器调用 evaluate、python、set_prompt、finish 等工具。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在 13 个工业 LLM-as-judge 任务、BBH-7 与 GSM8K 上全面领先；Python 沙箱是复杂任务最大增益来源。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">自动提示工程（APE）通过重写提示提升下游任务表现，但现有方法将优化器视为固定流水线。SPEAR将CodeAct的代码即行动范式移植到APE，提出一个拥有评估、Python沙箱等工具的自由形式智能优化器，它可自主进行错误聚类和指标分析，配合自动回滚确保稳定提升。在三个工业级LLM评审套件的13项任务及BBH-7、GSM8K上，SPE…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.26275v1-spear-code-augmented-agentic-prompt-optimization">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.26275v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="safety" data-search="Spurious Prompts: Can Irrelevant Prompts Steer Large Language Models? 大语言模型通常对任务相关提示敏感，但本文研究语义无关的“伪提示”能否引导模型。采用黑盒搜索发现此类伪提示；在多个模型和推理问答任务上，伪提示可显著提升性能，甚至优于任务感知优化提示，并能诱导模型产生重复选项、错误答案、固定数字属性等非预期行为。该发现揭示了LLM可被无关提示系统性引导的新敏感性，对安全部署有重要意义。 用黑盒搜索寻找与任务语义无关的伪提示，检验 LLM 是否会被无关文本系统性引导。 伪提示可匹配甚至超过任务感知提示，并诱导固定选项、错误答案等非预期行为，提示安全边界被重新拉响。">
+
+          <a href="index.html#/20260506-20260604/2605.29678v1-spurious-prompts-can-irrelevant-prompts-steer-large-language-models" class="paper-card__thumb" aria-label="打开 Spurious Prompts: Can Irrelevant Prompts Steer Large Language Models?">
+            <img src="docs/assets/figures/arxiv/2605.29678v1/fig-001.webp" alt="Spurious Prompts: Can Irrelevant Prompts Steer Large Language Models? 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span>
+              <span>精读</span>
+              <strong>10.0/10</strong>
+            </div>
+            <h3>Spurious Prompts: Can Irrelevant Prompts Steer Large Language Models?</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>用黑盒搜索寻找与任务语义无关的伪提示，检验 LLM 是否会被无关文本系统性引导。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>伪提示可匹配甚至超过任务感知提示，并诱导固定选项、错误答案等非预期行为，提示安全边界被重新拉响。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大语言模型通常对任务相关提示敏感，但本文研究语义无关的“伪提示”能否引导模型。采用黑盒搜索发现此类伪提示；在多个模型和推理问答任务上，伪提示可显著提升性能，甚至优于任务感知优化提示，并能诱导模型产生重复选项、错误答案、固定数字属性等非预期行为。该发现揭示了LLM可被无关提示系统性引导的新敏感性，对安全部署有重要意义。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.29678v1-spurious-prompts-can-irrelevant-prompts-steer-large-language-models">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.29678v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="safety" data-search="Prompt Engineering Strategies for LLM-based Qualitative Coding of Psychological Safety in Software Engineering Communities: A Controlled Empirical Study 软件工程定性编码中，LLM的提示策略影响一致性尚不明确。本实验比较Claude Haiku、DeepSeek-Chat、Gemini 2.5 Flash的零样本与多样本提示，发现多样本仅提升Claude Haiku的κ（+0.034），所有模型均偏误（过度“分享负面反馈”，低估“表达担忧”），稳定性差异大（Gemini SD=0.038）。为LLM辅助编码提供提示设计指南。 在软件工程心理安全定性编码任务上，控制比较零样本和多样本提示对三类模型的一致性影响。 多样本只显著提升 Claude Haiku 的 kappa，且所有模型都有类别偏误和稳定性差异，为 LLM 辅助编码给出实证边界。">
+
+          <a href="index.html#/20260506-20260604/2605.07422v1-prompt-engineering-strategies-for-llm-based-qualitative-coding-of-psychological-safety-in-software-engineering-communities-a-controlled-empirical-study" class="paper-card__thumb" aria-label="打开 Prompt Engineering Strategies for LLM-based Qualitative Coding of Psychological Safety in Software Engineering Communities: A Controlled Empirical Study">
+            <img src="docs/assets/figures/arxiv/2605.07422v1/fig-001.webp" alt="Prompt Engineering Strategies for LLM-based Qualitative Coding of Psychological Safety in Software Engineering Communities: A Controlled Empirical Study 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Prompt Engineering Strategies for LLM-based Qualitative Coding of Psychological Safety in Software Engineering Communities: A Controlled Empirical Study</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>在软件工程心理安全定性编码任务上，控制比较零样本和多样本提示对三类模型的一致性影响。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>多样本只显著提升 Claude Haiku 的 kappa，且所有模型都有类别偏误和稳定性差异，为 LLM 辅助编码给出实证边界。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">软件工程定性编码中，LLM的提示策略影响一致性尚不明确。本实验比较Claude Haiku、DeepSeek-Chat、Gemini 2.5 Flash的零样本与多样本提示，发现多样本仅提升Claude Haiku的κ（+0.034），所有模型均偏误（过度“分享负面反馈”，低估“表达担忧”），稳定性差异大（Gemini SD=0.0…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.07422v1-prompt-engineering-strategies-for-llm-based-qualitative-coding-of-psychological-safety-in-software-engineering-communities-a-controlled-empirical-study">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.07422v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="reasoning" data-search="Derivation Prompting: A Logic-Based Method for Improving Retrieval-Augmented Generation 检索增强生成（RAG）中，大型语言模型常因缺乏推理约束而产生幻觉与错误结论，尤其影响知识密集型任务。为此，本文提出Derivation Prompting，在生成阶段基于预定义规则进行逻辑推导，从初始假设逐步构建可解释的推导树以得出答案，从而增强生成过程的可控性和透明度。在特定领域案例中，该方法相较于传统RAG与长上下文方法，显著降低不可接受回答比例，并通过透明推导提升答案可验证性。为融合逻辑推理与语言模型、提升问答可靠性提供新思路。 在 RAG 生成阶段加入基于规则的推导树，从初始假设逐步推出可解释答案。 相比传统 RAG 与长上下文方案，显著降低不可接受回答比例，并提高答案可验证性。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>11</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#15803D;--chip-bg:#ECFDF5;--chip-border:#BBF7D0;">推理链与上下文学习</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Derivation Prompting: A Logic-Based Method for Improving Retrieval-Augmented Generation</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>在 RAG 生成阶段加入基于规则的推导树，从初始假设逐步推出可解释答案。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>相比传统 RAG 与长上下文方案，显著降低不可接受回答比例，并提高答案可验证性。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">检索增强生成（RAG）中，大型语言模型常因缺乏推理约束而产生幻觉与错误结论，尤其影响知识密集型任务。为此，本文提出Derivation Prompting，在生成阶段基于预定义规则进行逻辑推导，从初始假设逐步构建可解释的推导树以得出答案，从而增强生成过程的可控性和透明度。在特定领域案例中，该方法相较于传统RAG与长上下文方法，显著降…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.14053v1-derivation-prompting-a-logic-based-method-for-improving-retrieval-augmented-generation">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.14053v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="structure" data-search="PEML: Parameter-efficient Multi-Task Learning with Optimized Continuous Prompts 多任务大语言模型部署需同时高效适配模型权重与优化提示，但现有参数高效微调方法（如LoRA和Prefix Tuning）通常只侧重其一，限制多任务性能。PEML提出联合神经架构搜索优化连续提示与低秩适配的方案，自动化协同优化。在GLUE、SuperGLUE、MMLU等基准上，PEML平均准确率提升6.67%，单任务最高提升10.75%，显著优于MTL-LoRA等前沿方法。该工作揭示了多任务学习中提示与模型协同优化的关键作用，为资源高效的单模型多任务部署提供新途径。 用神经架构搜索联合优化连续提示与低秩适配，让单模型多任务部署同时获得提示和权重适配。 在 GLUE、SuperGLUE、MMLU 等基准平均准确率提升 6.67%，单任务最高提升 10.75%。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>12</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;">结构化与可解释提示</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>PEML: Parameter-efficient Multi-Task Learning with Optimized Continuous Prompts</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>用神经架构搜索联合优化连续提示与低秩适配，让单模型多任务部署同时获得提示和权重适配。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在 GLUE、SuperGLUE、MMLU 等基准平均准确率提升 6.67%，单任务最高提升 10.75%。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">多任务大语言模型部署需同时高效适配模型权重与优化提示，但现有参数高效微调方法（如LoRA和Prefix Tuning）通常只侧重其一，限制多任务性能。PEML提出联合神经架构搜索优化连续提示与低秩适配的方案，自动化协同优化。在GLUE、SuperGLUE、MMLU等基准上，PEML平均准确率提升6.67%，单任务最高提升10.75%…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.14055v1-peml-parameter-efficient-multi-task-learning-with-optimized-continuous-prompts">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.14055v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="agentic" data-search="Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience 针对黑盒大语言模型的提示工程优化，提出一种基于强化学习的迭代经验蒸馏框架，通过训练轻量级提示策略模型，将标量奖励与文本反馈相结合，有效提升多步推理和工具使用任务的性能；实验表明，在逻辑密集推理任务上准确率从55%提升至90%，工具使用任务从74%提升至91%，且提示策略能自动发现算法启发式，展示出优于进化基线的样本效率和可解释性。 训练轻量级 prompter 策略模型，用标量奖励与文本批评组成经验缓冲区，蒸馏黑盒 LLM 的迭代优化经验。 逻辑密集推理准确率从 55% 提升到 90%，工具使用任务从 74% 提升到 91%。">
+
+          <a href="index.html#/20260506-20260604/2605.14443v1-prompting-policies-for-multi-step-reasoning-and-tool-use-in-black-box-llms-with-iterative-distillation-of-experience" class="paper-card__thumb" aria-label="打开 Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience">
+            <img src="docs/assets/figures/arxiv/2605.14443v1/fig-001.webp" alt="Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;">强化学习与智能体优化</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Prompting Policies for Multi-step Reasoning and Tool-Use in Black-box LLMs with Iterative Distillation of Experience</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>训练轻量级 prompter 策略模型，用标量奖励与文本批评组成经验缓冲区，蒸馏黑盒 LLM 的迭代优化经验。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>逻辑密集推理准确率从 55% 提升到 90%，工具使用任务从 74% 提升到 91%。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">针对黑盒大语言模型的提示工程优化，提出一种基于强化学习的迭代经验蒸馏框架，通过训练轻量级提示策略模型，将标量奖励与文本反馈相结合，有效提升多步推理和工具使用任务的性能；实验表明，在逻辑密集推理任务上准确率从55%提升至90%，工具使用任务从74%提升至91%，且提示策略能自动发现算法启发式，展示出优于进化基线的样本效率和可解释性。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.14443v1-prompting-policies-for-multi-step-reasoning-and-tool-use-in-black-box-llms-with-iterative-distillation-of-experience">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.14443v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="structure" data-search="Prompt Segmentation and Annotation Optimisation: Controlling LLM Behaviour via Optimised Segment-Level Annotations 在生成式人工智能交互中，提示工程至关重要，但传统优化方法在无结构的提示空间中搜索，不仅计算开销大，而且容易偏离原始意图。为此，提示分割与注释优化框架从可解释性出发，将提示划分为句子级片段，并附上{不重要}、{重要}、{非常重要}等易于理解的标注，通过优化这些片段级注释来精准控制大型语言模型的注意力焦点，从而提升回应的质量。实验结果表明，优化后的注释能够显著提高推理准确性和回答的自洽性，同时保留原始提示作为候选方案有效防止了性能退化。该概念验证工作证明了片段级注释优化的可行性和潜力，但设计高效寻找最优分割与注释的方法仍是未来挑战。 把提示切成句子级片段，并优化“重要/非常重要/不重要”等人类可读标注来控制注意力分配。 优化后的片段标注提升推理准确性和自洽性，同时保留原始提示候选以防性能退化。">
+
+          <a href="index.html#/20260506-20260604/2605.14561v1-prompt-segmentation-and-annotation-optimisation-controlling-llm-behaviour-via-optimised-segment-level-annotations" class="paper-card__thumb" aria-label="打开 Prompt Segmentation and Annotation Optimisation: Controlling LLM Behaviour via Optimised Segment-Level Annotations">
+            <img src="docs/assets/figures/arxiv/2605.14561v1/fig-001.webp" alt="Prompt Segmentation and Annotation Optimisation: Controlling LLM Behaviour via Optimised Segment-Level Annotations 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;">结构化与可解释提示</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Prompt Segmentation and Annotation Optimisation: Controlling LLM Behaviour via Optimised Segment-Level Annotations</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把提示切成句子级片段，并优化“重要/非常重要/不重要”等人类可读标注来控制注意力分配。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>优化后的片段标注提升推理准确性和自洽性，同时保留原始提示候选以防性能退化。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">在生成式人工智能交互中，提示工程至关重要，但传统优化方法在无结构的提示空间中搜索，不仅计算开销大，而且容易偏离原始意图。为此，提示分割与注释优化框架从可解释性出发，将提示划分为句子级片段，并附上{不重要}、{重要}、{非常重要}等易于理解的标注，通过优化这些片段级注释来精准控制大型语言模型的注意力焦点，从而提升回应的质量。实验结果表…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.14561v1-prompt-segmentation-and-annotation-optimisation-controlling-llm-behaviour-via-optimised-segment-level-annotations">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.14561v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="search" data-search="Embedding by Elicitation: Dynamic Representations for Bayesian Optimization of System Prompts 系统提示优化仅能使用聚合标量分数，无法获取逐例标签或错误信息，使得传统优化难以应对离散变长文本空间。本文提出ReElicit，一种基于嵌入诱导的贝叶斯优化框架。LLM根据任务描述与历史提示-分数对，动态提炼出紧凑可解释的特征空间，并将每个提示映射为向量。高斯过程代理模型学习评分与特征向量的关系，采集函数选取目标向量，LLM再由此生成或精炼新提示。每次获取新评价后，特征空间被重新诱导以适应知识积累。在十项系统提示优化任务中，总评估次数仅30次，ReElicit在所有仅依赖聚合评分的优化方法中表现最佳，从而展示了LLM作为自适应语义表示构建器支撑自然语言贝叶斯优化的潜力。 让 LLM 根据任务描述和历史提示-分数对动态诱导可解释特征空间，再用贝叶斯优化选择新提示方向。 在 10 项系统提示优化任务中，仅 30 次评估就成为聚合评分条件下表现最好的方法。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>15</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#1D4ED8;--chip-bg:#EFF6FF;--chip-border:#BFDBFE;">搜索与多目标优化</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Embedding by Elicitation: Dynamic Representations for Bayesian Optimization of System Prompts</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>让 LLM 根据任务描述和历史提示-分数对动态诱导可解释特征空间，再用贝叶斯优化选择新提示方向。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在 10 项系统提示优化任务中，仅 30 次评估就成为聚合评分条件下表现最好的方法。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">系统提示优化仅能使用聚合标量分数，无法获取逐例标签或错误信息，使得传统优化难以应对离散变长文本空间。本文提出ReElicit，一种基于嵌入诱导的贝叶斯优化框架。LLM根据任务描述与历史提示-分数对，动态提炼出紧凑可解释的特征空间，并将每个提示映射为向量。高斯过程代理模型学习评分与特征向量的关系，采集函数选取目标向量，LLM再由此生成…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.19093v1-embedding-by-elicitation-dynamic-representations-for-bayesian-optimization-of-system-prompts">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.19093v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="structure" data-search="Less Back-and-Forth: A Comparative Study of Structured Prompting 大型语言模型处理开放式任务时，模糊的提示常导致低质量回复和频繁交互，增加用户负担。本研究对比原始提示、检查表增强和澄清问题三种提示策略，在摘要、规划、解释、编码四种任务上测试ChatGPT、Claude和Grok，采用统一评分表评估完成度、正确性、合规性和清晰度。检查表提示获得最高平均分7.50/8，优于澄清问题（6.67）和原始（5.67），且平均令牌数更少，实现最佳质量与努力平衡。结果表明，简单的提示检查表是提升LLM响应质量、减少不必要交互的高效手段。 系统比较原始提示、清单增强提示和澄清问题三种交互策略，寻找低成本结构化提示收益。 清单提示平均 7.50/8，优于澄清问题 6.67 和原始提示 5.67，同时平均 token 更少。">
+
+          <a href="index.html#/20260506-20260604/2605.20149v1-less-back-and-forth-a-comparative-study-of-structured-prompting" class="paper-card__thumb" aria-label="打开 Less Back-and-Forth: A Comparative Study of Structured Prompting">
+            <img src="docs/assets/figures/arxiv/2605.20149v1/fig-001.webp" alt="Less Back-and-Forth: A Comparative Study of Structured Prompting 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;">结构化与可解释提示</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Less Back-and-Forth: A Comparative Study of Structured Prompting</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>系统比较原始提示、清单增强提示和澄清问题三种交互策略，寻找低成本结构化提示收益。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>清单提示平均 7.50/8，优于澄清问题 6.67 和原始提示 5.67，同时平均 token 更少。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型处理开放式任务时，模糊的提示常导致低质量回复和频繁交互，增加用户负担。本研究对比原始提示、检查表增强和澄清问题三种提示策略，在摘要、规划、解释、编码四种任务上测试ChatGPT、Claude和Grok，采用统一评分表评估完成度、正确性、合规性和清晰度。检查表提示获得最高平均分7.50/8，优于澄清问题（6.67）和原始（…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.20149v1-less-back-and-forth-a-comparative-study-of-structured-prompting">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.20149v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="reasoning" data-search="Strategy-Induct: Task-Level Strategy Induction for Instruction Generation 设计任务级提示是提升大模型性能的关键，但现有指令归纳方法常受限于所需的标注答案，获取成本高昂。Strategy-Induct框架创新地完全摒弃答案标注，仅从少量示例问题入手，先为每个问题生成推理策略，再利用（策略，问题）对归纳出通用任务指令。在多个任务和多种模型规模上的实验表明，该方法在仅有问题的设定下，性能全面超越当前最先进技术。该研究证实了无需答案也能有效推导指令，并发现联合大语言模型与大型推理模型协同工作，可进一步放大推理性能，为指令工程开创了高效、低成本的新路径。 只从未标注问题生成每题推理策略，再由策略-问题对归纳通用任务指令。 在仅有问题的设定下超过现有指令归纳方法，并显示 LLM 与推理模型协同能进一步放大收益。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>17</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#15803D;--chip-bg:#ECFDF5;--chip-border:#BBF7D0;">推理链与上下文学习</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Strategy-Induct: Task-Level Strategy Induction for Instruction Generation</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>只从未标注问题生成每题推理策略，再由策略-问题对归纳通用任务指令。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在仅有问题的设定下超过现有指令归纳方法，并显示 LLM 与推理模型协同能进一步放大收益。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">设计任务级提示是提升大模型性能的关键，但现有指令归纳方法常受限于所需的标注答案，获取成本高昂。Strategy-Induct框架创新地完全摒弃答案标注，仅从少量示例问题入手，先为每个问题生成推理策略，再利用（策略，问题）对归纳出通用任务指令。在多个任务和多种模型规模上的实验表明，该方法在仅有问题的设定下，性能全面超越当前最先进技术。…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.20924v1-strategy-induct-task-level-strategy-induction-for-instruction-generation">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.20924v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="safety" data-search="TextReg: Mitigating Prompt Distributional Overfitting via Regularized Text-Space Optimization 大型语言模型的性能高度依赖任务提示，但现有迭代优化方法（如TextGrad）常导致提示过拟合训练分布，生成冗长提示并学习样本特定模式，导致分布外性能骤降。本研究将这种失败模式形式化为表示低效，认为容量成本膨胀与范围狭窄相互耦合加剧过拟合。为此，提出TextReg，一种基于正则化文本梯度的优化框架，包含双重证据梯度净化、语义编辑正则化和正则引导更新，实施软惩罚以解耦两因素并抑制低效。在多个推理基准上，TextReg将分布外准确率相对TextGrad提升最高11.8%，相对REVOLVE提升最高16.5%，显著增强泛化。 把提示优化过拟合形式化为表示低效，用证据梯度净化、语义编辑正则和正则引导更新抑制冗长过拟合提示。 分布外准确率相对 TextGrad 最高提升 11.8%，相对 REVOLVE 最高提升 16.5%。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>18</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>TextReg: Mitigating Prompt Distributional Overfitting via Regularized Text-Space Optimization</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把提示优化过拟合形式化为表示低效，用证据梯度净化、语义编辑正则和正则引导更新抑制冗长过拟合提示。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>分布外准确率相对 TextGrad 最高提升 11.8%，相对 REVOLVE 最高提升 16.5%。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型的性能高度依赖任务提示，但现有迭代优化方法（如TextGrad）常导致提示过拟合训练分布，生成冗长提示并学习样本特定模式，导致分布外性能骤降。本研究将这种失败模式形式化为表示低效，认为容量成本膨胀与范围狭窄相互耦合加剧过拟合。为此，提出TextReg，一种基于正则化文本梯度的优化框架，包含双重证据梯度净化、语义编辑正则化…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.21318v1-textreg-mitigating-prompt-distributional-overfitting-via-regularized-text-space-optimization">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.21318v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="agentic" data-search="Reflective Prompt Tuning through Language Model Function-Calling 大语言模型提示设计繁琐且敏感，现有自动优化方法难以捕获系统错误模式。Reflective Prompt Tuning (RPT) 通过LLM函数调用模拟人类提示工程师迭代流程，利用诊断函数评估目标模型、总结失败模式并生成结构化报告，驱动提示修订。在三个推理任务上，RPT较初始提示提升高达12.9点，并与最先进方法竞争，同时改善置信校准。该方法在多跳和数学推理中尤为有效，产出对齐失败模式的针对性提示修订，提升了任务性能和校准。 用 LLM 函数调用模拟人类提示工程师：诊断目标模型、总结失败模式、生成结构化报告并驱动修订。 三个推理任务上相对初始提示最高提升 12.9 点，并改善置信校准。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>19</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;">强化学习与智能体优化</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Reflective Prompt Tuning through Language Model Function-Calling</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>用 LLM 函数调用模拟人类提示工程师：诊断目标模型、总结失败模式、生成结构化报告并驱动修订。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>三个推理任务上相对初始提示最高提升 12.9 点，并改善置信校准。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大语言模型提示设计繁琐且敏感，现有自动优化方法难以捕获系统错误模式。Reflective Prompt Tuning (RPT) 通过LLM函数调用模拟人类提示工程师迭代流程，利用诊断函数评估目标模型、总结失败模式并生成结构化报告，驱动提示修订。在三个推理任务上，RPT较初始提示提升高达12.9点，并与最先进方法竞争，同时改善置信校…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.21781v1-reflective-prompt-tuning-through-language-model-function-calling">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.21781v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="agentic" data-search="Reinforced Graph of Thoughts: RL-Driven Adaptive Prompting for LLMs 大型语言模型（LLM）的思维图（GoT）提示方法通过构建操作图来引导复杂推理，但其操作图依赖人工针对特定问题预先设计，导致静态僵化、难以适应多变任务。针对该问题，提出强化思维图（RGoT），利用强化学习技术从预定义操作空间中自动学习生成适应任务复杂度的动态操作图，实现端到端的自适应提示构造。实验结果表明，在给定操作集和任务约束下，RGoT能根据任务难度自动调整图结构，有效提升推理性能，同时保持生成图的可解释性。该工作首次将强化学习引入思维图提示的自动设计，为自适应提示工程和大模型复杂推理的自动化提供了新范式。 用强化学习从预定义操作空间自动生成动态思维图，让复杂推理提示不再依赖人工静态图。 能随任务难度调整图结构，提升推理性能并保留图结构的可解释性。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>20</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;">强化学习与智能体优化</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Reinforced Graph of Thoughts: RL-Driven Adaptive Prompting for LLMs</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>用强化学习从预定义操作空间自动生成动态思维图，让复杂推理提示不再依赖人工静态图。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>能随任务难度调整图结构，提升推理性能并保留图结构的可解释性。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型（LLM）的思维图（GoT）提示方法通过构建操作图来引导复杂推理，但其操作图依赖人工针对特定问题预先设计，导致静态僵化、难以适应多变任务。针对该问题，提出强化思维图（RGoT），利用强化学习技术从预定义操作空间中自动学习生成适应任务复杂度的动态操作图，实现端到端的自适应提示构造。实验结果表明，在给定操作集和任务约束下，R…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.22195v1-reinforced-graph-of-thoughts-rl-driven-adaptive-prompting-for-llms">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.22195v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="safety" data-search="Why Prompt Optimization Works, and Why It Sometimes Doesn&#39;t: A Causal-Inspired Edit-Level Analysis 自动提示优化方法虽能提升大语言模型性能，但跨任务泛化能力不足，跨模型骨干亦然。本研究采用因果启发的观察分析，研究不同优化框架与任务上的提示编辑模式。发现复杂度增加及元指令编辑损害数学与多跳推理，逐步与元认知编辑则有助逻辑与顺序推理，且效果跨特征稳健。这些发现揭示了失败源于编辑家族与任务特性的系统交互，为任务条件优化器设计提供依据。 从因果启发的编辑级观察分析入手，研究不同提示编辑家族与任务特征如何交互。 发现复杂度和元指令编辑会损害数学/多跳推理，逐步与元认知编辑更适合逻辑/顺序推理。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>21</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Why Prompt Optimization Works, and Why It Sometimes Doesn't: A Causal-Inspired Edit-Level Analysis</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>从因果启发的编辑级观察分析入手，研究不同提示编辑家族与任务特征如何交互。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>发现复杂度和元指令编辑会损害数学/多跳推理，逐步与元认知编辑更适合逻辑/顺序推理。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">自动提示优化方法虽能提升大语言模型性能，但跨任务泛化能力不足，跨模型骨干亦然。本研究采用因果启发的观察分析，研究不同优化框架与任务上的提示编辑模式。发现复杂度增加及元指令编辑损害数学与多跳推理，逐步与元认知编辑则有助逻辑与顺序推理，且效果跨特征稳健。这些发现揭示了失败源于编辑家族与任务特性的系统交互，为任务条件优化器设计提供依据。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.26655v1-why-prompt-optimization-works-and-why-it-sometimes-doesnt-a-causal-inspired-edit-level-analysis">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.26655v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="structure" data-search="Learning to Translate from Soft to Hard LLM Prompts 软提示调优通过优化连续向量嵌入适配下游任务，虽参数高效却牺牲了可解释性，用户难以解读其内涵。受最近解释软提示的进展启发，本文训练一个从软提示到硬提示（自然语言）的专用翻译模型，以期获得高保真翻译。在多个Dataset of Datasets上，定量比较和人工评估一致表明，该翻译器产生的文本提示流畅通顺、语义准确，大幅优于现有的免训练方法InSPEcT。更重要的是，所生成的硬提示具有跨模型可移植性：在小规模开源模型上优化的软提示经翻译后，部署于大规模闭源API模型时，性能全面超越原始软提示，并在部分场景下优于少样本学习，为软提示的高效迁移与应用开辟新途径。 训练软提示到自然语言硬提示的翻译器，在保留软提示能力的同时恢复可读性与可迁移性。 翻译后的硬提示比免训练方法更流畅准确，并能从小开源模型迁移到大闭源 API 模型。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>22</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;">结构化与可解释提示</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Learning to Translate from Soft to Hard LLM Prompts</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>训练软提示到自然语言硬提示的翻译器，在保留软提示能力的同时恢复可读性与可迁移性。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>翻译后的硬提示比免训练方法更流畅准确，并能从小开源模型迁移到大闭源 API 模型。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">软提示调优通过优化连续向量嵌入适配下游任务，虽参数高效却牺牲了可解释性，用户难以解读其内涵。受最近解释软提示的进展启发，本文训练一个从软提示到硬提示（自然语言）的专用翻译模型，以期获得高保真翻译。在多个Dataset of Datasets上，定量比较和人工评估一致表明，该翻译器产生的文本提示流畅通顺、语义准确，大幅优于现有的免训练…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.27642v1-learning-to-translate-from-soft-to-hard-llm-prompts">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.27642v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="structure" data-search="Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement 现有自动提示优化方法常将任务提示视为整体进行全局编辑，导致更新脆弱且无法复用学习到的子行为，同时忽略实例差异。为此，本文提出Prompt Codebooks（PCO），一种组合式提示优化框架，将提示构建知识组织为离散、可重用的自然语言“本能”条目集合，通过编码器-生成器-评判器框架为每输入动态选择和组合本能，以文本梯度进行端到端训练。在六项基准测试上（使用Qwen3-8B和LLaMA-3.1-8B），PCO在零样本基础上最高提升30.36点，在HotpotQA上超越强基线GEPA 3.34点，并将提示长度最多压缩14.1倍，仅需16个本能条目。该方法首次实现实例级动态提示组合，突破了实例盲方法的表达限制，展现了高效、可解释且可迁移的提示优化新范式。 把提示知识拆成离散可复用的自然语言“本能”码本，并为每个输入动态选择组合。 零样本最高提升 30.36 点，HotpotQA 超过 GEPA 3.34 点，提示长度最多压缩 14.1 倍。">
+
+          <a href="index.html#/20260506-20260604/2605.28360v1-prompt-codebooks-discrete-compositional-optimization-for-language-model-instruction-refinement" class="paper-card__thumb" aria-label="打开 Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement">
+            <img src="docs/assets/figures/arxiv/2605.28360v1/fig-001.webp" alt="Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement 的图示" loading="lazy">
+          </a>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;">结构化与可解释提示</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Prompt Codebooks: Discrete Compositional Optimization for Language Model Instruction Refinement</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把提示知识拆成离散可复用的自然语言“本能”码本，并为每个输入动态选择组合。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>零样本最高提升 30.36 点，HotpotQA 超过 GEPA 3.34 点，提示长度最多压缩 14.1 倍。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">现有自动提示优化方法常将任务提示视为整体进行全局编辑，导致更新脆弱且无法复用学习到的子行为，同时忽略实例差异。为此，本文提出Prompt Codebooks（PCO），一种组合式提示优化框架，将提示构建知识组织为离散、可重用的自然语言“本能”条目集合，通过编码器-生成器-评判器框架为每输入动态选择和组合本能，以文本梯度进行端到端训练…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.28360v1-prompt-codebooks-discrete-compositional-optimization-for-language-model-instruction-refinement">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.28360v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="reasoning" data-search="Structured Prompt Optimization Meets Reinforcement Learning for Global and Local Interpretability over Complex Text 大语言模型在文本分类中面临监督微调缺乏透明推理与离散提示优化性能差的双重挑战。为此提出eXTC，通过结构化提示优化学习自然语言SOP规则手册，经蒸馏与强化学习赋予紧凑模型推理能力并扩展推理范围。实验结果显示，eXTC在多个基准上分类准确率和解释质量显著优于现有方法，同时提供局部推理轨迹和全局模块化解释，实现了性能与可解释性的平衡。 通过结构化提示优化学习自然语言 SOP 规则手册，再用蒸馏与强化学习扩展紧凑模型的推理范围。 分类准确率和解释质量均优于现有方法，同时提供局部推理轨迹和全局模块化解释。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>24</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#15803D;--chip-bg:#ECFDF5;--chip-border:#BBF7D0;">推理链与上下文学习</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Structured Prompt Optimization Meets Reinforcement Learning for Global and Local Interpretability over Complex Text</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>通过结构化提示优化学习自然语言 SOP 规则手册，再用蒸馏与强化学习扩展紧凑模型的推理范围。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>分类准确率和解释质量均优于现有方法，同时提供局部推理轨迹和全局模块化解释。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大语言模型在文本分类中面临监督微调缺乏透明推理与离散提示优化性能差的双重挑战。为此提出eXTC，通过结构化提示优化学习自然语言SOP规则手册，经蒸馏与强化学习赋予紧凑模型推理能力并扩展推理范围。实验结果显示，eXTC在多个基准上分类准确率和解释质量显著优于现有方法，同时提供局部推理轨迹和全局模块化解释，实现了性能与可解释性的平衡。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.29076v1-structured-prompt-optimization-meets-reinforcement-learning-for-global-and-local-interpretability-over-complex-text">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.29076v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="agentic" data-search="Thoughts-as-Planning: Latent World Models for Chain-of-Thoughts Optimization via Reinforcement Planning 推理链优化对LLM任务对齐至关重要，但现有黑箱方法样本效率低、泛化性差且不透明。我们提出Thoughts-as-Planning框架，将其建模为潜在语义空间中序贯决策，通过世界模型与邻近嵌入实现多尺度规划编辑。实验表明，该方法在多项任务上超越SOTA，提升效率、鲁棒性与泛化性，并提供可解释的规划轨迹。为推理链优化提供统一可解释的规划新范式，代码已开源。 把思维链优化视为潜在语义空间中的规划问题，通过世界模型和邻近嵌入执行多尺度编辑。 在多项任务上超过 SOTA，并提升样本效率、鲁棒性、泛化性和规划轨迹可解释性。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>25</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#6D28D9;--chip-bg:#F5F3FF;--chip-border:#DDD6FE;">强化学习与智能体优化</span>
+              <span>精读</span>
+              <strong>9.0/10</strong>
+            </div>
+            <h3>Thoughts-as-Planning: Latent World Models for Chain-of-Thoughts Optimization via Reinforcement Planning</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把思维链优化视为潜在语义空间中的规划问题，通过世界模型和邻近嵌入执行多尺度编辑。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在多项任务上超过 SOTA，并提升样本效率、鲁棒性、泛化性和规划轨迹可解释性。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">推理链优化对LLM任务对齐至关重要，但现有黑箱方法样本效率低、泛化性差且不透明。我们提出Thoughts-as-Planning框架，将其建模为潜在语义空间中序贯决策，通过世界模型与邻近嵌入实现多尺度规划编辑。实验表明，该方法在多项任务上超越SOTA，提升效率、鲁棒性与泛化性，并提供可解释的规划轨迹。为推理链优化提供统一可解释的规划…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/biorxiv-10-64898-2026-05-10-724161-v1-thoughts-as-planning-latent-world-models-for-chain-of-thoughts-optimization-via-reinforcement-planning">站内精读</a>
+              <a href="https://www.biorxiv.org/content/10.64898/2026.05.10.724161v1.full.pdf">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="safety" data-search="PRISM: Prompt Reliability via Iterative Simulation and Monitoring for Enterprise Conversational AI 企业LLM对话代理面临提示正确性和行为漂移双重挑战，传统一次性优化难以应对。PRISM框架将提示工程视为持续可靠性问题，通过迭代仿真自动生成测试、诊断并修复缺陷，调度运行以监控漂移。评估显示，提示编写时间从2天降至不足30分钟，可靠性达99%，并在24小时内修复生产回归。该工作为大规模企业对话AI提供了必要的持续优化范式。 把企业对话提示工程从一次性优化改造成仿真、监控、诊断、修复的持续可靠性闭环。 提示编写时间从 2 天降到不足 30 分钟，可靠性达到 99%，生产回归可在 24 小时内修复。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>26</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span>
+              <span>速读</span>
+              <strong>8.0/10</strong>
+            </div>
+            <h3>PRISM: Prompt Reliability via Iterative Simulation and Monitoring for Enterprise Conversational AI</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把企业对话提示工程从一次性优化改造成仿真、监控、诊断、修复的持续可靠性闭环。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>提示编写时间从 2 天降到不足 30 分钟，可靠性达到 99%，生产回归可在 24 小时内修复。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">企业LLM对话代理面临提示正确性和行为漂移双重挑战，传统一次性优化难以应对。PRISM框架将提示工程视为持续可靠性问题，通过迭代仿真自动生成测试、诊断并修复缺陷，调度运行以监控漂移。评估显示，提示编写时间从2天降至不足30分钟，可靠性达99%，并在24小时内修复生产回归。该工作为大规模企业对话AI提供了必要的持续优化范式。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.15665v1-prism-prompt-reliability-via-iterative-simulation-and-monitoring-for-enterprise-conversational-ai">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.15665v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="safety" data-search="PromptAudit: Auditing Prompt Sensitivity in LLM-Based Vulnerability Detection 大型语言模型在漏洞检测中的应用日益普及，然而不同提示表述下的可靠性尚未得到系统研究。为此，PromptAudit框架通过控制数据集、解码方式等变量，仅改变提示策略，在涵盖16种语言6074个代码样本的1000个CVE漏洞上对5种开源LLM进行评估。评估指标包括准确率、召回率、弃权率等，发现标准思维链提示综合表现最优，少样本对提示敏感模型有显著增益，而自适应思维链会抑制召回，自一致性则引发过度弃权，严重削弱有效F1。该工作揭示了漏洞检测性能取决于模型与提示的联合作用，强调提示敏感性必须作为首要系统属性在评估和部署中被明确刻画。这为LLM在安全任务中的稳健评估奠定了基础。 控制数据、解码和模型变量，只改变提示策略，系统审计漏洞检测任务中的提示敏感性。 标准 CoT 综合表现最好；少样本帮助敏感模型，自一致性会导致过度弃权并削弱有效 F1。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>27</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span>
+              <span>速读</span>
+              <strong>8.0/10</strong>
+            </div>
+            <h3>PromptAudit: Auditing Prompt Sensitivity in LLM-Based Vulnerability Detection</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>控制数据、解码和模型变量，只改变提示策略，系统审计漏洞检测任务中的提示敏感性。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>标准 CoT 综合表现最好；少样本帮助敏感模型，自一致性会导致过度弃权并削弱有效 F1。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型在漏洞检测中的应用日益普及，然而不同提示表述下的可靠性尚未得到系统研究。为此，PromptAudit框架通过控制数据集、解码方式等变量，仅改变提示策略，在涵盖16种语言6074个代码样本的1000个CVE漏洞上对5种开源LLM进行评估。评估指标包括准确率、召回率、弃权率等，发现标准思维链提示综合表现最优，少样本对提示敏感…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.24171v1-promptaudit-auditing-prompt-sensitivity-in-llm-based-vulnerability-detection">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.24171v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="safety" data-search="Harnessing non-adversarial robustness in large language models 大型语言模型对语义等价但表述不同的提示易产生性能波动，本文针对无需全量重训的鲁棒性获取问题，理论揭示模块输出的扰动偏差是关键因素，提出去偏微调方法来消除该偏差，实验证明该方法能快速提升模型鲁棒性并提供鲁棒性认证，为低成本提升LLM稳定性提供了有效途径。 从非对抗、语义相似提示扰动入手，定位模块输出扰动偏差，并用去偏微调提升稳定性。 无需全量重训即可快速提升鲁棒性，并提供鲁棒性认证路径。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>28</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span>
+              <span>速读</span>
+              <strong>8.0/10</strong>
+            </div>
+            <h3>Harnessing non-adversarial robustness in large language models</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>从非对抗、语义相似提示扰动入手，定位模块输出扰动偏差，并用去偏微调提升稳定性。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>无需全量重训即可快速提升鲁棒性，并提供鲁棒性认证路径。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型对语义等价但表述不同的提示易产生性能波动，本文针对无需全量重训的鲁棒性获取问题，理论揭示模块输出的扰动偏差是关键因素，提出去偏微调方法来消除该偏差，实验证明该方法能快速提升模型鲁棒性并提供鲁棒性认证，为低成本提升LLM稳定性提供了有效途径。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.29816v1-harnessing-non-adversarial-robustness-in-large-language-models">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.29816v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="safety" data-search="Training Prompt Matters: State-Adaptive Optimization for Robust Fine-Tuning 训练提示在微调中常被视作静态表面形式，但本研究发现不同语义等价提示会引发截然不同的灾难性遗忘与泛化表现，且存在跨任务一致的优越提示。为此，提出状态自适应提示优化SAPO，利用任务损失动态调整训练提示。实验表明SAPO显著缓解遗忘、增强泛化，性能优于现有方法，为鲁棒微调提供有效策略并揭示提示对学习动态的关键影响。 把训练提示视为会影响学习动态的状态变量，用任务损失动态选择更稳健的训练提示。 显著缓解灾难性遗忘、增强泛化，并揭示语义等价训练提示会带来不同微调结果。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>29</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B91C1C;--chip-bg:#FEF2F2;--chip-border:#FECACA;">可靠性、安全与部署</span>
+              <span>速读</span>
+              <strong>8.0/10</strong>
+            </div>
+            <h3>Training Prompt Matters: State-Adaptive Optimization for Robust Fine-Tuning</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>把训练提示视为会影响学习动态的状态变量，用任务损失动态选择更稳健的训练提示。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>显著缓解灾难性遗忘、增强泛化，并揭示语义等价训练提示会带来不同微调结果。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">训练提示在微调中常被视作静态表面形式，但本研究发现不同语义等价提示会引发截然不同的灾难性遗忘与泛化表现，且存在跨任务一致的优越提示。为此，提出状态自适应提示优化SAPO，利用任务损失动态调整训练提示。实验表明SAPO显著缓解遗忘、增强泛化，性能优于现有方法，为鲁棒微调提供有效策略并揭示提示对学习动态的关键影响。</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2606.01967v1-training-prompt-matters-state-adaptive-optimization-for-robust-fine-tuning">站内精读</a>
+              <a href="https://arxiv.org/pdf/2606.01967v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="structure" data-search="Joint Semantic Token Selection and Prompt Optimization for Interpretable Prompt Learning 视觉语言模型如CLIP通过连续提示学习适配下游任务时，常面临过拟合且可解释性不足的挑战；离散提示优化虽能改善可解释性，却依赖庞大外部模型，导致计算开销大、难扩展。为此，本文提出可解释提示学习框架IPL，采用交替优化策略，将离散语义令牌选择建模为近似子模优化问题，鼓励选择人类可理解且语义多样化的令牌，并与连续提示优化协同训练。在多个基准数据集上，IPL作为即插即用模块，在五种代表性提示学习方法上均显著提升分类准确率和可解释性。该工作为现有提示学习框架提供了高效、可扩展的解释性增强方案。 在视觉语言模型提示学习中交替优化离散语义 token 与连续提示参数，兼顾性能与解释性。 作为即插即用模块，在五类代表性提示学习方法上提升分类准确率和可解释性。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>30</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#B45309;--chip-bg:#FFFBEB;--chip-border:#FDE68A;">结构化与可解释提示</span>
+              <span>速读</span>
+              <strong>7.0/10</strong>
+            </div>
+            <h3>Joint Semantic Token Selection and Prompt Optimization for Interpretable Prompt Learning</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>在视觉语言模型提示学习中交替优化离散语义 token 与连续提示参数，兼顾性能与解释性。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>作为即插即用模块，在五类代表性提示学习方法上提升分类准确率和可解释性。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">视觉语言模型如CLIP通过连续提示学习适配下游任务时，常面临过拟合且可解释性不足的挑战；离散提示优化虽能改善可解释性，却依赖庞大外部模型，导致计算开销大、难扩展。为此，本文提出可解释提示学习框架IPL，采用交替优化策略，将离散语义令牌选择建模为近似子模优化问题，鼓励选择人类可理解且语义多样化的令牌，并与连续提示优化协同训练。在多个基…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.04425v1-joint-semantic-token-selection-and-prompt-optimization-for-interpretable-prompt-learning">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.04425v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper-card" data-category="search" data-search="SafeTune: Search-based Harmfulness Minimisation for Large Language Models 大型语言模型(LLMs)的广泛应用引发对其生成有害内容的担忧。本文首先评估四种通用LLM的有害性，随后提出SafeTune，一种多目标搜索方法，通过超参数调优与系统提示工程协同优化安全性与回复相关性。在Qwen3.5 0.8B上的实验结果显示，有害响应率大幅降低，提示-回复相关性显著提升，效应量较大。值得注意的是，鼓励生成重复性是减轻有害性并提高相关性的最关键超参数，这为安全对齐提供了经济有效的方向。 用多目标搜索同时调系统提示和生成超参数，平衡有害性最小化与回答相关性。 在小模型上显著降低有害响应并提升相关性，提示重复性超参数成为关键安全杠杆。">
+
+          <div class="paper-card__diagram" aria-hidden="true">
+            <span>31</span>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="paper-card__content">
+            <div class="paper-card__meta">
+              <span class="chip" style="--chip-color:#1D4ED8;--chip-bg:#EFF6FF;--chip-border:#BFDBFE;">搜索与多目标优化</span>
+              <span>速读</span>
+              <strong>7.0/10</strong>
+            </div>
+            <h3>SafeTune: Search-based Harmfulness Minimisation for Large Language Models</h3>
+            <dl>
+              <div>
+                <dt>思路</dt>
+                <dd>用多目标搜索同时调系统提示和生成超参数，平衡有害性最小化与回答相关性。</dd>
+              </div>
+              <div>
+                <dt>成果</dt>
+                <dd>在小模型上显著降低有害响应并提升相关性，提示重复性超参数成为关键安全杠杆。</dd>
+              </div>
+            </dl>
+            <p class="paper-card__summary">大型语言模型(LLMs)的广泛应用引发对其生成有害内容的担忧。本文首先评估四种通用LLM的有害性，随后提出SafeTune，一种多目标搜索方法，通过超参数调优与系统提示工程协同优化安全性与回复相关性。在Qwen3.5 0.8B上的实验结果显示，有害响应率大幅降低，提示-回复相关性显著提升，效应量较大。值得注意的是，鼓励生成重复性是减…</p>
+            <div class="paper-card__links">
+              <a href="index.html#/20260506-20260604/2605.07709v1-safetune-search-based-harmfulness-minimisation-for-large-language-models">站内精读</a>
+              <a href="https://arxiv.org/pdf/2605.07709v1">PDF</a>
+            </div>
+          </div>
+        </article>
+        </div>
+        <div class="empty-state" id="empty-state">没有匹配的论文。换一个关键词或切回“全部”。</div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <span>数据源：docs/20260506-20260604/papers.meta.json 与 docs/assets/figures/arxiv/</span>
+        <span>生成脚本：scripts/build_paper_showcase.mjs</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const filterButtons = Array.from(document.querySelectorAll(".filter-button"));
+    const cards = Array.from(document.querySelectorAll(".paper-card"));
+    const searchInput = document.getElementById("paper-search");
+    const emptyState = document.getElementById("empty-state");
+    let activeFilter = "all";
+
+    function normalize(text) {
+      return String(text || "").trim().toLowerCase();
+    }
+
+    function applyFilters() {
+      const query = normalize(searchInput.value);
+      let visible = 0;
+      for (const card of cards) {
+        const categoryMatch = activeFilter === "all" || card.dataset.category === activeFilter;
+        const queryMatch = !query || normalize(card.dataset.search).includes(query);
+        const shouldShow = categoryMatch && queryMatch;
+        card.hidden = !shouldShow;
+        if (shouldShow) visible += 1;
+      }
+      emptyState.classList.toggle("is-visible", visible === 0);
+    }
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeFilter = button.dataset.filter;
+        filterButtons.forEach((item) => item.classList.toggle("is-active", item === button));
+        applyFilters();
+      });
+    });
+
+    searchInput.addEventListener("input", applyFilters);
+  </script>
+</body>
+</html>
